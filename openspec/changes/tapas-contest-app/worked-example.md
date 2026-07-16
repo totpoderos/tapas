@@ -22,7 +22,7 @@ Couples:                                  Singles:
 
 ### 1.1 Path A — Form
 
-Ana, the host, opens the app on her phone. She is presented with two options.
+Ana, the host, opens the **host/admin app** on her phone. She is presented with two options.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -155,7 +155,7 @@ This is the part that lands in the defense. The contest is running. Ana is the h
 
 ### 2.1 Joining
 
-Each of the 10 participants visits the app on their phone, enters `TAPA-26`, sets a display name, and gets a remember-me token. The audit log records `action: "voter.joined"` for each.
+Each of the 10 participants opens the **participant app** on their phone, enters `TAPA-26`, sets a display name, and gets a remember-me token. The audit log records `action: "voter.joined"` for each.
 
 ### 2.2 Submitting dishes
 
