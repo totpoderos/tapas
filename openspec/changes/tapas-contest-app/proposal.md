@@ -8,7 +8,7 @@ This proposal is the result of an exploration that started from a real, recurrin
 
 **First, the domain is more rule-shaped than it looks.** A tapas contest is not a single product; it is a small space of variants along five dimensions: dish attribution (per person or per couple), anti-bias relations (none, couples, or arbitrary no-score pairs), scoring range (fixed 1..10 or 1..N per voter), uniqueness of scores per category (strict permutation or allow repeat), and category configuration. The product is a system that lets a host *express those choices* and then *enforces them*.
 
-**Second, the LLM is a general host assistant, not a form-filler.** The host can create, configure, and manage a contest through a Web UI *or* by chatting with an AI assistant that acts on the contest through standardized tool calls. The same backend operations are exposed three ways: to humans via the Web UI, to LLMs via an MCP server, and to other services via HTTP. The AI assistant picks tools, the MCP server executes them through the API, and the audit log records every action regardless of which path triggered it.
+**Second, the LLM is a general host assistant, not a form-filler.** The host can create, configure, and manage a contest through the host app *or* by chatting with an AI assistant that acts on the contest through standardized tool calls. The same backend operations are exposed three ways: to humans via the frontends, to LLMs via an MCP server, and to other services via HTTP. The AI assistant picks tools, the MCP server executes them through the API, and the audit log records every action regardless of which path triggered it.
 
 ## Context
 
@@ -96,13 +96,13 @@ The MCP server is a *protocol adapter*. It does not duplicate the API. It does n
 
 ### Capabilities
 
-1. **Create contest, by form or by chat.** A host chooses a structured form or a natural-language path. Both produce the same `ContestDraft` shape. The LLM is given a constrained function schema; the schema is the security boundary. The form path is the Web UI. The chat path is the MCP-mediated LLM.
-2. **Configure the contest, by form or by chat.** After creation, the host can edit attribution, anti-bias mode, scoring config, close rule, reveal strategy — by editing fields in the Web UI *or* by asking the LLM to do it ("actually, let's allow repeat scores and use 1..10"). Both paths go through the same draft-mutation API.
+1. **Create contest, by form or by chat.** A host chooses a structured form or a natural-language path. Both produce the same `ContestDraft` shape. The LLM is given a constrained function schema; the schema is the security boundary. The form path is the host app. The chat path is the MCP-mediated LLM.
+2. **Configure the contest, by form or by chat.** After creation, the host can edit attribution, anti-bias mode, scoring config, close rule, reveal strategy — by editing fields in the host app *or* by asking the LLM to do it ("actually, let's allow repeat scores and use 1..10"). Both paths go through the same draft-mutation API.
 3. **Validate and publish.** A draft is reviewed and validated; on publish, the rule language is *compiled* into a materialized constraint view. The runtime never re-interprets the rule language.
-4. **Enroll participants.** Cooks and judges join a contest via a join code. The host does not pre-register all participants; people enroll themselves when they enter the venue. The host can also add or remove participants via the Web UI or by asking the LLM.
+4. **Enroll participants.** Cooks and judges join a contest via a join code. The host does not pre-register all participants; people enroll themselves when they enter the venue. The host can also add or remove participants via the host app or by asking the LLM.
 5. **Submit dishes.** Cooks register their dish (name, optional description, optional photo) during the contest.
 6. **Taste and score.** Judges score dishes during the event. Scores are saved locally and edited freely until sent. On send, the vote is locked.
-7. **Manage the live contest.** The host can see tallies, send reminders, extend the deadline, lock the contest, trigger the reveal — through the Web UI or by asking the LLM. The LLM picks the right tool, the MCP server executes it through the API.
+7. **Manage the live contest.** The host can see tallies, send reminders, extend the deadline, lock the contest, trigger the reveal — through the host app or by asking the LLM. The LLM picks the right tool, the MCP server executes it through the API.
 8. **Reveal results.** The host triggers the reveal; winners are announced globally and per category. The host resolves ties.
 9. **Audit everything.** Every change to a draft, every publish, every score, every MCP tool call, every reveal is logged with who, when, and from which path (form, MCP, or system). MCP-mediated actions are explicitly tagged.
 
@@ -161,7 +161,7 @@ The thesis the committee will hear:
 - **Persistence.** SQL with migrations. JSON columns for the materialized constraint view, the MCP tool-call audit log payload, and the chat transcript.
 - **Realtime.** Polling for tallies. Refresh on reveal. The chat panel uses polling or SSE; websockets are not required in v1.
 - **Auth.** Host: email + password (or magic link). Participants: join code + display name + remember-me token, scoped to a single contest. MCP server is bound to a host session at the protocol level.
-- **Deployment.** Cloud-shaped: Vercel for the frontend, a managed Postgres for the database, the LLM via a hosted provider. The whole thing must be runnable locally with `docker compose up` for the defense demo. The Dockerfiles and the compose file are *generated by AI as a thesis artifact* — they are not the code under test, they are an *output* of the AI work the project demonstrates. The pipeline (CI: build, test, eval; CD: deploy on tag) is also an AI-generated artifact, versioned in the repo.
+- **Deployment.** Cloud-shaped: Vercel for the two frontends, a managed Postgres for the database, the LLM via a hosted provider. The whole thing must be runnable locally with `docker compose up` for the defense demo. The Dockerfiles and the compose file are *generated by AI as a thesis artifact* — they are not the code under test, they are an *output* of the AI work the project demonstrates. The pipeline (CI: build, test, eval; CD: deploy on tag) is also an AI-generated artifact, versioned in the repo.
 
 ## Open threads (resolved)
 

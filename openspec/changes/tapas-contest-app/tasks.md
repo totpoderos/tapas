@@ -20,7 +20,7 @@ The minimum scaffolding to start the project. Services in one monorepo: `api`, `
 - [ ] **0.4** Set up Vitest as the single test runner across all workspaces (backend, MCP, both frontends, compiler, eval harnesses); add a **Gherkin runner** (`vitest-cucumber` or equivalent) for `*.feature` acceptance specs, co-located per feature; Playwright for the E2E slice (with `axe-core` assertions). Establish the double-loop TDD scaffolding: an acceptance-test harness (real in-memory SQLite + migrations, fake `LLMClient`, injectable clock, fake notifier, per-scenario state reset) and the unit-test convention (injected, mocked/faked repositories). Document the **spec-leakage rule** (acceptance specs use glossary/domain language only) as a contributor convention
 - [ ] **0.5** Create the `conftest` / shared types package so the model types are reused end-to-end (API, MCP, Web)
 - [ ] **0.6** Define the `DomainEvent` base type in `domain` and the `AuditEntry` projection type in `shared`; add a thin audit-projection interface in `api` (events in → enriched audit entries out)
-- [ ] **0.8** Author `glossary.md` (ubiquitous language): Host, Cook, Judge, Draft, Contest, Dish, VoteSession, Score, Tally, Reveal, Attribution, AntiBias, MaterializedContest — the terms that name code, API, MCP tools, and eval cases
+- [ ] **0.8** Adopt `glossary.md` (drafted in exploration — the ubiquitous language) into the repo; wire it as the naming reference for code, API, MCP tools, Gherkin specs, and eval cases. Keep it in sync as terms evolve
 - [ ] **0.7** Set up the local infra: a `docker-compose.yml` stub with one service (the API) for now; full version lands in Phase 6
 - [ ] **0.9** Set up config/secrets handling: Zod env-validation at startup (fail-fast) in `api`/`mcp`; `.env.example` committed, `.env` git-ignored; only `VITE_`-prefixed vars exposed to the frontends
 - [ ] **0.10** Add a minimal, **hand-written CI workflow** (GitHub Actions): install → typecheck → lint → `npm test` on every push/PR, hard-gating from commit one. This is deliberately *not* the AI-generated infra — Dockerfiles, compose, image build, and CD are the AI-generated Phase 6 artifact (6.1–6.4) layered on top of this skeleton
@@ -45,7 +45,7 @@ The compiler is the load-bearing artifact of the project. Pure function, no I/O,
 
 ## Phase 2 — Backend API and DraftService (1.5 weeks)
 
-The API is the source of truth. Every other component (Web UI, MCP server, chat) calls it. Persistence becomes real here.
+The API is the source of truth. Every other component (the two frontends, MCP server, chat) calls it. Persistence becomes real here.
 
 - [ ] **2.1** Create the schema migrations: `persons`, `contests`, `contest_drafts`, `dishes`, `vote_sessions`, `scores`, `audit_log`
 - [ ] **2.2** Implement the DraftService: create, read, update, delete on drafts
@@ -129,13 +129,13 @@ Two apps sharing a common UI/library layer. **Host/admin app**: desktop-and-mobi
 
 The defense is won or lost on the demo and the artifacts that back it. The infrastructure itself is AI-generated and is itself evaluated.
 
-- [ ] **6.1** AI-generate the `Dockerfile` for the API, the MCP server, and the Web UI. Document the prompt, the output, and the verification (build succeeds, tests pass)
+- [ ] **6.1** AI-generate the `Dockerfile` for the API, the MCP server, and the two frontends (`host-web`, `participant-web`). Document the prompt, the output, and the verification (build succeeds, tests pass)
 - [ ] **6.2** AI-generate the `docker-compose.yml` for local development. Document and verify
 - [ ] **6.3** AI-generate the **full CI pipeline**, extending the hand-written Phase 0 skeleton (0.10): build; run deterministic tests as a **hard gate** (unit + acceptance + mcp contract + frontend + E2E — any failure blocks); run the eval sets as a **threshold gate** (block only when a metric drops below its committed threshold) and report the trajectory; run `npm audit` (supply-chain gate); run `axe-core` via the Playwright E2E (accessibility hard gate). Document the before/after (skeleton vs. AI-generated) as part of the infra-generation artifact
 - [ ] **6.4** AI-generate the CD pipeline (deploy on tag). Document and verify
 - [ ] **6.5** Implement the infrastructure eval: builds, tests pass, deploys (dry-run), human-readable. Record metrics
 - [ ] **6.6** README: how to run, how to test, how to evaluate, the architecture in one page
-- [ ] **6.7** Architecture diagram: the API, the MCP server, the Web UI, the chat panel, the audit log
+- [ ] **6.7** Architecture diagram: the API, the MCP server, the two frontends (host + participant), the chat panel, the audit log
 - [ ] **6.8** Defense demo script: 15 minutes, the worked example end-to-end, both creation paths (form and chat), the host-assistant eval trajectory, the destructive-tool confirmation flow, the audit log
 - [ ] **6.9** Eval trajectory document: prompt iteration logs, all three eval sets, all metrics over time
 - [ ] **6.10** Threat model document: what the system defends against, mapped to the **OWASP Top 10** (see `design.md §11B.9`) — A01 ownership, A03 injection/schema, A04 destructive tools + rate limiting, A07 auth, A09 logging — plus the 2025 supply-chain category; what it doesn't defend against, and why
