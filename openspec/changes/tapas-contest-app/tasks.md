@@ -23,8 +23,9 @@ The minimum scaffolding to start the project. Services in one monorepo: `api`, `
 - [ ] **0.8** Author `glossary.md` (ubiquitous language): Host, Cook, Judge, Draft, Contest, Dish, VoteSession, Score, Tally, Reveal, Attribution, AntiBias, MaterializedContest — the terms that name code, API, MCP tools, and eval cases
 - [ ] **0.7** Set up the local infra: a `docker-compose.yml` stub with one service (the API) for now; full version lands in Phase 6
 - [ ] **0.9** Set up config/secrets handling: Zod env-validation at startup (fail-fast) in `api`/`mcp`; `.env.example` committed, `.env` git-ignored; only `VITE_`-prefixed vars exposed to the frontends
+- [ ] **0.10** Add a minimal, **hand-written CI workflow** (GitHub Actions): install → typecheck → lint → `npm test` on every push/PR, hard-gating from commit one. This is deliberately *not* the AI-generated infra — Dockerfiles, compose, image build, and CD are the AI-generated Phase 6 artifact (6.1–6.4) layered on top of this skeleton
 
-**Done when:** `npm test` runs and passes. `npm run dev` starts the API, the MCP server, the host app, and the participant app. Both frontends can hit the API. The MCP server can hit the API.
+**Done when:** `npm test` runs and passes. `npm run dev` starts the API, the MCP server, the host app, and the participant app. Both frontends can hit the API. The MCP server can hit the API. CI runs the hard-gate (typecheck + lint + tests) on every push/PR.
 
 ## Phase 1 — The compiler (1 week)
 
@@ -130,7 +131,7 @@ The defense is won or lost on the demo and the artifacts that back it. The infra
 
 - [ ] **6.1** AI-generate the `Dockerfile` for the API, the MCP server, and the Web UI. Document the prompt, the output, and the verification (build succeeds, tests pass)
 - [ ] **6.2** AI-generate the `docker-compose.yml` for local development. Document and verify
-- [ ] **6.3** AI-generate the CI pipeline (GitHub Actions or equivalent): build; run deterministic tests as a **hard gate** (unit + acceptance + mcp contract + frontend + E2E — any failure blocks); run the eval sets as a **threshold gate** (block only when a metric drops below its committed threshold) and report the trajectory; run `npm audit` (supply-chain gate); run `axe-core` via the Playwright E2E (accessibility hard gate)
+- [ ] **6.3** AI-generate the **full CI pipeline**, extending the hand-written Phase 0 skeleton (0.10): build; run deterministic tests as a **hard gate** (unit + acceptance + mcp contract + frontend + E2E — any failure blocks); run the eval sets as a **threshold gate** (block only when a metric drops below its committed threshold) and report the trajectory; run `npm audit` (supply-chain gate); run `axe-core` via the Playwright E2E (accessibility hard gate). Document the before/after (skeleton vs. AI-generated) as part of the infra-generation artifact
 - [ ] **6.4** AI-generate the CD pipeline (deploy on tag). Document and verify
 - [ ] **6.5** Implement the infrastructure eval: builds, tests pass, deploys (dry-run), human-readable. Record metrics
 - [ ] **6.6** README: how to run, how to test, how to evaluate, the architecture in one page

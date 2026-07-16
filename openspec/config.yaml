@@ -141,6 +141,10 @@ context: |
   Three AI surfaces, same discipline (schema-validate -> review ->
   version -> audit): contest-creation LLM, host-assistant LLM,
   AI-generated infrastructure. Each has its own eval set.
+  CI/CD split: a minimal hand-written CI test gate exists from Phase 0
+  (install/typecheck/lint/test); the FULL infra (Dockerfiles, compose,
+  image build, CD, full CI) is AI-generated in Phase 6 as the third AI
+  surface -> do NOT hand-build Docker/CD before Phase 6.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
