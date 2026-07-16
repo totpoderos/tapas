@@ -33,7 +33,22 @@ context: |
   Testing strategy (TDD/ATDD):
     - Outside-in, double-loop TDD (GOOS). Outer loop = one failing
       acceptance test (ATDD) per user story; inner loop = unit TDD
-      (red/green/refactor).
+      (red/green/refactor). Acceptance tests define WHAT (external
+      observables); unit tests define HOW (internal structure).
+    - Acceptance tests are Gherkin *.feature files run via a
+      Vitest-compatible runner (e.g. vitest-cucumber), co-located with
+      the feature/context they verify. Spec-first, per feature;
+      tasks.md is the roadmap, ATDD is applied within each feature (do
+      NOT design the whole system upfront).
+    - SPEC-LEAKAGE RULE (critical): acceptance specs use domain
+      language ONLY (the glossary/ubiquitous language) — never class
+      names, DB tables, API endpoints, framework terms, internal state,
+      or file paths. "When the host publishes the contest", NOT "When a
+      POST is sent to /api/contests". Specs are a contract: report
+      ambiguity rather than guess; clear state before each scenario.
+    - Methodology inspired by the ATDD skill at
+      github.com/swingerman/disciplined-agentic-engineering; we do NOT
+      adopt its .build/ spec->IR->generated-test pipeline.
     - Unit tests: application services with injected, mocked/faked
       repositories (fakes preferred over verify-heavy mocks).
     - Acceptance tests: REAL repositories against in-memory SQLite (+

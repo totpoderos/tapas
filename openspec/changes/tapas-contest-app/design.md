@@ -595,7 +595,7 @@ Symmetric to the others. The AI generates Dockerfiles, the CI pipeline, and the 
 - **Frontends (two apps).** React + TypeScript, Vite, Tailwind, sharing the `ui` package. **Host/admin app**: desktop-and-mobile responsive; create/manage forms, tally, reveal control, chat panel. **Participant app**: mobile-first, PWA-installable; join, dish, score, reveal. Each calls the API with its own authorization scope.
 - **Backend.** Node.js + TypeScript, Fastify. **MCP server.** A thin Node/TypeScript service. Calls the backend API over HTTP. Tool definitions are JSON files loaded at startup.
 - **Persistence.** **SQLite for v1** (single machine, no ops), **Postgres-ready**: SQL with migrations, and no SQLite-only SQL so Postgres is a swap. JSON columns for the materialized constraint view, the MCP tool-call audit log payload, and the chat transcript.
-- **Testing.** **Vitest everywhere** — backend, MCP, both frontends, the compiler, and the eval harnesses. One runner, one config style.
+- **Testing.** **Vitest everywhere** — backend, MCP, both frontends, the compiler, and the eval harnesses. One runner, one config style. **Acceptance tests are Gherkin `*.feature` files run through a Vitest-compatible runner** (e.g. `vitest-cucumber`), co-located with the feature they verify. **Playwright** for the E2E slice.
 - **LLM.** **Provider-agnostic `LLMClient` interface** in `shared`; the concrete provider is deferred (chosen at Phase 2/3, when prompt tuning and eval baselines begin). Tool-calling support is a hard requirement of whichever provider is chosen. The MCP tool definitions are the integration contract.
 - **Auth.** Host: email + password (or magic link). Participants: join code + display name + remember-me token, scoped to a single contest. MCP server is bound to a host session at the protocol level.
 - **Realtime.** Polling for tallies and the chat panel. Refresh on reveal. SSE optional for the chat panel; websockets are not required in v1.
@@ -603,7 +603,7 @@ Symmetric to the others. The AI generates Dockerfiles, the CI pipeline, and the 
 
 ## 11A. Testing strategy (TDD / ATDD)
 
-The project is built **outside-in, with double-loop TDD** (GOOS-style). The outer loop is an **acceptance test (ATDD)** per user story; the inner loop is **unit TDD** (red/green/refactor). This applies at every layer.
+The project is built **outside-in, with double-loop TDD** (GOOS-style). The outer loop is an **acceptance test (ATDD)** per user story, written first as a **Gherkin `*.feature` spec**; the inner loop is **unit TDD** (red/green/refactor). This applies at every layer. The two streams think differently on purpose: **acceptance tests define *what* the system does** (external observables); **unit tests define *how* it does it** (internal structure). Both must pass; neither alone suffices.
 
 ```
   OUTER LOOP  (ATDD — one failing acceptance test per user story)
@@ -641,7 +641,7 @@ The boundary is not "DB vs. no DB" — it is **"deterministic and ours" vs. "ext
 |---|---|---|
 | `domain` | pure unit, test-first, property-based + golden corpus | none (pure) |
 | `api` services | unit TDD | mocked/faked repositories |
-| `api` features | ATDD acceptance | real SQLite; fake LLM/clock/notifications |
+| `api` features | ATDD acceptance (Gherkin `*.feature`) | real SQLite; fake LLM/clock/notifications |
 | `mcp` | contract tests: schema validity, destructive enforcement, "maps to API, no logic" | stub the API boundary |
 | frontends | component tests, test-first | mock the API client |
 | E2E | Playwright, one thin slice covering the demo flow across both apps | real API + fake LLM |
@@ -654,6 +654,21 @@ The three eval harnesses are **tests, but not TDD tests**. The LLM's output is n
 
 - **Deterministic tests** (domain, api, mcp, frontends, E2E) — **hard gate**: any failure blocks the build.
 - **Evals** — **threshold gate**: block only when a metric drops below its committed threshold; otherwise report and record the trajectory. A flaky single case does not block; a real regression does.
+
+### 11A.5 ATDD discipline (Gherkin acceptance specs)
+
+Acceptance tests are authored as **Gherkin `*.feature` files**, executed by a Vitest-compatible runner (e.g. `vitest-cucumber`) so we keep one test runner. The `.feature` files are **co-located with the feature/context they verify** (in `domain`, `api`, or the frontends). Discipline:
+
+- **Spec-first, per feature.** Understand the feature → write the `*.feature` (Given/When/Then) → run it red (behavior doesn't exist yet) → implement with inner unit TDD until it goes green → review for leakage → next feature. `tasks.md` is the *roadmap of features*; ATDD is applied *within* each feature. We do **not** design the whole system upfront.
+- **The spec-leakage rule (critical).** Acceptance specs use **domain language only** — never class names, DB tables, API endpoints, framework terms, internal state, or file paths. This is the **ubiquitous language** (`glossary.md`) exercised as an executable test.
+  - ❌ `When a POST request is sent to /api/contests`
+  - ✅ `When the host publishes the contest`
+  This sharpens §11A.1: acceptance tests run against real SQLite but must never *name* it.
+- **Specs are a contract.** A `*.feature` is not edited casually; if a step is ambiguous, the ambiguity is reported rather than guessed.
+- **Isolation.** State is cleared before each scenario.
+- **Format.** `Scenario:` for single behaviors; `Scenario Outline:` + `Examples:` for parameterized data (a natural fit for the rule-space variants — Strict / Permissive / Joint as example rows).
+
+This applies the *methodology* of the ATDD skill at [github.com/swingerman/disciplined-agentic-engineering](https://github.com/swingerman/disciplined-agentic-engineering/blob/master/skills/atdd/SKILL.md); we deliberately do **not** adopt its `.build/` spec→IR→generated-test pipeline (that is its own tooling).
 
 ## 11B. Security
 

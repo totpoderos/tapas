@@ -17,7 +17,7 @@ The minimum scaffolding to start the project. Services in one monorepo: `api`, `
 - [ ] **0.1** Initialize repo, TypeScript everywhere, monorepo layout (workspaces for `domain`, `api`, `mcp`, `host-web`, `participant-web`, `shared`, `ui`). Add a lint/build rule that forbids I/O imports in `domain` (no DB, LLM, or network deps)
 - [ ] **0.2** Create a provider-agnostic `LLMClient` interface in `shared` with a stub implementation (concrete provider deferred to Phase 2/3; tool-calling is a hard requirement)
 - [ ] **0.3** Set up SQLite persistence (Postgres-ready: migrations, no SQLite-only SQL); create the migration runner in `api` and a single empty migration
-- [ ] **0.4** Set up Vitest as the single test runner across all workspaces (backend, MCP, both frontends, compiler, eval harnesses) and Playwright for the E2E slice (with `axe-core` accessibility assertions). Establish the double-loop TDD scaffolding: an acceptance-test harness (real in-memory SQLite + migrations, fake `LLMClient`, injectable clock, fake notifier) and the unit-test convention (injected, mocked/faked repositories)
+- [ ] **0.4** Set up Vitest as the single test runner across all workspaces (backend, MCP, both frontends, compiler, eval harnesses); add a **Gherkin runner** (`vitest-cucumber` or equivalent) for `*.feature` acceptance specs, co-located per feature; Playwright for the E2E slice (with `axe-core` assertions). Establish the double-loop TDD scaffolding: an acceptance-test harness (real in-memory SQLite + migrations, fake `LLMClient`, injectable clock, fake notifier, per-scenario state reset) and the unit-test convention (injected, mocked/faked repositories). Document the **spec-leakage rule** (acceptance specs use glossary/domain language only) as a contributor convention
 - [ ] **0.5** Create the `conftest` / shared types package so the model types are reused end-to-end (API, MCP, Web)
 - [ ] **0.6** Define the `DomainEvent` base type in `domain` and the `AuditEntry` projection type in `shared`; add a thin audit-projection interface in `api` (events in → enriched audit entries out)
 - [ ] **0.8** Author `glossary.md` (ubiquitous language): Host, Cook, Judge, Draft, Contest, Dish, VoteSession, Score, Tally, Reveal, Attribution, AntiBias, MaterializedContest — the terms that name code, API, MCP tools, and eval cases
@@ -60,7 +60,7 @@ The API is the source of truth. Every other component (Web UI, MCP server, chat)
 - [ ] **2.10** Implement dish submission, vote session, score writes (with runtime checks against the materialized view)
 - [ ] **2.11** Implement close logic (all_sent / host_trigger / scheduled) and reveal logic
 - [ ] **2.12** Implement read endpoints: `get_contest`, `get_tally`, `get_results`
-- [ ] **2.13** Write integration tests for the API: form path, LLM path, partial + clarify, schema-rejection on adversarial inputs, full Strict-variant flow
+- [ ] **2.13** Write Gherkin acceptance features for the API (domain language only, real SQLite): form path, LLM path, partial + clarify, schema-rejection on adversarial inputs, and the full contest flow — using a `Scenario Outline` + `Examples` over the rule-space variants (Strict / Permissive / Joint)
 
 **Done when:** The API can be driven end-to-end via HTTP for the full Strict variant. The audit log records every change. Auth works. The eval harness can be pointed at the API for the contest-creation eval.
 
