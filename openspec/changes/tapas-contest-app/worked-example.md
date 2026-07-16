@@ -22,7 +22,7 @@ Couples:                                  Singles:
 
 ### 1.1 Path A — Form
 
-Ana, the host, opens the app on her phone. She is presented with two options.
+Ana, the host, opens the **host/admin app** on her phone. She is presented with two options.
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -155,7 +155,7 @@ This is the part that lands in the defense. The contest is running. Ana is the h
 
 ### 2.1 Joining
 
-Each of the 10 participants visits the app on their phone, enters `TAPA-26`, sets a display name, and gets a remember-me token. The audit log records `action: "voter.joined"` for each.
+Each of the 10 participants opens the **participant app** on their phone, enters `TAPA-26`, sets a display name, and gets a remember-me token. The audit log records `action: "voter.joined"` for each.
 
 ### 2.2 Submitting dishes
 
@@ -171,7 +171,7 @@ Audit log: `action: "dish.submitted", actorId: B, sourcePath: "form"`.
 
 ### 2.3 Scoring begins
 
-Cook by cook, dish by dish, judges score on their phones. I, a single, opens the app, sees B's tortilla, and saves:
+Cook by cook, dish by dish, judges score on their phones. I, a single, opens the participant app, sees B's tortilla, and saves:
 
 ```
 Presentation: 8
@@ -196,7 +196,7 @@ Ana is mingling. She opens the chat panel on her phone and types:
 │  Assistant:                                       │
 │    → calling: get_tally                           │
 │    → 7 of 10 voters have sent their votes.         │
-│    → Pending: María, Juan, Sara.                  │
+│    → Pending: F, H, J.                             │
 └────────────────────────────────────────────────────┘
 ```
 
@@ -211,7 +211,7 @@ Ana types:
 ```
 ┌────────────────────────────────────────────────────┐
 │  Assistant: 3 participants haven't voted:          │
-│              María, Juan, Sara.                    │
+│              F, H, J.                              │
 │                                                    │
 │              ⚠ This is a destructive action:        │
 │              send_reminder will send 3 messages.   │
@@ -226,9 +226,9 @@ Ana taps *Yes, send*. The chat UI calls the MCP server with the confirmation tok
 
 ### 2.6 The host extends the deadline — auto-confirmed
 
-Sara's train was delayed. Ana types:
+J's train was delayed. Ana types:
 
-> "Bump the deadline 30 minutes. Sara's train was delayed."
+> "Bump the deadline 30 minutes. J's train was delayed."
 
 ```
 ┌────────────────────────────────────────────────────┐

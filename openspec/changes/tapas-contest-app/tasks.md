@@ -12,24 +12,27 @@ All three are governed by the same discipline: schema-validate the output, revie
 
 ## Phase 0 — Skeleton (1–2 days)
 
-The minimum scaffolding to start the project. Three services in one monorepo: `api`, `mcp`, `web`. Shared types package.
+The minimum scaffolding to start the project. Services in one monorepo: `api`, `mcp`, and two frontends `host-web` and `participant-web`. A pure `domain` package, a `shared` package (DTOs + LLMClient), and a shared `ui` package for the two frontends.
 
-- [ ] **0.1** Initialize repo, TypeScript everywhere, monorepo layout (workspaces for `api`, `mcp`, `web`, `shared`)
-- [ ] **0.2** Pick and commit the LLM provider; create an `LLMClient` interface in `shared` with a stub implementation
-- [ ] **0.3** Pick and commit the persistence layer; create the migration runner in `api` and a single empty migration
-- [ ] **0.4** Set up the test runner (backend: fast unit test runner; frontend: Vitest)
+- [ ] **0.1** Initialize repo, TypeScript everywhere, monorepo layout (workspaces for `domain`, `api`, `mcp`, `host-web`, `participant-web`, `shared`, `ui`). Add a lint/build rule that forbids I/O imports in `domain` (no DB, LLM, or network deps)
+- [ ] **0.2** Create a provider-agnostic `LLMClient` interface in `shared` with a stub implementation (concrete provider deferred to Phase 2/3; tool-calling is a hard requirement)
+- [ ] **0.3** Set up SQLite persistence (Postgres-ready: migrations, no SQLite-only SQL); create the migration runner in `api` and a single empty migration
+- [ ] **0.4** Set up Vitest as the single test runner across all workspaces (backend, MCP, both frontends, compiler, eval harnesses); add a **Gherkin runner** (`vitest-cucumber` or equivalent) for `*.feature` acceptance specs, co-located per feature; Playwright for the E2E slice (with `axe-core` assertions). Establish the double-loop TDD scaffolding: an acceptance-test harness (real in-memory SQLite + migrations, fake `LLMClient`, injectable clock, fake notifier, per-scenario state reset) and the unit-test convention (injected, mocked/faked repositories). Document the **spec-leakage rule** (acceptance specs use glossary/domain language only) as a contributor convention
 - [ ] **0.5** Create the `conftest` / shared types package so the model types are reused end-to-end (API, MCP, Web)
-- [ ] **0.6** Define the `AuditEntry` type in `shared` and a thin audit-log interface in `api`
+- [ ] **0.6** Define the `DomainEvent` base type in `domain` and the `AuditEntry` projection type in `shared`; add a thin audit-projection interface in `api` (events in → enriched audit entries out)
+- [ ] **0.8** Adopt `glossary.md` (drafted in exploration — the ubiquitous language) into the repo; wire it as the naming reference for code, API, MCP tools, Gherkin specs, and eval cases. Keep it in sync as terms evolve
 - [ ] **0.7** Set up the local infra: a `docker-compose.yml` stub with one service (the API) for now; full version lands in Phase 6
+- [ ] **0.9** Set up config/secrets handling: Zod env-validation at startup (fail-fast) in `api`/`mcp`; `.env.example` committed, `.env` git-ignored; only `VITE_`-prefixed vars exposed to the frontends
+- [ ] **0.10** Add a minimal, **hand-written CI workflow** (GitHub Actions): install → typecheck → lint → `npm test` on every push/PR, hard-gating from commit one. This is deliberately *not* the AI-generated infra — Dockerfiles, compose, image build, and CD are the AI-generated Phase 6 artifact (6.1–6.4) layered on top of this skeleton
 
-**Done when:** `npm test` runs and passes. `npm run dev` starts the API, the MCP server, and the Web UI. The Web UI can hit the API. The MCP server can hit the API.
+**Done when:** `npm test` runs and passes. `npm run dev` starts the API, the MCP server, the host app, and the participant app. Both frontends can hit the API. The MCP server can hit the API. CI runs the hard-gate (typecheck + lint + tests) on every push/PR.
 
 ## Phase 1 — The compiler (1 week)
 
-The compiler is the load-bearing artifact of the project. Pure function, no I/O, no LLM. 50+ unit tests before anything else.
+The compiler is the load-bearing artifact of the project. Pure function, no I/O, no LLM. Lives in the `domain` package. 50+ unit tests before anything else.
 
-- [ ] **1.1** Define the model types (`Person`, `ContestDraft`, `ScoringConfig`, `Dish`, `MaterializedContest`) in `shared`
-- [ ] **1.2** Implement the compiler signature: `compile(draft) -> MaterializedContest | CompileError`
+- [ ] **1.1** Define the domain model in `domain`: value objects (`ScoringConfig`, `Range`, `Attribution`, `AntiBias`, `Category`), aggregates (`Draft`, `Contest`, `VoteSession`+`Score`, `Person`, `Dish`), and `MaterializedContest`. Corresponding DTOs live in `shared`
+- [ ] **1.2** Implement the compiler signature in `domain`: `compile(draft) -> MaterializedContest | CompileError`
 - [ ] **1.3** Implement attribution: `per_person` and `per_couple` modes
 - [ ] **1.4** Implement anti-bias: `none`, `couples`, `arbitrary_pairs` modes
 - [ ] **1.5** Implement range resolution: fixed `{min, max}` and `auto`
@@ -42,21 +45,23 @@ The compiler is the load-bearing artifact of the project. Pure function, no I/O,
 
 ## Phase 2 — Backend API and DraftService (1.5 weeks)
 
-The API is the source of truth. Every other component (Web UI, MCP server, chat) calls it. Persistence becomes real here.
+The API is the source of truth. Every other component (the two frontends, MCP server, chat) calls it. Persistence becomes real here.
 
 - [ ] **2.1** Create the schema migrations: `persons`, `contests`, `contest_drafts`, `dishes`, `vote_sessions`, `scores`, `audit_log`
 - [ ] **2.2** Implement the DraftService: create, read, update, delete on drafts
 - [ ] **2.3** Implement the LLMClient: function-calling adapter that takes a host message and returns a parsed `ContestDraft` shape (or partial + clarifications)
 - [ ] **2.4** Implement the two-phase contest-creation flow: extract → clarify → finalize
 - [ ] **2.5** Implement draft validation: the backend's authoritative validator, separate from the LLM schema
-- [ ] **2.6** Wire the audit log: every mutation writes an entry with `sourcePath` set by the request origin
-- [ ] **2.7** Wire authentication: host signup, host login, host session token
+- [ ] **2.6** Define the domain-event catalog in `domain` (`draft.saved`, `contest.published`, `voter.joined`, `dish.submitted`, `score.drafted`, `vote.sent`, `contest.closed`, `contest.revealed`, …) and have aggregates emit them. Wire the audit projection in `api`: each emitted event is projected to an `AuditEntry` enriched with request-path metadata (`sourcePath`, and `toolName`/`toolArgs`/`confirmation` when applicable). No scattered `record()` calls
+- [ ] **2.7** Wire authentication: host/admin signup + login (bcrypt 12+, Zod password policy, account lockout after 5 fails); JWT access token (15m) + refresh token (7d) in httpOnly + Secure + SameSite cookies; refresh rotation + logout blacklist; voter join (code + display name + remember-me token); host-issued personal access tokens (bearer) for external MCP clients
+- [ ] **2.7b** Implement authorization: three roles (`admin`/`host`/`voter`) via a `requireRole()` middleware, plus **ownership** checks on every host/voter operation (A01); correct 401 vs 403
+- [ ] **2.7c** Add security middleware to the API: Helmet (CSP, HSTS, X-Frame-Options, nosniff, Referrer-Policy), restrictive CORS allowlist (the two frontend origins), forced HTTPS redirect, rate limiting (login, join-by-code, password reset, destructive tools), generic production errors (no stack traces), security-event logging (login success/fail, permission changes, PAT use — never secrets/PII)
 - [ ] **2.8** Implement contest publish: invoke the compiler, persist the materialized constraint view as a JSON blob, generate the join code
 - [ ] **2.9** Implement participant join: join code → display name → remember-me token
 - [ ] **2.10** Implement dish submission, vote session, score writes (with runtime checks against the materialized view)
 - [ ] **2.11** Implement close logic (all_sent / host_trigger / scheduled) and reveal logic
 - [ ] **2.12** Implement read endpoints: `get_contest`, `get_tally`, `get_results`
-- [ ] **2.13** Write integration tests for the API: form path, LLM path, partial + clarify, schema-rejection on adversarial inputs, full Strict-variant flow
+- [ ] **2.13** Write Gherkin acceptance features for the API (domain language only, real SQLite): form path, LLM path, partial + clarify, schema-rejection on adversarial inputs, and the full contest flow — using a `Scenario Outline` + `Examples` over the rule-space variants (Strict / Permissive / Joint)
 
 **Done when:** The API can be driven end-to-end via HTTP for the full Strict variant. The audit log records every change. Auth works. The eval harness can be pointed at the API for the contest-creation eval.
 
@@ -90,38 +95,52 @@ The MCP server is a thin adapter over the API. The host-assistant LLM is the sec
 
 **Done when:** The MCP server is callable from any MCP client. The host-assistant LLM picks the right tool with the right args in the eval set. The eval trajectory is committed.
 
-## Phase 5 — Frontend (2 weeks)
+## Phase 5 — Frontends (2.5 weeks)
 
-Mobile-first responsive. PWA-installable. Three surfaces: form-driven host flows, score screen, chat panel.
+Two apps sharing a common UI/library layer. **Host/admin app**: desktop-and-mobile responsive, forms + chat panel. **Participant app**: mobile-first, PWA-installable, join/dish/score/reveal.
 
-- [ ] **5.1** Project skeleton: routing, layout, mobile breakpoints, PWA manifest
-- [ ] **5.2** Auth flows: host signup, host login, session persistence
-- [ ] **5.3** Host flows: contest list, contest creation (form), draft review
-- [ ] **5.4** Chat panel: WebSocket-less, polls the chat endpoint, shows tool calls and their results
-- [ ] **5.5** Confirmation UI for destructive tools: a clear "Confirm" beat before the call lands
-- [ ] **5.6** Participant flows: join via code, set display name, list of dishes, score screen, send-vote confirmation
-- [ ] **5.7** Host live flows: tally view, send-vote trigger, reveal trigger, tie resolution
-- [ ] **5.8** Reveal screen: a deliberate beat. Animation, names, scores, winners
-- [ ] **5.9** PWA: installable, offline-tolerant (read-only on cached contest state), manifest + service worker
-- [ ] **5.10** Audit-log visibility: the host can see the audit log, with `sourcePath` filter, including `sourcePath="mcp"` entries with `toolName` and `toolArgs`
+### 5A — Shared UI layer
 
-**Done when:** A 10-person contest can be run end-to-end from a Web UI and a chat panel. The chat panel shows tool calls and their results. Destructive tools require confirmation in the UI. The reveal feels like a moment.
+- [ ] **5A.1** Shared `ui` package: design tokens (WCAG-AA contrast built in), base components (semantic HTML, `:focus-visible`, ARIA patterns, 44×44 touch targets, 16px inputs), API client, auth/session hooks, shared types re-export
+- [ ] **5A.3** Shared accessibility primitives: keyboard-operable modal with focus-trap, `aria-live` region helper, skip-to-main link, accessible form-field wrapper (label + `aria-invalid` + `role="alert"` + blur/submit validation)
+- [ ] **5A.2** Reveal view component (shared): used by both apps (host controls it, participants watch it)
+
+### 5B — Host/admin app
+
+- [ ] **5B.1** Project skeleton: routing, layout, responsive breakpoints
+- [ ] **5B.2** Auth flows: host signup, host login, session persistence
+- [ ] **5B.3** Host flows: contest list, contest creation (form), draft review
+- [ ] **5B.4** Chat panel: WebSocket-less, polls the chat endpoint, shows tool calls and their results
+- [ ] **5B.5** Confirmation UI for destructive tools: a clear "Confirm" beat before the call lands
+- [ ] **5B.6** Host live flows: tally view, send-reminder trigger, reveal trigger, tie resolution
+- [ ] **5B.7** Audit-log visibility: `sourcePath` filter, including `sourcePath="mcp"` entries with `toolName` and `toolArgs`
+
+### 5C — Participant app
+
+- [ ] **5C.1** Project skeleton: routing, mobile-first layout, PWA manifest + service worker
+- [ ] **5C.2** Auth flows: join via code, set display name, remember-me token persistence
+- [ ] **5C.3** Participant flows: list of dishes, dish submission, **adaptive score screen** (stepper/rating when repeats allowed; ranking/assignment UI when `uniquePerCategory` — invalid score impossible by construction; reads the materialized view), send-vote confirmation with double-submit prevention
+- [ ] **5C.4** Reveal view: consume the shared reveal component; a deliberate beat with animation, names, scores, winners
+- [ ] **5C.5** PWA: installable, offline-tolerant (read-only on cached contest state)
+
+**Done when:** A 10-person contest can be run end-to-end — the host drives it from the host app (forms + chat panel), participants join/submit/score from the participant app. The chat panel shows tool calls and their results. Destructive tools require confirmation in the UI. The reveal feels like a moment on the participant app. Both apps pass `axe-core` checks (WCAG 2.1 AA) and are fully keyboard-operable.
 
 ## Phase 6 — Infrastructure and defense artifacts (1.5 weeks)
 
 The defense is won or lost on the demo and the artifacts that back it. The infrastructure itself is AI-generated and is itself evaluated.
 
-- [ ] **6.1** AI-generate the `Dockerfile` for the API, the MCP server, and the Web UI. Document the prompt, the output, and the verification (build succeeds, tests pass)
+- [ ] **6.1** AI-generate the `Dockerfile` for the API, the MCP server, and the two frontends (`host-web`, `participant-web`). Document the prompt, the output, and the verification (build succeeds, tests pass)
 - [ ] **6.2** AI-generate the `docker-compose.yml` for local development. Document and verify
-- [ ] **6.3** AI-generate the CI pipeline (GitHub Actions or equivalent): build, test, run both eval sets, report metrics
+- [ ] **6.3** AI-generate the **full CI pipeline**, extending the hand-written Phase 0 skeleton (0.10): build; run deterministic tests as a **hard gate** (unit + acceptance + mcp contract + frontend + E2E — any failure blocks); run the eval sets as a **threshold gate** (block only when a metric drops below its committed threshold) and report the trajectory; run `npm audit` (supply-chain gate); run `axe-core` via the Playwright E2E (accessibility hard gate). Document the before/after (skeleton vs. AI-generated) as part of the infra-generation artifact
 - [ ] **6.4** AI-generate the CD pipeline (deploy on tag). Document and verify
 - [ ] **6.5** Implement the infrastructure eval: builds, tests pass, deploys (dry-run), human-readable. Record metrics
 - [ ] **6.6** README: how to run, how to test, how to evaluate, the architecture in one page
-- [ ] **6.7** Architecture diagram: the API, the MCP server, the Web UI, the chat panel, the audit log
+- [ ] **6.7** Architecture diagram: the API, the MCP server, the two frontends (host + participant), the chat panel, the audit log
 - [ ] **6.8** Defense demo script: 15 minutes, the worked example end-to-end, both creation paths (form and chat), the host-assistant eval trajectory, the destructive-tool confirmation flow, the audit log
 - [ ] **6.9** Eval trajectory document: prompt iteration logs, all three eval sets, all metrics over time
-- [ ] **6.10** Threat model document: what the system defends against (injection through schema, destructive tools, auth bypass), what it doesn't, why
-- [ ] **6.11** Security pass: input validation review, auth check on every endpoint, audit log integrity check
+- [ ] **6.10** Threat model document: what the system defends against, mapped to the **OWASP Top 10** (see `design.md §11B.9`) — A01 ownership, A03 injection/schema, A04 destructive tools + rate limiting, A07 auth, A09 logging — plus the 2025 supply-chain category; what it doesn't defend against, and why
+- [ ] **6.11** Security pass: input-validation review, authz (ownership + role) check on every endpoint, audit/security-event log integrity check, `npm audit` clean, Dependabot enabled, secrets-not-logged review
+- [ ] **6.12** Accessibility pass (WCAG 2.1 AA): automated axe + Lighthouse clean, plus a manual checklist run — full keyboard-only navigation, screen-reader pass (VoiceOver/NVDA), 200%-zoom legibility — on both apps, especially the adaptive score screen and the reveal
 
 **Done when:** the project can be cloned, run via `docker compose up`, and demoed in under 10 minutes by a stranger. The defense demo lands. The three AI surfaces are documented with their own eval trajectories.
 

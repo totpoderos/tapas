@@ -1,13 +1,150 @@
 schema: spec-driven
 
-# Project context (optional)
+# Project context
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tapas Contest App — create, configure, and run tapas contests.
+
+  Architecture:
+    - ONE backend API (source of truth) exposing TWO authorization scopes:
+      host-only and voter-scoped. Not two services — one API, two scopes.
+    - TWO frontends: a host/admin app (forms + LLM chat panel) and a
+      participant app (mobile-first PWA: join/dish/score/reveal).
+    - THREE entry points to the API: HTTP, MCP server, chat assistant.
+    - MCP server is a THIN protocol adapter over the API (no business
+      logic, no direct DB access).
+    - The rule language is compiled at PUBLISH time into a materialized
+      constraint view; runtime never re-interprets rules. compile() is a
+      pure function (no I/O, no LLM).
+    - One audit log across all paths, tagged by sourcePath (form|mcp|system).
+
+  Tech stack (v1):
+    - Language: TypeScript everywhere.
+    - Monorepo: npm workspaces (domain, api, mcp, host-web,
+      participant-web, shared, ui).
+    - Backend: Node.js + Fastify. MCP: thin Node/TS service.
+    - Frontends: React + Vite + Tailwind, sharing a common `ui` package.
+      Participant app is PWA-installable, mobile-first.
+    - Persistence: SQLite for v1 (Postgres-ready). SQL with migrations;
+      avoid SQLite-only SQL so Postgres is a swap.
+    - Testing: Vitest everywhere (backend, MCP, frontends, compiler,
+      eval harnesses); Playwright for E2E.
+
+  Testing strategy (TDD/ATDD):
+    - Outside-in, double-loop TDD (GOOS). Outer loop = one failing
+      acceptance test (ATDD) per user story; inner loop = unit TDD
+      (red/green/refactor). Acceptance tests define WHAT (external
+      observables); unit tests define HOW (internal structure).
+    - Acceptance tests are Gherkin *.feature files run via a
+      Vitest-compatible runner (e.g. vitest-cucumber), co-located with
+      the feature/context they verify. Spec-first, per feature;
+      tasks.md is the roadmap, ATDD is applied within each feature (do
+      NOT design the whole system upfront).
+    - SPEC-LEAKAGE RULE (critical): acceptance specs use domain
+      language ONLY (the glossary/ubiquitous language) — never class
+      names, DB tables, API endpoints, framework terms, internal state,
+      or file paths. "When the host publishes the contest", NOT "When a
+      POST is sent to /api/contests". Specs are a contract: report
+      ambiguity rather than guess; clear state before each scenario.
+    - Methodology inspired by the ATDD skill at
+      github.com/swingerman/disciplined-agentic-engineering; we do NOT
+      adopt its .build/ spec->IR->generated-test pipeline.
+    - Unit tests: application services with injected, mocked/faked
+      repositories (fakes preferred over verify-heavy mocks).
+    - Acceptance tests: REAL repositories against in-memory SQLite (+
+      migrations) — persistence enforces vote invariants, so it must be
+      real. Fake only external/non-deterministic collaborators: the LLM
+      (fake LLMClient; real LLM only in eval harnesses), the clock, and
+      outbound reminders/notifications.
+    - domain: pure unit tests, no doubles. mcp: contract tests.
+      frontends: component tests test-first. E2E: one Playwright slice
+      over the demo flow (real API + fake LLM).
+    - Evals are NOT TDD: threshold-gated regression tests with a
+      documented trajectory.
+    - CI: deterministic tests hard-gate (any failure blocks); evals
+      threshold-gate (block only below the committed metric threshold).
+    - LLM: provider-agnostic LLMClient interface in `shared`; concrete
+      provider deferred (decided at Phase 2/3). Tool-calling required.
+
+  Domain design (DDD):
+    - Rich tactical DDD in the CORE (Contest Authoring: rule space as
+      value objects + the pure compiler); pragmatic service-oriented
+      style in the CRUD-ish contexts.
+    - 4 bounded contexts: Contest Authoring (core), Live Scoring,
+      Results & Reveal, Assistant (supporting). Audit is cross-cutting.
+    - Aggregates: Draft, Contest, VoteSession (contains Score),
+      Participant, Dish. Value objects: ScoringConfig, Range,
+      Attribution, AntiBias, Category.
+    - Pure domain lives in the `domain` workspace with ZERO I/O deps
+      (enforceable rule). api/mcp depend on it. DTOs + LLMClient stay
+      in `shared`.
+    - Ubiquitous language fixed in glossary.md; same terms name code,
+      API, MCP tools, and eval cases.
+    - Audit log is a PROJECTION of domain events: every state change
+      emits a domain event; the projection enriches it with request-path
+      metadata (sourcePath/toolName/toolArgs/confirmation). No scattered
+      audit.record() calls -> no gaps possible.
+
+  Security (curriculum anchor; maps to OWASP Top 10 — see design.md
+  section 11B). Principles: defense in depth, least privilege, fail
+  securely, verify authz in the backend always.
+    - AuthN: hosts/admins = email + password (bcrypt 12+ rounds);
+      JWT access token (15m) + refresh token (7d) in httpOnly + Secure
+      + SameSite cookies (NEVER localStorage); refresh rotation +
+      logout blacklist; account lockout after 5 fails. Voters = join
+      code + display name + remember-me token, scoped to one contest.
+      External MCP clients = host-issued personal access token (bearer).
+    - AuthZ: three roles (admin/host/voter) via requireRole(); OWNERSHIP
+      is the primary check (A01), not role alone; 401 vs 403.
+    - Injection: parameterized SQL + least-priv DB user;
+      additionalProperties:false LLM schemas + Zod re-validation
+      (two-phase); env validated with Zod at startup (fail-fast).
+    - XSS: React auto-escape; DOMPurify only for dangerouslySetInnerHTML.
+    - Transport/config: HTTPS + HSTS; Helmet headers; CORS allowlist
+      (never *); generic errors in prod (no stack traces).
+    - Rate limiting on login, join-by-code, password reset, destructive
+      MCP tools. Join codes high-entropy + expire on contest close.
+    - Secrets: .env git-ignored, .env.example committed; rotation;
+      never logged / in errors / in URLs / in prompts; only VITE_ vars
+      exposed to browser.
+    - Logging (A09): audit log + auth events (login success/fail,
+      permission changes, PAT use); never log passwords/tokens/PII.
+    - Supply chain (OWASP 2025): npm audit in CI + Dependabot + lockfile.
+    - Reference docs: master's security modules 6.5.1-6.5.4 +
+      owasp2025.txt (in ~/Desktop/docs-master/security).
+
+  Accessibility & usability (curriculum module; see design.md 11C).
+  Target: WCAG 2.1 Level AA. The participant app is used live at a venue
+  (one-handed, poor light, older phones) -> a11y is core UX.
+    - Semantic HTML (button not div); full keyboard operability;
+      :focus-visible (never outline:none); focus-trap in modals;
+      skip-to-main.
+    - ARIA labels on icon buttons; aria-live for tally/saving/reveal;
+      aria-invalid + role=alert on field errors.
+    - Contrast 4.5:1 (3:1 large); color never the sole signal; no
+      flashing on reveal; legible at 200% zoom.
+    - Forms: visible+associated labels; semantic input types +
+      inputmode; validate on blur+submit; inline actionable errors
+      derived from the rules; 44x44 touch targets; 16px input font;
+      single column; prevent double-submit on send_vote.
+    - Adaptive score input: stepper/rating when repeats allowed;
+      ranking/assignment UI when uniquePerCategory (invalid score
+      impossible by construction). Reads the materialized view.
+    - Nielsen: sent vote is final -> pre-send confirmation is the
+      safety net (no undo); consistency via the shared ui package.
+    - Testing: axe-core in Playwright E2E HARD-GATES the build;
+      Lighthouse a11y tracked; manual keyboard + screen-reader +
+      200%-zoom checklist before the defense.
+    - Reference docs: master's usability modules 26 (Heuristics & A11y)
+      and 27 (Forms) in ~/Desktop/docs-master/usabilidad.
+
+  Three AI surfaces, same discipline (schema-validate -> review ->
+  version -> audit): contest-creation LLM, host-assistant LLM,
+  AI-generated infrastructure. Each has its own eval set.
+  CI/CD split: a minimal hand-written CI test gate exists from Phase 0
+  (install/typecheck/lint/test); the FULL infra (Dockerfiles, compose,
+  image build, CD, full CI) is AI-generated in Phase 6 as the third AI
+  surface -> do NOT hand-build Docker/CD before Phase 6.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
