@@ -1,0 +1,31 @@
+{
+  "name": "tapas",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\""
+  },
+  "devDependencies": {
+    "@amiceli/vitest-cucumber": "^5.2.1",
+    "@types/node": "^22.10.5",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^3.0.2"
+  }
+}

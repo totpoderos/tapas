@@ -1,0 +1,16 @@
+{
+  "name": "@tapas/mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tapas/shared": "*",
+    "zod": "^3.24.1"
+  }
+}

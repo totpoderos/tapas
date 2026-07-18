@@ -1,0 +1,5 @@
+-- 0001_init.sql
+-- Initial migration placeholder. The real schema — persons, contests,
+-- contest_drafts, dishes, vote_sessions, scores, audit_log — lands in
+-- Phase 2 (tasks.md 2.1). This file exists so the migration runner has
+-- something to apply and record end-to-end.
