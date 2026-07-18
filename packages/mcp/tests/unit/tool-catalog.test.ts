@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TOOL_CATALOG } from './tool-catalog.js';
+import { TOOL_CATALOG } from '../../src/tool-catalog.js';
 
 describe('MCP tool catalog', () => {
   it('is empty in Phase 0 (tools land in Phase 4)', () => {

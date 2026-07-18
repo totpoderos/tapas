@@ -35,9 +35,14 @@ context: |
       acceptance test (ATDD) per user story; inner loop = unit TDD
       (red/green/refactor). Acceptance tests define WHAT (external
       observables); unit tests define HOW (internal structure).
+    - Test layout: src/ holds SOURCE ONLY (no tests). Each workspace has a
+      sibling tests/ with type subfolders (unit, integration, acceptance)
+      whose inner structure MIRRORS src/ — e.g. src/foo/bar.ts ->
+      tests/unit/foo/bar.test.ts. Whole-system e2e (Playwright) lives at
+      the repo-root tests/e2e (not per package).
     - Acceptance tests are Gherkin *.feature files run via a
-      Vitest-compatible runner (e.g. vitest-cucumber), co-located with
-      the feature/context they verify. Spec-first, per feature;
+      Vitest-compatible runner (e.g. vitest-cucumber), under each
+      package's tests/acceptance. Spec-first, per feature;
       tasks.md is the roadmap, ATDD is applied within each feature (do
       NOT design the whole system upfront).
     - SPEC-LEAKAGE RULE (critical): acceptance specs use domain

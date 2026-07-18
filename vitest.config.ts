@@ -8,7 +8,7 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['packages/{domain,shared,api,mcp}/**/*.{test,spec}.ts'],
+          include: ['packages/{domain,shared,api,mcp}/tests/**/*.{test,spec}.ts'],
         },
       },
       {
@@ -18,7 +18,7 @@ export default defineConfig({
           environment: 'jsdom',
           globals: true,
           setupFiles: ['./vitest.setup.ts'],
-          include: ['packages/{ui,host-web,participant-web}/**/*.{test,spec}.{ts,tsx}'],
+          include: ['packages/{ui,host-web,participant-web}/tests/**/*.{test,spec}.{ts,tsx}'],
         },
       },
     ],

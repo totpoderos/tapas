@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import { describe, expect, it } from 'vitest';
-import { runMigrations } from './migrate.js';
+import { runMigrations } from '../../../src/db/migrate.js';
 
 describe('runMigrations', () => {
   it('applies the initial migration and is idempotent', () => {

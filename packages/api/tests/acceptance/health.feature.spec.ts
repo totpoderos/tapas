@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { buildServer } from '../src/server.js';
+import { buildServer } from '../../src/server.js';
 
 // Proves the Gherkin acceptance harness (tasks.md 0.4). Acceptance specs use
 // domain language only — the spec-leakage rule (design.md §11A.5).

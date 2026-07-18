@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { App } from './app';
+import { App } from '../../src/app';
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe('Participant app', () => {
+describe('Host app', () => {
   it('renders the heading and shows the API health once loaded', async () => {
     vi.stubGlobal(
       'fetch',
@@ -13,7 +13,7 @@ describe('Participant app', () => {
 
     render(<App />);
 
-    expect(screen.getByRole('heading', { name: 'Tapas — Participant' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Tapas — Host' })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('ok')).toBeInTheDocument());
   });
 });

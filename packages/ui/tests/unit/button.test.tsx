@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Button } from './index';
+import { Button } from '../../src/index';
 
 describe('Button', () => {
   it('renders an accessible button that defaults to type=button', () => {

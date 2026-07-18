@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildServer } from './server.js';
+import { buildServer } from '../../src/server.js';
 
 describe('api server', () => {
   it('responds to the health check', async () => {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildServer } from './server.js';
+import { buildServer } from '../../src/server.js';
 
 afterEach(() => vi.unstubAllGlobals());
 

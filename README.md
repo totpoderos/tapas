@@ -73,13 +73,32 @@ AI is integrated in three distinct places, each governed by the same discipline 
 ## Repository layout
 
 ```
-openspec/            # spec-driven design (source of truth for the plan)
+openspec/              # spec-driven design (source of truth for the plan)
   changes/tapas-contest-app/
-    proposal.md      # why + what
-    design.md        # architecture, DDD, testing, security, accessibility
-    tasks.md         # phased implementation plan
-    glossary.md      # ubiquitous language
-    worked-example.md# end-to-end run (also the demo script)
+    proposal.md        # why + what
+    design.md          # architecture, DDD, testing, security, accessibility
+    tasks.md           # phased implementation plan
+    glossary.md        # ubiquitous language
+    worked-example.md  # end-to-end run (also the demo script)
+packages/              # the seven workspaces
+  domain/  shared/  ui/            # libraries
+  api/  mcp/  host-web/  participant-web/   # services + apps
+tests/e2e/             # whole-system E2E (Playwright), root-level
 ```
 
-The codebase (the seven workspaces above) is created in Phase 0 of the plan.
+**Test layout.** `src/` holds source only. Each workspace has a sibling
+`tests/` with `unit/`, `integration/`, and `acceptance/` subfolders whose
+inner structure mirrors `src/` (e.g. `src/foo/bar.ts` →
+`tests/unit/foo/bar.test.ts`). Whole-system E2E lives at the repo-root
+`tests/e2e/`.
+
+## Getting started
+
+```bash
+npm install
+cp .env.example .env      # then set a real JWT_SECRET
+npm test                  # unit + integration + acceptance
+npm run dev               # api :3000, mcp :3001, host-web :5173, participant-web :5174
+```
+
+Requires **Node ≥ 24** (uses the built-in `node:sqlite`).

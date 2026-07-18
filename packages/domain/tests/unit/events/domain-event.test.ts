@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SYSTEM_ACTOR, type DomainEvent } from '../index.js';
+import { SYSTEM_ACTOR, type DomainEvent } from '../../../src/index.js';
 
 describe('DomainEvent', () => {
   it('models a state change with a typed name and actor', () => {

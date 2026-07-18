@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EnvValidationError, loadEnv } from './env.js';
+import { EnvValidationError, loadEnv } from '../../../src/config/env.js';
 
 describe('loadEnv', () => {
   it('applies defaults and accepts a valid secret', () => {
