@@ -595,7 +595,7 @@ Symmetric to the others. The AI generates Dockerfiles, the CI pipeline, and the 
 - **Frontends (two apps).** React + TypeScript, Vite, Tailwind, sharing the `ui` package. **Host/admin app**: desktop-and-mobile responsive; create/manage forms, tally, reveal control, chat panel. **Participant app**: mobile-first, PWA-installable; join, dish, score, reveal. Each calls the API with its own authorization scope.
 - **Backend.** Node.js + TypeScript, Fastify. **MCP server.** A thin Node/TypeScript service. Calls the backend API over HTTP. Tool definitions are JSON files loaded at startup.
 - **Persistence.** **SQLite for v1** (single machine, no ops), **Postgres-ready**: SQL with migrations, and no SQLite-only SQL so Postgres is a swap. JSON columns for the materialized constraint view, the MCP tool-call audit log payload, and the chat transcript.
-- **Testing.** **Vitest everywhere** — backend, MCP, both frontends, the compiler, and the eval harnesses. One runner, one config style. **Acceptance tests are Gherkin `*.feature` files run through a Vitest-compatible runner** (e.g. `vitest-cucumber`), co-located with the feature they verify. **Playwright** for the E2E slice.
+- **Testing.** **Vitest everywhere** — backend, MCP, both frontends, the compiler, and the eval harnesses. One runner, one config style. **Acceptance tests are Gherkin `*.feature` files run through a Vitest-compatible runner** (e.g. `vitest-cucumber`), under each package's `tests/acceptance/` (see §11A.6). **Playwright** for the E2E slice.
 - **LLM.** **Provider-agnostic `LLMClient` interface** in `shared`; the concrete provider is deferred (chosen at Phase 2/3, when prompt tuning and eval baselines begin). Tool-calling support is a hard requirement of whichever provider is chosen. The MCP tool definitions are the integration contract.
 - **Auth.** Host: email + password (or magic link). Participants: join code + display name + remember-me token, scoped to a single contest. MCP server is bound to a host session at the protocol level.
 - **Realtime.** Polling for tallies and the chat panel. Refresh on reveal. SSE optional for the chat panel; websockets are not required in v1.
@@ -657,7 +657,7 @@ The three eval harnesses are **tests, but not TDD tests**. The LLM's output is n
 
 ### 11A.5 ATDD discipline (Gherkin acceptance specs)
 
-Acceptance tests are authored as **Gherkin `*.feature` files**, executed by a Vitest-compatible runner (e.g. `vitest-cucumber`) so we keep one test runner. The `.feature` files are **co-located with the feature/context they verify** (in `domain`, `api`, or the frontends). Discipline:
+Acceptance tests are authored as **Gherkin `*.feature` files**, executed by a Vitest-compatible runner (e.g. `vitest-cucumber`) so we keep one test runner. The `.feature` files live under each package's `tests/acceptance/` (see §11A.6). Discipline:
 
 - **Spec-first, per feature.** Understand the feature → write the `*.feature` (Given/When/Then) → run it red (behavior doesn't exist yet) → implement with inner unit TDD until it goes green → review for leakage → next feature. `tasks.md` is the *roadmap of features*; ATDD is applied *within* each feature. We do **not** design the whole system upfront.
 - **The spec-leakage rule (critical).** Acceptance specs use **domain language only** — never class names, DB tables, API endpoints, framework terms, internal state, or file paths. This is the **ubiquitous language** (`glossary.md`) exercised as an executable test.
@@ -670,7 +670,20 @@ Acceptance tests are authored as **Gherkin `*.feature` files**, executed by a Vi
 
 This applies the *methodology* of the ATDD skill at [github.com/swingerman/disciplined-agentic-engineering](https://github.com/swingerman/disciplined-agentic-engineering/blob/master/skills/atdd/SKILL.md); we deliberately do **not** adopt its `.build/` spec→IR→generated-test pipeline (that is its own tooling).
 
-## 11B. Security
+### 11A.6 Test layout
+
+`src/` holds **source only** — no tests. Each workspace has a sibling `tests/` folder with type subdirectories whose inner structure **mirrors `src/`**:
+
+```
+packages/<pkg>/
+  src/foo/bar.ts
+  tests/
+    unit/foo/bar.test.ts            # mirrors src/foo/bar.ts
+    integration/…                   # real infra (e.g. SQLite)
+    acceptance/<feature>.feature    # Gherkin + its step spec
+```
+
+Whole-system **e2e** tests (Playwright) span multiple apps, so they live at the **repo root** `tests/e2e/`, not inside any one package. Vitest is configured with a `node` project and a `jsdom` (`web`) project, each globbing the relevant packages' `tests/`.
 
 Security is the degree's curriculum anchor. This section makes the stance concrete and maps each measure to the OWASP Top 10 so the defense can demonstrate the taught material against real features. The guiding principles are **defense in depth**, **least privilege**, **fail securely**, and **verify authorization in the backend, always**.
 

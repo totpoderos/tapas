@@ -1,0 +1,22 @@
+node_modules/
+dist/
+build/
+coverage/
+*.log
+.DS_Store
+
+# env
+.env
+.env.local
+.env.*.local
+
+# local sqlite
+*.sqlite
+*.sqlite-journal
+*.db
+
+# test / tooling caches
+.vitest/
+playwright-report/
+test-results/
+.turbo/
