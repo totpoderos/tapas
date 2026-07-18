@@ -1,10 +1,26 @@
+import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-// Node-side tests (domain, shared, api, mcp). The frontend (jsdom) project
-// is added as a Vitest workspace when the frontends land (Phase 5).
 export default defineConfig({
   test: {
-    include: ['packages/{domain,shared,api,mcp}/**/*.{test,spec}.ts'],
-    environment: 'node',
+    projects: [
+      {
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['packages/{domain,shared,api,mcp}/**/*.{test,spec}.ts'],
+        },
+      },
+      {
+        plugins: [react()],
+        test: {
+          name: 'web',
+          environment: 'jsdom',
+          globals: true,
+          setupFiles: ['./vitest.setup.ts'],
+          include: ['packages/{ui,host-web,participant-web}/**/*.{test,spec}.{ts,tsx}'],
+        },
+      },
+    ],
   },
 });
