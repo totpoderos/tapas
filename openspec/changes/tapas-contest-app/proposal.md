@@ -96,15 +96,17 @@ The MCP server is a *protocol adapter*. It does not duplicate the API. It does n
 
 ### Capabilities
 
-1. **Create contest, by form or by chat.** A host chooses a structured form or a natural-language path. Both produce the same `ContestDraft` shape. The LLM is given a constrained function schema; the schema is the security boundary. The form path is the host app. The chat path is the MCP-mediated LLM.
-2. **Configure the contest, by form or by chat.** After creation, the host can edit attribution, anti-bias mode, scoring config, close rule, reveal strategy — by editing fields in the host app *or* by asking the LLM to do it ("actually, let's allow repeat scores and use 1..10"). Both paths go through the same draft-mutation API.
-3. **Validate and publish.** A draft is reviewed and validated; on publish, the rule language is *compiled* into a materialized constraint view. The runtime never re-interprets the rule language.
-4. **Enroll participants.** Cooks and judges join a contest via a join code. The host does not pre-register all participants; people enroll themselves when they enter the venue. The host can also add or remove participants via the host app or by asking the LLM.
-5. **Submit dishes.** Cooks register their dish (name, optional description, optional photo) during the contest.
-6. **Taste and score.** Judges score dishes during the event. Scores are saved locally and edited freely until sent. On send, the vote is locked.
-7. **Manage the live contest.** The host can see tallies, send reminders, extend the deadline, lock the contest, trigger the reveal — through the host app or by asking the LLM. The LLM picks the right tool, the MCP server executes it through the API.
-8. **Reveal results.** The host triggers the reveal; winners are announced globally and per category. The host resolves ties.
-9. **Audit everything.** Every change to a draft, every publish, every score, every MCP tool call, every reveal is logged with who, when, and from which path (form, MCP, or system). MCP-mediated actions are explicitly tagged.
+1. **`create-contest`** — Create contest, by form or by chat. A host chooses a structured form or a natural-language path. Both produce the same `ContestDraft` shape. The LLM is given a constrained function schema; the schema is the security boundary. The form path is the host app. The chat path is the MCP-mediated LLM.
+2. **`configure-contest`** — Configure the contest, by form or by chat. After creation, the host can edit attribution, anti-bias mode, scoring config, close rule, reveal strategy — by editing fields in the host app *or* by asking the LLM to do it ("actually, let's allow repeat scores and use 1..10"). Both paths go through the same draft-mutation API.
+3. **`validate-and-publish-contest`** — Validate and publish. A draft is reviewed and validated; on publish, the rule language is *compiled* into a materialized constraint view. The runtime never re-interprets the rule language.
+4. **`enroll-participants`** — Enroll participants. Cooks and judges join a contest via a join code. The host does not pre-register all participants; people enroll themselves when they enter the venue. The host can also add or remove participants via the host app or by asking the LLM.
+5. **`submit-dishes`** — Submit dishes. Cooks register their dish (name, optional description, optional photo) during the contest.
+6. **`taste-and-score`** — Taste and score. Judges score dishes during the event. Scores are saved locally and edited freely until sent. On send, the vote is locked.
+7. **`manage-live-contest`** — Manage the live contest. The host can see tallies, send reminders, extend the deadline, lock the contest, trigger the reveal — through the host app or by asking the LLM. The LLM picks the right tool, the MCP server executes it through the API.
+8. **`reveal-results`** — Reveal results. The host triggers the reveal; winners are announced globally and per category. The host resolves ties.
+9. **`audit-everything`** — Audit everything. Every change to a draft, every publish, every score, every MCP tool call, every reveal is logged with who, when, and from which path (form, MCP, or system). MCP-mediated actions are explicitly tagged.
+10. **`host-authentication`** — Hosts and admins authenticate with email + password. Sessions are a JWT access token (15m) + refresh token (7d) in httpOnly + Secure + SameSite cookies, with refresh rotation and revocation on logout; repeated failed logins lock the account.
+11. **`host-access-tokens`** — A signed-in host can issue a personal access token for an external client (the MCP server) to act as them without their password, and revoke it later. A token resolves to the same identity and authorization checks as the host's own session.
 
 ### Architectural thesis
 
