@@ -40,3 +40,25 @@ export type {
   PublishFailure,
   PublishFailureCode,
 } from './contests/use-cases/shared.js';
+
+export { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
+export {
+  HmacJwtTokenIssuer,
+  ACCESS_TTL_SECONDS,
+  REFRESH_TTL_SECONDS,
+  type TokenIssuer,
+  type Session,
+  type TokenClaims,
+  type VerifiedClaims,
+} from './auth/token-issuer.js';
+export { SqliteHostAccountRepository, type HostAccountRepository } from './db/host-account-repository.js';
+export { RegisterHost, type RegisterHostDeps } from './auth/use-cases/register-host.js';
+export { AuthenticateHost, type AuthenticateHostDeps } from './auth/use-cases/authenticate-host.js';
+export type {
+  RegisterResult,
+  RegisterError,
+  RegisterErrorCode,
+  AuthResult,
+  AuthError,
+  AuthErrorCode,
+} from './auth/use-cases/shared.js';
