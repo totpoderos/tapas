@@ -47,7 +47,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
       const status = loginOutcome.error.code === 'ACCOUNT_LOCKED' ? 423 : 401;
       return reply.code(status).send({ error: loginOutcome.error });
     }
-    setSessionCookies(reply, loginOutcome.session, deps.cookies);
+    setSessionCookies(reply, loginOutcome.session);
     return reply.code(200).send({ hostId: loginOutcome.hostId, role: loginOutcome.role });
   });
 
@@ -60,7 +60,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
         .code(401)
         .send({ error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } });
     }
-    setSessionCookies(reply, refreshOutcome.session, deps.cookies);
+    setSessionCookies(reply, refreshOutcome.session);
     return reply.code(200).send({ hostId: refreshOutcome.hostId, role: refreshOutcome.role });
   });
 

@@ -11,7 +11,11 @@ import type { HostPatRepository } from '../db/host-pat-repository.js';
 import type { VoterRepository } from '../db/voter-repository.js';
 import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
 import type { JoinContest } from '../voters/use-cases/join-contest.js';
-import type { CookieOptions } from './session-cookies.js';
+
+export interface SecurityConfig {
+  readonly isProduction: boolean;
+  readonly allowedOrigins: readonly string[];
+}
 
 /** Everything the HTTP layer needs — assembled once at startup (or per test) and threaded into the routes. */
 export interface ServerDeps {
@@ -28,5 +32,5 @@ export interface ServerDeps {
   readonly issuePat: IssuePat;
   readonly revokePat: RevokePat;
   readonly pats: HostPatRepository;
-  readonly cookies: CookieOptions;
+  readonly security: SecurityConfig;
 }

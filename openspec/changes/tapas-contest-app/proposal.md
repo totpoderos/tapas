@@ -107,6 +107,7 @@ The MCP server is a *protocol adapter*. It does not duplicate the API. It does n
 9. **`audit-everything`** — Audit everything. Every change to a draft, every publish, every score, every MCP tool call, every reveal is logged with who, when, and from which path (form, MCP, or system). MCP-mediated actions are explicitly tagged.
 10. **`host-authentication`** — Hosts and admins authenticate with email + password. Sessions are a JWT access token (15m) + refresh token (7d) in httpOnly + Secure + SameSite cookies, with refresh rotation and revocation on logout; repeated failed logins lock the account.
 11. **`host-access-tokens`** — A signed-in host can issue a personal access token for an external client (the MCP server) to act as them without their password, and revoke it later. A token resolves to the same identity and authorization checks as the host's own session.
+12. **`response-hardening`** — Every API response carries baseline security protections (Helmet headers, a restrictive CORS allowlist for the two frontend origins, forced HTTPS in production, generic errors in production that never leak internals).
 
 ### Architectural thesis
 

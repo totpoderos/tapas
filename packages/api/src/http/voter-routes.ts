@@ -18,7 +18,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (!joinOutcome.ok) {
         return reply.code(404).send({ error: joinOutcome.error });
       }
-      setVoterCookie(reply, joinOutcome.session, deps.cookies);
+      setVoterCookie(reply, joinOutcome.session);
       return reply.code(201).send({
         personId: joinOutcome.voterId,
         contestId: joinOutcome.contestId,
