@@ -1,12 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
-import type { DraftContent } from '@tapas/shared';
+import type { DraftContent } from '@tapas/domain';
 import { expect } from 'vitest';
 import {
   AuditRecorder,
+  CreateDraft,
   createAuditProjection,
-  DraftService,
+  DiscardDraft,
+  GetDraft,
+  ListHostDrafts,
+  RenameDraft,
   runMigrations,
   SqliteAuditLogRepository,
   SqliteDraftRepository,
@@ -18,20 +22,29 @@ const feature = await loadFeature(
   fileURLToPath(new URL('./managing-a-contest-draft.feature', import.meta.url)),
 );
 
-function makeEnv() {
+function makeDraftWorkspace() {
   const db = new DatabaseSync(':memory:');
   runMigrations(db);
   const drafts = new SqliteDraftRepository(db);
-  const auditRepo = new SqliteAuditLogRepository(db);
-  let n = 0;
-  const ids: IdGenerator = { next: () => `id-${++n}` };
+  const auditLog = new SqliteAuditLogRepository(db);
+  let sequence = 0;
+  const ids: IdGenerator = { next: () => `id-${++sequence}` };
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
-  const audit = new AuditRecorder(auditRepo, createAuditProjection({ clock, ids }));
-  const service = new DraftService({ drafts, audit, clock, ids });
-  return { service, auditRepo };
+  const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
+  const deps = { drafts, audit, clock, ids };
+  return {
+    createDraft: new CreateDraft(deps),
+    renameDraft: new RenameDraft(deps),
+    discardDraft: new DiscardDraft(deps),
+    getDraft: new GetDraft(drafts),
+    listHostDrafts: new ListHostDrafts(drafts),
+    auditLog,
+  };
 }
 
-function draftContent(name: string): DraftContent {
+type DraftWorkspace = ReturnType<typeof makeDraftWorkspace>;
+
+function draftNamed(name: string): DraftContent {
   return {
     name,
     attribution: 'per_person',
@@ -41,111 +54,109 @@ function draftContent(name: string): DraftContent {
   };
 }
 
-type Env = ReturnType<typeof makeEnv>;
-
 describeFeature(feature, ({ Scenario }) => {
   Scenario('A host saves a new draft', ({ Given, When, Then, And }) => {
-    let env: Env;
+    let workspace: DraftWorkspace;
     const hostId = 'host-1';
-    let draftId = '';
+    let savedDraftId = '';
 
-    Given('a host', () => void (env = makeEnv()));
+    Given('a host', () => void (workspace = makeDraftWorkspace()));
     When('the host saves a draft named "Summer Tapas 2026" scored per person with couples barred', () => {
-      const r = env.service.save(hostId, draftContent('Summer Tapas 2026'));
-      expect(r.ok).toBe(true);
-      if (r.ok) draftId = r.draft.id;
+      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+      expect(creation.ok).toBe(true);
+      if (creation.ok) savedDraftId = creation.draft.id;
     });
     Then('the draft is stored', () => {
-      expect(env.service.get(draftId, hostId)).toBeDefined();
+      expect(workspace.getDraft.execute(savedDraftId, hostId)).toBeDefined();
     });
     And("the draft appears among the host's drafts", () => {
-      expect(env.service.list(hostId).map((d) => d.content.name)).toContain('Summer Tapas 2026');
+      const draftNames = workspace.listHostDrafts.execute(hostId).map((draft) => draft.content.name);
+      expect(draftNames).toContain('Summer Tapas 2026');
     });
     And('the audit log records that the draft was saved by that host', () => {
-      const entries = env.auditRepo.findByContest(draftId);
-      const saved = entries.find((e) => e.type === 'draft.saved');
-      expect(saved).toBeDefined();
-      expect(saved?.actorId).toBe(hostId);
-      expect(saved?.sourcePath).toBe('form');
+      const savedEvent = workspace.auditLog.findByContest(savedDraftId).find((entry) => entry.type === 'draft.saved');
+      expect(savedEvent?.actorId).toBe(hostId);
+      expect(savedEvent?.sourcePath).toBe('form');
     });
   });
 
   Scenario('A host edits a draft', ({ Given, When, Then, And }) => {
-    let env: Env;
+    let workspace: DraftWorkspace;
     const hostId = 'host-1';
     let draftId = '';
 
     Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      env = makeEnv();
-      const r = env.service.save(hostId, draftContent('Summer Tapas 2026'));
-      if (r.ok) draftId = r.draft.id;
+      workspace = makeDraftWorkspace();
+      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+      if (creation.ok) draftId = creation.draft.id;
     });
     When('the host renames the draft to "Summer Tapas Final"', () => {
-      const r = env.service.rename(draftId, hostId, 'Summer Tapas Final');
-      expect(r.ok).toBe(true);
+      const renameResult = workspace.renameDraft.execute(draftId, hostId, 'Summer Tapas Final');
+      expect(renameResult.ok).toBe(true);
     });
     Then('the stored draft is named "Summer Tapas Final"', () => {
-      expect(env.service.get(draftId, hostId)?.content.name).toBe('Summer Tapas Final');
+      expect(workspace.getDraft.execute(draftId, hostId)?.content.name).toBe('Summer Tapas Final');
     });
     And('the audit log records the change with the previous and the new name', () => {
-      const updated = env.auditRepo.findByContest(draftId).find((e) => e.type === 'draft.updated');
-      expect((updated?.before as DraftContent | undefined)?.name).toBe('Summer Tapas 2026');
-      expect((updated?.after as DraftContent | undefined)?.name).toBe('Summer Tapas Final');
+      const renameEvent = workspace.auditLog.findByContest(draftId).find((entry) => entry.type === 'draft.updated');
+      expect((renameEvent?.before as DraftContent | undefined)?.name).toBe('Summer Tapas 2026');
+      expect((renameEvent?.after as DraftContent | undefined)?.name).toBe('Summer Tapas Final');
     });
   });
 
   Scenario('A host discards a draft', ({ Given, When, Then, And }) => {
-    let env: Env;
+    let workspace: DraftWorkspace;
     const hostId = 'host-1';
     let draftId = '';
 
     Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      env = makeEnv();
-      const r = env.service.save(hostId, draftContent('Summer Tapas 2026'));
-      if (r.ok) draftId = r.draft.id;
+      workspace = makeDraftWorkspace();
+      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+      if (creation.ok) draftId = creation.draft.id;
     });
     When('the host discards the draft', () => {
-      expect(env.service.discard(draftId, hostId).ok).toBe(true);
+      expect(workspace.discardDraft.execute(draftId, hostId).ok).toBe(true);
     });
     Then("the draft no longer appears among the host's drafts", () => {
-      expect(env.service.list(hostId)).toHaveLength(0);
+      expect(workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
     });
     And('the audit log records that the draft was discarded', () => {
-      expect(env.auditRepo.findByContest(draftId).some((e) => e.type === 'draft.discarded')).toBe(true);
+      const wasDiscarded = workspace.auditLog.findByContest(draftId).some((entry) => entry.type === 'draft.discarded');
+      expect(wasDiscarded).toBe(true);
     });
   });
 
   Scenario('A draft without a name cannot be saved', ({ Given, When, Then }) => {
-    let env: Env;
+    let workspace: DraftWorkspace;
     const hostId = 'host-1';
-    let result: ReturnType<DraftService['save']>;
+    let saveOutcome: ReturnType<CreateDraft['execute']>;
 
-    Given('a host', () => void (env = makeEnv()));
+    Given('a host', () => void (workspace = makeDraftWorkspace()));
     When('the host tries to save a draft with no name', () => {
-      result = env.service.save(hostId, draftContent(''));
+      saveOutcome = workspace.createDraft.execute(hostId, draftNamed(''));
     });
     Then('saving is rejected because a name is required', () => {
-      expect(result.ok).toBe(false);
-      if (!result.ok) expect(result.error.code).toBe('NAME_REQUIRED');
+      expect(saveOutcome.ok).toBe(false);
+      if (!saveOutcome.ok) expect(saveOutcome.error.code).toBe('NAME_REQUIRED');
     });
   });
 
   Scenario('A host only sees their own drafts', ({ Given, When, Then, And }) => {
-    let env: Env;
-    let names: string[] = [];
+    let workspace: DraftWorkspace;
+    let visibleDraftNames: string[] = [];
 
     Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      env = makeEnv();
-      env.service.save('host-1', draftContent('Summer Tapas 2026'));
+      workspace = makeDraftWorkspace();
+      workspace.createDraft.execute('host-1', draftNamed('Summer Tapas 2026'));
     });
     And('another host with a saved draft named "Winter Tapas"', () => {
-      env.service.save('host-2', draftContent('Winter Tapas'));
+      workspace.createDraft.execute('host-2', draftNamed('Winter Tapas'));
     });
     When('the host lists their drafts', () => {
-      names = env.service.list('host-1').map((d) => d.content.name);
+      visibleDraftNames = workspace.listHostDrafts.execute('host-1').map((draft) => draft.content.name);
     });
     Then('only "Summer Tapas 2026" appears', () => {
-      expect(names).toEqual(['Summer Tapas 2026']);
+      expect(visibleDraftNames).toEqual(['Summer Tapas 2026']);
     });
   });
 });

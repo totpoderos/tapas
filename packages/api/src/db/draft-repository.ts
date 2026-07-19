@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { DraftContent, DraftStatus, StoredDraft } from '@tapas/shared';
+import type { DraftContent } from '@tapas/domain';
+import type { StoredDraft } from '../drafts/stored-draft.js';
 
 export interface DraftRepository {
   insert(draft: StoredDraft): void;
@@ -23,7 +24,7 @@ function toDraft(row: DraftRow): StoredDraft {
     id: row.id,
     hostId: row.host_id,
     content: JSON.parse(row.content) as DraftContent,
-    status: row.status as DraftStatus,
+    status: row.status as 'draft',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

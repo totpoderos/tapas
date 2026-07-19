@@ -13,11 +13,17 @@ export { SystemClock, UuidIdGenerator } from './runtime.js';
 
 export { SqliteDraftRepository, type DraftRepository } from './db/draft-repository.js';
 export { SqliteAuditLogRepository, type AuditLogRepository } from './db/audit-repository.js';
-export {
-  DraftService,
-  type DraftServiceDeps,
-  type DraftResult,
-  type DiscardResult,
-  type DraftError,
-  type DraftErrorCode,
-} from './drafts/draft-service.js';
+
+export type { StoredDraft } from './drafts/stored-draft.js';
+export { CreateDraft } from './drafts/use-cases/create-draft.js';
+export { RenameDraft } from './drafts/use-cases/rename-draft.js';
+export { DiscardDraft } from './drafts/use-cases/discard-draft.js';
+export { GetDraft } from './drafts/use-cases/get-draft.js';
+export { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
+export type {
+  DraftUseCaseDeps,
+  DraftWriteResult,
+  DiscardResult,
+  DraftFailure,
+  DraftFailureCode,
+} from './drafts/use-cases/shared.js';

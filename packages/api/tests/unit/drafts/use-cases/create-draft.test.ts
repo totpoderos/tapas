@@ -1,0 +1,39 @@
+import type { DraftContent } from '@tapas/domain';
+import { describe, expect, it } from 'vitest';
+import { CreateDraft } from '../../../../src/index.js';
+import { draftNamed, makeDraftDeps } from '../support.js';
+
+describe('CreateDraft', () => {
+  it('saves a draft and records draft.saved by the host via the form path', () => {
+    const { deps, auditLog } = makeDraftDeps();
+
+    const creation = new CreateDraft(deps).execute('host-1', draftNamed('Summer Tapas'));
+
+    expect(creation.ok).toBe(true);
+    if (!creation.ok) return;
+    const savedEvent = auditLog.findByContest(creation.draft.id).find((entry) => entry.type === 'draft.saved');
+    expect(savedEvent?.actorId).toBe('host-1');
+    expect(savedEvent?.sourcePath).toBe('form');
+    expect((savedEvent?.after as DraftContent).name).toBe('Summer Tapas');
+  });
+
+  it('rejects a nameless draft and stores nothing', () => {
+    const { deps, drafts, auditLog } = makeDraftDeps();
+
+    const creation = new CreateDraft(deps).execute('host-1', draftNamed('   '));
+
+    expect(creation.ok).toBe(false);
+    if (!creation.ok) expect(creation.error.code).toBe('NAME_REQUIRED');
+    expect(drafts.findByHost('host-1')).toHaveLength(0);
+    expect(auditLog.entries).toHaveLength(0);
+  });
+
+  it('tags the audit entry with the given source path', () => {
+    const { deps, auditLog } = makeDraftDeps();
+
+    const creation = new CreateDraft(deps).execute('host-1', draftNamed('Via chat'), 'mcp');
+
+    if (!creation.ok) throw new Error('expected success');
+    expect(auditLog.findByContest(creation.draft.id)[0]?.sourcePath).toBe('mcp');
+  });
+});
