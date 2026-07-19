@@ -19,9 +19,10 @@ export default tseslint.config(
     },
   },
   {
-    // The domain package must stay pure: no I/O, no infrastructure.
+    // The domain SOURCE must stay pure: no I/O, no infrastructure.
+    // (Tests may use node built-ins, e.g. loading feature files.)
     // This is an enforced rule, not a convention (design.md §4A.4).
-    files: ['packages/domain/**/*.ts'],
+    files: ['packages/domain/src/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

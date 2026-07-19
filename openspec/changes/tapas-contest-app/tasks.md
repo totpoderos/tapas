@@ -31,17 +31,17 @@ The minimum scaffolding to start the project. Services in one monorepo: `api`, `
 
 The compiler is the load-bearing artifact of the project. Pure function, no I/O, no LLM. Lives in the `domain` package. 50+ unit tests before anything else.
 
-- [ ] **1.1** Define the domain model in `domain`: value objects (`ScoringConfig`, `Range`, `Attribution`, `AntiBias`, `Category`), aggregates (`Draft`, `Contest`, `VoteSession`+`Score`, `Person`, `Dish`), and `MaterializedContest`. Corresponding DTOs live in `shared`
-- [ ] **1.2** Implement the compiler signature in `domain`: `compile(draft) -> MaterializedContest | CompileError`
-- [ ] **1.3** Implement attribution: `per_person` and `per_couple` modes
-- [ ] **1.4** Implement anti-bias: `none`, `couples`, `arbitrary_pairs` modes
-- [ ] **1.5** Implement range resolution: fixed `{min, max}` and `auto`
-- [ ] **1.6** Implement validation: relation consistency, non-empty ranges, no orphan partners
-- [ ] **1.7** Write 50+ unit tests against the compiler, including the Strict and Joint variants from `design.md`
-- [ ] **1.8** Add property-based tests: deterministic output, symmetric `allowedVoters`, valid per-voter range
-- [ ] **1.9** Add a "golden" test corpus: hand-curated drafts with expected outputs, frozen as test fixtures
+- [x] **1.1** Define the compiler-facing domain model in `domain`: value objects (`ScoringConfig`, `ScoreRange`, `Attribution`, `AntiBias`, `Category`), `Person`, `ContestDraft` (input), `MaterializedDish` + `MaterializedContest` (output). *Runtime aggregates with behaviour (`Contest`, `VoteSession`+`Score`, `Draft`) land in Phase 2 with the services.*
+- [x] **1.2** Implement the compiler signature in `domain`: `compile(draft) -> CompileResult` (ok+contest | typed error)
+- [x] **1.3** Implement attribution: `per_person` and `per_couple` modes
+- [x] **1.4** Implement anti-bias: `none`, `couples`, `arbitrary_pairs` modes (plus the baseline "never score your own dish")
+- [x] **1.5** Implement range resolution: fixed `{min, max}` and `auto` (1..dishes-a-judge-can-score)
+- [x] **1.6** Implement validation: reciprocal partners, no orphan partners, valid ranges, no judge left unable to score, no duplicate ids, non-empty contest
+- [x] **1.7** Acceptance spec (Gherkin, confirmed with the user) covering Strict / Joint / Permissive + 23 unit tests
+- [x] **1.8** Property-based tests (`fast-check`): deterministic output, no self-scoring, valid ranges, couples symmetry (300 runs each)
+- [x] **1.9** Golden corpus: hand-curated drafts with fully-specified expected outputs, frozen as fixtures
 
-**Done when:** `npm test` runs 50+ compiler tests in under a second. The compiler has no external dependencies (no DB, no LLM, no network).
+**Done when:** `npm test` runs 50+ compiler tests in under a second. The compiler has no external dependencies (no DB, no LLM, no network). ✅ *domain suite: 81 tests in ~0.65s; purity enforced by the ESLint no-I/O rule.*
 
 ## Phase 2 — Backend API and DraftService (1.5 weeks)
 
