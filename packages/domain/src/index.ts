@@ -23,3 +23,6 @@ export type { CompileError, CompileErrorCode, CompileResult } from './compile.js
 export { Draft } from './draft/draft.js';
 export type { DraftResult, DraftInvariantError } from './draft/draft.js';
 export type { DraftContent, CloseRule, RevealStrategy } from './draft/draft-content.js';
+
+export { Contest } from './contest/contest.js';
+export type { PublishResult, PublishError, PublishErrorCode, PublishableDraft } from './contest/contest.js';

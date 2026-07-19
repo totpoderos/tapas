@@ -27,3 +27,16 @@ export type {
   DraftFailure,
   DraftFailureCode,
 } from './drafts/use-cases/shared.js';
+
+export { SqliteContestRepository, type ContestRepository } from './db/contest-repository.js';
+export type { StoredContest } from './contests/stored-contest.js';
+export { RandomJoinCodeGenerator, type JoinCodeGenerator } from './contests/join-code-generator.js';
+export { serializeMaterialized, deserializeMaterialized } from './contests/materialized-codec.js';
+export { PublishContest } from './contests/use-cases/publish-contest.js';
+export { GetContest } from './contests/use-cases/get-contest.js';
+export type {
+  PublishContestDeps,
+  PublishContestResult,
+  PublishFailure,
+  PublishFailureCode,
+} from './contests/use-cases/shared.js';
