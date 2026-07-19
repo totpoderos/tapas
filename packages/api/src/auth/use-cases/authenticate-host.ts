@@ -2,13 +2,15 @@ import { Email } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
 import type { HostAccountRepository } from '../../db/host-account-repository.js';
 import type { PasswordHasher } from '../password-hasher.js';
-import type { TokenIssuer } from '../token-issuer.js';
+import type { SessionStore } from '../session-store.js';
+import { REFRESH_TTL_SECONDS, type TokenIssuer } from '../token-issuer.js';
 import type { AuthResult } from './shared.js';
 
 export interface AuthenticateHostDeps {
   readonly accounts: HostAccountRepository;
   readonly hasher: PasswordHasher;
   readonly tokens: TokenIssuer;
+  readonly sessions: SessionStore;
   readonly clock: Clock;
 }
 
@@ -42,6 +44,8 @@ export class AuthenticateHost {
 
     this.deps.accounts.update(account.withSuccessfulLogin());
     const session = this.deps.tokens.issue({ sub: account.id, role: account.role });
+    const expiresAt = new Date(Date.parse(now) + REFRESH_TTL_SECONDS * 1000).toISOString();
+    this.deps.sessions.activate(session.sessionId, account.id, expiresAt);
     return { ok: true, session, hostId: account.id, role: account.role };
   }
 }

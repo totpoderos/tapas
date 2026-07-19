@@ -21,3 +21,14 @@ export interface AuthError {
 export type AuthResult =
   | { readonly ok: true; readonly session: Session; readonly hostId: string; readonly role: string }
   | { readonly ok: false; readonly error: AuthError };
+
+export type RefreshErrorCode = 'NOT_SIGNED_IN';
+
+export interface RefreshError {
+  readonly code: RefreshErrorCode;
+  readonly message: string;
+}
+
+export type RefreshResult =
+  | { readonly ok: true; readonly session: Session; readonly hostId: string; readonly role: string }
+  | { readonly ok: false; readonly error: RefreshError };

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { buildServer } from '../../src/server.js';
+import { makeTestApp } from '../support/test-server.js';
 
 // Proves the Gherkin acceptance harness (tasks.md 0.4). Acceptance specs use
 // domain language only — the spec-leakage rule (design.md §11A.5).
@@ -14,7 +14,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: Awaited<ReturnType<FastifyInstance['inject']>>;
 
     Given('the API is running', () => {
-      app = buildServer();
+      app = makeTestApp();
     });
     When('a client requests the health endpoint', async () => {
       response = await app.inject({ method: 'GET', url: '/health' });

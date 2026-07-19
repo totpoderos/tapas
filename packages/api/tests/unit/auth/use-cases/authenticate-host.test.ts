@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AuthenticateHost, RegisterHost, type Clock } from '../../../../src/index.js';
-import { FakeHostAccountRepository, FakePasswordHasher, FakeTokenIssuer } from '../support.js';
+import { FakeHostAccountRepository, FakePasswordHasher, FakeSessionStore, FakeTokenIssuer } from '../support.js';
 
 const STRONG = 'Str0ng!Passw0rd';
 const WRONG = 'Wr0ng!Passw0rd';
@@ -11,22 +11,27 @@ function makeAuthEnv() {
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
   let sequence = 0;
   const ids = { next: () => `host-${++sequence}` };
+  const sessions = new FakeSessionStore();
   return {
     registerHost: new RegisterHost({ accounts, hasher, ids }),
-    authenticateHost: new AuthenticateHost({ accounts, hasher, tokens: new FakeTokenIssuer(), clock }),
+    authenticateHost: new AuthenticateHost({ accounts, hasher, tokens: new FakeTokenIssuer(), sessions, clock }),
     accounts,
+    sessions,
   };
 }
 
 describe('AuthenticateHost', () => {
-  it('issues a session for correct credentials', async () => {
-    const { registerHost, authenticateHost } = makeAuthEnv();
+  it('issues a session for correct credentials and activates it', async () => {
+    const { registerHost, authenticateHost, sessions } = makeAuthEnv();
     await registerHost.execute('ana@example.com', STRONG);
 
     const loginOutcome = await authenticateHost.execute('ana@example.com', STRONG);
 
     expect(loginOutcome.ok).toBe(true);
-    if (loginOutcome.ok) expect(loginOutcome.session.accessToken).toBe('access-token');
+    if (loginOutcome.ok) {
+      expect(loginOutcome.session.accessToken).toBe('access-token');
+      expect(sessions.isActive(loginOutcome.session.sessionId)).toBe(true);
+    }
   });
 
   it('refuses a wrong password generically and counts the failure', async () => {
