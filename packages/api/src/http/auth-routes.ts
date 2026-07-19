@@ -1,7 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import type { RegisterErrorCode } from '../auth/use-cases/shared.js';
+import type { RevokePatErrorCode } from '../auth/use-cases/pat-shared.js';
+import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
-import { ACCESS_COOKIE, clearSessionCookies, REFRESH_COOKIE, setSessionCookies } from './session-cookies.js';
+import {
+  ACCESS_COOKIE,
+  clearSessionCookies,
+  REFRESH_COOKIE,
+  setSessionCookies,
+} from './session-cookies.js';
 
 interface Credentials {
   readonly email: string;
@@ -14,12 +21,21 @@ const REGISTER_ERROR_STATUS: Record<RegisterErrorCode, number> = {
   EMAIL_TAKEN: 409,
 };
 
+const REVOKE_PAT_ERROR_STATUS: Record<RevokePatErrorCode, number> = {
+  PAT_NOT_FOUND: 404,
+  NOT_ALLOWED: 403,
+};
+
+const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
+
 export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void {
   app.post<{ Body: Credentials }>('/auth/register', async (request, reply) => {
     const { email, password } = request.body;
     const registration = await deps.registerHost.execute(email, password);
     if (!registration.ok) {
-      return reply.code(REGISTER_ERROR_STATUS[registration.error.code]).send({ error: registration.error });
+      return reply
+        .code(REGISTER_ERROR_STATUS[registration.error.code])
+        .send({ error: registration.error });
     }
     return reply.code(201).send({ hostId: registration.hostId });
   });
@@ -40,7 +56,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
     const refreshOutcome = refreshToken ? deps.refreshSession.execute(refreshToken) : undefined;
     if (!refreshOutcome || !refreshOutcome.ok) {
       clearSessionCookies(reply);
-      return reply.code(401).send({ error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } });
+      return reply
+        .code(401)
+        .send({ error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } });
     }
     setSessionCookies(reply, refreshOutcome.session, deps.cookies);
     return reply.code(200).send({ hostId: refreshOutcome.hostId, role: refreshOutcome.role });
@@ -52,4 +70,28 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
     clearSessionCookies(reply);
     return reply.code(200).send({});
   });
+
+  const requireSession = requireHostSession(deps);
+
+  app.post('/auth/pats', { preHandler: requireSession }, async (request, reply) => {
+    if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+    const issued = deps.issuePat.execute(request.hostSession.id);
+    return reply.code(201).send({ id: issued.patId, token: issued.token });
+  });
+
+  app.delete<{ Params: { id: string } }>(
+    '/auth/pats/:id',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const revoked = deps.revokePat.execute(request.params.id, request.hostSession.id);
+      if (!revoked.ok)
+        return reply
+          .code(REVOKE_PAT_ERROR_STATUS[revoked.error.code])
+          .send({ error: revoked.error });
+      return reply.code(200).send({});
+    },
+  );
 }

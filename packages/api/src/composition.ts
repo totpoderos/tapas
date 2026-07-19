@@ -7,13 +7,16 @@ import { SqliteAuditLogRepository } from './db/audit-repository.js';
 import { SqliteContestRepository } from './db/contest-repository.js';
 import { SqliteDraftRepository } from './db/draft-repository.js';
 import { SqliteHostAccountRepository } from './db/host-account-repository.js';
+import { SqliteHostPatRepository } from './db/host-pat-repository.js';
 import { SqliteSessionStore } from './db/session-repository.js';
 import { SqliteVoterRepository } from './db/voter-repository.js';
 import { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
 import { HmacJwtTokenIssuer } from './auth/token-issuer.js';
 import { AuthenticateHost } from './auth/use-cases/authenticate-host.js';
+import { IssuePat } from './auth/use-cases/issue-pat.js';
 import { RefreshSession } from './auth/use-cases/refresh-session.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
+import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
 import { JoinContest } from './voters/use-cases/join-contest.js';
@@ -36,6 +39,7 @@ export function buildProductionDeps(
   const drafts = new SqliteDraftRepository(db);
   const contests = new SqliteContestRepository(db);
   const voters = new SqliteVoterRepository(db);
+  const pats = new SqliteHostPatRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
 
@@ -52,6 +56,9 @@ export function buildProductionDeps(
     drafts,
     joinContest: new JoinContest({ contests, voters, tokens, ids, clock }),
     voters,
+    issuePat: new IssuePat({ pats, ids, clock }),
+    revokePat: new RevokePat({ pats }),
+    pats,
     cookies: { secure: env.NODE_ENV === 'production' },
   };
 }
