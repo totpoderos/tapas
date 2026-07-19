@@ -59,6 +59,9 @@ export function buildProductionDeps(
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,
-    cookies: { secure: env.NODE_ENV === 'production' },
+    security: {
+      isProduction: env.NODE_ENV === 'production',
+      allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],
+    },
   };
 }

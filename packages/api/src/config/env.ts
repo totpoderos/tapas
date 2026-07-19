@@ -10,6 +10,8 @@ const EnvSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_PATH: z.string().min(1).default('./tapas.sqlite'),
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+  HOST_WEB_ORIGIN: z.string().min(1).default('http://localhost:5173'),
+  PARTICIPANT_WEB_ORIGIN: z.string().min(1).default('http://localhost:5174'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

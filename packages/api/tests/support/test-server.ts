@@ -3,9 +3,18 @@ import type { FastifyInstance } from 'fastify';
 import { buildProductionDeps } from '../../src/composition.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { buildServer } from '../../src/server.js';
-import { BcryptPasswordHasher, type Clock } from '../../src/index.js';
+import { BcryptPasswordHasher, type Clock, type Env } from '../../src/index.js';
 
 const TEST_BCRYPT_COST = 4; // keeps HTTP-level tests fast; production uses 12
+
+const BASE_ENV: Env = {
+  NODE_ENV: 'test',
+  API_PORT: 3000,
+  DATABASE_PATH: ':memory:',
+  JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
+  HOST_WEB_ORIGIN: 'http://localhost:5173',
+  PARTICIPANT_WEB_ORIGIN: 'http://localhost:5174',
+};
 
 export interface TestApp {
   readonly app: FastifyInstance;
@@ -14,17 +23,12 @@ export interface TestApp {
 }
 
 /** A fully-wired server over a fresh in-memory SQLite database, for HTTP-level acceptance tests. */
-export function makeTestApp(clock?: Clock): TestApp {
+export function makeTestApp(clock?: Clock, envOverrides: Partial<Env> = {}): TestApp {
   const db = new DatabaseSync(':memory:');
   runMigrations(db);
   const deps = buildProductionDeps(
     db,
-    {
-      NODE_ENV: 'test',
-      API_PORT: 3000,
-      DATABASE_PATH: ':memory:',
-      JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
-    },
+    { ...BASE_ENV, ...envOverrides },
     clock,
     new BcryptPasswordHasher(TEST_BCRYPT_COST),
   );
