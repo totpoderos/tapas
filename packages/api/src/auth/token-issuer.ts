@@ -1,9 +1,11 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Clock } from '../audit/audit-projection.js';
 
 export interface Session {
   readonly accessToken: string;
   readonly refreshToken: string;
+  /** The session id shared by both tokens — what a `SessionStore` tracks. */
+  readonly sessionId: string;
 }
 
 export interface TokenClaims {
@@ -15,6 +17,7 @@ export interface VerifiedClaims extends TokenClaims {
   readonly typ: 'access' | 'refresh';
   readonly iat: number;
   readonly exp: number;
+  readonly jti: string;
 }
 
 export interface TokenIssuer {
@@ -41,9 +44,23 @@ export class HmacJwtTokenIssuer implements TokenIssuer {
 
   issue(claims: TokenClaims): Session {
     const nowSeconds = Math.floor(Date.parse(this.clock.now()) / 1000);
+    const jti = randomUUID();
     return {
-      accessToken: this.sign({ ...claims, typ: 'access', iat: nowSeconds, exp: nowSeconds + ACCESS_TTL_SECONDS }),
-      refreshToken: this.sign({ ...claims, typ: 'refresh', iat: nowSeconds, exp: nowSeconds + REFRESH_TTL_SECONDS }),
+      accessToken: this.sign({
+        ...claims,
+        typ: 'access',
+        iat: nowSeconds,
+        exp: nowSeconds + ACCESS_TTL_SECONDS,
+        jti,
+      }),
+      refreshToken: this.sign({
+        ...claims,
+        typ: 'refresh',
+        iat: nowSeconds,
+        exp: nowSeconds + REFRESH_TTL_SECONDS,
+        jti,
+      }),
+      sessionId: jti,
     };
   }
 

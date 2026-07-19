@@ -1,4 +1,5 @@
-export { buildServer } from './server.js';
+export { buildServer, type ServerDeps } from './server.js';
+export { buildProductionDeps } from './composition.js';
 export { loadEnv, EnvValidationError, type Env } from './config/env.js';
 export { openDatabase, runMigrations } from './db/migrate.js';
 export {
@@ -54,6 +55,8 @@ export {
 export { SqliteHostAccountRepository, type HostAccountRepository } from './db/host-account-repository.js';
 export { RegisterHost, type RegisterHostDeps } from './auth/use-cases/register-host.js';
 export { AuthenticateHost, type AuthenticateHostDeps } from './auth/use-cases/authenticate-host.js';
+export { RefreshSession, type RefreshSessionDeps } from './auth/use-cases/refresh-session.js';
+export { SignOutHost, type SignOutHostDeps } from './auth/use-cases/sign-out-host.js';
 export type {
   RegisterResult,
   RegisterError,
@@ -61,4 +64,9 @@ export type {
   AuthResult,
   AuthError,
   AuthErrorCode,
+  RefreshResult,
+  RefreshError,
+  RefreshErrorCode,
 } from './auth/use-cases/shared.js';
+export type { SessionStore } from './auth/session-store.js';
+export { SqliteSessionStore } from './db/session-repository.js';

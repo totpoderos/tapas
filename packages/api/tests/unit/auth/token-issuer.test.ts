@@ -13,6 +13,14 @@ describe('HmacJwtTokenIssuer', () => {
     expect(claims?.sub).toBe('host-1');
     expect(claims?.role).toBe('host');
     expect(claims?.typ).toBe('access');
+    expect(claims?.jti).toBe(session.sessionId);
+  });
+
+  it('shares one session id between the access and refresh token', () => {
+    const issuer = new HmacJwtTokenIssuer(SECRET, clock);
+    const session = issuer.issue({ sub: 'host-1', role: 'host' });
+
+    expect(issuer.verify(session.refreshToken)?.jti).toBe(session.sessionId);
   });
 
   it('rejects a tampered token', () => {

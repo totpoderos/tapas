@@ -9,6 +9,7 @@ import {
   RegisterHost,
   runMigrations,
   SqliteHostAccountRepository,
+  SqliteSessionStore,
   type Clock,
 } from '../../src/index.js';
 
@@ -24,11 +25,12 @@ function makeAuthWorkspace() {
   const hasher = new BcryptPasswordHasher(4); // low cost keeps tests fast
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
   const tokens = new HmacJwtTokenIssuer('test-secret-that-is-at-least-32-characters', clock);
+  const sessions = new SqliteSessionStore(db);
   let sequence = 0;
   const ids = { next: () => `host-${++sequence}` };
   return {
     registerHost: new RegisterHost({ accounts, hasher, ids }),
-    authenticateHost: new AuthenticateHost({ accounts, hasher, tokens, clock }),
+    authenticateHost: new AuthenticateHost({ accounts, hasher, tokens, sessions, clock }),
     accounts,
   };
 }

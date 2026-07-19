@@ -1,5 +1,5 @@
 import type { HostAccount } from '@tapas/domain';
-import type { HostAccountRepository, PasswordHasher, Session, TokenIssuer } from '../../../src/index.js';
+import type { HostAccountRepository, PasswordHasher, Session, SessionStore, TokenIssuer } from '../../../src/index.js';
 
 export class FakeHostAccountRepository implements HostAccountRepository {
   private readonly byEmail = new Map<string, HostAccount>();
@@ -26,9 +26,22 @@ export class FakePasswordHasher implements PasswordHasher {
 
 export class FakeTokenIssuer implements TokenIssuer {
   issue(): Session {
-    return { accessToken: 'access-token', refreshToken: 'refresh-token' };
+    return { accessToken: 'access-token', refreshToken: 'refresh-token', sessionId: 'session-1' };
   }
   verify(): null {
     return null;
+  }
+}
+
+export class FakeSessionStore implements SessionStore {
+  private readonly active = new Set<string>();
+  activate(jti: string, _hostId: string, _expiresAt: string): void {
+    this.active.add(jti);
+  }
+  revoke(jti: string): void {
+    this.active.delete(jti);
+  }
+  isActive(jti: string): boolean {
+    return this.active.has(jti);
   }
 }
