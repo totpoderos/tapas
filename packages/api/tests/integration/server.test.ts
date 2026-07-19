@@ -3,7 +3,7 @@ import { makeTestApp } from '../support/test-server.js';
 
 describe('api server', () => {
   it('responds to the health check', async () => {
-    const app = makeTestApp();
+    const { app } = makeTestApp();
     const res = await app.inject({ method: 'GET', url: '/health' });
 
     expect(res.statusCode).toBe(200);

@@ -4,12 +4,17 @@ import { ACCESS_TTL_SECONDS, REFRESH_TTL_SECONDS } from '../auth/token-issuer.js
 
 export const ACCESS_COOKIE = 'access_token';
 export const REFRESH_COOKIE = 'refresh_token';
+export const VOTER_COOKIE = 'voter_token';
 
 export interface CookieOptions {
   readonly secure: boolean;
 }
 
-export function setSessionCookies(reply: FastifyReply, session: Session, options: CookieOptions): void {
+export function setSessionCookies(
+  reply: FastifyReply,
+  session: Session,
+  options: CookieOptions,
+): void {
   reply.setCookie(ACCESS_COOKIE, session.accessToken, {
     httpOnly: true,
     secure: options.secure,
@@ -29,4 +34,19 @@ export function setSessionCookies(reply: FastifyReply, session: Session, options
 export function clearSessionCookies(reply: FastifyReply): void {
   reply.clearCookie(ACCESS_COOKIE, { path: '/' });
   reply.clearCookie(REFRESH_COOKIE, { path: '/' });
+}
+
+/** The voter's remember-me token: a single long-lived cookie, no access/refresh split. */
+export function setVoterCookie(
+  reply: FastifyReply,
+  session: Session,
+  options: CookieOptions,
+): void {
+  reply.setCookie(VOTER_COOKIE, session.refreshToken, {
+    httpOnly: true,
+    secure: options.secure,
+    sameSite: 'strict',
+    path: '/',
+    maxAge: REFRESH_TTL_SECONDS,
+  });
 }

@@ -14,6 +14,9 @@ export class FakeContestRepository implements ContestRepository {
   findById(id: string): StoredContest | undefined {
     return this.store.get(id);
   }
+  findByJoinCode(joinCode: string): StoredContest | undefined {
+    return [...this.store.values()].find((contest) => contest.joinCode === joinCode);
+  }
 }
 
 export function makePublishDeps() {

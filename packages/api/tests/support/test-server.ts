@@ -7,8 +7,14 @@ import { BcryptPasswordHasher, type Clock } from '../../src/index.js';
 
 const TEST_BCRYPT_COST = 4; // keeps HTTP-level tests fast; production uses 12
 
+export interface TestApp {
+  readonly app: FastifyInstance;
+  /** The in-memory database behind the app — lets a spec seed state (e.g. a live contest) directly. */
+  readonly db: DatabaseSync;
+}
+
 /** A fully-wired server over a fresh in-memory SQLite database, for HTTP-level acceptance tests. */
-export function makeTestApp(clock?: Clock): FastifyInstance {
+export function makeTestApp(clock?: Clock): TestApp {
   const db = new DatabaseSync(':memory:');
   runMigrations(db);
   const deps = buildProductionDeps(
@@ -22,7 +28,7 @@ export function makeTestApp(clock?: Clock): FastifyInstance {
     clock,
     new BcryptPasswordHasher(TEST_BCRYPT_COST),
   );
-  return buildServer(deps);
+  return { app: buildServer(deps), db };
 }
 
 /** A clock whose time can be advanced mid-test, to exercise token expiry without waiting for real time. */
