@@ -78,3 +78,15 @@ export { SqliteVoterRepository, type VoterRepository } from './db/voter-reposito
 export type { StoredVoter } from './voters/stored-voter.js';
 export { JoinContest, type JoinContestDeps } from './voters/use-cases/join-contest.js';
 export type { JoinResult, JoinError, JoinErrorCode } from './voters/use-cases/shared.js';
+
+export { SqliteHostPatRepository, type HostPatRepository } from './db/host-pat-repository.js';
+export type { StoredHostPat } from './auth/stored-host-pat.js';
+export { generatePatToken, hashPatToken } from './auth/pat-hasher.js';
+export { IssuePat, type IssuePatDeps } from './auth/use-cases/issue-pat.js';
+export { RevokePat, type RevokePatDeps } from './auth/use-cases/revoke-pat.js';
+export type {
+  IssuePatResult,
+  RevokePatResult,
+  RevokePatError,
+  RevokePatErrorCode,
+} from './auth/use-cases/pat-shared.js';
