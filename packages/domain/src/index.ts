@@ -26,3 +26,10 @@ export type { DraftContent, CloseRule, RevealStrategy } from './draft/draft-cont
 
 export { Contest } from './contest/contest.js';
 export type { PublishResult, PublishError, PublishErrorCode, PublishableDraft } from './contest/contest.js';
+
+export { Email } from './auth/email.js';
+export type { EmailResult, EmailError } from './auth/email.js';
+export { checkPasswordStrength, MIN_PASSWORD_LENGTH } from './auth/password-policy.js';
+export type { PasswordWeakness } from './auth/password-policy.js';
+export { HostAccount, MAX_FAILED_ATTEMPTS, LOCK_DURATION_MINUTES } from './auth/host-account.js';
+export type { HostRole } from './auth/host-account.js';
