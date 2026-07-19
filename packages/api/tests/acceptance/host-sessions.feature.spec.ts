@@ -5,7 +5,9 @@ import { expect } from 'vitest';
 import { makeTestApp, MutableClock } from '../support/test-server.js';
 import { ACCESS_TTL_SECONDS } from '../../src/index.js';
 
-const feature = await loadFeature(fileURLToPath(new URL('./host-sessions.feature', import.meta.url)));
+const feature = await loadFeature(
+  fileURLToPath(new URL('./host-sessions.feature', import.meta.url)),
+);
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 
@@ -38,14 +40,29 @@ async function request(
   jar: CookieJar,
   options: { method: 'GET' | 'POST'; url: string; payload?: Record<string, unknown> },
 ): Promise<LightMyRequestResponse> {
-  const response: LightMyRequestResponse = await app.inject({ ...options, headers: { cookie: jar.header() } });
+  const response: LightMyRequestResponse = await app.inject({
+    ...options,
+    headers: { cookie: jar.header() },
+  });
   jar.capture(response);
   return response;
 }
 
-async function registerAndLogin(app: FastifyInstance, jar: CookieJar, email: string): Promise<void> {
-  await request(app, jar, { method: 'POST', url: '/auth/register', payload: { email, password: STRONG_PASSWORD } });
-  await request(app, jar, { method: 'POST', url: '/auth/login', payload: { email, password: STRONG_PASSWORD } });
+async function registerAndLogin(
+  app: FastifyInstance,
+  jar: CookieJar,
+  email: string,
+): Promise<void> {
+  await request(app, jar, {
+    method: 'POST',
+    url: '/auth/register',
+    payload: { email, password: STRONG_PASSWORD },
+  });
+  await request(app, jar, {
+    method: 'POST',
+    url: '/auth/login',
+    payload: { email, password: STRONG_PASSWORD },
+  });
 }
 
 describeFeature(feature, ({ Scenario }) => {
@@ -55,7 +72,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('no host is registered with "ana@example.com"', () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
       jar = new CookieJar();
     });
     When('a host registers and signs in through the API as "ana@example.com"', async () => {
@@ -83,12 +100,16 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
     });
     When('that host creates a draft through the API', async () => {
-      response = await request(app, jar, { method: 'POST', url: '/drafts', payload: { name: 'Tapas Night' } });
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/drafts',
+        payload: { name: 'Tapas Night' },
+      });
     });
     Then('the draft is created', () => {
       expect(response.statusCode).toBe(201);
@@ -102,11 +123,15 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('no one is signed in', () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
       jar = new CookieJar();
     });
     When('a draft is requested through the API', async () => {
-      response = await request(app, jar, { method: 'POST', url: '/drafts', payload: { name: 'Tapas Night' } });
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/drafts',
+        payload: { name: 'Tapas Night' },
+      });
     });
     Then('the API refuses it as not signed in', () => {
       expect(response.statusCode).toBe(401);
@@ -122,7 +147,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" who owns a draft', async () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
       anaJar = new CookieJar();
       await registerAndLogin(app, anaJar, 'ana@example.com');
       const created = await request(app, anaJar, {
@@ -153,7 +178,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host "ana@example.com" whose session has aged out', async () => {
       clock = new MutableClock('2026-07-19T10:00:00.000Z');
-      app = makeTestApp(clock);
+      ({ app } = makeTestApp(clock));
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
 
@@ -172,7 +197,11 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(200);
     });
     And('protected work is allowed again', async () => {
-      const created = await request(app, jar, { method: 'POST', url: '/drafts', payload: { name: 'Tapas Night' } });
+      const created = await request(app, jar, {
+        method: 'POST',
+        url: '/drafts',
+        payload: { name: 'Tapas Night' },
+      });
       expect(created.statusCode).toBe(201);
     });
   });
@@ -183,7 +212,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
     });
@@ -210,7 +239,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host "ana@example.com" whose session has aged out', async () => {
       clock = new MutableClock('2026-07-19T10:00:00.000Z');
-      app = makeTestApp(clock);
+      ({ app } = makeTestApp(clock));
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
       clock.advance((ACCESS_TTL_SECONDS + 60) * 1000);

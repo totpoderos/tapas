@@ -5,6 +5,7 @@ import { deserializeMaterialized, serializeMaterialized } from '../contests/mate
 export interface ContestRepository {
   insert(contest: StoredContest): void;
   findById(id: string): StoredContest | undefined;
+  findByJoinCode(joinCode: string): StoredContest | undefined;
 }
 
 interface ContestRow {
@@ -51,8 +52,14 @@ export class SqliteContestRepository implements ContestRepository {
 
   findById(id: string): StoredContest | undefined {
     const row = this.db.prepare(`SELECT * FROM contests WHERE id = ?`).get(id) as unknown as
-      | ContestRow
-      | undefined;
+      ContestRow | undefined;
+    return row ? toContest(row) : undefined;
+  }
+
+  findByJoinCode(joinCode: string): StoredContest | undefined {
+    const row = this.db
+      .prepare(`SELECT * FROM contests WHERE join_code = ?`)
+      .get(joinCode) as unknown as ContestRow | undefined;
     return row ? toContest(row) : undefined;
   }
 }

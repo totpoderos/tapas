@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerDraftRoutes } from './http/draft-routes.js';
+import { registerVoterRoutes } from './http/voter-routes.js';
 import type { ServerDeps } from './http/server-deps.js';
 
 export type { ServerDeps } from './http/server-deps.js';
@@ -20,6 +21,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
 
   registerAuthRoutes(app, deps);
   registerDraftRoutes(app, deps);
+  registerVoterRoutes(app, deps);
 
   return app;
 }

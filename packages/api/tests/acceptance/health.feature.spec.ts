@@ -14,7 +14,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: Awaited<ReturnType<FastifyInstance['inject']>>;
 
     Given('the API is running', () => {
-      app = makeTestApp();
+      ({ app } = makeTestApp());
     });
     When('a client requests the health endpoint', async () => {
       response = await app.inject({ method: 'GET', url: '/health' });

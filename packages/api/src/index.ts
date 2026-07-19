@@ -52,7 +52,10 @@ export {
   type TokenClaims,
   type VerifiedClaims,
 } from './auth/token-issuer.js';
-export { SqliteHostAccountRepository, type HostAccountRepository } from './db/host-account-repository.js';
+export {
+  SqliteHostAccountRepository,
+  type HostAccountRepository,
+} from './db/host-account-repository.js';
 export { RegisterHost, type RegisterHostDeps } from './auth/use-cases/register-host.js';
 export { AuthenticateHost, type AuthenticateHostDeps } from './auth/use-cases/authenticate-host.js';
 export { RefreshSession, type RefreshSessionDeps } from './auth/use-cases/refresh-session.js';
@@ -70,3 +73,8 @@ export type {
 } from './auth/use-cases/shared.js';
 export type { SessionStore } from './auth/session-store.js';
 export { SqliteSessionStore } from './db/session-repository.js';
+
+export { SqliteVoterRepository, type VoterRepository } from './db/voter-repository.js';
+export type { StoredVoter } from './voters/stored-voter.js';
+export { JoinContest, type JoinContestDeps } from './voters/use-cases/join-contest.js';
+export type { JoinResult, JoinError, JoinErrorCode } from './voters/use-cases/shared.js';

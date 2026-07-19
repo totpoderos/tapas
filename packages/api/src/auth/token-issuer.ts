@@ -11,6 +11,8 @@ export interface Session {
 export interface TokenClaims {
   readonly sub: string;
   readonly role: string;
+  /** Set for voter tokens: scopes the token to a single contest. */
+  readonly contestId?: string;
 }
 
 export interface VerifiedClaims extends TokenClaims {
