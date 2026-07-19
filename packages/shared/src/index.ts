@@ -1,5 +1,12 @@
 export type { AuditEntry, SourcePath } from './audit/audit-entry.js';
 export type {
+  CloseRule,
+  DraftContent,
+  DraftStatus,
+  RevealStrategy,
+  StoredDraft,
+} from './draft/draft.js';
+export type {
   LLMClient,
   LLMMessage,
   LLMToolDefinition,
