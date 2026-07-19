@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\""
+    "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^5.2.1",
@@ -29,6 +30,7 @@
     "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
     "fast-check": "^4.9.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.1",
     "prettier": "^3.4.2",
     "tsx": "^4.19.2",

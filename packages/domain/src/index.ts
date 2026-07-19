@@ -19,3 +19,7 @@ export type {
 
 export { compile } from './compile.js';
 export type { CompileError, CompileErrorCode, CompileResult } from './compile.js';
+
+export { Draft } from './draft/draft.js';
+export type { DraftResult, DraftInvariantError } from './draft/draft.js';
+export type { DraftContent, CloseRule, RevealStrategy } from './draft/draft-content.js';
