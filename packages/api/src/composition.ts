@@ -8,6 +8,7 @@ import { SqliteContestRepository } from './db/contest-repository.js';
 import { SqliteDraftRepository } from './db/draft-repository.js';
 import { SqliteHostAccountRepository } from './db/host-account-repository.js';
 import { SqliteHostPatRepository } from './db/host-pat-repository.js';
+import { SqliteSecurityEventLog } from './db/security-event-repository.js';
 import { SqliteSessionStore } from './db/session-repository.js';
 import { SqliteVoterRepository } from './db/voter-repository.js';
 import { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
@@ -42,6 +43,7 @@ export function buildProductionDeps(
   const pats = new SqliteHostPatRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
+  const securityLog = new SqliteSecurityEventLog(db, clock, ids);
 
   const tokens = new HmacJwtTokenIssuer(env.JWT_SECRET, clock);
 
@@ -59,6 +61,7 @@ export function buildProductionDeps(
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,
+    securityLog,
     security: {
       isProduction: env.NODE_ENV === 'production',
       allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],

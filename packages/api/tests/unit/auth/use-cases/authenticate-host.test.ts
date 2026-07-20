@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { AuthenticateHost, RegisterHost, type Clock } from '../../../../src/index.js';
-import { FakeHostAccountRepository, FakePasswordHasher, FakeSessionStore, FakeTokenIssuer } from '../support.js';
+import {
+  FakeHostAccountRepository,
+  FakePasswordHasher,
+  FakeSessionStore,
+  FakeTokenIssuer,
+} from '../support.js';
 
 const STRONG = 'Str0ng!Passw0rd';
 const WRONG = 'Wr0ng!Passw0rd';
@@ -14,7 +19,13 @@ function makeAuthEnv() {
   const sessions = new FakeSessionStore();
   return {
     registerHost: new RegisterHost({ accounts, hasher, ids }),
-    authenticateHost: new AuthenticateHost({ accounts, hasher, tokens: new FakeTokenIssuer(), sessions, clock }),
+    authenticateHost: new AuthenticateHost({
+      accounts,
+      hasher,
+      tokens: new FakeTokenIssuer(),
+      sessions,
+      clock,
+    }),
     accounts,
     sessions,
   };
@@ -34,22 +45,30 @@ describe('AuthenticateHost', () => {
     }
   });
 
-  it('refuses a wrong password generically and counts the failure', async () => {
+  it('refuses a wrong password generically, but records the true reason internally', async () => {
     const { registerHost, authenticateHost, accounts } = makeAuthEnv();
-    await registerHost.execute('ana@example.com', STRONG);
+    const registration = await registerHost.execute('ana@example.com', STRONG);
 
     const loginOutcome = await authenticateHost.execute('ana@example.com', WRONG);
 
     expect(loginOutcome.ok).toBe(false);
-    if (!loginOutcome.ok) expect(loginOutcome.error.code).toBe('INVALID_CREDENTIALS');
+    if (!loginOutcome.ok) {
+      expect(loginOutcome.error.code).toBe('INVALID_CREDENTIALS'); // generic to the caller
+      expect(loginOutcome.logReason).toBe('bad_password'); // truthful to the log
+      if (registration.ok) expect(loginOutcome.hostId).toBe(registration.hostId);
+    }
     expect(accounts.findByEmail('ana@example.com')?.failedAttempts).toBe(1);
   });
 
-  it('refuses an unknown email with the same generic error', async () => {
+  it('refuses an unknown email with the same generic error, logged as an unknown account', async () => {
     const { authenticateHost } = makeAuthEnv();
     const loginOutcome = await authenticateHost.execute('nobody@example.com', STRONG);
     expect(loginOutcome.ok).toBe(false);
-    if (!loginOutcome.ok) expect(loginOutcome.error.code).toBe('INVALID_CREDENTIALS');
+    if (!loginOutcome.ok) {
+      expect(loginOutcome.error.code).toBe('INVALID_CREDENTIALS'); // indistinguishable from a wrong password
+      expect(loginOutcome.logReason).toBe('unknown_account');
+      expect(loginOutcome.hostId).toBeNull(); // no account to attribute it to
+    }
   });
 
   it('locks after 5 failures and then refuses even the correct password', async () => {

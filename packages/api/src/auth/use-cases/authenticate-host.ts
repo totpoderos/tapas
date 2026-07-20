@@ -4,7 +4,7 @@ import type { HostAccountRepository } from '../../db/host-account-repository.js'
 import type { PasswordHasher } from '../password-hasher.js';
 import type { SessionStore } from '../session-store.js';
 import { REFRESH_TTL_SECONDS, type TokenIssuer } from '../token-issuer.js';
-import type { AuthResult } from './shared.js';
+import type { AuthLogReason, AuthResult } from './shared.js';
 
 export interface AuthenticateHostDeps {
   readonly accounts: HostAccountRepository;
@@ -15,10 +15,15 @@ export interface AuthenticateHostDeps {
 }
 
 // Same generic failure for a wrong password and an unknown email — no enumeration (A07/A04).
-const invalidCredentials: AuthResult = {
-  ok: false,
-  error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' },
-};
+// The internal `logReason`/`hostId` are for the security log only, never sent to the caller.
+function invalidCredentials(logReason: AuthLogReason, hostId: string | null): AuthResult {
+  return {
+    ok: false,
+    error: { code: 'INVALID_CREDENTIALS', message: 'Invalid email or password.' },
+    logReason,
+    hostId,
+  };
+}
 
 /** Authenticates a host, honouring account lockout, and issues a session on success. */
 export class AuthenticateHost {
@@ -26,20 +31,25 @@ export class AuthenticateHost {
 
   async execute(rawEmail: string, rawPassword: string): Promise<AuthResult> {
     const emailResult = Email.create(rawEmail);
-    if (!emailResult.ok) return invalidCredentials;
+    if (!emailResult.ok) return invalidCredentials('unknown_account', null);
 
     const account = this.deps.accounts.findByEmail(emailResult.email.value);
-    if (!account) return invalidCredentials;
+    if (!account) return invalidCredentials('unknown_account', null);
 
     const now = this.deps.clock.now();
     if (account.isLocked(now)) {
-      return { ok: false, error: { code: 'ACCOUNT_LOCKED', message: 'Account temporarily locked. Try again later.' } };
+      return {
+        ok: false,
+        error: { code: 'ACCOUNT_LOCKED', message: 'Account temporarily locked. Try again later.' },
+        logReason: 'account_locked',
+        hostId: account.id,
+      };
     }
 
     const correct = await this.deps.hasher.verify(rawPassword, account.passwordHash);
     if (!correct) {
       this.deps.accounts.update(account.withFailedLogin(now));
-      return invalidCredentials;
+      return invalidCredentials('bad_password', account.id);
     }
 
     this.deps.accounts.update(account.withSuccessfulLogin());

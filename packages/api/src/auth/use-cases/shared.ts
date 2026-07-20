@@ -18,9 +18,23 @@ export interface AuthError {
   readonly message: string;
 }
 
+/**
+ * Internal-only refusal reason for the security log. Distinct from the
+ * client-facing `AuthError.code`, which stays generic (`INVALID_CREDENTIALS`)
+ * for both a wrong password and an unknown account — no enumeration to the
+ * caller, full truth to the forensic log.
+ */
+export type AuthLogReason = 'unknown_account' | 'bad_password' | 'account_locked';
+
 export type AuthResult =
   | { readonly ok: true; readonly session: Session; readonly hostId: string; readonly role: string }
-  | { readonly ok: false; readonly error: AuthError };
+  | {
+      readonly ok: false;
+      readonly error: AuthError;
+      readonly logReason: AuthLogReason;
+      /** The account id when the account was found (a wrong-password or locked attempt); null for an unknown account. */
+      readonly hostId: string | null;
+    };
 
 export type RefreshErrorCode = 'NOT_SIGNED_IN';
 

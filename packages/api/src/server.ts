@@ -20,7 +20,9 @@ export type { ServerDeps } from './http/server-deps.js';
  * Security-event logging lands in a later C3c sub-slice.
  */
 export function buildServer(deps: ServerDeps): FastifyInstance {
-  const app = Fastify({ logger: false, trustProxy: true });
+  // Logging on in production so the error handler's server-side error records
+  // (A09) actually land somewhere; quiet in dev/test.
+  const app = Fastify({ logger: deps.security.isProduction, trustProxy: true });
 
   app.register(cookie);
   app.register(helmet, { xFrameOptions: { action: 'deny' } });

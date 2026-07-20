@@ -3,6 +3,7 @@ import type { HostPatRepository } from '../db/host-pat-repository.js';
 import { hashPatToken } from '../auth/pat-hasher.js';
 import type { SessionStore } from '../auth/session-store.js';
 import type { TokenIssuer } from '../auth/token-issuer.js';
+import type { SecurityEventLog } from '../security/security-event.js';
 import { ACCESS_COOKIE } from './session-cookies.js';
 
 export interface HostSession {
@@ -20,6 +21,7 @@ export interface RequireHostSessionDeps {
   readonly tokens: TokenIssuer;
   readonly sessions: SessionStore;
   readonly pats: HostPatRepository;
+  readonly securityLog: SecurityEventLog;
 }
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
@@ -39,6 +41,7 @@ export function requireHostSession(deps: RequireHostSessionDeps) {
       const pat = deps.pats.findByTokenHash(hashPatToken(bearer.slice(BEARER_PREFIX.length)));
       if (pat && !pat.revokedAt) {
         request.hostSession = { id: pat.hostId, role: 'host' };
+        deps.securityLog.record({ type: 'pat.used', actorId: pat.hostId, sourceIp: request.ip });
         return;
       }
       await reply.code(401).send(notSignedIn);
