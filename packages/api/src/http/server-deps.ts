@@ -9,7 +9,7 @@ import type { TokenIssuer } from '../auth/token-issuer.js';
 import type { ContestRepository } from '../db/contest-repository.js';
 import type { DraftRepository } from '../db/draft-repository.js';
 import type { HostPatRepository } from '../db/host-pat-repository.js';
-import type { VoterRepository } from '../db/voter-repository.js';
+import type { RosterRepository } from '../db/roster-repository.js';
 import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
 import type { DiscardDraft } from '../drafts/use-cases/discard-draft.js';
 import type { ListHostDrafts } from '../drafts/use-cases/list-host-drafts.js';
@@ -17,7 +17,7 @@ import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { SecurityEventLog } from '../security/security-event.js';
-import type { JoinContest } from '../voters/use-cases/join-contest.js';
+import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
 
 export interface SecurityConfig {
   readonly isProduction: boolean;
@@ -40,8 +40,8 @@ export interface ServerDeps {
   readonly getContest: GetContest;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;
-  readonly joinContest: JoinContest;
-  readonly voters: VoterRepository;
+  readonly claimPlace: ClaimPlace;
+  readonly roster: RosterRepository;
   readonly issuePat: IssuePat;
   readonly revokePat: RevokePat;
   readonly pats: HostPatRepository;

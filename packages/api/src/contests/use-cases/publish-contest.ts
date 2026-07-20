@@ -29,10 +29,24 @@ export class PublishContest {
       createdAt: this.deps.clock.now(),
     };
     this.deps.contests.insert(stored);
+    // Seed the roster: one open place per listed participant, keyed by the id
+    // the compiled view uses — so a claim links straight to the scoring rules.
+    this.deps.roster.seed(
+      stored.id,
+      (draft.content.participants ?? []).map((participant) => ({
+        participantId: participant.id,
+        displayName: participant.displayName,
+      })),
+    );
     this.deps.drafts.delete(draftId); // retire the draft — it is a contest now
 
     this.deps.audit.record(
-      { type: 'contest.published', contestId: stored.id, actorId: hostId, after: { name: stored.name, joinCode } },
+      {
+        type: 'contest.published',
+        contestId: stored.id,
+        actorId: hostId,
+        after: { name: stored.name, joinCode },
+      },
       { sourcePath: 'system' },
     );
     return { ok: true, contest: stored };

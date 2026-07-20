@@ -14,16 +14,20 @@ import {
   SqliteAuditLogRepository,
   SqliteContestRepository,
   SqliteDraftRepository,
+  SqliteRosterRepository,
   type Clock,
 } from '../../src/index.js';
 
-const feature = await loadFeature(fileURLToPath(new URL('./publishing-a-contest.feature', import.meta.url)));
+const feature = await loadFeature(
+  fileURLToPath(new URL('./publishing-a-contest.feature', import.meta.url)),
+);
 
 function makeContestWorkspace() {
   const db = new DatabaseSync(':memory:');
   runMigrations(db);
   const drafts = new SqliteDraftRepository(db);
   const contests = new SqliteContestRepository(db);
+  const roster = new SqliteRosterRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   let auditSequence = 0;
   const ids = { next: () => `audit-${++auditSequence}` };
@@ -34,7 +38,7 @@ function makeContestWorkspace() {
 
   return {
     createDraft: new CreateDraft({ drafts, audit, clock, ids }),
-    publishContest: new PublishContest({ drafts, contests, audit, clock, joinCodes }),
+    publishContest: new PublishContest({ drafts, contests, roster, audit, clock, joinCodes }),
     getContest: new GetContest(contests),
     listHostDrafts: new ListHostDrafts(drafts),
     auditLog,
@@ -53,7 +57,11 @@ function completeContent(name: string): DraftContent {
     name,
     attribution: 'per_person',
     antiBias: 'couples',
-    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    scoring: {
+      categories: [{ id: 'c1', name: 'Taste' }],
+      range: { type: 'auto' },
+      uniquePerCategory: true,
+    },
     participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
   };
 }
@@ -64,7 +72,11 @@ function singleCoupleContent(name: string): DraftContent {
     name,
     attribution: 'per_person',
     antiBias: 'couples',
-    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    scoring: {
+      categories: [{ id: 'c1', name: 'Taste' }],
+      range: { type: 'auto' },
+      uniquePerCategory: true,
+    },
     participants: [person('A', 'B'), person('B', 'A')],
   };
 }
@@ -103,7 +115,9 @@ describeFeature(feature, ({ Scenario }) => {
       expect(workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
     });
     And('the audit log records that the contest was published', () => {
-      const wasPublished = workspace.auditLog.findByContest(draftId).some((entry) => entry.type === 'contest.published');
+      const wasPublished = workspace.auditLog
+        .findByContest(draftId)
+        .some((entry) => entry.type === 'contest.published');
       expect(wasPublished).toBe(true);
     });
   });
@@ -130,27 +144,34 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
-  Scenario('A draft that leaves a judge unable to score cannot be published', ({ Given, When, Then, And }) => {
-    let workspace: ContestWorkspace;
-    const hostId = 'host-1';
-    let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+  Scenario(
+    'A draft that leaves a judge unable to score cannot be published',
+    ({ Given, When, Then, And }) => {
+      let workspace: ContestWorkspace;
+      const hostId = 'host-1';
+      let draftId = '';
+      let publishOutcome: ReturnType<PublishContest['execute']>;
 
-    Given('a host with a draft for a single couple, scored per person with couples barred', () => {
-      workspace = makeContestWorkspace();
-      draftId = saveDraft(workspace, hostId, singleCoupleContent('Just us'));
-    });
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
-    });
-    Then('publishing is rejected because a judge could score nothing', () => {
-      expect(publishOutcome.ok).toBe(false);
-      if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');
-    });
-    And('no contest is created', () => {
-      expect(workspace.getContest.execute(draftId)).toBeUndefined();
-    });
-  });
+      Given(
+        'a host with a draft for a single couple, scored per person with couples barred',
+        () => {
+          workspace = makeContestWorkspace();
+          draftId = saveDraft(workspace, hostId, singleCoupleContent('Just us'));
+        },
+      );
+      When('the host tries to publish the draft', () => {
+        publishOutcome = workspace.publishContest.execute(draftId, hostId);
+      });
+      Then('publishing is rejected because a judge could score nothing', () => {
+        expect(publishOutcome.ok).toBe(false);
+        if (!publishOutcome.ok)
+          expect(publishOutcome.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');
+      });
+      And('no contest is created', () => {
+        expect(workspace.getContest.execute(draftId)).toBeUndefined();
+      });
+    },
+  );
 
   Scenario("A host cannot publish another host's draft", ({ Given, When, Then, And }) => {
     let workspace: ContestWorkspace;

@@ -8,9 +8,9 @@ import { SqliteContestRepository } from './db/contest-repository.js';
 import { SqliteDraftRepository } from './db/draft-repository.js';
 import { SqliteHostAccountRepository } from './db/host-account-repository.js';
 import { SqliteHostPatRepository } from './db/host-pat-repository.js';
+import { SqliteRosterRepository } from './db/roster-repository.js';
 import { SqliteSecurityEventLog } from './db/security-event-repository.js';
 import { SqliteSessionStore } from './db/session-repository.js';
-import { SqliteVoterRepository } from './db/voter-repository.js';
 import { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
 import { HmacJwtTokenIssuer } from './auth/token-issuer.js';
 import { AuthenticateHost } from './auth/use-cases/authenticate-host.js';
@@ -26,7 +26,7 @@ import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
-import { JoinContest } from './voters/use-cases/join-contest.js';
+import { ClaimPlace } from './voters/use-cases/claim-place.js';
 import type { ServerDeps } from './http/server-deps.js';
 import { SystemClock, UuidIdGenerator } from './runtime.js';
 
@@ -45,7 +45,7 @@ export function buildProductionDeps(
   const sessions = new SqliteSessionStore(db);
   const drafts = new SqliteDraftRepository(db);
   const contests = new SqliteContestRepository(db);
-  const voters = new SqliteVoterRepository(db);
+  const roster = new SqliteRosterRepository(db);
   const pats = new SqliteHostPatRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
@@ -67,6 +67,7 @@ export function buildProductionDeps(
     publishContest: new PublishContest({
       drafts,
       contests,
+      roster,
       audit,
       clock,
       joinCodes: new RandomJoinCodeGenerator(),
@@ -74,8 +75,8 @@ export function buildProductionDeps(
     getContest: new GetContest(contests),
     drafts,
     contests,
-    joinContest: new JoinContest({ contests, voters, tokens, ids, clock }),
-    voters,
+    claimPlace: new ClaimPlace({ contests, roster, tokens, clock }),
+    roster,
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,

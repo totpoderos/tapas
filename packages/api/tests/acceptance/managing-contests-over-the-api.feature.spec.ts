@@ -98,10 +98,11 @@ describeFeature(feature, ({ Scenario }) => {
       });
       And('a participant can join that contest with the code', async () => {
         const joinCode = publishResponse.json().joinCode;
+        // The roster was seeded from the draft's participants (ids A–D); claim one.
         const joined = await app.inject({
           method: 'POST',
-          url: `/contests/${joinCode}/join`,
-          payload: { displayName: 'Marcos' },
+          url: `/contests/${joinCode}/claim`,
+          payload: { participantId: 'A' },
         });
         expect(joined.statusCode).toBe(201);
       });

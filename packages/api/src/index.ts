@@ -83,10 +83,14 @@ export type {
 } from './security/security-event.js';
 export { SqliteSecurityEventLog } from './db/security-event-repository.js';
 
-export { SqliteVoterRepository, type VoterRepository } from './db/voter-repository.js';
-export type { StoredVoter } from './voters/stored-voter.js';
-export { JoinContest, type JoinContestDeps } from './voters/use-cases/join-contest.js';
-export type { JoinResult, JoinError, JoinErrorCode } from './voters/use-cases/shared.js';
+export {
+  SqliteRosterRepository,
+  type RosterRepository,
+  type RosterSeed,
+} from './db/roster-repository.js';
+export type { RosterPlace } from './voters/roster-place.js';
+export { ClaimPlace, type ClaimPlaceDeps } from './voters/use-cases/claim-place.js';
+export type { ClaimResult, ClaimError, ClaimErrorCode } from './voters/use-cases/shared.js';
 
 export { SqliteHostPatRepository, type HostPatRepository } from './db/host-pat-repository.js';
 export type { StoredHostPat } from './auth/stored-host-pat.js';
