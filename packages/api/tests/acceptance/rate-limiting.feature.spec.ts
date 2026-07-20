@@ -22,10 +22,12 @@ async function attemptLogin(app: FastifyInstance): Promise<LightMyRequestRespons
 }
 
 async function attemptJoin(app: FastifyInstance): Promise<LightMyRequestResponse> {
+  // An unknown join code — refused fast (404), so only the IP-level rate limit
+  // on the claim endpoint is exercised here.
   return app.inject({
     method: 'POST',
-    url: '/contests/GHOST1/join',
-    payload: { displayName: 'Marcos' },
+    url: '/contests/GHOST1/claim',
+    payload: { participantId: 'ana' },
   });
 }
 

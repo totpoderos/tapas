@@ -13,12 +13,21 @@ function completeContent(name: string): DraftContent {
     name,
     attribution: 'per_person',
     antiBias: 'couples',
-    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    scoring: {
+      categories: [{ id: 'c1', name: 'Taste' }],
+      range: { type: 'auto' },
+      uniquePerCategory: true,
+    },
     participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
   };
 }
 
-function seedDraft(drafts: FakeDraftRepository, id: string, hostId: string, content: DraftContent): void {
+function seedDraft(
+  drafts: FakeDraftRepository,
+  id: string,
+  hostId: string,
+  content: DraftContent,
+): void {
   drafts.insert({ id, hostId, content, status: 'draft', createdAt: 'seed', updatedAt: 'seed' });
 }
 
@@ -35,7 +44,19 @@ describe('PublishContest', () => {
     expect(publishOutcome.contest.joinCode).toBe('JOIN-1');
     expect(contests.findById('draft-1')).toBeDefined();
     expect(drafts.findById('draft-1')).toBeUndefined();
-    expect(auditLog.findByContest('draft-1').some((entry) => entry.type === 'contest.published')).toBe(true);
+    expect(
+      auditLog.findByContest('draft-1').some((entry) => entry.type === 'contest.published'),
+    ).toBe(true);
+  });
+
+  it('seeds the roster with an open place per participant', () => {
+    const { deps, drafts, roster } = makePublishDeps();
+    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
+
+    new PublishContest(deps).execute('draft-1', 'host-1');
+
+    const places = roster.listAvailable('draft-1');
+    expect(places.map((place) => place.participantId).sort()).toEqual(['A', 'B', 'C', 'D']);
   });
 
   it('reports DRAFT_NOT_FOUND for an unknown draft', () => {
@@ -75,7 +96,11 @@ describe('PublishContest', () => {
       name: 'Just us',
       attribution: 'per_person',
       antiBias: 'couples',
-      scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+      scoring: {
+        categories: [{ id: 'c1', name: 'Taste' }],
+        range: { type: 'auto' },
+        uniquePerCategory: true,
+      },
       participants: [person('A', 'B'), person('B', 'A')],
     };
     seedDraft(drafts, 'draft-1', 'host-1', singleCouple);

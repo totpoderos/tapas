@@ -1,12 +1,18 @@
 import type { Session } from '../../auth/token-issuer.js';
 
-export type JoinErrorCode = 'JOIN_CODE_NOT_FOUND';
+export type ClaimErrorCode = 'JOIN_CODE_NOT_FOUND' | 'NO_SUCH_PLACE' | 'PLACE_TAKEN';
 
-export interface JoinError {
-  readonly code: JoinErrorCode;
+export interface ClaimError {
+  readonly code: ClaimErrorCode;
   readonly message: string;
 }
 
-export type JoinResult =
-  | { readonly ok: true; readonly session: Session; readonly voterId: string; readonly contestId: string }
-  | { readonly ok: false; readonly error: JoinError };
+export type ClaimResult =
+  | {
+      readonly ok: true;
+      readonly session: Session;
+      readonly contestId: string;
+      readonly participantId: string;
+      readonly displayName: string;
+    }
+  | { readonly ok: false; readonly error: ClaimError };
