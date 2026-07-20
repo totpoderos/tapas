@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireVoterSession } from './require-voter-session.js';
 import type { ServerDeps } from './server-deps.js';
 import { setVoterCookie } from './session-cookies.js';
@@ -10,6 +11,7 @@ interface JoinBody {
 export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): void {
   app.post<{ Params: { joinCode: string }; Body: JoinBody }>(
     '/contests/:joinCode/join',
+    { config: { rateLimit: SENSITIVE_RATE_LIMIT } },
     async (request, reply) => {
       const joinOutcome = deps.joinContest.execute(
         request.params.joinCode,

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { RegisterErrorCode } from '../auth/use-cases/shared.js';
 import type { RevokePatErrorCode } from '../auth/use-cases/pat-shared.js';
+import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 import {
@@ -40,16 +41,20 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
     return reply.code(201).send({ hostId: registration.hostId });
   });
 
-  app.post<{ Body: Credentials }>('/auth/login', async (request, reply) => {
-    const { email, password } = request.body;
-    const loginOutcome = await deps.authenticateHost.execute(email, password);
-    if (!loginOutcome.ok) {
-      const status = loginOutcome.error.code === 'ACCOUNT_LOCKED' ? 423 : 401;
-      return reply.code(status).send({ error: loginOutcome.error });
-    }
-    setSessionCookies(reply, loginOutcome.session);
-    return reply.code(200).send({ hostId: loginOutcome.hostId, role: loginOutcome.role });
-  });
+  app.post<{ Body: Credentials }>(
+    '/auth/login',
+    { config: { rateLimit: SENSITIVE_RATE_LIMIT } },
+    async (request, reply) => {
+      const { email, password } = request.body;
+      const loginOutcome = await deps.authenticateHost.execute(email, password);
+      if (!loginOutcome.ok) {
+        const status = loginOutcome.error.code === 'ACCOUNT_LOCKED' ? 423 : 401;
+        return reply.code(status).send({ error: loginOutcome.error });
+      }
+      setSessionCookies(reply, loginOutcome.session);
+      return reply.code(200).send({ hostId: loginOutcome.hostId, role: loginOutcome.role });
+    },
+  );
 
   app.post('/auth/refresh', async (request, reply) => {
     const refreshToken = request.cookies[REFRESH_COOKIE];

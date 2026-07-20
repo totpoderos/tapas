@@ -1,6 +1,7 @@
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerDraftRoutes } from './http/draft-routes.js';
@@ -15,8 +16,8 @@ export type { ServerDeps } from './http/server-deps.js';
  * Builds the Fastify app: host auth (register/login/refresh/logout) with
  * httpOnly session cookies, the protected draft endpoints behind them, voter
  * join, and baseline response hardening (Helmet, CORS allowlist, forced
- * HTTPS + generic errors in production). Rate limiting and security-event
- * logging land in later C3c sub-slices.
+ * HTTPS + generic errors in production, rate limiting on sensitive routes).
+ * Security-event logging lands in a later C3c sub-slice.
  */
 export function buildServer(deps: ServerDeps): FastifyInstance {
   const app = Fastify({ logger: false, trustProxy: true });
@@ -24,15 +25,23 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   app.register(cookie);
   app.register(helmet, { xFrameOptions: { action: 'deny' } });
   app.register(cors, { origin: [...deps.security.allowedOrigins], credentials: true });
+  // Generous global default (a safety net, not a throttle); sensitive routes
+  // (login, join-by-code) override it per-route with SENSITIVE_RATE_LIMIT.
+  app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
 
   registerHttpsRedirect(app, deps.security.isProduction);
   registerErrorHandling(app, deps.security.isProduction);
 
   app.get('/health', async () => ({ status: 'ok' }));
 
-  registerAuthRoutes(app, deps);
-  registerDraftRoutes(app, deps);
-  registerVoterRoutes(app, deps);
+  // Deferred until the plugins above have finished loading: @fastify/rate-limit
+  // installs an onRoute hook that reads each route's `config.rateLimit` — a
+  // route declared before that hook attaches would silently get no override.
+  app.after(() => {
+    registerAuthRoutes(app, deps);
+    registerDraftRoutes(app, deps);
+    registerVoterRoutes(app, deps);
+  });
 
   return app;
 }

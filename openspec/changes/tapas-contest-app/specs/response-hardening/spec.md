@@ -31,3 +31,18 @@ When an unexpected error occurs while handling a request in production, the resp
 #### Scenario: An unexpected server error does not leak internals in production
 - **WHEN** the API is running in production and an unexpected error occurs while handling a request
 - **THEN** the response is a generic error with no internal detail
+
+### Requirement: Sensitive entry points are rate-limited
+Signing in and joining a contest by its code SHALL be throttled against rapid repeated attempts from the same source, on top of (not instead of) any account lockout. Ordinary traffic SHALL NOT be throttled.
+
+#### Scenario: Repeated rapid login attempts are throttled
+- **WHEN** many login attempts arrive in rapid succession from the same source
+- **THEN** further attempts are refused as too many requests
+
+#### Scenario: Repeated rapid join attempts are throttled
+- **WHEN** many attempts to join a contest arrive in rapid succession from the same source
+- **THEN** further attempts are refused as too many requests
+
+#### Scenario: Ordinary traffic is not throttled
+- **WHEN** a handful of requests are made well within the limit
+- **THEN** each is handled normally
