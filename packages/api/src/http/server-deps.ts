@@ -10,6 +10,7 @@ import type { DraftRepository } from '../db/draft-repository.js';
 import type { HostPatRepository } from '../db/host-pat-repository.js';
 import type { VoterRepository } from '../db/voter-repository.js';
 import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
+import type { SecurityEventLog } from '../security/security-event.js';
 import type { JoinContest } from '../voters/use-cases/join-contest.js';
 
 export interface SecurityConfig {
@@ -32,5 +33,6 @@ export interface ServerDeps {
   readonly issuePat: IssuePat;
   readonly revokePat: RevokePat;
   readonly pats: HostPatRepository;
+  readonly securityLog: SecurityEventLog;
   readonly security: SecurityConfig;
 }

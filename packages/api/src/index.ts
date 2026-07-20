@@ -67,12 +67,21 @@ export type {
   AuthResult,
   AuthError,
   AuthErrorCode,
+  AuthLogReason,
   RefreshResult,
   RefreshError,
   RefreshErrorCode,
 } from './auth/use-cases/shared.js';
 export type { SessionStore } from './auth/session-store.js';
 export { SqliteSessionStore } from './db/session-repository.js';
+
+export type {
+  SecurityEvent,
+  SecurityEventInput,
+  SecurityEventType,
+  SecurityEventLog,
+} from './security/security-event.js';
+export { SqliteSecurityEventLog } from './db/security-event-repository.js';
 
 export { SqliteVoterRepository, type VoterRepository } from './db/voter-repository.js';
 export type { StoredVoter } from './voters/stored-voter.js';

@@ -48,9 +48,20 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
       const { email, password } = request.body;
       const loginOutcome = await deps.authenticateHost.execute(email, password);
       if (!loginOutcome.ok) {
+        deps.securityLog.record({
+          type: 'sign_in.refused',
+          actorId: loginOutcome.hostId,
+          sourceIp: request.ip,
+          reason: loginOutcome.logReason,
+        });
         const status = loginOutcome.error.code === 'ACCOUNT_LOCKED' ? 423 : 401;
         return reply.code(status).send({ error: loginOutcome.error });
       }
+      deps.securityLog.record({
+        type: 'sign_in.succeeded',
+        actorId: loginOutcome.hostId,
+        sourceIp: request.ip,
+      });
       setSessionCookies(reply, loginOutcome.session);
       return reply.code(200).send({ hostId: loginOutcome.hostId, role: loginOutcome.role });
     },
@@ -82,6 +93,12 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
     const issued = deps.issuePat.execute(request.hostSession.id);
+    // Record only that a token was issued — never the token itself.
+    deps.securityLog.record({
+      type: 'pat.issued',
+      actorId: request.hostSession.id,
+      sourceIp: request.ip,
+    });
     return reply.code(201).send({ id: issued.patId, token: issued.token });
   });
 
