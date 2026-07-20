@@ -20,6 +20,12 @@ import { RegisterHost } from './auth/use-cases/register-host.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
+import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
+import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
+import { RenameDraft } from './drafts/use-cases/rename-draft.js';
+import { GetContest } from './contests/use-cases/get-contest.js';
+import { PublishContest } from './contests/use-cases/publish-contest.js';
+import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { JoinContest } from './voters/use-cases/join-contest.js';
 import type { ServerDeps } from './http/server-deps.js';
 import { SystemClock, UuidIdGenerator } from './runtime.js';
@@ -55,7 +61,19 @@ export function buildProductionDeps(
     refreshSession: new RefreshSession({ tokens, sessions, clock }),
     signOutHost: new SignOutHost({ tokens, sessions }),
     createDraft: new CreateDraft({ drafts, audit, clock, ids }),
+    renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
+    discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
+    listHostDrafts: new ListHostDrafts(drafts),
+    publishContest: new PublishContest({
+      drafts,
+      contests,
+      audit,
+      clock,
+      joinCodes: new RandomJoinCodeGenerator(),
+    }),
+    getContest: new GetContest(contests),
     drafts,
+    contests,
     joinContest: new JoinContest({ contests, voters, tokens, ids, clock }),
     voters,
     issuePat: new IssuePat({ pats, ids, clock }),

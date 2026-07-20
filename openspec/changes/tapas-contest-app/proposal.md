@@ -109,6 +109,7 @@ The MCP server is a *protocol adapter*. It does not duplicate the API. It does n
 11. **`host-access-tokens`** — A signed-in host can issue a personal access token for an external client (the MCP server) to act as them without their password, and revoke it later. A token resolves to the same identity and authorization checks as the host's own session.
 12. **`response-hardening`** — Every API response carries baseline security protections (Helmet headers, a restrictive CORS allowlist for the two frontend origins, forced HTTPS in production, generic errors in production that never leak internals) and sensitive entry points are rate-limited.
 13. **`security-event-logging`** — The API keeps a forensic log of authentication activity (sign-in success/refusal with reason, personal-access-token issued/used), stamped with actor, source, and time, and never containing a password or full token.
+14. **`contest-management-api`** — A signed-in host drives a contest's early life over the API end-to-end: save a draft, list/rename/discard it, publish it into a live contest, and read that contest — every operation refused when not signed in, and scoped to the host's own work.
 
 ### Architectural thesis
 
