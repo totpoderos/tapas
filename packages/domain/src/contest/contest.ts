@@ -1,5 +1,5 @@
 import { compile, type CompileErrorCode } from '../compile.js';
-import type { DraftContent } from '../draft/draft-content.js';
+import type { CloseRule, DraftContent, RevealStrategy } from '../draft/draft-content.js';
 import type { ContestDraft, MaterializedContest } from '../model.js';
 
 export type PublishErrorCode = 'INCOMPLETE_DRAFT' | CompileErrorCode;
@@ -20,11 +20,16 @@ export interface PublishableDraft {
   readonly content: DraftContent;
 }
 
+const DEFAULT_CLOSE_RULE: CloseRule = { when: 'all_sent' };
+const DEFAULT_REVEAL_STRATEGY: RevealStrategy = { when: 'host_trigger' };
+
 /**
  * A live contest, produced by publishing a draft. Publishing assembles the
  * draft's configuration into a compiler input, compiles it (fixing the scoring
  * rules), and pairs the result with a join code. The join code is generated
- * outside the domain and passed in.
+ * outside the domain and passed in. `closeRule`/`revealStrategy` default per
+ * the allow-listed LLM defaults (design.md §11A.5) when the draft left them
+ * unspecified.
  */
 export class Contest {
   readonly status = 'live' as const;
@@ -35,12 +40,17 @@ export class Contest {
     readonly name: string,
     readonly joinCode: string,
     readonly materialized: MaterializedContest,
+    readonly closeRule: CloseRule,
+    readonly revealStrategy: RevealStrategy,
   ) {}
 
   static publish(draft: PublishableDraft, joinCode: string): PublishResult {
     const contestDraft = toContestDraft(draft.content);
     if (!contestDraft) {
-      return { ok: false, error: { code: 'INCOMPLETE_DRAFT', message: 'The draft is missing its scoring rules.' } };
+      return {
+        ok: false,
+        error: { code: 'INCOMPLETE_DRAFT', message: 'The draft is missing its scoring rules.' },
+      };
     }
 
     const compiled = compile(contestDraft);
@@ -50,14 +60,23 @@ export class Contest {
 
     return {
       ok: true,
-      contest: new Contest(draft.id, draft.hostId, draft.content.name, joinCode, compiled.contest),
+      contest: new Contest(
+        draft.id,
+        draft.hostId,
+        draft.content.name,
+        joinCode,
+        compiled.contest,
+        draft.content.closeRule ?? DEFAULT_CLOSE_RULE,
+        draft.content.revealStrategy ?? DEFAULT_REVEAL_STRATEGY,
+      ),
     };
   }
 }
 
 /** A draft is publishable only once it carries the full rule-space configuration. */
 function toContestDraft(content: DraftContent): ContestDraft | null {
-  if (!content.attribution || !content.antiBias || !content.scoring || !content.participants) return null;
+  if (!content.attribution || !content.antiBias || !content.scoring || !content.participants)
+    return null;
   return {
     attribution: content.attribution,
     antiBias: content.antiBias,

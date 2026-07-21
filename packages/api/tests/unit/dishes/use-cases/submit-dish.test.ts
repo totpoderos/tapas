@@ -25,6 +25,10 @@ function contestWithDishes(id: string, dishes: MaterializedDish[]) {
     status: 'live' as const,
     materialized: materializedWith(dishes),
     createdAt: '2026-07-20T10:00:00.000Z',
+    closeRule: { when: 'host_trigger' } as const,
+    revealStrategy: { when: 'host_trigger' } as const,
+    closedAt: null,
+    revealedAt: null,
   };
 }
 

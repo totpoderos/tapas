@@ -18,6 +18,15 @@ export class FakeContestRepository implements ContestRepository {
   findByJoinCode(joinCode: string): StoredContest | undefined {
     return [...this.store.values()].find((contest) => contest.joinCode === joinCode);
   }
+  updateStatus(
+    id: string,
+    status: StoredContest['status'],
+    closedAt: string | null,
+    revealedAt: string | null,
+  ): void {
+    const contest = this.store.get(id);
+    if (contest) this.store.set(id, { ...contest, status, closedAt, revealedAt });
+  }
 }
 
 export function makePublishDeps() {

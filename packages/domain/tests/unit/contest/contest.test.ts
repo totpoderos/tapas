@@ -10,14 +10,21 @@ function completeContent(name: string): DraftContent {
     name,
     attribution: 'per_person',
     antiBias: 'couples',
-    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    scoring: {
+      categories: [{ id: 'c1', name: 'Taste' }],
+      range: { type: 'auto' },
+      uniquePerCategory: true,
+    },
     participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
   };
 }
 
 describe('Contest.publish', () => {
   it('publishes a complete draft into a live contest with the given join code', () => {
-    const result = Contest.publish({ id: 'draft-1', hostId: 'host-1', content: completeContent('Summer') }, 'JOIN-1');
+    const result = Contest.publish(
+      { id: 'draft-1', hostId: 'host-1', content: completeContent('Summer') },
+      'JOIN-1',
+    );
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -27,8 +34,41 @@ describe('Contest.publish', () => {
     expect(result.contest.materialized.dishes).toHaveLength(4);
   });
 
+  it('defaults closeRule to all_sent and revealStrategy to host_trigger when unspecified', () => {
+    const result = Contest.publish(
+      { id: 'draft-1', hostId: 'host-1', content: completeContent('Summer') },
+      'JOIN-1',
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.contest.closeRule).toEqual({ when: 'all_sent' });
+    expect(result.contest.revealStrategy).toEqual({ when: 'host_trigger' });
+  });
+
+  it('carries through an explicit closeRule and revealStrategy', () => {
+    const content: DraftContent = {
+      ...completeContent('Summer'),
+      closeRule: { when: 'scheduled', at: '2026-08-01T22:00:00.000Z' },
+      revealStrategy: { when: 'scheduled', at: '2026-08-01T22:30:00.000Z' },
+    };
+
+    const result = Contest.publish({ id: 'draft-1', hostId: 'host-1', content }, 'JOIN-1');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.contest.closeRule).toEqual({ when: 'scheduled', at: '2026-08-01T22:00:00.000Z' });
+    expect(result.contest.revealStrategy).toEqual({
+      when: 'scheduled',
+      at: '2026-08-01T22:30:00.000Z',
+    });
+  });
+
   it('rejects a draft that has no scoring rules yet', () => {
-    const result = Contest.publish({ id: 'draft-1', hostId: 'host-1', content: { name: 'Half-baked' } }, 'JOIN-1');
+    const result = Contest.publish(
+      { id: 'draft-1', hostId: 'host-1', content: { name: 'Half-baked' } },
+      'JOIN-1',
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('INCOMPLETE_DRAFT');
@@ -39,11 +79,18 @@ describe('Contest.publish', () => {
       name: 'Just us',
       attribution: 'per_person',
       antiBias: 'couples',
-      scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+      scoring: {
+        categories: [{ id: 'c1', name: 'Taste' }],
+        range: { type: 'auto' },
+        uniquePerCategory: true,
+      },
       participants: [person('A', 'B'), person('B', 'A')],
     };
 
-    const result = Contest.publish({ id: 'draft-1', hostId: 'host-1', content: singleCouple }, 'JOIN-1');
+    const result = Contest.publish(
+      { id: 'draft-1', hostId: 'host-1', content: singleCouple },
+      'JOIN-1',
+    );
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');

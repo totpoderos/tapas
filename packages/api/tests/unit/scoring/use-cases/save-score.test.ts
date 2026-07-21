@@ -35,6 +35,10 @@ function makeEnv() {
     status: 'live',
     materialized: materialized(),
     createdAt: '2026-07-20T10:00:00.000Z',
+    closeRule: { when: 'host_trigger' },
+    revealStrategy: { when: 'host_trigger' },
+    closedAt: null,
+    revealedAt: null,
   });
   const voteSessions = new FakeVoteSessionRepository();
   let sequence = 0;
