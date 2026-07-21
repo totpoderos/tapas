@@ -75,3 +75,26 @@ export interface GetResultsDeps {
 export type GetResultsResult =
   | { readonly ok: true; readonly results: TallyResult }
   | { readonly ok: false; readonly error: GetResultsError };
+
+export type GetTallyErrorCode = 'CONTEST_NOT_FOUND';
+
+export interface GetTallyError {
+  readonly code: GetTallyErrorCode;
+  readonly message: string;
+}
+
+export interface GetTallyDeps {
+  readonly contests: ContestRepository;
+  readonly roster: RosterRepository;
+  readonly voteSessions: VoteSessionRepository;
+}
+
+export interface Tally {
+  readonly claimedCount: number;
+  readonly draftCount: number;
+  readonly sentCount: number;
+}
+
+export type GetTallyResult =
+  | { readonly ok: true; readonly tally: Tally }
+  | { readonly ok: false; readonly error: GetTallyError };
