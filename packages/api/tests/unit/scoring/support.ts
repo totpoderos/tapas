@@ -33,4 +33,12 @@ export class FakeVoteSessionRepository implements VoteSessionRepository {
   listScores(voteSessionId: string): StoredScore[] {
     return [...this.scores.values()].filter((score) => score.voteSessionId === voteSessionId);
   }
+  listSentScores(contestId: string): StoredScore[] {
+    const sentSessionIds = new Set(
+      [...this.sessions.values()]
+        .filter((session) => session.contestId === contestId && session.status === 'sent')
+        .map((session) => session.id),
+    );
+    return [...this.scores.values()].filter((score) => sentSessionIds.has(score.voteSessionId));
+  }
 }

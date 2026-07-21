@@ -55,3 +55,6 @@ export type {
   VoteSessionError,
   SendResult,
 } from './scoring/vote-session.js';
+
+export { tally } from './scoring/tally.js';
+export type { TallyEntry, TallyResult, CategoryTally } from './scoring/tally.js';

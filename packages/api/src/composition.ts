@@ -28,6 +28,8 @@ import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { CloseContest } from './contests/use-cases/close-contest.js';
+import { RevealContest } from './contests/use-cases/reveal-contest.js';
+import { GetResults } from './contests/use-cases/get-results.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
 import { GetMyScores } from './scoring/use-cases/get-my-scores.js';
@@ -83,6 +85,8 @@ export function buildProductionDeps(
     }),
     getContest: new GetContest(contests),
     closeContest: new CloseContest({ contests, clock }),
+    revealContest: new RevealContest({ contests, clock }),
+    getResults: new GetResults({ contests, voteSessions }),
     clock,
     drafts,
     contests,

@@ -23,6 +23,8 @@ import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
+import type { RevealContest } from '../contests/use-cases/reveal-contest.js';
+import type { GetResults } from '../contests/use-cases/get-results.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
 import type { Clock } from '../audit/audit-projection.js';
@@ -47,6 +49,8 @@ export interface ServerDeps {
   readonly publishContest: PublishContest;
   readonly getContest: GetContest;
   readonly closeContest: CloseContest;
+  readonly revealContest: RevealContest;
+  readonly getResults: GetResults;
   readonly clock: Clock;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;

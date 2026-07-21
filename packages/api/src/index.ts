@@ -36,6 +36,8 @@ export { serializeMaterialized, deserializeMaterialized } from './contests/mater
 export { PublishContest } from './contests/use-cases/publish-contest.js';
 export { GetContest } from './contests/use-cases/get-contest.js';
 export { CloseContest } from './contests/use-cases/close-contest.js';
+export { RevealContest } from './contests/use-cases/reveal-contest.js';
+export { GetResults } from './contests/use-cases/get-results.js';
 export type {
   PublishContestDeps,
   PublishContestResult,
@@ -45,6 +47,14 @@ export type {
   CloseContestResult,
   CloseContestError,
   CloseContestErrorCode,
+  RevealContestDeps,
+  RevealContestResult,
+  RevealContestError,
+  RevealContestErrorCode,
+  GetResultsDeps,
+  GetResultsResult,
+  GetResultsError,
+  GetResultsErrorCode,
 } from './contests/use-cases/shared.js';
 export { ensureContestFresh } from './contests/ensure-fresh.js';
 export type { EnsureContestFreshDeps } from './contests/ensure-fresh.js';
