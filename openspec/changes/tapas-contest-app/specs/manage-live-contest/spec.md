@@ -39,3 +39,29 @@ A contest configured with a scheduled close time SHALL close automatically once 
 #### Scenario: A contest closes automatically once its scheduled time arrives
 - **WHEN** a contest scheduled to close at a set time is checked after that time has passed
 - **THEN** the contest is closed
+
+### Requirement: A host can reveal a closed contest
+The host who owns a closed contest SHALL be able to reveal it. Reveal SHALL be refused for a contest that has not closed, and refused once a contest has already been revealed.
+
+#### Scenario: The host reveals results for a closed contest
+- **WHEN** the host reveals their closed contest
+- **THEN** the contest is revealed
+
+#### Scenario: Reveal is refused before the contest has closed
+- **WHEN** the host tries to reveal a live contest that has not yet closed
+- **THEN** reveal is refused because the contest has not closed
+
+#### Scenario: Reveal cannot happen twice
+- **WHEN** the host tries to reveal a contest that has already been revealed
+- **THEN** reveal is refused because it has already been revealed
+
+#### Scenario: A host cannot reveal another host's contest
+- **WHEN** a different host tries to reveal a closed contest they do not own
+- **THEN** reveal is refused as not allowed
+
+### Requirement: A contest can reveal automatically at a scheduled time
+A closed contest configured with a scheduled reveal time SHALL reveal automatically once that time has passed.
+
+#### Scenario: A contest reveals automatically once its scheduled reveal time arrives
+- **WHEN** a closed contest scheduled to reveal at a set time is checked after that time has passed
+- **THEN** the contest is revealed

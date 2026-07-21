@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
-import type { CloseContestErrorCode } from '../contests/use-cases/shared.js';
+import type { CloseContestErrorCode, GetResultsErrorCode, RevealContestErrorCode } from '../contests/use-cases/shared.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
+import { toResultsDto } from '../contests/results-dto.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -10,6 +11,17 @@ const notAllowed = { error: { code: 'NOT_ALLOWED', message: 'Not allowed.' } };
 const CLOSE_CONTEST_ERROR_STATUS: Record<CloseContestErrorCode, number> = {
   CONTEST_NOT_FOUND: 404,
   ALREADY_CLOSED: 409,
+};
+
+const REVEAL_CONTEST_ERROR_STATUS: Record<RevealContestErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
+  NOT_CLOSED: 409,
+  ALREADY_REVEALED: 409,
+};
+
+const GET_RESULTS_ERROR_STATUS: Record<GetResultsErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
+  NOT_REVEALED: 409,
 };
 
 /** Host-scoped contest reads. Voter-scoped contest routes live in voter-routes.ts. */
@@ -55,6 +67,54 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .send({ error: closed.error });
       }
       return reply.code(200).send(closed.contest);
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/contests/:id/reveal',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const contest = deps.getContest.execute(request.params.id);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
+
+      const revealed = deps.revealContest.execute(request.params.id);
+      if (!revealed.ok) {
+        return reply
+          .code(REVEAL_CONTEST_ERROR_STATUS[revealed.error.code])
+          .send({ error: revealed.error });
+      }
+      return reply.code(200).send(revealed.contest);
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    '/contests/:id/results',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const contest = deps.getContest.execute(request.params.id);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
+
+      const results = deps.getResults.execute(request.params.id);
+      if (!results.ok) {
+        return reply
+          .code(GET_RESULTS_ERROR_STATUS[results.error.code])
+          .send({ error: results.error });
+      }
+      return reply.code(200).send(toResultsDto(results.results));
     },
   );
 }

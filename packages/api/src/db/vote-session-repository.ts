@@ -11,6 +11,8 @@ export interface VoteSessionRepository {
   /** Inserts or updates a score by (voteSessionId, dishId, categoryId) — a judge may revise a draft score. */
   upsertScore(score: StoredScore): void;
   listScores(voteSessionId: string): StoredScore[];
+  /** Every score belonging to a `sent` session in this contest — draft (unsent) votes never count toward a tally. */
+  listSentScores(contestId: string): StoredScore[];
 }
 
 interface SessionRow {
@@ -110,6 +112,18 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
     const rows = this.db
       .prepare(`SELECT * FROM scores WHERE vote_session_id = ? ORDER BY dish_id, category_id`)
       .all(voteSessionId) as unknown as ScoreRow[];
+    return rows.map(toScore);
+  }
+
+  listSentScores(contestId: string): StoredScore[] {
+    const rows = this.db
+      .prepare(
+        `SELECT scores.* FROM scores
+         JOIN vote_sessions ON vote_sessions.id = scores.vote_session_id
+         WHERE vote_sessions.contest_id = ? AND vote_sessions.status = 'sent'
+         ORDER BY scores.dish_id, scores.category_id`,
+      )
+      .all(contestId) as unknown as ScoreRow[];
     return rows.map(toScore);
   }
 }
