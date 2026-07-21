@@ -83,6 +83,19 @@ export type {
 } from './security/security-event.js';
 export { SqliteSecurityEventLog } from './db/security-event-repository.js';
 
+export { SqliteDishRepository, type DishRepository } from './db/dish-repository.js';
+export type { StoredDish } from './dishes/stored-dish.js';
+export {
+  SubmitDish,
+  type SubmitDishDeps,
+  type SubmitDishInput,
+} from './dishes/use-cases/submit-dish.js';
+export type {
+  SubmitDishResult,
+  SubmitDishError,
+  SubmitDishErrorCode,
+} from './dishes/use-cases/shared.js';
+
 export {
   SqliteRosterRepository,
   type RosterRepository,

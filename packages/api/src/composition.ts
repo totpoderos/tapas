@@ -8,6 +8,7 @@ import { SqliteContestRepository } from './db/contest-repository.js';
 import { SqliteDraftRepository } from './db/draft-repository.js';
 import { SqliteHostAccountRepository } from './db/host-account-repository.js';
 import { SqliteHostPatRepository } from './db/host-pat-repository.js';
+import { SqliteDishRepository } from './db/dish-repository.js';
 import { SqliteRosterRepository } from './db/roster-repository.js';
 import { SqliteSecurityEventLog } from './db/security-event-repository.js';
 import { SqliteSessionStore } from './db/session-repository.js';
@@ -26,6 +27,7 @@ import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
+import { SubmitDish } from './dishes/use-cases/submit-dish.js';
 import { ClaimPlace } from './voters/use-cases/claim-place.js';
 import type { ServerDeps } from './http/server-deps.js';
 import { SystemClock, UuidIdGenerator } from './runtime.js';
@@ -46,6 +48,7 @@ export function buildProductionDeps(
   const drafts = new SqliteDraftRepository(db);
   const contests = new SqliteContestRepository(db);
   const roster = new SqliteRosterRepository(db);
+  const dishes = new SqliteDishRepository(db);
   const pats = new SqliteHostPatRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
@@ -77,6 +80,8 @@ export function buildProductionDeps(
     contests,
     claimPlace: new ClaimPlace({ contests, roster, tokens, clock }),
     roster,
+    submitDish: new SubmitDish({ contests, dishes, clock }),
+    dishes,
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,
