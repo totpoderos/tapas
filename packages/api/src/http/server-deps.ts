@@ -15,6 +15,7 @@ import type { VoteSessionRepository } from '../db/vote-session-repository.js';
 import type { SubmitDish } from '../dishes/use-cases/submit-dish.js';
 import type { GetMyScores } from '../scoring/use-cases/get-my-scores.js';
 import type { SaveScore } from '../scoring/use-cases/save-score.js';
+import type { SendVote } from '../scoring/use-cases/send-vote.js';
 import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
 import type { DiscardDraft } from '../drafts/use-cases/discard-draft.js';
 import type { ListHostDrafts } from '../drafts/use-cases/list-host-drafts.js';
@@ -51,6 +52,7 @@ export interface ServerDeps {
   readonly dishes: DishRepository;
   readonly saveScore: SaveScore;
   readonly getMyScores: GetMyScores;
+  readonly sendVote: SendVote;
   readonly voteSessions: VoteSessionRepository;
   readonly issuePat: IssuePat;
   readonly revokePat: RevokePat;

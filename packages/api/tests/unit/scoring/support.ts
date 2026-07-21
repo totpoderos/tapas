@@ -17,6 +17,13 @@ export class FakeVoteSessionRepository implements VoteSessionRepository {
   createSession(session: StoredVoteSession): void {
     this.sessions.set(this.sessionKey(session.contestId, session.voterId), session);
   }
+  markSent(voteSessionId: string, submittedAt: string): void {
+    for (const [key, session] of this.sessions.entries()) {
+      if (session.id === voteSessionId) {
+        this.sessions.set(key, { ...session, status: 'sent', submittedAt });
+      }
+    }
+  }
   findScore(voteSessionId: string, dishId: string, categoryId: string): StoredScore | undefined {
     return this.scores.get(this.scoreKey(voteSessionId, dishId, categoryId));
   }

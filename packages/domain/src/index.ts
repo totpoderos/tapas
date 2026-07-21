@@ -46,3 +46,10 @@ export type {
   ScoreCheckErrorCode,
   ScoreInput,
 } from './scoring/score-check.js';
+export { VoteSession } from './scoring/vote-session.js';
+export type {
+  VoteSessionStatus,
+  VoteSessionErrorCode,
+  VoteSessionError,
+  SendResult,
+} from './scoring/vote-session.js';

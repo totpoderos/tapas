@@ -5,6 +5,8 @@ import type { StoredScore, StoredVoteSession } from '../scoring/stored-vote-sess
 export interface VoteSessionRepository {
   findSession(contestId: string, voterId: string): StoredVoteSession | undefined;
   createSession(session: StoredVoteSession): void;
+  /** Marks a session sent, recording when. */
+  markSent(voteSessionId: string, submittedAt: string): void;
   findScore(voteSessionId: string, dishId: string, categoryId: string): StoredScore | undefined;
   /** Inserts or updates a score by (voteSessionId, dishId, categoryId) — a judge may revise a draft score. */
   upsertScore(score: StoredScore): void;
@@ -76,6 +78,12 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
         session.createdAt,
         session.submittedAt,
       );
+  }
+
+  markSent(voteSessionId: string, submittedAt: string): void {
+    this.db
+      .prepare(`UPDATE vote_sessions SET status = 'sent', submitted_at = ? WHERE id = ?`)
+      .run(submittedAt, voteSessionId);
   }
 
   findScore(voteSessionId: string, dishId: string, categoryId: string): StoredScore | undefined {
