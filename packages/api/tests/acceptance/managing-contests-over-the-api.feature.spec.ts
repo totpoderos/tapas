@@ -222,6 +222,13 @@ describeFeature(feature, ({ Scenario }) => {
       const contest = await request(app, jar, { method: 'GET', url: `/contests/${contestId}` });
       expect(contest.statusCode).toBe(200);
       expect(contest.json().name).toBe('Summer Tapas 2026');
+      // The compiled constraint view must survive the trip over HTTP — these
+      // fields are Maps in the domain, which JSON.stringify silently empties
+      // if a route ever sends them un-flattened.
+      const { allowedVoters, scoreRangeByVoter } = contest.json().materialized;
+      expect(Array.isArray(allowedVoters['D-A'])).toBe(true);
+      expect(allowedVoters['D-A'].length).toBeGreaterThan(0);
+      expect(Object.keys(scoreRangeByVoter).length).toBeGreaterThan(0);
     });
     Then("the contest's details are returned", () => {
       // asserted in the When step; the read succeeding is the observable outcome

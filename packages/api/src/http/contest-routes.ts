@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import type { CloseContestErrorCode, GetResultsErrorCode, RevealContestErrorCode } from '../contests/use-cases/shared.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
+import { toContestDto } from '../contests/contest-dto.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -42,7 +43,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
       const fresh = ensureContestFresh(contest, { contests: deps.contests, clock: deps.clock });
-      return reply.code(200).send(fresh);
+      return reply.code(200).send(toContestDto(fresh));
     },
   );
 
@@ -66,7 +67,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .code(CLOSE_CONTEST_ERROR_STATUS[closed.error.code])
           .send({ error: closed.error });
       }
-      return reply.code(200).send(closed.contest);
+      return reply.code(200).send(toContestDto(closed.contest));
     },
   );
 
@@ -90,7 +91,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .code(REVEAL_CONTEST_ERROR_STATUS[revealed.error.code])
           .send({ error: revealed.error });
       }
-      return reply.code(200).send(revealed.contest);
+      return reply.code(200).send(toContestDto(revealed.contest));
     },
   );
 
