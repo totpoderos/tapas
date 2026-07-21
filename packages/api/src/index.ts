@@ -83,6 +83,19 @@ export type {
 } from './security/security-event.js';
 export { SqliteSecurityEventLog } from './db/security-event-repository.js';
 
+export {
+  SqliteVoteSessionRepository,
+  type VoteSessionRepository,
+} from './db/vote-session-repository.js';
+export type { StoredVoteSession, StoredScore } from './scoring/stored-vote-session.js';
+export { SaveScore, type SaveScoreDeps } from './scoring/use-cases/save-score.js';
+export { GetMyScores, type GetMyScoresDeps } from './scoring/use-cases/get-my-scores.js';
+export type {
+  SaveScoreResult,
+  SaveScoreError,
+  SaveScoreErrorCode,
+} from './scoring/use-cases/shared.js';
+
 export { SqliteDishRepository, type DishRepository } from './db/dish-repository.js';
 export type { StoredDish } from './dishes/stored-dish.js';
 export {
