@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { SubmitDishErrorCode } from '../dishes/use-cases/shared.js';
+import type { SaveScoreErrorCode } from '../scoring/use-cases/shared.js';
 import type { ClaimErrorCode } from '../voters/use-cases/shared.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireVoterSession } from './require-voter-session.js';
@@ -15,6 +16,12 @@ interface DishBody {
   readonly description?: string;
 }
 
+interface ScoreBody {
+  readonly dishId: string;
+  readonly categoryId: string;
+  readonly value: number;
+}
+
 const CLAIM_ERROR_STATUS: Record<ClaimErrorCode, number> = {
   JOIN_CODE_NOT_FOUND: 404,
   NO_SUCH_PLACE: 404,
@@ -24,6 +31,13 @@ const CLAIM_ERROR_STATUS: Record<ClaimErrorCode, number> = {
 const SUBMIT_DISH_ERROR_STATUS: Record<SubmitDishErrorCode, number> = {
   NAME_REQUIRED: 400,
   NO_DISH_FOR_PARTICIPANT: 403,
+};
+
+const SAVE_SCORE_ERROR_STATUS: Record<SaveScoreErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
+  DISH_NOT_OPEN: 403,
+  UNKNOWN_CATEGORY: 400,
+  OUT_OF_RANGE: 400,
 };
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
@@ -108,6 +122,40 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       return reply
         .code(200)
         .send({ dishes: deps.dishes.findByContest(request.voterSession.contestId) });
+    },
+  );
+
+  app.post<{ Params: { contestId: string }; Body: ScoreBody }>(
+    '/contests/:contestId/scores',
+    { preHandler: requireVoterSession(deps) },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+
+      const saved = deps.saveScore.execute(
+        request.voterSession.contestId,
+        request.voterSession.id,
+        {
+          dishId: request.body?.dishId,
+          categoryId: request.body?.categoryId,
+          value: request.body?.value,
+        },
+      );
+      if (!saved.ok)
+        return reply.code(SAVE_SCORE_ERROR_STATUS[saved.error.code]).send({ error: saved.error });
+      return reply.code(201).send(saved.score);
+    },
+  );
+
+  app.get<{ Params: { contestId: string } }>(
+    '/contests/:contestId/scores',
+    { preHandler: requireVoterSession(deps) },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+      return reply
+        .code(200)
+        .send({
+          scores: deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id),
+        });
     },
   );
 }

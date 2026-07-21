@@ -10,6 +10,7 @@ import { SqliteHostAccountRepository } from './db/host-account-repository.js';
 import { SqliteHostPatRepository } from './db/host-pat-repository.js';
 import { SqliteDishRepository } from './db/dish-repository.js';
 import { SqliteRosterRepository } from './db/roster-repository.js';
+import { SqliteVoteSessionRepository } from './db/vote-session-repository.js';
 import { SqliteSecurityEventLog } from './db/security-event-repository.js';
 import { SqliteSessionStore } from './db/session-repository.js';
 import { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
@@ -28,6 +29,8 @@ import { GetContest } from './contests/use-cases/get-contest.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
+import { GetMyScores } from './scoring/use-cases/get-my-scores.js';
+import { SaveScore } from './scoring/use-cases/save-score.js';
 import { ClaimPlace } from './voters/use-cases/claim-place.js';
 import type { ServerDeps } from './http/server-deps.js';
 import { SystemClock, UuidIdGenerator } from './runtime.js';
@@ -49,6 +52,7 @@ export function buildProductionDeps(
   const contests = new SqliteContestRepository(db);
   const roster = new SqliteRosterRepository(db);
   const dishes = new SqliteDishRepository(db);
+  const voteSessions = new SqliteVoteSessionRepository(db, clock);
   const pats = new SqliteHostPatRepository(db);
   const auditLog = new SqliteAuditLogRepository(db);
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock, ids }));
@@ -82,6 +86,9 @@ export function buildProductionDeps(
     roster,
     submitDish: new SubmitDish({ contests, dishes, clock }),
     dishes,
+    saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
+    getMyScores: new GetMyScores({ voteSessions }),
+    voteSessions,
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,
