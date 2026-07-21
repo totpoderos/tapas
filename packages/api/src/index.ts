@@ -90,10 +90,14 @@ export {
 export type { StoredVoteSession, StoredScore } from './scoring/stored-vote-session.js';
 export { SaveScore, type SaveScoreDeps } from './scoring/use-cases/save-score.js';
 export { GetMyScores, type GetMyScoresDeps } from './scoring/use-cases/get-my-scores.js';
+export { SendVote, type SendVoteDeps } from './scoring/use-cases/send-vote.js';
 export type {
   SaveScoreResult,
   SaveScoreError,
   SaveScoreErrorCode,
+  SendVoteResult,
+  SendVoteError,
+  SendVoteErrorCode,
 } from './scoring/use-cases/shared.js';
 
 export { SqliteDishRepository, type DishRepository } from './db/dish-repository.js';

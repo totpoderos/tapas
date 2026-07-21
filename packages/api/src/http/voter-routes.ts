@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import type { SubmitDishErrorCode } from '../dishes/use-cases/shared.js';
-import type { SaveScoreErrorCode } from '../scoring/use-cases/shared.js';
+import type { SaveScoreErrorCode, SendVoteErrorCode } from '../scoring/use-cases/shared.js';
 import type { ClaimErrorCode } from '../voters/use-cases/shared.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireVoterSession } from './require-voter-session.js';
@@ -38,6 +38,15 @@ const SAVE_SCORE_ERROR_STATUS: Record<SaveScoreErrorCode, number> = {
   DISH_NOT_OPEN: 403,
   UNKNOWN_CATEGORY: 400,
   OUT_OF_RANGE: 400,
+  SESSION_LOCKED: 409,
+};
+
+const SEND_VOTE_ERROR_STATUS: Record<SendVoteErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
+  NO_VOTE_SESSION: 400,
+  ALREADY_SENT: 409,
+  INCOMPLETE: 422,
+  DUPLICATE_CATEGORY_VALUE: 422,
 };
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
@@ -151,11 +160,22 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireVoterSession(deps) },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
-      return reply
-        .code(200)
-        .send({
-          scores: deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id),
-        });
+      return reply.code(200).send({
+        scores: deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id),
+      });
+    },
+  );
+
+  app.post<{ Params: { contestId: string } }>(
+    '/contests/:contestId/send-vote',
+    { preHandler: requireVoterSession(deps) },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+
+      const sent = deps.sendVote.execute(request.voterSession.contestId, request.voterSession.id);
+      if (!sent.ok)
+        return reply.code(SEND_VOTE_ERROR_STATUS[sent.error.code]).send({ error: sent.error });
+      return reply.code(200).send(sent.session);
     },
   );
 }

@@ -28,6 +28,12 @@ export class SaveScore {
     if (!checked.ok) return { ok: false, error: checked.error };
 
     let session = this.deps.voteSessions.findSession(contestId, voterId);
+    if (session?.status === 'sent') {
+      return {
+        ok: false,
+        error: { code: 'SESSION_LOCKED', message: 'This vote has already been sent.' },
+      };
+    }
     if (!session) {
       session = {
         id: this.deps.ids.next(),
