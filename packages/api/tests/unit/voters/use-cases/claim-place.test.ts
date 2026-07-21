@@ -36,6 +36,10 @@ function liveContest(id: string, joinCode: string) {
     status: 'live' as const,
     materialized: EMPTY_MATERIALIZED,
     createdAt: '2026-07-19T10:00:00.000Z',
+    closeRule: { when: 'host_trigger' } as const,
+    revealStrategy: { when: 'host_trigger' } as const,
+    closedAt: null,
+    revealedAt: null,
   };
 }
 

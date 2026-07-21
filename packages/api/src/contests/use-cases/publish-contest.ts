@@ -26,7 +26,11 @@ export class PublishContest {
       joinCode,
       status: 'live',
       materialized: published.contest.materialized,
+      closeRule: published.contest.closeRule,
+      revealStrategy: published.contest.revealStrategy,
       createdAt: this.deps.clock.now(),
+      closedAt: null,
+      revealedAt: null,
     };
     this.deps.contests.insert(stored);
     // Seed the roster: one open place per listed participant, keyed by the id

@@ -29,6 +29,10 @@ export class SubmitDish {
       return { ok: false, error: { code: 'NAME_REQUIRED', message: 'A dish needs a name.' } };
 
     const contest = this.deps.contests.findById(contestId);
+    if (contest && contest.status !== 'live') {
+      return { ok: false, error: { code: 'CONTEST_CLOSED', message: 'This contest is closed.' } };
+    }
+
     const slot = contest?.materialized.dishes.find((dish) =>
       dish.submitterIds.includes(participantId),
     );

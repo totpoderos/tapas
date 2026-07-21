@@ -1,6 +1,6 @@
 import type { StoredDish } from '../stored-dish.js';
 
-export type SubmitDishErrorCode = 'NAME_REQUIRED' | 'NO_DISH_FOR_PARTICIPANT';
+export type SubmitDishErrorCode = 'NAME_REQUIRED' | 'NO_DISH_FOR_PARTICIPANT' | 'CONTEST_CLOSED';
 
 export interface SubmitDishError {
   readonly code: SubmitDishErrorCode;

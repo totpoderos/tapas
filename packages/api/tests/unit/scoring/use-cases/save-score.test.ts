@@ -35,6 +35,10 @@ function makeEnv() {
     status: 'live',
     materialized: materialized(),
     createdAt: '2026-07-20T10:00:00.000Z',
+    closeRule: { when: 'host_trigger' },
+    revealStrategy: { when: 'host_trigger' },
+    closedAt: null,
+    revealedAt: null,
   });
   const voteSessions = new FakeVoteSessionRepository();
   let sequence = 0;
@@ -43,6 +47,7 @@ function makeEnv() {
     saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
     getMyScores: new GetMyScores({ voteSessions }),
     voteSessions,
+    contests,
   };
 }
 
@@ -121,6 +126,20 @@ describe('SaveScore', () => {
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
+  });
+
+  it('refuses to save once the contest has closed', () => {
+    const { saveScore, contests } = makeEnv();
+    contests.updateStatus('contest-1', 'closed', clock.now(), null);
+
+    const outcome = saveScore.execute('contest-1', 'ana', {
+      dishId: 'D-bob',
+      categoryId: 'taste',
+      value: 4,
+    });
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_CLOSED');
   });
 });
 

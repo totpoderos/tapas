@@ -1,12 +1,14 @@
-import { VoteSession } from '@tapas/domain';
+import { shouldAutoClose, VoteSession } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
 import type { ContestRepository } from '../../db/contest-repository.js';
+import type { RosterRepository } from '../../db/roster-repository.js';
 import type { VoteSessionRepository } from '../../db/vote-session-repository.js';
 import type { SendVoteResult } from './shared.js';
 
 export interface SendVoteDeps {
   readonly contests: ContestRepository;
   readonly voteSessions: VoteSessionRepository;
+  readonly roster: RosterRepository;
   readonly clock: Clock;
 }
 
@@ -22,6 +24,8 @@ export class SendVote {
     const contest = this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
+    if (contest.status !== 'live')
+      return { ok: false, error: { code: 'CONTEST_CLOSED', message: 'This contest is closed.' } };
 
     const stored = this.deps.voteSessions.findSession(contestId, voterId);
     if (!stored) {
@@ -46,6 +50,17 @@ export class SendVote {
     if (!sent.ok) return { ok: false, error: sent.error };
 
     this.deps.voteSessions.markSent(stored.id, now);
+
+    if (contest.closeRule.when === 'all_sent') {
+      const claimed = this.deps.roster.listClaimed(contestId);
+      const allClaimedSent = claimed.every(
+        (place) => this.deps.voteSessions.findSession(contestId, place.participantId)?.status === 'sent',
+      );
+      if (shouldAutoClose(contest.closeRule, { allClaimedSent }, now)) {
+        this.deps.contests.updateStatus(contestId, 'closed', now, null);
+      }
+    }
+
     return {
       ok: true,
       session: { ...stored, status: 'sent', submittedAt: now },
