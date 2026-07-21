@@ -65,3 +65,14 @@ A closed contest configured with a scheduled reveal time SHALL reveal automatica
 #### Scenario: A contest reveals automatically once its scheduled reveal time arrives
 - **WHEN** a closed contest scheduled to reveal at a set time is checked after that time has passed
 - **THEN** the contest is revealed
+
+### Requirement: A host can check a live progress tally
+The host who owns a contest SHALL be able to check how many participants have claimed a place and how many have drafted or sent their vote — a live progress view, not the results themselves.
+
+#### Scenario: The host checks the tally of a contest in progress
+- **WHEN** the host checks the tally of a contest where some participants have claimed a place, some have drafted scores, and one has sent a vote
+- **THEN** the tally shows how many have claimed, how many are still drafting, and how many have sent
+
+#### Scenario: A host cannot check another host's tally
+- **WHEN** a different host tries to check the tally of a contest they do not own
+- **THEN** checking is refused as not allowed

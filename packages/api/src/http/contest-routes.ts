@@ -1,5 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import type { CloseContestErrorCode, GetResultsErrorCode, RevealContestErrorCode } from '../contests/use-cases/shared.js';
+import type {
+  CloseContestErrorCode,
+  GetResultsErrorCode,
+  GetTallyErrorCode,
+  RevealContestErrorCode,
+} from '../contests/use-cases/shared.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
@@ -23,6 +28,10 @@ const REVEAL_CONTEST_ERROR_STATUS: Record<RevealContestErrorCode, number> = {
 const GET_RESULTS_ERROR_STATUS: Record<GetResultsErrorCode, number> = {
   CONTEST_NOT_FOUND: 404,
   NOT_REVEALED: 409,
+};
+
+const GET_TALLY_ERROR_STATUS: Record<GetTallyErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
 };
 
 /** Host-scoped contest reads. Voter-scoped contest routes live in voter-routes.ts. */
@@ -116,6 +125,28 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .send({ error: results.error });
       }
       return reply.code(200).send(toResultsDto(results.results));
+    },
+  );
+
+  app.get<{ Params: { id: string } }>(
+    '/contests/:id/tally',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const contest = deps.getContest.execute(request.params.id);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
+
+      const tally = deps.getTally.execute(request.params.id);
+      if (!tally.ok) {
+        return reply.code(GET_TALLY_ERROR_STATUS[tally.error.code]).send({ error: tally.error });
+      }
+      return reply.code(200).send(tally.tally);
     },
   );
 }

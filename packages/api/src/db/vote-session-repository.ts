@@ -13,6 +13,8 @@ export interface VoteSessionRepository {
   listScores(voteSessionId: string): StoredScore[];
   /** Every score belonging to a `sent` session in this contest — draft (unsent) votes never count toward a tally. */
   listSentScores(contestId: string): StoredScore[];
+  /** Every vote session in this contest, any status — for the live draft/sent progress tally. */
+  listSessions(contestId: string): StoredVoteSession[];
 }
 
 interface SessionRow {
@@ -125,5 +127,12 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
       )
       .all(contestId) as unknown as ScoreRow[];
     return rows.map(toScore);
+  }
+
+  listSessions(contestId: string): StoredVoteSession[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM vote_sessions WHERE contest_id = ? ORDER BY voter_id`)
+      .all(contestId) as unknown as SessionRow[];
+    return rows.map(toSession);
   }
 }

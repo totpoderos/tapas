@@ -25,6 +25,7 @@ import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
 import type { RevealContest } from '../contests/use-cases/reveal-contest.js';
 import type { GetResults } from '../contests/use-cases/get-results.js';
+import type { GetTally } from '../contests/use-cases/get-tally.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
 import type { Clock } from '../audit/audit-projection.js';
@@ -51,6 +52,7 @@ export interface ServerDeps {
   readonly closeContest: CloseContest;
   readonly revealContest: RevealContest;
   readonly getResults: GetResults;
+  readonly getTally: GetTally;
   readonly clock: Clock;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;

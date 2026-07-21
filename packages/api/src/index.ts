@@ -38,6 +38,7 @@ export { GetContest } from './contests/use-cases/get-contest.js';
 export { CloseContest } from './contests/use-cases/close-contest.js';
 export { RevealContest } from './contests/use-cases/reveal-contest.js';
 export { GetResults } from './contests/use-cases/get-results.js';
+export { GetTally } from './contests/use-cases/get-tally.js';
 export type {
   PublishContestDeps,
   PublishContestResult,
@@ -55,6 +56,11 @@ export type {
   GetResultsResult,
   GetResultsError,
   GetResultsErrorCode,
+  GetTallyDeps,
+  GetTallyResult,
+  GetTallyError,
+  GetTallyErrorCode,
+  Tally,
 } from './contests/use-cases/shared.js';
 export { ensureContestFresh } from './contests/ensure-fresh.js';
 export type { EnsureContestFreshDeps } from './contests/ensure-fresh.js';
