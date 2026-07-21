@@ -8,6 +8,9 @@ describe('loadEnv', () => {
     expect(env.NODE_ENV).toBe('development');
     expect(env.API_PORT).toBe(3000);
     expect(env.DATABASE_PATH).toBe('./tapas.sqlite');
+    expect(env.LLM_BASE_URL).toBe('http://localhost:11434/v1');
+    expect(env.LLM_API_KEY).toBe('');
+    expect(env.LLM_MODEL).toBe('llama3.1');
   });
 
   it('coerces API_PORT to a number', () => {

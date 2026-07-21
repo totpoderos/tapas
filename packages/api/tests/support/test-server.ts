@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildProductionDeps } from '../../src/composition.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { buildServer } from '../../src/server.js';
-import { BcryptPasswordHasher, type Clock, type Env } from '../../src/index.js';
+import { BcryptPasswordHasher, StubLLMClient, type Clock, type Env, type LLMClient } from '../../src/index.js';
 
 const TEST_BCRYPT_COST = 4; // keeps HTTP-level tests fast; production uses 12
 
@@ -14,6 +14,9 @@ const BASE_ENV: Env = {
   JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
   HOST_WEB_ORIGIN: 'http://localhost:5173',
   PARTICIPANT_WEB_ORIGIN: 'http://localhost:5174',
+  LLM_BASE_URL: 'http://localhost:11434/v1',
+  LLM_API_KEY: '',
+  LLM_MODEL: 'llama3.1',
 };
 
 export interface TestApp {
@@ -23,7 +26,11 @@ export interface TestApp {
 }
 
 /** A fully-wired server over a fresh in-memory SQLite database, for HTTP-level acceptance tests. */
-export function makeTestApp(clock?: Clock, envOverrides: Partial<Env> = {}): TestApp {
+export function makeTestApp(
+  clock?: Clock,
+  envOverrides: Partial<Env> = {},
+  llmClient: LLMClient = new StubLLMClient(),
+): TestApp {
   const db = new DatabaseSync(':memory:');
   runMigrations(db);
   const deps = buildProductionDeps(
@@ -31,6 +38,7 @@ export function makeTestApp(clock?: Clock, envOverrides: Partial<Env> = {}): Tes
     { ...BASE_ENV, ...envOverrides },
     clock,
     new BcryptPasswordHasher(TEST_BCRYPT_COST),
+    llmClient,
   );
   return { app: buildServer(deps), db };
 }

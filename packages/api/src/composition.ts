@@ -1,6 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
+import type { LLMClient } from '@tapas/shared';
 import type { Env } from './config/env.js';
 import type { Clock } from './audit/audit-projection.js';
+import { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
+import { ExtractContestDraft } from './drafts/extraction/extract-contest-draft.js';
 import { createAuditProjection } from './audit/audit-projection.js';
 import { AuditRecorder } from './audit/audit-recorder.js';
 import { SqliteAuditLogRepository } from './db/audit-repository.js';
@@ -48,6 +51,11 @@ export function buildProductionDeps(
   env: Env,
   clock: Clock = new SystemClock(),
   hasher: PasswordHasher = new BcryptPasswordHasher(BCRYPT_COST),
+  llmClient: LLMClient = new OpenAiCompatibleLLMClient({
+    baseUrl: env.LLM_BASE_URL,
+    apiKey: env.LLM_API_KEY,
+    model: env.LLM_MODEL,
+  }),
 ): ServerDeps {
   const ids = new UuidIdGenerator();
 
@@ -76,6 +84,7 @@ export function buildProductionDeps(
     renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
     discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
     listHostDrafts: new ListHostDrafts(drafts),
+    extractContestDraft: new ExtractContestDraft({ llmClient }),
     publishContest: new PublishContest({
       drafts,
       contests,

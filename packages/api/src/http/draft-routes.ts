@@ -118,4 +118,22 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       return reply.code(201).send({ id, name, joinCode });
     },
   );
+
+  app.post<{ Body: { message?: string } }>(
+    '/drafts/extract',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const message = request.body?.message?.trim();
+      if (!message) {
+        return reply
+          .code(400)
+          .send({ error: { code: 'MESSAGE_REQUIRED', message: 'A message is required.' } });
+      }
+
+      const extracted = await deps.extractContestDraft.execute(message);
+      return reply.code(200).send(extracted);
+    },
+  );
 }

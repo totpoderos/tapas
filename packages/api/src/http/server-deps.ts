@@ -20,6 +20,7 @@ import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
 import type { DiscardDraft } from '../drafts/use-cases/discard-draft.js';
 import type { ListHostDrafts } from '../drafts/use-cases/list-host-drafts.js';
 import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
+import type { ExtractContestDraft } from '../drafts/extraction/extract-contest-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -47,6 +48,7 @@ export interface ServerDeps {
   readonly renameDraft: RenameDraft;
   readonly discardDraft: DiscardDraft;
   readonly listHostDrafts: ListHostDrafts;
+  readonly extractContestDraft: ExtractContestDraft;
   readonly publishContest: PublishContest;
   readonly getContest: GetContest;
   readonly closeContest: CloseContest;
