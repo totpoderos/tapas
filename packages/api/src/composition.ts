@@ -27,6 +27,7 @@ import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
+import { CloseContest } from './contests/use-cases/close-contest.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
 import { GetMyScores } from './scoring/use-cases/get-my-scores.js';
@@ -81,6 +82,8 @@ export function buildProductionDeps(
       joinCodes: new RandomJoinCodeGenerator(),
     }),
     getContest: new GetContest(contests),
+    closeContest: new CloseContest({ contests, clock }),
+    clock,
     drafts,
     contests,
     claimPlace: new ClaimPlace({ contests, roster, tokens, clock }),
@@ -89,7 +92,7 @@ export function buildProductionDeps(
     dishes,
     saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
     getMyScores: new GetMyScores({ voteSessions }),
-    sendVote: new SendVote({ contests, voteSessions, clock }),
+    sendVote: new SendVote({ contests, voteSessions, roster, clock }),
     voteSessions,
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),

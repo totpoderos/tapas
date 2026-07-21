@@ -36,7 +36,11 @@ function makeEnv(dishes: MaterializedDish[]) {
   const contests = new FakeContestRepository();
   contests.insert(contestWithDishes('contest-1', dishes));
   const dishRepo = new FakeDishRepository();
-  return { submitDish: new SubmitDish({ contests, dishes: dishRepo, clock }), dishRepo };
+  return {
+    submitDish: new SubmitDish({ contests, dishes: dishRepo, clock }),
+    dishRepo,
+    contests,
+  };
 }
 
 describe('SubmitDish', () => {
@@ -96,5 +100,15 @@ describe('SubmitDish', () => {
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NO_DISH_FOR_PARTICIPANT');
+  });
+
+  it('refuses a submission once the contest has closed', () => {
+    const { submitDish, contests } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+    contests.updateStatus('contest-1', 'closed', clock.now(), null);
+
+    const outcome = submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_CLOSED');
   });
 });

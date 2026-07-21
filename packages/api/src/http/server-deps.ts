@@ -22,8 +22,10 @@ import type { ListHostDrafts } from '../drafts/use-cases/list-host-drafts.js';
 import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
+import type { CloseContest } from '../contests/use-cases/close-contest.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
+import type { Clock } from '../audit/audit-projection.js';
 
 export interface SecurityConfig {
   readonly isProduction: boolean;
@@ -44,6 +46,8 @@ export interface ServerDeps {
   readonly listHostDrafts: ListHostDrafts;
   readonly publishContest: PublishContest;
   readonly getContest: GetContest;
+  readonly closeContest: CloseContest;
+  readonly clock: Clock;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;
   readonly claimPlace: ClaimPlace;

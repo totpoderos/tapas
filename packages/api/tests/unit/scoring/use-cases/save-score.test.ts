@@ -47,6 +47,7 @@ function makeEnv() {
     saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
     getMyScores: new GetMyScores({ voteSessions }),
     voteSessions,
+    contests,
   };
 }
 
@@ -125,6 +126,20 @@ describe('SaveScore', () => {
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
+  });
+
+  it('refuses to save once the contest has closed', () => {
+    const { saveScore, contests } = makeEnv();
+    contests.updateStatus('contest-1', 'closed', clock.now(), null);
+
+    const outcome = saveScore.execute('contest-1', 'ana', {
+      dishId: 'D-bob',
+      categoryId: 'taste',
+      value: 4,
+    });
+
+    expect(outcome.ok).toBe(false);
+    if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_CLOSED');
   });
 });
 

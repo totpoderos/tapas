@@ -26,3 +26,19 @@ export interface PublishContestDeps {
 export type PublishContestResult =
   | { readonly ok: true; readonly contest: StoredContest }
   | { readonly ok: false; readonly error: PublishFailure };
+
+export type CloseContestErrorCode = 'CONTEST_NOT_FOUND' | 'ALREADY_CLOSED';
+
+export interface CloseContestError {
+  readonly code: CloseContestErrorCode;
+  readonly message: string;
+}
+
+export interface CloseContestDeps {
+  readonly contests: ContestRepository;
+  readonly clock: Clock;
+}
+
+export type CloseContestResult =
+  | { readonly ok: true; readonly contest: StoredContest }
+  | { readonly ok: false; readonly error: CloseContestError };

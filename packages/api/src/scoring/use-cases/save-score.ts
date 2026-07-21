@@ -23,6 +23,8 @@ export class SaveScore {
     const contest = this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
+    if (contest.status !== 'live')
+      return { ok: false, error: { code: 'CONTEST_CLOSED', message: 'This contest is closed.' } };
 
     const checked = checkScore(contest.materialized, voterId, input);
     if (!checked.ok) return { ok: false, error: checked.error };

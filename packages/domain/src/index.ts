@@ -31,6 +31,8 @@ export type {
   PublishErrorCode,
   PublishableDraft,
 } from './contest/contest.js';
+export { shouldAutoClose } from './contest/close-check.js';
+export type { AutoCloseFacts } from './contest/close-check.js';
 
 export { Email } from './auth/email.js';
 export type { EmailResult, EmailError } from './auth/email.js';

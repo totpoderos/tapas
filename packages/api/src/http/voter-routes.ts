@@ -31,6 +31,7 @@ const CLAIM_ERROR_STATUS: Record<ClaimErrorCode, number> = {
 const SUBMIT_DISH_ERROR_STATUS: Record<SubmitDishErrorCode, number> = {
   NAME_REQUIRED: 400,
   NO_DISH_FOR_PARTICIPANT: 403,
+  CONTEST_CLOSED: 409,
 };
 
 const SAVE_SCORE_ERROR_STATUS: Record<SaveScoreErrorCode, number> = {
@@ -39,6 +40,7 @@ const SAVE_SCORE_ERROR_STATUS: Record<SaveScoreErrorCode, number> = {
   UNKNOWN_CATEGORY: 400,
   OUT_OF_RANGE: 400,
   SESSION_LOCKED: 409,
+  CONTEST_CLOSED: 409,
 };
 
 const SEND_VOTE_ERROR_STATUS: Record<SendVoteErrorCode, number> = {
@@ -47,6 +49,7 @@ const SEND_VOTE_ERROR_STATUS: Record<SendVoteErrorCode, number> = {
   ALREADY_SENT: 409,
   INCOMPLETE: 422,
   DUPLICATE_CATEGORY_VALUE: 422,
+  CONTEST_CLOSED: 409,
 };
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };

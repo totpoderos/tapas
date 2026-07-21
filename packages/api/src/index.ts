@@ -35,12 +35,19 @@ export { RandomJoinCodeGenerator, type JoinCodeGenerator } from './contests/join
 export { serializeMaterialized, deserializeMaterialized } from './contests/materialized-codec.js';
 export { PublishContest } from './contests/use-cases/publish-contest.js';
 export { GetContest } from './contests/use-cases/get-contest.js';
+export { CloseContest } from './contests/use-cases/close-contest.js';
 export type {
   PublishContestDeps,
   PublishContestResult,
   PublishFailure,
   PublishFailureCode,
+  CloseContestDeps,
+  CloseContestResult,
+  CloseContestError,
+  CloseContestErrorCode,
 } from './contests/use-cases/shared.js';
+export { ensureContestFresh } from './contests/ensure-fresh.js';
+export type { EnsureContestFreshDeps } from './contests/ensure-fresh.js';
 
 export { BcryptPasswordHasher, type PasswordHasher } from './auth/password-hasher.js';
 export {
