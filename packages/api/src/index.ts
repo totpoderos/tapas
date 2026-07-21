@@ -11,6 +11,15 @@ export {
 } from './audit/audit-projection.js';
 export { AuditRecorder } from './audit/audit-recorder.js';
 export { SystemClock, UuidIdGenerator } from './runtime.js';
+export {
+  StubLLMClient,
+  type LLMClient,
+  type LLMMessage,
+  type LLMToolDefinition,
+  type LLMToolCall,
+  type LLMCompletion,
+  type LLMCompletionRequest,
+} from '@tapas/shared';
 
 export { SqliteDraftRepository, type DraftRepository } from './db/draft-repository.js';
 export { SqliteAuditLogRepository, type AuditLogRepository } from './db/audit-repository.js';
@@ -28,6 +37,20 @@ export type {
   DraftFailure,
   DraftFailureCode,
 } from './drafts/use-cases/shared.js';
+
+export { ExtractContestDraft } from './drafts/extraction/extract-contest-draft.js';
+export type {
+  ExtractContestDraftDeps,
+  ExtractContestDraftResult,
+} from './drafts/extraction/extract-contest-draft.js';
+export {
+  PROPOSE_CONTEST_DRAFT_TOOL,
+  ProposedDraftSchema,
+  NON_DEFAULTABLE_FIELDS,
+} from './drafts/extraction/contest-draft-tool.js';
+export type { ProposedDraft, Source } from './drafts/extraction/contest-draft-tool.js';
+export { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
+export type { OpenAiCompatibleLLMClientOptions } from './llm/openai-compatible-llm-client.js';
 
 export { SqliteContestRepository, type ContestRepository } from './db/contest-repository.js';
 export type { StoredContest } from './contests/stored-contest.js';

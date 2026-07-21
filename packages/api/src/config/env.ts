@@ -12,6 +12,11 @@ const EnvSchema = z.object({
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
   HOST_WEB_ORIGIN: z.string().min(1).default('http://localhost:5173'),
   PARTICIPANT_WEB_ORIGIN: z.string().min(1).default('http://localhost:5174'),
+  // Any OpenAI-compatible /chat/completions endpoint — a local Ollama by
+  // default, or a hosted provider that mirrors the same API shape.
+  LLM_BASE_URL: z.string().min(1).default('http://localhost:11434/v1'),
+  LLM_API_KEY: z.string().default(''),
+  LLM_MODEL: z.string().min(1).default('llama3.1'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
