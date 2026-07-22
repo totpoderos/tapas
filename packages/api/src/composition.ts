@@ -4,6 +4,7 @@ import type { Env } from './config/env.js';
 import type { Clock } from './audit/audit-projection.js';
 import { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
 import { ExtractContestDraft } from './drafts/extraction/extract-contest-draft.js';
+import { MergeContestDraft } from './drafts/extraction/merge-contest-draft.js';
 import { createAuditProjection } from './audit/audit-projection.js';
 import { AuditRecorder } from './audit/audit-recorder.js';
 import { SqliteAuditLogRepository } from './db/audit-repository.js';
@@ -85,6 +86,7 @@ export function buildProductionDeps(
     discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),
+    mergeContestDraft: new MergeContestDraft({ llmClient }),
     publishContest: new PublishContest({
       drafts,
       contests,

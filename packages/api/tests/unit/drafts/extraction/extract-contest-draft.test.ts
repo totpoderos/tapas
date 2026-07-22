@@ -84,6 +84,65 @@ describe('ExtractContestDraft', () => {
     expect(outcome.clarifications).toHaveLength(1);
   });
 
+  it('keeps the fields that re-validate when one of them is unusable', async () => {
+    // A real local model returned exactly this: a good name alongside a
+    // `scoring` whose range came back as null.
+    const llmClient = new FakeLLMClient(
+      toolCallCompletion({
+        name: { value: 'Summer Tapas 2026', source: 'llm_extracted' },
+        scoring: {
+          value: {
+            categories: [{ id: 'taste', name: 'Taste' }],
+            range: null,
+            uniquePerCategory: false,
+          },
+          source: 'llm_extracted',
+        },
+        clarifications: ['Participants list was not provided.'],
+      }),
+    );
+
+    const outcome = await new ExtractContestDraft({ llmClient }).execute('Summer Tapas 2026');
+
+    expect(outcome.draft.name).toEqual({ value: 'Summer Tapas 2026', source: 'llm_extracted' });
+    expect(outcome.draft.scoring).toBeUndefined();
+    expect(outcome.clarifications).toEqual([
+      'Participants list was not provided.',
+      expect.stringContaining('the scoring rules'),
+    ]);
+  });
+
+  it('treats a null field as one the model simply could not determine', async () => {
+    const llmClient = new FakeLLMClient(
+      toolCallCompletion({
+        name: { value: 'Summer Tapas', source: 'host' },
+        attribution: null,
+        participants: { value: null, source: 'llm_extracted' },
+        clarifications: [],
+      }),
+    );
+
+    const outcome = await new ExtractContestDraft({ llmClient }).execute('Summer Tapas');
+
+    expect(outcome.draft).toEqual({ name: { value: 'Summer Tapas', source: 'host' } });
+    expect(outcome.clarifications).toEqual([]);
+  });
+
+  it('ignores a field the model smuggled past the tool schema', async () => {
+    const llmClient = new FakeLLMClient(
+      toolCallCompletion({
+        name: { value: 'Summer Tapas', source: 'host' },
+        hostId: 'someone-else',
+        clarifications: [],
+      }),
+    );
+
+    const outcome = await new ExtractContestDraft({ llmClient }).execute('Summer Tapas');
+
+    expect(outcome.draft).toEqual({ name: { value: 'Summer Tapas', source: 'host' } });
+    expect(outcome.clarifications).toEqual([]);
+  });
+
   it('reports a clarification when the tool-call arguments fail re-validation', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({ name: { value: 123, source: 'host' }, clarifications: [] }),

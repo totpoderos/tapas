@@ -1,23 +1,19 @@
 import type { LLMClient } from '@tapas/shared';
+import { PROPOSE_CONTEST_DRAFT_TOOL } from './contest-draft-tool.js';
 import {
-  NON_DEFAULTABLE_FIELDS,
-  PROPOSE_CONTEST_DRAFT_TOOL,
-  ProposedDraftSchema,
-  type ProposedDraft,
-} from './contest-draft-tool.js';
+  guardProposedFields,
+  parseProposedDraft,
+  type ExtractedFields,
+} from './proposed-draft-guard.js';
 
 export interface ExtractContestDraftDeps {
   readonly llmClient: LLMClient;
 }
 
-type ExtractedFields = Omit<ProposedDraft, 'clarifications'>;
-
 export interface ExtractContestDraftResult {
   readonly draft: ExtractedFields;
   readonly clarifications: readonly string[];
 }
-
-const NON_DEFAULTABLE = new Set<string>(NON_DEFAULTABLE_FIELDS);
 
 const CANNOT_EXTRACT_MESSAGE =
   'I could not extract a draft from that message — please try describing the contest again, or use the form.';
@@ -41,8 +37,9 @@ language a non-technical host would understand.`;
 
 /**
  * Phase 1 of the two-phase contest-creation chat (design.md §8): extracts a
- * best-effort partial draft from a single free-form host message. Does not
- * merge a follow-up host reply — that is a separate phase (Slice F2).
+ * best-effort partial draft from a single free-form host message. Merging a
+ * follow-up host reply into that draft is the second phase — see
+ * `MergeContestDraft`.
  */
 export class ExtractContestDraft {
   constructor(private readonly deps: ExtractContestDraftDeps) {}
@@ -59,51 +56,10 @@ export class ExtractContestDraft {
     const call = completion.toolCalls.find((c) => c.name === 'propose_contest_draft');
     if (!call) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE] };
 
-    // Two-phase validation (design.md §11B.2): the tool schema structurally
-    // bounds the shape, but the model's honoring of it is never trusted —
-    // re-validate with Zod before this output is used for anything.
-    const parsed = ProposedDraftSchema.safeParse(call.arguments);
-    if (!parsed.success) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE] };
-
-    const { clarifications, ...fields } = parsed.data;
-    const guardedClarifications = [...clarifications];
-    const draft: ExtractedFields = {};
-
-    applyField(draft, guardedClarifications, 'name', fields.name, 'the contest name');
-    applyField(draft, guardedClarifications, 'attribution', fields.attribution, 'attribution');
-    applyField(draft, guardedClarifications, 'antiBias', fields.antiBias, 'the anti-bias rule');
-    applyField(draft, guardedClarifications, 'scoring', fields.scoring, 'the scoring rules');
-    applyField(draft, guardedClarifications, 'participants', fields.participants, 'the participants');
-    applyField(draft, guardedClarifications, 'closeRule', fields.closeRule, 'the close rule');
-    applyField(
-      draft,
-      guardedClarifications,
-      'revealStrategy',
-      fields.revealStrategy,
-      'the reveal strategy',
-    );
-
-    return { draft, clarifications: guardedClarifications };
+    // Re-validated per field (design.md §11B.2) — one unusable field costs
+    // only that field, not the whole extraction.
+    const parsed = parseProposedDraft(call.arguments);
+    if (!parsed) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE] };
+    return guardProposedFields(parsed.fields, parsed.clarifications);
   }
-}
-
-/**
- * Applies one extracted field to the draft, unless it is a defaulted
- * high-stakes field (design.md §9) — those are dropped and a clarification
- * is added instead, regardless of what the system prompt asked for. Defense
- * in depth: the guard does not depend on the model having followed it.
- */
-function applyField<K extends keyof ExtractedFields>(
-  draft: ExtractedFields,
-  clarifications: string[],
-  key: K,
-  field: ExtractedFields[K],
-  label: string,
-): void {
-  if (!field) return;
-  if (NON_DEFAULTABLE.has(key) && field.source === 'llm_default') {
-    clarifications.push(`Please specify ${label} explicitly — I can't default that for you.`);
-    return;
-  }
-  draft[key] = field;
 }

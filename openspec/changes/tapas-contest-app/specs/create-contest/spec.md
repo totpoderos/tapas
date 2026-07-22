@@ -47,3 +47,29 @@ Attribution, anti-bias, scoring, and participants SHALL never be filled in with 
 - **WHEN** the assistant's response defaults the attribution field without the host having said so
 - **THEN** the attribution field is dropped from the draft
 - **AND** a clarification asks the host to specify it
+
+### Requirement: A host can answer the assistant's clarifications to complete a draft
+A signed-in host SHALL be able to reply to the assistant's clarifications and have that reply merged into the partial draft. The merged draft SHALL include what the reply answers, SHALL keep fields that were already determined even when the reply does not mention them, and SHALL still list anything that remains outstanding. If the reply cannot be understood, the draft already built SHALL be kept rather than discarded.
+
+#### Scenario: A reply that answers every open clarification completes the draft
+- **WHEN** a host replies naming the participants, to a partial draft whose only clarification asks for them
+- **THEN** the merged draft includes the participants
+- **AND** there are no clarifications left
+
+#### Scenario: A reply that answers only part of what's missing keeps asking for the rest
+- **WHEN** a host replies naming only the participants, to a partial draft missing both the participants and the scoring rules
+- **THEN** the merged draft includes the participants
+- **AND** the clarifications list still asks for the scoring rules
+
+#### Scenario: Fields already known are kept even when the reply doesn't repeat them
+- **WHEN** a host replies about an unrelated field, to a partial draft whose contest name is already set
+- **THEN** the merged draft still includes the contest name
+
+#### Scenario: Merging a reply requires being signed in
+- **WHEN** a draft merge is attempted with no one signed in
+- **THEN** it is refused as not signed in
+
+#### Scenario: The assistant may not default a high-stakes field while merging
+- **WHEN** a merge defaults the attribution field without the host having said so
+- **THEN** the attribution field is dropped from the draft
+- **AND** a clarification asks the host to specify it

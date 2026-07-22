@@ -43,6 +43,21 @@ export type {
   ExtractContestDraftDeps,
   ExtractContestDraftResult,
 } from './drafts/extraction/extract-contest-draft.js';
+export { MergeContestDraft, MergeContestDraftInputSchema } from './drafts/extraction/merge-contest-draft.js';
+export type {
+  MergeContestDraftDeps,
+  MergeContestDraftInput,
+  MergeContestDraftResult,
+} from './drafts/extraction/merge-contest-draft.js';
+export {
+  guardProposedFields,
+  parseProposedDraft,
+} from './drafts/extraction/proposed-draft-guard.js';
+export type {
+  ExtractedFields,
+  GuardedDraft,
+  ParsedDraft,
+} from './drafts/extraction/proposed-draft-guard.js';
 export {
   PROPOSE_CONTEST_DRAFT_TOOL,
   ProposedDraftSchema,
