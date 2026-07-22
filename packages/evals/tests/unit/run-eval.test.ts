@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shared';
 import { parseCases, runEval, type EvalCase } from '../../src/index.js';
-import { SEED_CASES } from '../../cases/creation/seed.js';
+import { CREATION_CASES } from '../../cases/creation/index.js';
 
 /** Replays scripted completions in order, so a multi-turn case can be driven deterministically. */
 class ScriptedLLMClient implements LLMClient {
@@ -150,13 +150,9 @@ describe('runEval', () => {
   });
 });
 
-describe('the seed case set', () => {
-  it('is valid against the case schema', () => {
-    expect(() => parseCases(SEED_CASES)).not.toThrow();
-  });
-
-  it('covers single-turn, multi-turn and adversarial shapes', () => {
-    const cases = parseCases(SEED_CASES);
+describe('the frozen case set', () => {
+  it('covers single-turn, multi-turn and adversarial shapes the runner must handle', () => {
+    const cases = parseCases(CREATION_CASES);
     expect(cases.some((c) => c.turns.length === 1)).toBe(true);
     expect(cases.some((c) => c.turns.length > 1)).toBe(true);
     expect(cases.some((c) => c.category === 'adversarial')).toBe(true);

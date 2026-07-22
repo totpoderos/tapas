@@ -13,6 +13,24 @@ export interface OpenAiCompatibleLLMClientOptions {
    */
   readonly temperature?: number;
   readonly seed?: number;
+  /**
+   * How long to wait for a completion before giving up, in milliseconds.
+   * Without one, a stalled connection blocks forever — a hung provider would
+   * pin a host's request rather than failing it, and an eval run stops dead
+   * mid-set. Observed for real: a local Ollama whose model had been unloaded
+   * left a run blocked with no output and no error.
+   */
+  readonly timeoutMs?: number;
+}
+
+const DEFAULT_TIMEOUT_MS = 120_000;
+
+/** Thrown when a completion exceeds `timeoutMs`, so callers can tell a timeout from a transport error. */
+export class LLMTimeoutError extends Error {
+  constructor(timeoutMs: number) {
+    super(`LLM request timed out after ${timeoutMs}ms`);
+    this.name = 'LLMTimeoutError';
+  }
 }
 
 interface ChatCompletionResponse {
@@ -36,45 +54,63 @@ export class OpenAiCompatibleLLMClient implements LLMClient {
   constructor(private readonly options: OpenAiCompatibleLLMClientOptions) {}
 
   async complete(request: LLMCompletionRequest): Promise<LLMCompletion> {
-    const response = await fetch(`${this.options.baseUrl}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.options.apiKey ? { Authorization: `Bearer ${this.options.apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        model: this.options.model,
-        messages: request.messages,
-        ...(this.options.temperature === undefined
-          ? {}
-          : { temperature: this.options.temperature }),
-        ...(this.options.seed === undefined ? {} : { seed: this.options.seed }),
-        ...(request.tools
-          ? {
-              tools: request.tools.map((tool) => ({
-                type: 'function',
-                function: {
-                  name: tool.name,
-                  description: tool.description,
-                  parameters: tool.inputSchema,
-                },
-              })),
-            }
-          : {}),
-      }),
-    });
+    const timeoutMs = this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    const response = await this.post(request, timeoutMs);
 
     if (!response.ok) {
       throw new Error(`LLM request failed: ${response.status} ${response.statusText}`);
     }
 
-    const body = (await response.json()) as ChatCompletionResponse;
-    const message = body.choices[0]?.message;
-    const toolCalls: LLMToolCall[] = (message?.tool_calls ?? []).map((call) => ({
-      name: call.function.name,
-      arguments: JSON.parse(call.function.arguments) as Record<string, unknown>,
-    }));
-
-    return { text: message?.content ?? '', toolCalls };
+    return parseCompletion((await response.json()) as ChatCompletionResponse);
   }
+
+  private async post(request: LLMCompletionRequest, timeoutMs: number): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(`${this.options.baseUrl}/chat/completions`, {
+        signal: controller.signal,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.options.apiKey ? { Authorization: `Bearer ${this.options.apiKey}` } : {}),
+        },
+        body: JSON.stringify({
+          model: this.options.model,
+          messages: request.messages,
+          ...(this.options.temperature === undefined
+            ? {}
+            : { temperature: this.options.temperature }),
+          ...(this.options.seed === undefined ? {} : { seed: this.options.seed }),
+          ...(request.tools
+            ? {
+                tools: request.tools.map((tool) => ({
+                  type: 'function',
+                  function: {
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: tool.inputSchema,
+                  },
+                })),
+              }
+            : {}),
+        }),
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw new LLMTimeoutError(timeoutMs);
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+function parseCompletion(body: ChatCompletionResponse): LLMCompletion {
+  const message = body.choices[0]?.message;
+  const toolCalls: LLMToolCall[] = (message?.tool_calls ?? []).map((call) => ({
+    name: call.function.name,
+    arguments: JSON.parse(call.function.arguments) as Record<string, unknown>,
+  }));
+
+  return { text: message?.content ?? '', toolCalls };
 }

@@ -37,6 +37,11 @@ export interface CaseResult {
   readonly error?: string;
 }
 
+export interface RunEvalOptions {
+  /** Called as each case finishes, so a long run can report progress. */
+  readonly onCaseComplete?: (result: CaseResult, done: number, total: number) => void;
+}
+
 export interface EvalReport {
   readonly cases: readonly CaseResult[];
   readonly overall: Metrics;
@@ -51,13 +56,21 @@ export interface EvalReport {
  * turn's draft and clarifications back in, exactly as the two-phase chat does
  * (design.md §8).
  */
-export async function runEval(cases: readonly EvalCase[], llmClient: LLMClient): Promise<EvalReport> {
+export async function runEval(
+  cases: readonly EvalCase[],
+  llmClient: LLMClient,
+  options: RunEvalOptions = {},
+): Promise<EvalReport> {
   const extract = new ExtractContestDraft({ llmClient });
   const merge = new MergeContestDraft({ llmClient });
 
   const results: CaseResult[] = [];
   for (const evalCase of cases) {
-    results.push(await runCase(evalCase, extract, merge));
+    const result = await runCase(evalCase, extract, merge);
+    results.push(result);
+    // A full run is tens of real model calls and takes many minutes; reporting
+    // only at the end makes it indistinguishable from a hang.
+    options.onCaseComplete?.(result, results.length, cases.length);
   }
 
   const overallCounts = sumCounts(results.map((r) => r.counts));

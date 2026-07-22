@@ -65,6 +65,7 @@ export {
 } from './drafts/extraction/contest-draft-tool.js';
 export type { ProposedDraft, Source } from './drafts/extraction/contest-draft-tool.js';
 export { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
+export { LLMTimeoutError } from './llm/openai-compatible-llm-client.js';
 export type { OpenAiCompatibleLLMClientOptions } from './llm/openai-compatible-llm-client.js';
 
 export { SqliteContestRepository, type ContestRepository } from './db/contest-repository.js';
