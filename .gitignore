@@ -20,3 +20,6 @@ coverage/
 playwright-report/
 test-results/
 .turbo/
+
+# Eval reports are generated artifacts; the trajectory is curated in docs/.
+reports/

@@ -34,6 +34,13 @@ export interface GuardedDraft {
 export interface ParsedDraft {
   readonly fields: ExtractedFields;
   readonly clarifications: readonly string[];
+  /**
+   * Fields dropped because they failed re-validation. Reported rather than
+   * merely turned into a clarification so callers can tell a model that
+   * answered badly from one that answered incompletely — the eval harness
+   * scores those differently (design.md §10.1), and it is worth logging.
+   */
+  readonly rejectedFields: readonly string[];
 }
 
 /**
@@ -59,15 +66,20 @@ export function parseProposedDraft(args: unknown): ParsedDraft | undefined {
   const parsedClarifications = ClarificationsSchema.safeParse(record.clarifications);
   const clarifications = parsedClarifications.success ? [...parsedClarifications.data] : [];
   const fields: Record<string, unknown> = {};
+  const rejectedFields: string[] = [];
 
   for (const key of FIELD_ORDER) {
     if (isUndetermined(record[key])) continue;
     const parsed = FIELD_SCHEMAS[key].safeParse(record[key]);
-    if (parsed.success) fields[key] = parsed.data;
-    else clarifications.push(`I couldn't make sense of ${FIELD_LABELS[key]} — please tell me again.`);
+    if (parsed.success) {
+      fields[key] = parsed.data;
+    } else {
+      rejectedFields.push(key);
+      clarifications.push(`I couldn't make sense of ${FIELD_LABELS[key]} — please tell me again.`);
+    }
   }
 
-  return { fields: fields as ExtractedFields, clarifications };
+  return { fields: fields as ExtractedFields, clarifications, rejectedFields };
 }
 
 /**
