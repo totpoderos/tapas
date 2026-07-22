@@ -3,6 +3,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { StoredDraft } from '../drafts/stored-draft.js';
 import type { DraftFailureCode } from '../drafts/use-cases/shared.js';
 import type { PublishFailureCode } from '../contests/use-cases/shared.js';
+import { MergeContestDraftInputSchema } from '../drafts/extraction/merge-contest-draft.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -134,6 +135,29 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
       const extracted = await deps.extractContestDraft.execute(message);
       return reply.code(200).send(extracted);
+    },
+  );
+
+  app.post<{ Body: unknown }>(
+    '/drafts/merge',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      // The prior draft round-trips through the client, so the whole body is
+      // untrusted: validate it before it reaches the assistant (design.md §11B.3).
+      const input = MergeContestDraftInputSchema.safeParse(request.body);
+      if (!input.success) {
+        return reply.code(400).send({
+          error: {
+            code: 'INVALID_MERGE_REQUEST',
+            message: 'A prior draft, its clarifications, and a reply are required.',
+          },
+        });
+      }
+
+      const merged = await deps.mergeContestDraft.execute(input.data);
+      return reply.code(200).send(merged);
     },
   );
 }

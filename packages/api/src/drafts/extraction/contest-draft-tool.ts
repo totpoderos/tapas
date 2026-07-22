@@ -53,15 +53,25 @@ const RevealStrategySchema = z.union([
  * the tool schema bounds the shape structurally, Zod re-validates it) — the
  * schema alone is not trusted to have been honored.
  */
+export const FIELD_SCHEMAS = {
+  name: field(z.string().min(1)),
+  attribution: field(z.enum(['per_person', 'per_couple'])),
+  antiBias: field(z.enum(['none', 'couples', 'arbitrary_pairs'])),
+  scoring: field(ScoringConfigSchema),
+  participants: field(z.array(PersonSchema).min(1)),
+  closeRule: field(CloseRuleSchema),
+  revealStrategy: field(RevealStrategySchema),
+} as const;
+
 export const ProposedDraftSchema = z
   .object({
-    name: field(z.string().min(1)).optional(),
-    attribution: field(z.enum(['per_person', 'per_couple'])).optional(),
-    antiBias: field(z.enum(['none', 'couples', 'arbitrary_pairs'])).optional(),
-    scoring: field(ScoringConfigSchema).optional(),
-    participants: field(z.array(PersonSchema).min(1)).optional(),
-    closeRule: field(CloseRuleSchema).optional(),
-    revealStrategy: field(RevealStrategySchema).optional(),
+    name: FIELD_SCHEMAS.name.optional(),
+    attribution: FIELD_SCHEMAS.attribution.optional(),
+    antiBias: FIELD_SCHEMAS.antiBias.optional(),
+    scoring: FIELD_SCHEMAS.scoring.optional(),
+    participants: FIELD_SCHEMAS.participants.optional(),
+    closeRule: FIELD_SCHEMAS.closeRule.optional(),
+    revealStrategy: FIELD_SCHEMAS.revealStrategy.optional(),
     clarifications: z.array(z.string()),
   })
   .strict();
