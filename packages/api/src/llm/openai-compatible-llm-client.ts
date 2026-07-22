@@ -4,6 +4,15 @@ export interface OpenAiCompatibleLLMClientOptions {
   readonly baseUrl: string;
   readonly apiKey: string;
   readonly model: string;
+  /**
+   * Sampling controls, set per client rather than per request: a client is
+   * either configured for reproducible output or it isn't. The eval harness
+   * pins both so a trajectory reflects prompt changes rather than sampling
+   * noise (design.md §11A.3). Omitted entirely when unset, so the provider's
+   * own defaults apply and existing callers are unaffected.
+   */
+  readonly temperature?: number;
+  readonly seed?: number;
 }
 
 interface ChatCompletionResponse {
@@ -36,6 +45,10 @@ export class OpenAiCompatibleLLMClient implements LLMClient {
       body: JSON.stringify({
         model: this.options.model,
         messages: request.messages,
+        ...(this.options.temperature === undefined
+          ? {}
+          : { temperature: this.options.temperature }),
+        ...(this.options.seed === undefined ? {} : { seed: this.options.seed }),
         ...(request.tools
           ? {
               tools: request.tools.map((tool) => ({

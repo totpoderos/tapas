@@ -8,7 +8,10 @@ export default defineConfig({
         test: {
           name: 'node',
           environment: 'node',
-          include: ['packages/{domain,shared,api,mcp}/tests/**/*.{test,spec}.ts'],
+          // The evals package's *unit* tests belong to the hard gate — the
+          // runner and metrics are ordinary deterministic code. The real-model
+          // run is `npm run eval:creation`, never a test (design.md §11A.3).
+          include: ['packages/{domain,shared,api,mcp,evals}/tests/**/*.{test,spec}.ts'],
         },
       },
       {

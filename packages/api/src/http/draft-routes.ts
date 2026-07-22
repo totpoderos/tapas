@@ -3,7 +3,11 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { StoredDraft } from '../drafts/stored-draft.js';
 import type { DraftFailureCode } from '../drafts/use-cases/shared.js';
 import type { PublishFailureCode } from '../contests/use-cases/shared.js';
-import { MergeContestDraftInputSchema } from '../drafts/extraction/merge-contest-draft.js';
+import type { ExtractContestDraftResult } from '../drafts/extraction/extract-contest-draft.js';
+import {
+  MergeContestDraftInputSchema,
+  type MergeContestDraftResult,
+} from '../drafts/extraction/merge-contest-draft.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -16,6 +20,11 @@ const DRAFT_ERROR_STATUS: Record<DraftFailureCode, number> = {
 // missing one is a 404. (Cross-host is caught earlier at the route as a 403.)
 function publishErrorStatus(code: PublishFailureCode): number {
   return code === 'DRAFT_NOT_FOUND' ? 404 : 422;
+}
+
+/** Strips diagnostics: the assistant endpoints expose the draft and its questions, nothing else. */
+function publicDraftResult(result: ExtractContestDraftResult | MergeContestDraftResult) {
+  return { draft: result.draft, clarifications: result.clarifications };
 }
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
@@ -134,7 +143,9 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       }
 
       const extracted = await deps.extractContestDraft.execute(message);
-      return reply.code(200).send(extracted);
+      // Only the draft and its questions are the host's business — how the
+      // model behaved is diagnostics, for logs and the eval harness.
+      return reply.code(200).send(publicDraftResult(extracted));
     },
   );
 
@@ -157,7 +168,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       }
 
       const merged = await deps.mergeContestDraft.execute(input.data);
-      return reply.code(200).send(merged);
+      return reply.code(200).send(publicDraftResult(merged));
     },
   );
 }

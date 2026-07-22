@@ -10,10 +10,23 @@ export interface ExtractContestDraftDeps {
   readonly llmClient: LLMClient;
 }
 
+/**
+ * How the model behaved, as opposed to what it produced. Not part of the HTTP
+ * response — the routes send `{draft, clarifications}` only — but the eval
+ * harness scores on it, and it is the natural thing to log.
+ */
+export interface DraftDiagnostics {
+  readonly noToolCall: boolean;
+  readonly rejectedFields: readonly string[];
+}
+
 export interface ExtractContestDraftResult {
   readonly draft: ExtractedFields;
   readonly clarifications: readonly string[];
+  readonly diagnostics: DraftDiagnostics;
 }
+
+const NO_TOOL_CALL: DraftDiagnostics = { noToolCall: true, rejectedFields: [] };
 
 const CANNOT_EXTRACT_MESSAGE =
   'I could not extract a draft from that message — please try describing the contest again, or use the form.';
@@ -54,12 +67,17 @@ export class ExtractContestDraft {
     });
 
     const call = completion.toolCalls.find((c) => c.name === 'propose_contest_draft');
-    if (!call) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE] };
+    if (!call) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE], diagnostics: NO_TOOL_CALL };
 
     // Re-validated per field (design.md §11B.2) — one unusable field costs
     // only that field, not the whole extraction.
     const parsed = parseProposedDraft(call.arguments);
-    if (!parsed) return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE] };
-    return guardProposedFields(parsed.fields, parsed.clarifications);
+    if (!parsed)
+      return { draft: {}, clarifications: [CANNOT_EXTRACT_MESSAGE], diagnostics: NO_TOOL_CALL };
+
+    return {
+      ...guardProposedFields(parsed.fields, parsed.clarifications),
+      diagnostics: { noToolCall: false, rejectedFields: parsed.rejectedFields },
+    };
   }
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { LLMClient } from '@tapas/shared';
 import { PROPOSE_CONTEST_DRAFT_TOOL, ProposedDraftSchema } from './contest-draft-tool.js';
+import type { DraftDiagnostics } from './extract-contest-draft.js';
 import {
   guardProposedFields,
   parseProposedDraft,
@@ -31,6 +32,7 @@ export type MergeContestDraftInput = z.infer<typeof MergeContestDraftInputSchema
 export interface MergeContestDraftResult {
   readonly draft: ExtractedFields;
   readonly clarifications: readonly string[];
+  readonly diagnostics: DraftDiagnostics;
 }
 
 const CANNOT_MERGE_MESSAGE =
@@ -93,17 +95,23 @@ export class MergeContestDraft {
 
     const proposed = parseToolCall(completion.toolCalls);
     if (!proposed) {
-      return guardProposedFields(input.draft, [...input.clarifications, CANNOT_MERGE_MESSAGE]);
+      return {
+        ...guardProposedFields(input.draft, [...input.clarifications, CANNOT_MERGE_MESSAGE]),
+        diagnostics: { noToolCall: true, rejectedFields: [] },
+      };
     }
 
     // The reply's fields win; whatever it leaves out is carried over. Guarding
     // the merged result (not each side separately) keeps a high-stakes field
     // from slipping in via either the model or a tampered prior draft, without
     // asking the same clarification twice.
-    return guardProposedFields(
-      { ...input.draft, ...definedFields(proposed.fields) },
-      proposed.clarifications,
-    );
+    return {
+      ...guardProposedFields(
+        { ...input.draft, ...definedFields(proposed.fields) },
+        proposed.clarifications,
+      ),
+      diagnostics: { noToolCall: false, rejectedFields: proposed.rejectedFields },
+    };
   }
 }
 
