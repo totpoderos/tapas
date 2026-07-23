@@ -34,6 +34,17 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('marks close_contest destructive and does not forward the confirmation token to the API', () => {
+    const closeContest = TOOL_CATALOG.find((tool) => tool.name === 'close_contest');
+    expect(closeContest?.destructive).toBe(true);
+    expect(closeContest?.scope).toBe('host');
+    // The confirmation token is a protocol concern — it must not leak into the API request.
+    expect(closeContest?.toRequest({ contestId: 'c1', confirmationToken: 'anything' })).toEqual({
+      method: 'POST',
+      path: '/contests/c1/close',
+    });
+  });
+
   it('gives every tool a name, a description and an input schema', () => {
     for (const tool of TOOL_CATALOG) {
       expect(tool.name).toMatch(/^[a-z_]+$/);

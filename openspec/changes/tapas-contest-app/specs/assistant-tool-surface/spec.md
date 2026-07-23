@@ -42,3 +42,27 @@ what the host owns, and deciding nothing itself.
 #### Scenario: The assistant cannot read a draft the host does not own
 - **WHEN** a host asks a connected assistant to read a draft owned by a different host, using their own token
 - **THEN** the request is refused as not allowed
+
+### Requirement: A destructive action must be confirmed before the assistant carries it out
+The assistant SHALL require an explicit confirmation for a destructive action
+(closing a contest, publishing, sending reminders) before carrying it out. A
+first, unconfirmed request SHALL change nothing; instead the assistant SHALL be
+given a confirmation for that exact action to present and send back, and only a
+request carrying that confirmation SHALL carry the action out. A confirmation
+SHALL be tied to the one action it was issued for and MUST NOT authorize a
+different action. This SHALL hold at the tool surface itself, independently of
+any confirmation the host app also shows (design.md §7.1).
+
+#### Scenario: A destructive action is not carried out until it is confirmed
+- **WHEN** the assistant is asked to close one of the host's running contests without a confirmation
+- **THEN** the contest is not closed
+- **AND** the assistant is told the action needs confirming
+
+#### Scenario: A confirmed destructive action is carried out
+- **WHEN** the assistant closes the contest with the confirmation it was given
+- **THEN** the contest is closed
+
+#### Scenario: A confirmation for one action does not authorize another
+- **WHEN** the assistant tries to close a second contest using the confirmation issued for closing the first
+- **THEN** the second contest is not closed
+- **AND** the assistant is told the action needs confirming

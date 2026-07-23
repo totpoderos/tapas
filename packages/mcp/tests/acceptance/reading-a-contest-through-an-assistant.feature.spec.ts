@@ -18,7 +18,7 @@ interface ToolResult {
 /** Connects an MCP client to a server bound to one host's token, over an in-memory transport. */
 async function connectAssistant(apiBaseUrl: string, hostToken: string): Promise<Client> {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-  const server = buildMcpServer({ apiBaseUrl, hostToken });
+  const server = buildMcpServer({ apiBaseUrl, hostToken, confirmationSecret: 'test-confirmation-secret' });
   await server.connect(serverTransport);
   const client = new Client({ name: 'test-assistant', version: '0.0.0' });
   await client.connect(clientTransport);
