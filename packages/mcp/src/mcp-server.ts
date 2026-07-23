@@ -43,9 +43,9 @@ function describeFailure(result: DispatchResult): string {
     result.status === 401
       ? 'Not authorized — the personal access token is missing or invalid.'
       : result.status === 403
-        ? 'Not allowed — that contest belongs to a different host.'
+        ? 'Not allowed — it belongs to a different host.'
         : result.status === 404
-          ? 'No such contest.'
+          ? 'Not found.'
           : `The request failed (status ${result.status}).`;
   const code = errorCode(result.body);
   return code ? `${base} (${code})` : base;

@@ -87,6 +87,32 @@ export async function hostWithToken(app: FastifyInstance, email: string): Promis
   return issued.json().token as string;
 }
 
+/** Registers/logs in a host, saves a simple draft as them, and returns its id and token. */
+export async function hostWithDraft(
+  app: FastifyInstance,
+  email: string,
+): Promise<{ token: string; draftId: string }> {
+  const jar = new CookieJar();
+  await asHost(app, jar, 'POST', '/auth/register', { email, password: STRONG_PASSWORD });
+  await asHost(app, jar, 'POST', '/auth/login', { email, password: STRONG_PASSWORD });
+  const issued = await asHost(app, jar, 'POST', '/auth/pats');
+  const created = await asHost(app, jar, 'POST', '/drafts', {
+    name: 'Tapas',
+    attribution: 'per_person',
+    antiBias: 'none',
+    scoring: {
+      categories: [{ id: 'taste', name: 'Taste' }],
+      range: { type: 'fixed', min: 1, max: 5 },
+      uniquePerCategory: false,
+    },
+    participants: [
+      { id: 'ana', displayName: 'Ana' },
+      { id: 'bob', displayName: 'Bob' },
+    ],
+  });
+  return { token: issued.json().token as string, draftId: created.json().id as string };
+}
+
 /** Registers/logs in a host, publishes a simple live contest as them, and returns its id and token. */
 export async function hostWithPublishedContest(
   app: FastifyInstance,

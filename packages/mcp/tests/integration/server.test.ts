@@ -14,7 +14,7 @@ describe('mcp server', () => {
     const res = await app.inject({ method: 'GET', url: '/health' });
 
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual({ status: 'ok', api: 'ok', tools: 1 });
+    expect(res.json()).toEqual({ status: 'ok', api: 'ok', tools: 3 });
 
     await app.close();
   });

@@ -17,6 +17,23 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('maps get_draft to a GET on the draft', () => {
+    const getDraft = TOOL_CATALOG.find((tool) => tool.name === 'get_draft');
+    expect(getDraft?.scope).toBe('host');
+    expect(getDraft?.destructive).toBe(false);
+    expect(getDraft?.toRequest({ draftId: 'd1' })).toEqual({ method: 'GET', path: '/drafts/d1' });
+  });
+
+  it('maps get_tally to a GET on the contest tally', () => {
+    const getTally = TOOL_CATALOG.find((tool) => tool.name === 'get_tally');
+    expect(getTally?.scope).toBe('host');
+    expect(getTally?.destructive).toBe(false);
+    expect(getTally?.toRequest({ contestId: 'c1' })).toEqual({
+      method: 'GET',
+      path: '/contests/c1/tally',
+    });
+  });
+
   it('gives every tool a name, a description and an input schema', () => {
     for (const tool of TOOL_CATALOG) {
       expect(tool.name).toMatch(/^[a-z_]+$/);
