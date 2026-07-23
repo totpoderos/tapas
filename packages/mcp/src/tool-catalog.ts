@@ -92,5 +92,102 @@ const closeContest: McpTool = {
   }),
 };
 
+// --- create_draft input shape ---------------------------------------------
+// A draft's editable content (DraftContent): only `name` is required, the rest
+// are filled in over time and fully validated by the API at publish. Defined
+// here rather than imported from the domain so the adapter stays decoupled; the
+// API remains the authoritative validator (two-phase, design.md §11B.3).
+const scoringShape = z
+  .object({
+    categories: z.array(z.object({ id: z.string().min(1), name: z.string().min(1) }).strict()).min(1),
+    range: z.union([
+      z.object({ type: z.literal('fixed'), min: z.number(), max: z.number() }).strict(),
+      z.object({ type: z.literal('auto') }).strict(),
+    ]),
+    uniquePerCategory: z.boolean(),
+  })
+  .strict();
+
+const personShape = z
+  .object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    partnerId: z.string().min(1).optional(),
+    noScoreWith: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+const whenShape = z.union([
+  z.object({ when: z.enum(['all_sent', 'host_trigger']) }).strict(),
+  z.object({ when: z.literal('scheduled'), at: z.string().min(1) }).strict(),
+]);
+
+/** `create_draft` — saves a new contest draft. Only the name is required. Writes via POST /drafts. */
+const createDraft: McpTool = {
+  name: 'create_draft',
+  description:
+    'Save a new contest draft for the host. Only a name is required; rule-space fields can be added now or later, and are fully checked when the contest is published.',
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    name: z.string().min(1).describe('The contest name.'),
+    attribution: z.enum(['per_person', 'per_couple']).optional(),
+    antiBias: z.enum(['none', 'couples', 'arbitrary_pairs']).optional(),
+    scoring: scoringShape.optional(),
+    participants: z.array(personShape).optional(),
+    closeRule: whenShape.optional(),
+    revealStrategy: whenShape.optional(),
+  },
+  toRequest: (args) => ({ method: 'POST', path: '/drafts', body: args }),
+};
+
+/** `update_draft` — renames an existing draft (the only draft edit the API exposes today). */
+const updateDraft: McpTool = {
+  name: 'update_draft',
+  description: "Rename one of the host's contest drafts.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    draftId: z.string().min(1).describe('The id of the draft to rename.'),
+    name: z.string().min(1).describe('The new name for the draft.'),
+  },
+  toRequest: (args) => ({
+    method: 'PATCH',
+    path: `/drafts/${encodeURIComponent(String(args.draftId))}`,
+    body: { name: args.name },
+  }),
+};
+
+/**
+ * `publish_contest` — publishes a draft into a live contest. Destructive: a
+ * live contest cannot be un-published, so the server requires a confirmation.
+ */
+const publishContest: McpTool = {
+  name: 'publish_contest',
+  description:
+    'Publish one of the host\'s drafts into a live contest, running the rule compiler. This cannot be undone.',
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    draftId: z.string().min(1).describe('The id of the draft to publish.'),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: `/drafts/${encodeURIComponent(String(args.draftId))}/publish`,
+  }),
+};
+
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
-export const TOOL_CATALOG: readonly McpTool[] = [getContest, getDraft, getTally, closeContest];
+export const TOOL_CATALOG: readonly McpTool[] = [
+  getContest,
+  getDraft,
+  getTally,
+  closeContest,
+  createDraft,
+  updateDraft,
+  publishContest,
+];

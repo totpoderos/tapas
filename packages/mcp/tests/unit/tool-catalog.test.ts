@@ -45,6 +45,34 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('maps create_draft to a POST that carries the draft content as the body', () => {
+    const createDraft = TOOL_CATALOG.find((tool) => tool.name === 'create_draft');
+    expect(createDraft?.destructive).toBe(false);
+    expect(createDraft?.toRequest({ name: 'Summer Tapas' })).toEqual({
+      method: 'POST',
+      path: '/drafts',
+      body: { name: 'Summer Tapas' },
+    });
+  });
+
+  it('maps update_draft to a PATCH that sends only the new name, not the id', () => {
+    const updateDraft = TOOL_CATALOG.find((tool) => tool.name === 'update_draft');
+    expect(updateDraft?.toRequest({ draftId: 'd1', name: 'Winter Tapas' })).toEqual({
+      method: 'PATCH',
+      path: '/drafts/d1',
+      body: { name: 'Winter Tapas' },
+    });
+  });
+
+  it('marks publish_contest destructive and does not forward the confirmation token', () => {
+    const publishContest = TOOL_CATALOG.find((tool) => tool.name === 'publish_contest');
+    expect(publishContest?.destructive).toBe(true);
+    expect(publishContest?.toRequest({ draftId: 'd1', confirmationToken: 'x' })).toEqual({
+      method: 'POST',
+      path: '/drafts/d1/publish',
+    });
+  });
+
   it('gives every tool a name, a description and an input schema', () => {
     for (const tool of TOOL_CATALOG) {
       expect(tool.name).toMatch(/^[a-z_]+$/);
