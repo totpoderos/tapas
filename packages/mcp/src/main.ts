@@ -1,15 +1,9 @@
 import { loadEnv } from './config/env.js';
-import { buildServer } from './server.js';
+import { runStdioServer } from './mcp-stdio.js';
 
-const env = loadEnv();
-const app = buildServer(env.API_BASE_URL);
-
-app
-  .listen({ port: env.MCP_PORT, host: '0.0.0.0' })
-  .then((address) => {
-    console.log(`[mcp] listening on ${address} — API at ${env.API_BASE_URL}`);
-  })
-  .catch((error) => {
-    console.error('[mcp] failed to start:', error);
-    process.exit(1);
-  });
+// The MCP server runs as a stdio subprocess of its client. stdout carries the
+// protocol, so errors go to stderr only.
+runStdioServer(loadEnv()).catch((error) => {
+  process.stderr.write(`[mcp] failed to start: ${error instanceof Error ? error.stack : String(error)}\n`);
+  process.exit(1);
+});
