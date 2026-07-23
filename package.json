@@ -17,10 +17,13 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^5.2.1",
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

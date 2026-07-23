@@ -23,3 +23,4 @@ test-results/
 
 # Eval reports are generated artifacts; the trajectory is curated in docs/.
 reports/
+playwright/.cache/

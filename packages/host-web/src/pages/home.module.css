@@ -1,0 +1,47 @@
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 24px 28px 96px;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.bar .brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: auto;
+}
+.bar .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--saffron);
+  box-shadow: 0 0 0 3px var(--saffron-soft);
+}
+.bar b {
+  font-family: var(--serif);
+  font-size: 21px;
+}
+.title {
+  font-size: 32px;
+  margin: 0 0 8px;
+}
+.lead {
+  color: var(--ink-2);
+  max-width: 60ch;
+  margin: 0 0 24px;
+}
+.placeholder {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  padding: 32px;
+  color: var(--ink-2);
+  font-size: 14px;
+}

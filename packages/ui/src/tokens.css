@@ -1,0 +1,164 @@
+/*
+ * Tapas "Service" design tokens — the single source of colour, type, and
+ * spacing for both frontends (design system handoff). Two first-class themes:
+ * light on :root, dark under prefers-color-scheme (unless forced light), and a
+ * data-theme attribute that overrides the media query in both directions.
+ */
+:root {
+  color-scheme: light dark;
+  --ground: #fcfaf6;
+  --surface: #ffffff;
+  --surface-2: #f5efe8;
+  --ink: #211820;
+  --ink-2: #5c5157;
+  --line: #e8e1da;
+  --line-strong: #d6cbc2;
+  --brand: #6a2757;
+  --on-brand: #ffffff;
+  --brand-soft: #f3e4ee;
+  --brand-line: #d9b9ce;
+  --saffron: #e39b12;
+  --on-saffron: #2a1b05;
+  --saffron-soft: #fbeecb;
+  --good: #4e6b21;
+  --on-good: #ffffff;
+  --good-soft: #e6efd4;
+  --pending: #8f5d0e;
+  --on-pending: #ffffff;
+  --pending-soft: #f7e9cc;
+  --danger: #b23a2e;
+  --on-danger: #ffffff;
+  --danger-soft: #f6dcd7;
+  --focus: #6a2757;
+  --shadow: 0 24px 60px rgba(38, 20, 33, 0.14);
+
+  --serif: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  --radius-control: 11px;
+  --radius-card: 14px;
+  --radius-panel: 16px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --ground: #17131a;
+    --surface: #211a26;
+    --surface-2: #2b2231;
+    --ink: #f3ecef;
+    --ink-2: #b7a8b1;
+    --line: #372e3d;
+    --line-strong: #4a3f51;
+    --brand: #db93c4;
+    --on-brand: #2a0f22;
+    --brand-soft: #3a2334;
+    --brand-line: #5a3b50;
+    --saffron: #f1b54b;
+    --on-saffron: #2a1b05;
+    --saffron-soft: #3e2f14;
+    --good: #9ec45e;
+    --on-good: #17200a;
+    --good-soft: #2c3717;
+    --pending: #e3a83e;
+    --on-pending: #241804;
+    --pending-soft: #3a2c12;
+    --danger: #e67c6f;
+    --on-danger: #280c07;
+    --danger-soft: #3e211c;
+    --focus: #db93c4;
+    --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme='dark'] {
+  --ground: #17131a;
+  --surface: #211a26;
+  --surface-2: #2b2231;
+  --ink: #f3ecef;
+  --ink-2: #b7a8b1;
+  --line: #372e3d;
+  --line-strong: #4a3f51;
+  --brand: #db93c4;
+  --on-brand: #2a0f22;
+  --brand-soft: #3a2334;
+  --brand-line: #5a3b50;
+  --saffron: #f1b54b;
+  --on-saffron: #2a1b05;
+  --saffron-soft: #3e2f14;
+  --good: #9ec45e;
+  --on-good: #17200a;
+  --good-soft: #2c3717;
+  --pending: #e3a83e;
+  --on-pending: #241804;
+  --pending-soft: #3a2c12;
+  --danger: #e67c6f;
+  --on-danger: #280c07;
+  --danger-soft: #3e211c;
+  --focus: #db93c4;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  text-wrap: balance;
+}
+a {
+  color: var(--brand);
+  text-underline-offset: 3px;
+}
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Skip-to-main: off-screen until focused. */
+.tp-skip {
+  position: fixed;
+  left: 16px;
+  top: -80px;
+  z-index: 99;
+  background: var(--brand);
+  color: var(--on-brand);
+  padding: 12px 18px;
+  border-radius: 10px;
+  font: 600 15px var(--sans);
+  text-decoration: none;
+  transition: top 0.16s ease;
+}
+.tp-skip:focus {
+  top: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,124 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+}
+.card {
+  width: min(880px, 100%);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+.form {
+  padding: 48px 52px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 22px;
+}
+.brand .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--saffron);
+  box-shadow: 0 0 0 3px var(--saffron-soft);
+}
+.brand b {
+  font-family: var(--serif);
+  font-size: 23px;
+  color: var(--brand);
+}
+.title {
+  font-size: 30px;
+  margin: 0 0 6px;
+}
+.sub {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+.fields {
+  display: grid;
+  gap: 16px;
+}
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+.foot {
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 0;
+}
+.panel {
+  position: relative;
+  background: var(--brand);
+  color: var(--on-brand);
+  padding: 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+}
+.panel .stripe {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 22px,
+    rgba(255, 255, 255, 0.05) 22px 23px
+  );
+}
+.panel .content {
+  position: relative;
+}
+.panel .kicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin: 0 0 12px;
+}
+.panel .contest {
+  font-family: var(--serif);
+  font-size: 32px;
+  line-height: 1.1;
+}
+.panel .detail {
+  opacity: 0.9;
+  font-size: 14px;
+  margin: 10px 0 0;
+}
+
+@media (max-width: 720px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    display: none;
+  }
+  .form {
+    padding: 36px 28px;
+  }
+}
