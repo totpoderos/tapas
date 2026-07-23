@@ -14,6 +14,14 @@ test.beforeAll(async ({ baseURL }) => {
   await api.dispose();
 });
 
+test('a new host creates an account and lands signed in', async ({ page }) => {
+  await page.goto('/sign-up');
+  await page.getByLabel('Email').fill('brand-new@sobremesa.es');
+  await page.getByLabel('Password').fill('An0ther!Str0ngPass');
+  await page.getByRole('button', { name: 'Create account' }).click();
+  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+});
+
 test('a returning host signs in and lands on home', async ({ page }) => {
   await page.goto('/sign-in');
   await page.getByLabel('Email').fill(HOST.email);

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Button, FormField } from '@tapas/ui';
 import { ApiError } from '../api/client';
 import { useSession } from '../auth/session';
-import styles from './sign-in.module.css';
+import styles from './auth.module.css';
 
 /**
  * Host sign-in (design system "Host sign-in"). A real <form> so Enter submits

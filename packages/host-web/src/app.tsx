@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { SignIn } from './pages/sign-in';
+import { SignUp } from './pages/sign-up';
 import { Home } from './pages/home';
 import { useSession } from './auth/session';
 
@@ -25,6 +26,7 @@ export function App() {
   return (
     <Routes>
       <Route path="/sign-in" element={authed ? <Navigate to="/" replace /> : <SignIn />} />
+      <Route path="/sign-up" element={authed ? <Navigate to="/" replace /> : <SignUp />} />
       <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
