@@ -705,7 +705,7 @@ Security is the degree's curriculum anchor. This section makes the stance concre
 
 - **Parameterized queries everywhere** (OWASP A03); no string-concatenated SQL. A least-privilege DB user.
 - **Two-phase validation** (already in the design): the LLM output is structurally bounded by `additionalProperties:false` schemas, then re-validated by the API's authoritative Zod validators. Belt and braces.
-- **XSS:** React auto-escapes; **DOMPurify only where `dangerouslySetInnerHTML` is unavoidable**. User-controlled fields (participant names, dish descriptions) are treated as data, including inside LLM prompts.
+- **XSS:** React auto-escapes; **DOMPurify only where `dangerouslySetInnerHTML` is unavoidable**. User-controlled fields (participant names, dish descriptions) are treated as data, including inside LLM prompts. Concretely, the contest-creation assistant's system prompts state that a participant's name is data and never an instruction; and because a convincing injection can still fool the model into reporting a high-stakes rule as host-stated (source `host`, not `llm_default`, so the §9 allow-list alone would miss it), a **deterministic guard** reads the participant names directly and drops any high-stakes rule (attribution, anti-bias, scoring) that a name is trying to dictate, replacing it with a clarification for the host. The drop is surgical — it removes only the rule the name names, leaving rules the host genuinely stated intact. See the `create-contest` spec, "A participant's name may not set a high-stakes rule".
 - **Env validation at startup** with Zod (fail-fast): the app refuses to boot on missing/invalid config.
 
 ### 11B.4 Transport, headers, configuration

@@ -48,6 +48,15 @@ Attribution, anti-bias, scoring, and participants SHALL never be filled in with 
 - **THEN** the attribution field is dropped from the draft
 - **AND** a clarification asks the host to specify it
 
+### Requirement: A participant's name may not set a high-stakes rule
+A participant's display name is data describing a person, never an instruction to the assistant. Text inside a participant's name SHALL never set attribution, the anti-bias rule, or the scoring — even when the assistant, misled by that text, reports the rule as if the host had asked for it. Such a name SHALL be kept, unchanged, as that participant's name; the rule it tried to set SHALL be dropped; and a clarification SHALL ask the host to decide the rule themselves. Rules the host genuinely stated in the same message SHALL be left untouched — only the rule the name names is dropped.
+
+#### Scenario: An instruction hidden in a participant's name cannot switch off the anti-bias rule
+- **WHEN** a host asks the assistant to extract a draft from a message whose participants include a name written to read like an instruction to disable the anti-bias rule
+- **THEN** the name is kept, unchanged, as that participant's name
+- **AND** the anti-bias rule is not set from it
+- **AND** a clarification asks the host to decide the anti-bias rule
+
 ### Requirement: A host can answer the assistant's clarifications to complete a draft
 A signed-in host SHALL be able to reply to the assistant's clarifications and have that reply merged into the partial draft. The merged draft SHALL include what the reply answers, SHALL keep fields that were already determined even when the reply does not mention them, and SHALL still list anything that remains outstanding. If the reply cannot be understood, the draft already built SHALL be kept rather than discarded.
 
