@@ -181,6 +181,45 @@ const publishContest: McpTool = {
   }),
 };
 
+/**
+ * `trigger_reveal` — reveals a closed contest, announcing the winners.
+ * Destructive (it cannot be undone), so the server requires a confirmation.
+ */
+const triggerReveal: McpTool = {
+  name: 'trigger_reveal',
+  description:
+    "Reveal one of the host's closed contests, announcing the winners. The contest must already be closed. This cannot be undone.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contestId: z.string().min(1).describe('The id of the closed contest to reveal.'),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: `/contests/${encodeURIComponent(String(args.contestId))}/reveal`,
+  }),
+};
+
+/** `get_results` — reads the final results of one of the host's revealed contests. */
+const getResults: McpTool = {
+  name: 'get_results',
+  description:
+    "Read the final results — category totals and winners — of one of the host's contests. The contest must already be revealed.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contestId: z.string().min(1).describe('The id of the revealed contest whose results to read.'),
+  },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests/${encodeURIComponent(String(args.contestId))}/results`,
+  }),
+};
+
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
 export const TOOL_CATALOG: readonly McpTool[] = [
   getContest,
@@ -190,4 +229,6 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   createDraft,
   updateDraft,
   publishContest,
+  triggerReveal,
+  getResults,
 ];

@@ -139,3 +139,24 @@ export async function hostWithPublishedContest(
   const token = await hostWithToken(app, email);
   return { token, contestId: await publishContestAs(app, token) };
 }
+
+/** Registers/logs in a host and publishes then closes a contest — the state a reveal needs. */
+export async function hostWithClosedContest(
+  app: FastifyInstance,
+  email: string,
+): Promise<{ token: string; contestId: string }> {
+  const token = await hostWithToken(app, email);
+  const contestId = await publishContestAs(app, token);
+  await asBearer(app, token, 'POST', `/contests/${contestId}/close`);
+  return { token, contestId };
+}
+
+/** Registers/logs in a host and takes a contest all the way to revealed. */
+export async function hostWithRevealedContest(
+  app: FastifyInstance,
+  email: string,
+): Promise<{ token: string; contestId: string }> {
+  const { token, contestId } = await hostWithClosedContest(app, email);
+  await asBearer(app, token, 'POST', `/contests/${contestId}/reveal`);
+  return { token, contestId };
+}

@@ -73,6 +73,24 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('marks trigger_reveal destructive and does not forward the confirmation token', () => {
+    const triggerReveal = TOOL_CATALOG.find((tool) => tool.name === 'trigger_reveal');
+    expect(triggerReveal?.destructive).toBe(true);
+    expect(triggerReveal?.toRequest({ contestId: 'c1', confirmationToken: 'x' })).toEqual({
+      method: 'POST',
+      path: '/contests/c1/reveal',
+    });
+  });
+
+  it('maps get_results to a GET on the contest results', () => {
+    const getResults = TOOL_CATALOG.find((tool) => tool.name === 'get_results');
+    expect(getResults?.destructive).toBe(false);
+    expect(getResults?.toRequest({ contestId: 'c1' })).toEqual({
+      method: 'GET',
+      path: '/contests/c1/results',
+    });
+  });
+
   it('gives every tool a name, a description and an input schema', () => {
     for (const tool of TOOL_CATALOG) {
       expect(tool.name).toMatch(/^[a-z_]+$/);
