@@ -8,3 +8,4 @@ export {
   type ApiDispatcherDeps,
 } from './api-dispatcher.js';
 export { TOOL_CATALOG, type McpTool } from './tool-catalog.js';
+export { confirmationTokenFor, isValidConfirmation } from './confirmation-token.js';

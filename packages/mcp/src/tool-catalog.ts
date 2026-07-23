@@ -67,5 +67,30 @@ const getTally: McpTool = {
   }),
 };
 
+/**
+ * `close_contest` — forces one of the host's contests to close. Destructive
+ * (irreversible), so the server requires a confirmation before it runs; the
+ * optional `confirmationToken` is a protocol concern and is NOT forwarded to
+ * the API (`toRequest` ignores it).
+ */
+const closeContest: McpTool = {
+  name: 'close_contest',
+  description:
+    "Close one of the host's own contests now, so no more votes can be sent. This cannot be undone.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contestId: z.string().min(1).describe('The id of the contest to close.'),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: `/contests/${encodeURIComponent(String(args.contestId))}/close`,
+  }),
+};
+
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
-export const TOOL_CATALOG: readonly McpTool[] = [getContest, getDraft, getTally];
+export const TOOL_CATALOG: readonly McpTool[] = [getContest, getDraft, getTally, closeContest];
