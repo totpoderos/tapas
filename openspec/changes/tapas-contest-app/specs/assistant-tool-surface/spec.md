@@ -66,3 +66,27 @@ any confirmation the host app also shows (design.md §7.1).
 - **WHEN** the assistant tries to close a second contest using the confirmation issued for closing the first
 - **THEN** the second contest is not closed
 - **AND** the assistant is told the action needs confirming
+
+### Requirement: A host can author and publish a contest through a connected assistant
+A host SHALL be able to build a contest through the assistant: create a draft,
+refine it, and publish it into a live contest. Creating and refining a draft are
+ordinary reversible edits and SHALL happen directly. Publishing SHALL be treated
+as a destructive action — a live contest cannot be un-published — and so SHALL
+require the same confirmation as any other destructive action.
+
+#### Scenario: The assistant creates a draft for the host
+- **WHEN** the assistant is asked to create a draft with a given name for the host
+- **THEN** a draft with that name is saved for the host
+
+#### Scenario: The assistant renames a draft
+- **WHEN** the assistant renames one of the host's drafts
+- **THEN** the draft's name is changed
+
+#### Scenario: Publishing a draft must be confirmed
+- **WHEN** the assistant is asked to publish one of the host's drafts without a confirmation
+- **THEN** the draft is not published
+- **AND** the assistant is told the action needs confirming
+
+#### Scenario: A confirmed publish creates a live contest
+- **WHEN** the assistant publishes the draft with the confirmation it was given
+- **THEN** the contest is live
