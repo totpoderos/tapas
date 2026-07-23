@@ -40,5 +40,32 @@ const getContest: McpTool = {
   }),
 };
 
+/** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
+const getDraft: McpTool = {
+  name: 'get_draft',
+  description: "Read one of the host's own contest drafts by id and return its current content.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: { draftId: z.string().min(1).describe('The id of the draft to read.') },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/drafts/${encodeURIComponent(String(args.draftId))}`,
+  }),
+};
+
+/** `get_tally` — reads the live tally of the host's contest: how many have claimed, are scoring, have sent. */
+const getTally: McpTool = {
+  name: 'get_tally',
+  description:
+    "Read the live tally of one of the host's contests: how many participants have claimed a place, are still scoring, and have sent their votes.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: { contestId: z.string().min(1).describe('The id of the contest whose tally to read.') },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests/${encodeURIComponent(String(args.contestId))}/tally`,
+  }),
+};
+
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
-export const TOOL_CATALOG: readonly McpTool[] = [getContest];
+export const TOOL_CATALOG: readonly McpTool[] = [getContest, getDraft, getTally];
