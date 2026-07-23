@@ -1,0 +1,39 @@
+.field {
+  display: grid;
+  gap: 6px;
+}
+.label {
+  font: 600 13px var(--sans);
+  color: var(--ink);
+}
+.input {
+  font-family: var(--sans);
+  font-size: 16px; /* 16px min — no zoom-on-focus on iOS */
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  padding: 11px 13px;
+  min-height: 44px;
+}
+.input:focus-visible {
+  border-color: var(--brand);
+  outline: 3px solid var(--focus);
+  outline-offset: 1px;
+}
+.invalid .input {
+  border-color: var(--danger);
+}
+.hint {
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--danger);
+}

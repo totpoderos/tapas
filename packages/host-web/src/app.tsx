@@ -1,30 +1,32 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@tapas/ui';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { SignIn } from './pages/sign-in';
+import { Home } from './pages/home';
+import { useSession } from './auth/session';
 
 /**
- * Host/admin app skeleton. Proves the frontend can reach the API (Phase 0
- * done-when). Real host flows — contest forms, chat panel, tally, reveal —
- * land in Phase 5B.
+ * Host app routing, gated on the session. While the session is being checked we
+ * hold with a quiet status (announced to assistive tech) rather than flashing
+ * the wrong screen; then anonymous visitors land on sign-in and signed-in hosts
+ * on home. A signed-in host visiting /sign-in is bounced home.
  */
 export function App() {
-  const [status, setStatus] = useState('checking…');
+  const { status } = useSession();
 
-  useEffect(() => {
-    fetch(`${API_BASE}/health`)
-      .then((res) => res.json())
-      .then((body: { status: string }) => setStatus(body.status))
-      .catch(() => setStatus('unreachable'));
-  }, []);
+  if (status === 'loading') {
+    return (
+      <main id="main" style={{ padding: 28 }}>
+        <p role="status">Loading…</p>
+      </main>
+    );
+  }
+
+  const authed = status === 'authenticated';
 
   return (
-    <main>
-      <h1>Tapas — Host</h1>
-      <p>
-        API status: <strong>{status}</strong>
-      </p>
-      <Button onClick={() => window.location.reload()}>Refresh</Button>
-    </main>
+    <Routes>
+      <Route path="/sign-in" element={authed ? <Navigate to="/" replace /> : <SignIn />} />
+      <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
+      <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
+    </Routes>
   );
 }

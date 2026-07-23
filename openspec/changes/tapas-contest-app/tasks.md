@@ -119,14 +119,14 @@ Two apps sharing a common UI/library layer. **Host/admin app**: desktop-and-mobi
 
 ### 5A — Shared UI layer
 
-- [ ] **5A.1** Shared `ui` package: design tokens (WCAG-AA contrast built in), base components (semantic HTML, `:focus-visible`, ARIA patterns, 44×44 touch targets, 16px inputs), API client, auth/session hooks, shared types re-export
-- [ ] **5A.3** Shared accessibility primitives: keyboard-operable modal with focus-trap, `aria-live` region helper, skip-to-main link, accessible form-field wrapper (label + `aria-invalid` + `role="alert"` + blur/submit validation)
+- [ ] **5A.1** Shared `ui` package: design tokens (WCAG-AA contrast built in), base components (semantic HTML, `:focus-visible`, ARIA patterns, 44×44 touch targets, 16px inputs), API client, auth/session hooks, shared types re-export — *In progress (Slice 1a). Ported the "Service" design system into `@tapas/ui`: `tokens.css` (both themes via `prefers-color-scheme` + `data-theme`, exact handoff hexes, `:focus-visible`, skip-link, reduced-motion), and the first accessible components — `Button` (brand/ghost/danger variants, real `<button>`, 44px min) and `FormField` (label bound to input, 16px, `aria-invalid` + `role="alert"` error, `aria-describedby` hint). API client + session hook live in host-web for now (`api/client.ts`, `auth/session.tsx`); they move up to `ui` when the participant app needs them. More primitives (modal/focus-trap, aria-live, pills, cards) land with their screens.*
+- [ ] **5A.3** Shared accessibility primitives: keyboard-operable modal with focus-trap, `aria-live` region helper, skip-to-main link, accessible form-field wrapper (label + `aria-invalid` + `role="alert"` + blur/submit validation) — *Partial (Slice 1a): the accessible form-field wrapper (`FormField`) and the skip-to-main link (in `tokens.css` + `main.tsx`) are done; focus-trapped modal and the `aria-live` helper land with the chat/confirmation and live-tally screens.*
 - [ ] **5A.2** Reveal view component (shared): used by both apps (host controls it, participants watch it)
 
 ### 5B — Host/admin app
 
-- [ ] **5B.1** Project skeleton: routing, layout, responsive breakpoints
-- [ ] **5B.2** Auth flows: host signup, host login, session persistence
+- [ ] **5B.1** Project skeleton: routing, layout, responsive breakpoints — *In progress (Slice 1a): `react-router-dom` routing gated on the session (`app.tsx` — loading holds with `role="status"`, anonymous → /sign-in, authed → home, unknown → redirect); tokens/skip-link wired in `main.tsx`. Full layout/rail arrives with the contest screens.*
+- [ ] **5B.2** Auth flows: host signup, host login, session persistence — *Slice 1a done for **login + session persistence + sign-out**; **signup is Slice 1b**. `SignIn` page (two-column brand panel, announced `role="alert"` error, keyboard-operable form submit), `SessionProvider`/`useSession` (checks the httpOnly-cookie session on mount via an authenticated read, so a reload stays signed in — no token in JS), and a same-origin dev/preview proxy so the cookie is first-party. Verified two ways: component tests (`sign-in.test.tsx`, incl. a jest-axe scan) and a **real-browser E2E** (`tests/e2e/host-authentication.spec.ts` + `.feature`) that boots the API + host app and drives Chromium through sign-in / wrong-password / reload-persistence / sign-out / keyboard + **axe-core clean** — Playwright + `@axe-core/playwright` stood up now (`playwright.config.ts`, root `test:e2e`).*
 - [ ] **5B.3** Host flows: contest list, contest creation (form), draft review
 - [ ] **5B.4** Chat panel: WebSocket-less, polls the chat endpoint, shows tool calls and their results
 - [ ] **5B.5** Confirmation UI for destructive tools: a clear "Confirm" beat before the call lands
