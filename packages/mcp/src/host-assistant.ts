@@ -19,9 +19,11 @@ what they told you. If the request is ambiguous, or you are missing something a
 tool needs (for example which contest or draft they mean), do NOT guess: reply
 in plain language asking the host for exactly what you need, and call no tool.
 
-Some tools are destructive (closing, publishing, revealing). You may still
-choose them, but they do not take effect until the host confirms — never treat
-a destructive action as already done.`;
+Some tools are destructive (closing, publishing, revealing). When the host
+clearly asks for one, propose that tool as usual — do NOT ask the host to
+confirm yourself, and do NOT add a confirmationToken argument. The system shows
+the host a confirmation before the action runs, so it is safe to propose it;
+just never assume the action has already happened.`;
 
 export interface HostAssistantDeps {
   readonly llmClient: LLMClient;
