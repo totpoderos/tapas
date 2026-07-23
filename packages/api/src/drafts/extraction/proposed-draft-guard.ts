@@ -4,6 +4,10 @@ import {
   NON_DEFAULTABLE_FIELDS,
   type ProposedDraft,
 } from './contest-draft-tool.js';
+import {
+  rulesTargetedByParticipantNames,
+  type HighStakesRule,
+} from './participant-text-injection.js';
 
 /** The draft fields of a proposed draft — everything the model proposes except its questions. */
 export type ExtractedFields = Omit<ProposedDraft, 'clarifications'>;
@@ -101,11 +105,17 @@ function isUndetermined(field: unknown): boolean {
 
 /**
  * Enforces the "may not default" allow-list (design.md §9) over a set of
- * proposed fields: a high-stakes field tagged `llm_default` is dropped and
- * replaced with a clarification, regardless of what the system prompt asked
- * for. Defense in depth — the guard does not depend on the model having
- * followed its instructions, nor (on the merge path) on the caller having
- * sent back an untampered prior draft.
+ * proposed fields, and — its second job — refuses to let a high-stakes rule be
+ * set from a participant's own display name (design.md §11B.3: participant
+ * text is data, never instructions). Both are defense in depth: the guard does
+ * not depend on the model having followed its instructions, nor (on the merge
+ * path) on the caller having sent back an untampered prior draft.
+ *
+ * A field is dropped and replaced with a clarification when it is either a
+ * high-stakes field the model defaulted (`llm_default`), or a high-stakes rule
+ * a participant name is trying to dictate. A convincing prompt injection comes
+ * back tagged `host`, not `llm_default`, so the first check alone misses it;
+ * the second reads the participant names directly rather than trusting the tag.
  */
 export function guardProposedFields(
   fields: ExtractedFields,
@@ -114,12 +124,22 @@ export function guardProposedFields(
   const guardedClarifications = [...clarifications];
   const draft: ExtractedFields = {};
 
+  // Participant names are attacker-controlled text; a name that reads like an
+  // instruction may not decide a rule, whatever source the model claimed.
+  const smuggledRules = rulesTargetedByParticipantNames(fields.participants?.value ?? []);
+
   for (const key of FIELD_ORDER) {
     const field = fields[key];
     if (!field) continue;
     if (NON_DEFAULTABLE.has(key) && field.source === 'llm_default') {
       guardedClarifications.push(
         `Please specify ${FIELD_LABELS[key]} explicitly — I can't default that for you.`,
+      );
+      continue;
+    }
+    if (smuggledRules.has(key as HighStakesRule)) {
+      guardedClarifications.push(
+        `Please tell me ${FIELD_LABELS[key]} yourself — I can't take that from a participant's name.`,
       );
       continue;
     }
