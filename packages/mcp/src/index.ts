@@ -1,6 +1,6 @@
 export { loadEnv, EnvValidationError, type Env } from './config/env.js';
-export { buildServer } from './server.js';
 export { buildMcpServer, type McpServerDeps } from './mcp-server.js';
+export { createConfiguredMcpServer, runStdioServer } from './mcp-stdio.js';
 export {
   dispatchToApi,
   type ApiRequest,

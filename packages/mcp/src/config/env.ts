@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
-/** Environment for the MCP server. Validated at startup (fail-fast). */
+/**
+ * Environment for the MCP server. Validated at startup (fail-fast). The server
+ * speaks the protocol over stdio and acts as exactly one host, so it needs that
+ * host's personal access token and the secret that keys destructive-action
+ * confirmations — both required, no insecure defaults.
+ */
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  MCP_PORT: z.coerce.number().int().positive().default(3001),
   API_BASE_URL: z.string().url().default('http://localhost:3000'),
+  /** The host-issued personal access token this server connection acts as. */
+  MCP_HOST_TOKEN: z.string().min(1),
+  /** Secret keying the destructive-action confirmation HMAC (design.md §7.1). */
+  MCP_CONFIRMATION_SECRET: z.string().min(32),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
