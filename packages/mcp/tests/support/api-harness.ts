@@ -36,6 +36,8 @@ const FIXED_CLOCK: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
 export interface RunningApi {
   readonly app: FastifyInstance;
   readonly baseUrl: string;
+  /** The in-memory database behind the API — lets an integration test read the audit log directly. */
+  readonly db: DatabaseSync;
   close(): Promise<void>;
 }
 
@@ -51,6 +53,7 @@ export async function startApi(): Promise<RunningApi> {
   return {
     app,
     baseUrl: `http://127.0.0.1:${address.port}`,
+    db,
     close: async () => {
       await app.close();
       db.close();
