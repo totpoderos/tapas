@@ -1,5 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { hasSession, signIn as apiSignIn, signOut as apiSignOut } from '../api/client';
+import {
+  hasSession,
+  register as apiRegister,
+  signIn as apiSignIn,
+  signOut as apiSignOut,
+} from '../api/client';
 
 export type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
 
@@ -7,6 +12,8 @@ export interface Session {
   readonly status: SessionStatus;
   /** Signs in; throws ApiError on bad credentials, leaving the session anonymous. */
   signIn(email: string, password: string): Promise<void>;
+  /** Creates an account and signs in; throws ApiError (e.g. email taken, weak password). */
+  signUp(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
 }
 
@@ -35,13 +42,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus('authenticated');
   }, []);
 
+  const signUp = useCallback(async (email: string, password: string) => {
+    await apiRegister(email, password);
+    // Registration does not open a session, so sign in straight after.
+    await apiSignIn(email, password);
+    setStatus('authenticated');
+  }, []);
+
   const signOut = useCallback(async () => {
     await apiSignOut();
     setStatus('anonymous');
   }, []);
 
   return (
-    <SessionContext.Provider value={{ status, signIn, signOut }}>{children}</SessionContext.Provider>
+    <SessionContext.Provider value={{ status, signIn, signUp, signOut }}>
+      {children}
+    </SessionContext.Provider>
   );
 }
 

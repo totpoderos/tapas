@@ -20,6 +20,8 @@ const API_ENV = [
   'LLM_BASE_URL=http://localhost:11434/v1',
   'LLM_API_KEY=',
   'LLM_MODEL=llama3.1',
+  // Many logins from one host across the suite; raise the per-IP login ceiling.
+  'RATE_LIMIT_SENSITIVE_MAX=1000',
 ].join(' ');
 
 export default defineConfig({

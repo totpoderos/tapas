@@ -5,6 +5,11 @@ Feature: A host signs in to the host app
   screens. Bad credentials are refused with a clear, announced error, and the
   host stays where they are.
 
+  Scenario: A new host creates an account and lands signed in
+    Given the host app is open at the sign-up screen
+    When a new host signs up with an email and a strong password
+    Then they are signed in and see their home page
+
   Scenario: A returning host signs in
     Given a host who already has an account
     When they sign in with their email and password

@@ -35,6 +35,11 @@ async function errorFrom(response: Response): Promise<ApiError> {
   return new ApiError(response.status, parsed?.error?.code, parsed?.error?.message);
 }
 
+export async function register(email: string, password: string): Promise<void> {
+  const response = await send('/auth/register', 'POST', { email, password });
+  if (!response.ok) throw await errorFrom(response);
+}
+
 export async function signIn(email: string, password: string): Promise<void> {
   const response = await send('/auth/login', 'POST', { email, password });
   if (!response.ok) throw await errorFrom(response);
