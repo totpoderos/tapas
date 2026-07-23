@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { OpenAiCompatibleLLMClient } from '@tapas/api';
-import { SEED_CASES } from '../cases/creation/seed.js';
+import { CREATION_CASES } from '../cases/creation/index.js';
 import { parseCases } from './case.js';
 import { runEval } from './run-eval.js';
 
@@ -26,14 +26,31 @@ const temperature = Number(flag('temperature', '0'));
 const seed = Number(flag('seed', '1'));
 const outPath = resolve(flag('out', 'reports/creation-latest.json'));
 
-const cases = parseCases(SEED_CASES);
+// `--category domain` / `--case domain-variant-strict` narrow a run while
+// authoring or investigating one regression. The case-set hash is always
+// computed over the FULL set, so a filtered run is never mistaken for a
+// baseline over everything.
+const categoryFilter = flag('category', '');
+const caseFilter = flag('case', '');
+
+const allCases = parseCases(CREATION_CASES);
+const cases = allCases.filter(
+  (c) =>
+    (!categoryFilter || c.category === categoryFilter) && (!caseFilter || c.id.includes(caseFilter)),
+);
+
+if (cases.length === 0) {
+  console.error(`No cases matched (category=${categoryFilter || '*'}, case=${caseFilter || '*'})`);
+  process.exit(1);
+}
 
 // Hashing the case set makes a report self-describing: two reports are only
 // comparable if this matches, which is what keeps a trajectory honest when
 // cases are added or edited later.
-const caseSetHash = createHash('sha256').update(JSON.stringify(cases)).digest('hex').slice(0, 12);
+const caseSetHash = createHash('sha256').update(JSON.stringify(allCases)).digest('hex').slice(0, 12);
 
-console.log(`Running ${cases.length} contest-creation cases against ${model} (${baseUrl})`);
+const scope = cases.length === allCases.length ? 'full set' : `filtered from ${allCases.length}`;
+console.log(`Running ${cases.length} contest-creation cases (${scope}) against ${model} (${baseUrl})`);
 console.log(`case-set ${caseSetHash}, temperature ${temperature}, seed ${seed}\n`);
 
 const llmClient = new OpenAiCompatibleLLMClient({
@@ -45,16 +62,16 @@ const llmClient = new OpenAiCompatibleLLMClient({
 });
 
 const startedAt = new Date().toISOString();
-const report = await runEval(cases, llmClient);
-
-for (const result of report.cases) {
-  const status = result.error ? 'ERROR' : 'ok';
-  console.log(`[${status}] ${result.id} (${result.category})`);
-  if (result.error) console.log(`    ${result.error}`);
-  for (const [index, turn] of result.turns.entries()) {
-    for (const note of turn.mismatches) console.log(`    turn ${index + 1}: ${note}`);
-  }
-}
+const report = await runEval(cases, llmClient, {
+  onCaseComplete: (result, done, total) => {
+    const status = result.error ? 'ERROR' : result.turns.every((t) => !t.mismatches.length) ? 'ok' : 'diff';
+    console.log(`[${done}/${total}] ${status.padEnd(5)} ${result.id} (${result.category})`);
+    if (result.error) console.log(`    ${result.error}`);
+    for (const [index, turn] of result.turns.entries()) {
+      for (const note of turn.mismatches) console.log(`    turn ${index + 1}: ${note}`);
+    }
+  },
+});
 
 const pct = (value: number) => `${(value * 100).toFixed(1)}%`;
 console.log('\nOverall');
@@ -71,7 +88,19 @@ await mkdir(dirname(outPath), { recursive: true });
 await writeFile(
   outPath,
   JSON.stringify(
-    { run: { startedAt, model, baseUrl, temperature, seed, caseSetHash }, ...report },
+    {
+      run: {
+        startedAt,
+        model,
+        baseUrl,
+        temperature,
+        seed,
+        caseSetHash,
+        caseCount: cases.length,
+        totalCaseCount: allCases.length,
+      },
+      ...report,
+    },
     null,
     2,
   ),
