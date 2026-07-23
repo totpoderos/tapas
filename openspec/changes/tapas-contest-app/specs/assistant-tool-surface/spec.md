@@ -90,3 +90,23 @@ require the same confirmation as any other destructive action.
 #### Scenario: A confirmed publish creates a live contest
 - **WHEN** the assistant publishes the draft with the confirmation it was given
 - **THEN** the contest is live
+
+### Requirement: A host can reveal a contest and read its results through a connected assistant
+A host SHALL be able to reveal a closed contest and read its results through the
+assistant. Revealing announces the winners and cannot be undone, so it SHALL be
+treated as a destructive action requiring confirmation; reading the results is an
+ordinary read that SHALL return the category totals and winners of a revealed
+contest.
+
+#### Scenario: Revealing a contest must be confirmed
+- **WHEN** the assistant is asked to reveal one of the host's closed contests without a confirmation
+- **THEN** the contest is not revealed
+- **AND** the assistant is told the action needs confirming
+
+#### Scenario: A confirmed reveal reveals the contest
+- **WHEN** the assistant reveals the closed contest with the confirmation it was given
+- **THEN** the contest is revealed
+
+#### Scenario: The assistant reads the results of a revealed contest
+- **WHEN** the assistant is asked to read the results of one of the host's revealed contests
+- **THEN** the results are returned

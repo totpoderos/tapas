@@ -26,8 +26,10 @@ describe('createConfiguredMcpServer', () => {
       'create_draft',
       'get_contest',
       'get_draft',
+      'get_results',
       'get_tally',
       'publish_contest',
+      'trigger_reveal',
       'update_draft',
     ]);
     await client.close();
