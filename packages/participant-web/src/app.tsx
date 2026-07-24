@@ -1,30 +1,18 @@
-import { useEffect, useState } from 'react';
-import { Button } from '@tapas/ui';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+import { Route, Routes } from 'react-router-dom';
+import { Join } from './pages/join';
 
 /**
- * Participant app skeleton (mobile-first). Proves the frontend can reach the
- * API (Phase 0 done-when). Real flows — join by code, submit dish, adaptive
- * score screen, reveal — land in Phase 5C.
+ * Participant app routing. The join flow handles both a freshly typed code and a
+ * deep link (`/j/:code`, how a shared link or QR lands); everything else falls
+ * back to the code-entry screen. The score and reveal screens arrive as their
+ * own sub-slices.
  */
 export function App() {
-  const [status, setStatus] = useState('checking…');
-
-  useEffect(() => {
-    fetch(`${API_BASE}/health`)
-      .then((res) => res.json())
-      .then((body: { status: string }) => setStatus(body.status))
-      .catch(() => setStatus('unreachable'));
-  }, []);
-
   return (
-    <main>
-      <h1>Tapas — Participant</h1>
-      <p>
-        API status: <strong>{status}</strong>
-      </p>
-      <Button onClick={() => window.location.reload()}>Refresh</Button>
-    </main>
+    <Routes>
+      <Route path="/" element={<Join />} />
+      <Route path="/j/:code" element={<Join />} />
+      <Route path="*" element={<Join />} />
+    </Routes>
   );
 }
