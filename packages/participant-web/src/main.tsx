@@ -1,12 +1,20 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import '@tapas/ui/tokens.css';
+import './participant.css';
 import { App } from './app';
 
 const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(
     <StrictMode>
-      <App />
+      <a href="#main" className="tp-skip">
+        Skip to content
+      </a>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </StrictMode>,
   );
 }

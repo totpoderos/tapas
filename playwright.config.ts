@@ -51,5 +51,14 @@ export default defineConfig({
       reuseExistingServer: false,
       timeout: 60_000,
     },
+    {
+      // The participant app, on 5174, same-origin-proxied to the API (first-party
+      // voter cookie). Participant specs use full http://localhost:5174 URLs since
+      // the shared baseURL points at the host app.
+      command: `API_PROXY_TARGET=http://localhost:${API_PORT} npm run dev -w @tapas/participant-web`,
+      url: 'http://localhost:5174',
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
   ],
 });
