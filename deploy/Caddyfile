@@ -1,0 +1,35 @@
+# Tapas production edge (tasks.md 6.4). Caddy terminates TLS and is the single
+# reverse proxy. It routes the API path prefixes straight to the API (so the
+# frontends' dev proxy is bypassed in production) and everything else to the SPA.
+#
+# Caddy adds X-Forwarded-Proto/-For/-Host to upstreams automatically, so the API
+# (NODE_ENV=production, trustProxy) sees https and does not redirect-loop, and its
+# Secure cookies ride a real TLS origin. Certificates are obtained automatically
+# (Let's Encrypt for public domains; an internal CA for *.localhost in local
+# dry-runs). Domains + ACME contact come from the environment.
+{
+	email {$TLS_EMAIL}
+}
+
+# --- Host / admin app -------------------------------------------------------
+{$HOST_DOMAIN} {
+	encode zstd gzip
+
+	# API surface the host app uses -> straight to the API (exact + subpaths).
+	@api path /auth /auth/* /drafts /drafts/* /contests /contests/* /assistant /assistant/* /health
+	reverse_proxy @api api:3000
+
+	# Everything else is the SPA.
+	reverse_proxy host-web:4173
+}
+
+# --- Participant app --------------------------------------------------------
+{$PARTICIPANT_DOMAIN} {
+	encode zstd gzip
+
+	# The participant app only calls these API prefixes.
+	@api path /contests /contests/* /health
+	reverse_proxy @api api:3000
+
+	reverse_proxy participant-web:4174
+}

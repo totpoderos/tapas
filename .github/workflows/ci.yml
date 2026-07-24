@@ -34,10 +34,10 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
-      - name: Supply-chain audit (blocks on high + critical)
-        # High/critical are the supply-chain risk that must block; remaining
-        # moderate advisories are dev/SDK-only and tracked, not gated.
-        run: npm audit --audit-level=high
+      - name: Supply-chain audit (blocks on high + critical, minus allowlist)
+        # Blocks on any high/critical advisory not covered by a non-expired,
+        # justified entry in .audit-allowlist.json; moderate/low are not gated.
+        run: npm run audit:ci
 
   # --- Hard gate: whole-system E2E + accessibility (axe-core) -----------------
   e2e:

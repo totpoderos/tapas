@@ -1,0 +1,97 @@
+# Tapas — production deploy manifest (tasks.md 6.4).
+#
+# Unlike docker-compose.yml (local dev, builds from source), this PULLS the
+# tagged images CD pushed to GHCR and fronts everything with Caddy for automatic
+# TLS. It resolves the production/TLS thread left open by 6.1/6.2:
+#
+#   Browser --HTTPS--> Caddy (TLS termination, one edge)
+#      Caddy routes API path prefixes         -> api:3000   (sets X-Forwarded-Proto: https)
+#      Caddy routes everything else (the SPA) -> host-web / participant-web
+#
+# Because Caddy proxies the API directly (not through the frontends' dev proxy)
+# and sets X-Forwarded-Proto: https, the API — now NODE_ENV=production — sees an
+# https request (trustProxy: true), so its HTTP->HTTPS redirect does NOT loop and
+# its Secure;SameSite=None cookies are delivered over a real TLS origin.
+#
+# Deploy on a host:
+#   cp .env.prod.example .env   # set the two domains, real secrets, TAG
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+name: tapas-prod
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # ACME certs + keys survive restarts
+      - caddy-config:/config
+    environment:
+      # Caddy reads these in the Caddyfile for the site addresses + ACME contact.
+      HOST_DOMAIN: ${HOST_DOMAIN:?set HOST_DOMAIN}
+      PARTICIPANT_DOMAIN: ${PARTICIPANT_DOMAIN:?set PARTICIPANT_DOMAIN}
+      TLS_EMAIL: ${TLS_EMAIL:?set TLS_EMAIL}
+    depends_on:
+      - host-web
+      - participant-web
+      - api
+
+  api:
+    image: ${REGISTRY_OWNER:+ghcr.io/${REGISTRY_OWNER}/}tapas-api:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production # HTTPS redirect + Secure cookies, as designed
+      API_PORT: '3000'
+      DATABASE_PATH: /data/tapas.sqlite
+      # Real secrets — no dev fallback; the API fail-fasts if missing.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:?set ASSISTANT_CONFIRMATION_SECRET}
+      # CORS allowlist = the public app origins.
+      HOST_WEB_ORIGIN: https://${HOST_DOMAIN:?set HOST_DOMAIN}
+      PARTICIPANT_WEB_ORIGIN: https://${PARTICIPANT_DOMAIN:?set PARTICIPANT_DOMAIN}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-llama3.1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes:
+      - tapas-db:/data
+    expose:
+      - '3000' # internal only — never published; Caddy is the sole edge
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/health',{headers:{'x-forwarded-proto':'https'}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  host-web:
+    image: ${REGISTRY_OWNER:+ghcr.io/${REGISTRY_OWNER}/}tapas-host-web:${TAG:-latest}
+    restart: unless-stopped
+    # In production Caddy handles the API prefixes, so the SPA's own proxy target
+    # is never used for cross-service calls; point it at the api for completeness.
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    expose:
+      - '4173'
+
+  participant-web:
+    image: ${REGISTRY_OWNER:+ghcr.io/${REGISTRY_OWNER}/}tapas-participant-web:${TAG:-latest}
+    restart: unless-stopped
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    expose:
+      - '4174'
+
+volumes:
+  tapas-db:
+  caddy-data:
+  caddy-config:

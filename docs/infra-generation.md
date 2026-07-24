@@ -99,13 +99,18 @@ vitest ✅**.
    `X-Forwarded-Proto` (`trustProxy: true`) and serves `200`. The health probe in
    compose/deploy must therefore send that header (or hit the app through the
    TLS proxy).
-4. **Build reproducibility under Docker Desktop's containerd image store.** Use
-   `--provenance=false` so each build is a single-manifest image (BuildKit's
-   default attestation/provenance manifest-list confused `docker inspect
-   .Config.User` and, in one run, left a stale tag so an old pre-`USER node`
-   image was still running as root). Always confirm `docker images` shows the
-   expected `:tag` and that the container runs as `node` after building. This flag
-   is carried into the CI build step (6.3).
+4. **`--provenance=false` for simpler single-manifest images.** BuildKit's default
+   provenance/attestation produces a manifest-list image; disabling it yields a
+   plain single-manifest image that is easier to `docker inspect` and push to
+   GHCR. (Correction, traced fully in slice 6.4: the "container ran as root
+   despite `USER node`" confusion during 6.1/6.2 was **not** a Docker or
+   containerd bug — it was **zsh applying its history word-modifiers** to an
+   unbraced `-t tapas-$svc:test` / `:local`, where `$svc:t` = "tail" and `$svc:l`
+   = "lowercase", mangling the tag to `tapas-apiest` / `tapas-apiocal`. The build
+   was fine; the tag the shell actually passed pointed at a stale, older image, so
+   `docker run` used a pre-`USER node` build. **Always brace shell tag
+   interpolation — `-t "tapas-${svc}:test"` — and confirm `docker images` shows
+   the expected `:tag`.** `--provenance=false` is still used, on its own merits.)
 
 ### Known tradeoffs / follow-ons
 
@@ -286,13 +291,129 @@ The Fastify-router bump (from `npm audit fix`) is covered by the same 930 vitest
 
 ### Known tradeoffs / follow-ons
 
-- **`npm audit` gate at `--audit-level=high`.** Moderate advisories (currently 2,
-  via `@modelcontextprotocol/sdk`, `--force`-only) are not gated to avoid blocking
-  on transitive dev/SDK noise outside our control; they are visible in the audit
-  output and revisited as fixes land. Dependabot (task 6.11) will track them.
+- **`npm audit` gate.** High/critical block; moderate/low don't (2 moderate remain,
+  via `@modelcontextprotocol/sdk`, `--force`-only). *Updated in 6.4:* the raw
+  `npm audit --audit-level=high` became `npm run audit:ci` (`scripts/audit-gate.mjs`
+  + `.audit-allowlist.json`) so a genuinely-not-applicable high can be allowlisted
+  with a written reason and an **expiry**, while any new/unlisted high still blocks
+  — see 6.4. Dependabot (task 6.11) will track the moderates.
 - **The eval job needs `secrets.LLM_BASE_URL`/`LLM_API_KEY` (+ `vars.LLM_MODEL`)**
   to run in CI — a self-hosted runner with Ollama or a hosted OpenAI-compatible
   endpoint. Until configured it only runs on demand; the weekly schedule fires but
   no-ops without the endpoint.
 - **CD (6.4)** consumes the images the `gate`/`e2e` jobs validate and adds the
-  production/TLS deploy.
+  production/TLS deploy — see the next section.
+
+---
+
+## 6.4 — CD pipeline (deploy on tag) + production/TLS
+
+### The task / effective prompt
+
+> Generate the CD pipeline: on a version tag, build and push the four images to a
+> registry, then deploy. There is no real host, so make the deploy a verifiable
+> dry-run — and resolve the production/TLS thread 6.1/6.2 left open (the API's
+> HTTP→HTTPS redirect + `Secure` cookies need a TLS edge). Document and verify.
+
+### The output
+
+- **`.github/workflows/cd.yml`** — on `push: tags: ['v*']` (and `workflow_dispatch`):
+  - **`images`** job (matrix over `api`/`mcp`/`host-web`/`participant-web`): logs
+    in to **GHCR** with the built-in `GITHUB_TOKEN` (`packages: write`) and
+    build-push-actions each image `--provenance=false` to
+    `ghcr.io/<owner>/tapas-<svc>:<tag>` + `:latest`, with GHA build cache.
+  - **`deploy`** job (dry-run): renders `docker-compose.prod.yml` against the
+    just-pushed tag (`docker compose config` — fails on a malformed manifest or
+    unresolvable ref) and writes a deploy summary. The only change a real target
+    needs is swapping this for `ssh … docker compose up -d` on the host.
+- **`docker-compose.prod.yml`** — the production manifest: **pulls** the GHCR
+  images (no `build`), runs the API at `NODE_ENV=production`, and fronts
+  everything with **Caddy** for automatic TLS. Required secrets use `${VAR:?}` (no
+  dev fallback — a real deploy must supply them).
+- **`deploy/Caddyfile`** — the TLS edge.
+- **`.env.prod.example`** — the production env template (owner/tag, domains, ACME
+  email, real secrets).
+
+**The production topology (resolves the 6.1/6.2 TLS thread):**
+
+```
+Browser --HTTPS--> Caddy (one edge, terminates TLS, auto-cert)
+   Caddy: API path prefixes         -> api:3000  (sets X-Forwarded-Proto: https)
+   Caddy: everything else (the SPA) -> host-web:4173 / participant-web:4174
+```
+
+The key insight (from reading `https-redirect.ts`): the API redirects any request
+whose `request.protocol !== 'https'`, and that reflects `X-Forwarded-Proto`
+(`trustProxy: true`). So the edge **must** proxy the API directly and set
+`X-Forwarded-Proto: https` — which Caddy's `reverse_proxy` does by default. This
+means the frontends' own dev proxy is **bypassed in production** (Caddy owns API
+routing), which also retires the "`vite preview` isn't a hardened server" caveat
+for the API path. The API runs `NODE_ENV=production`, so its HTTPS redirect and
+`Secure; SameSite=None` cookies are correct behind a real TLS origin, with no
+redirect loop.
+
+### Verification — local dry-run with real TLS (2026-07-24)
+
+Built + tagged the images `:local`, set `REGISTRY_OWNER=""` (so the manifest uses
+the local tags), and brought the full prod stack up with Caddy issuing an internal
+cert for `localhost` / `participant.localhost`:
+
+| Check | Result |
+| --- | --- |
+| `docker compose -f docker-compose.prod.yml config` (+ `--images`) | ✅ valid; resolves `ghcr.io/<owner>/tapas-*:<tag>` (or local tags) |
+| all four services (caddy + api + 2 frontends) up, **api healthy** | ✅ |
+| `http://localhost/health` at the edge | **308** → HTTPS (Caddy auto-redirect) |
+| `https://localhost/health` via Caddy → API (**production mode**) | **`200 {"status":"ok"}`** — `X-Forwarded-Proto: https` ⇒ no redirect loop |
+| `https://localhost/` (SPA) / `…/contests` unauth | `200` + `#root` / `401` |
+| **Secure cookie over real TLS**: register `201` + login `200` | `Set-Cookie … HttpOnly; Secure; SameSite=None` over **HTTP/2** |
+| participant app on its own domain (internal cert) | `200`; `/health` → `{"status":"ok"}` |
+| `cd.yml` YAML parses; jobs `images`/`deploy`, 4-service matrix, tag trigger, `packages: write` | ✅ |
+
+Repo suite unaffected: **typecheck ✅, lint ✅, 930/930 vitest ✅**.
+
+### Bug/finding caught during verification
+
+- **The 6.1/6.2 "runs as root despite `USER node`" mystery was zsh, not Docker.**
+  Building with an unbraced `-t tapas-$svc:local` let **zsh apply its history word
+  modifiers** (`$svc:l` = lowercase, `$svc:t` = tail), mangling the tag to
+  `tapas-apiocal` / `tapas-apiest`; `docker run tapas-api:local` then used a stale
+  older image. The images were always built correctly and non-root. Fix: **brace
+  the interpolation** (`-t "tapas-${svc}:local"`). The 6.1 note above is corrected
+  accordingly.
+
+### Supply-chain gate hardening (the gate caught a live advisory)
+
+While verifying, CI's `gate` job went **red on the `evals`-adjacent supply-chain
+step** — not from anything in this slice, but because a **high advisory was
+published mid-session**: `GHSA-qwww-vcr4-c8h2`, a **React Router RSC-mode CSRF
+bypass** affecting `react-router` `7.12.0 – 8.2.0` (so our `react-router-dom
+^7.18.1`). The gate did exactly its job. Resolution:
+
+- A downgrade is a dead end — `react-router` `6.0.0 – 7.17.0` carries a *larger*
+  pile of highs (XSS, RCE via vendored turbo-stream, DoS…), all fixed in `7.18.0`;
+  the only fully-clean version is `8.2.1+`, a major upgrade (its own slice).
+- The `^7.18.1` advisory is **RSC/framework-mode only**; both apps use
+  `react-router-dom` in declarative SPA mode (`BrowserRouter` + `<Routes>`, no
+  server actions, no RSC), so the path isn't reachable here.
+- So the raw `npm audit --audit-level=high` became **`npm run audit:ci`**
+  (`scripts/audit-gate.mjs`), backed by **`.audit-allowlist.json`** — a small,
+  reviewed list of high/critical advisories that are genuinely not applicable, each
+  with a **reason, advisory URL, and `expires` date**. An allowlisted advisory is
+  reported as a justified exception; an **expired** entry stops suppressing (the
+  gate re-blocks, forcing re-review); any **new/unlisted** high still blocks.
+  Verified both ways: PASS with the entry, exit 1 with it removed. The react-router
+  v8 upgrade is tracked to retire the exception.
+
+### Known tradeoffs / follow-ons
+
+- **The `deploy` job is a dry-run** (no host): it validates the manifest against
+  the pushed tag. A real deployment replaces it with an `ssh` + `docker compose
+  pull && up -d` step (host + `known_hosts`/key secrets), or a managed-host action.
+- **Actually pushing to GHCR fires on a real `v*` tag** (or `workflow_dispatch`);
+  it needs no extra secret (`GITHUB_TOKEN` suffices). The first push creates the
+  packages under the owner; make them public if the deploy host pulls anonymously.
+- **Image slimming and serving frontend `dist` directly from Caddy** (dropping
+  `vite preview` from the production path entirely) remain the hardening follow-on
+  from 6.1.
+- **Secrets management**: the manifest takes secrets from the environment/`.env`;
+  a real deploy would source them from the host's secret store (not a file on disk).
