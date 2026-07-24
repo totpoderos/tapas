@@ -58,10 +58,12 @@ The AI surfaces are measured, not assumed. Evals need a local [Ollama](https://o
 npm run eval:creation        -- --out reports/creation.json         # contest-creation extraction
 npm run eval:host-assistant  -- --out reports/host-assistant.json   # host-assistant tool use
 npm run eval:gate            -- --suite creation --report reports/creation.json
+npm run eval:infra           -- --full                              # generated infrastructure
 ```
 
 `eval:gate` enforces the **committed thresholds** (floors/ceilings recorded in the trajectory docs) and exits non-zero on a regression. Deterministic tests hard-gate the build; evals are threshold-gated on a separate track, because a real model's output is not ours to make deterministic.
 
+- **[`docs/evals.md`](docs/evals.md) — all three surfaces in one place: metrics, trajectories, thresholds, and the lesson** *(start here)*
 - [`docs/eval-trajectory.md`](docs/eval-trajectory.md) — contest-creation eval: prompt versions, metrics over time, committed thresholds
 - [`docs/host-assistant-eval-trajectory.md`](docs/host-assistant-eval-trajectory.md) — host-assistant tool-use eval
 - [`docs/infra-generation.md`](docs/infra-generation.md) — the AI-generated infrastructure surface (prompt → output → verification)
