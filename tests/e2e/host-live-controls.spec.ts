@@ -116,6 +116,6 @@ test('the control room is keyboard-operable and has no accessibility violations'
   await page.goto(`${HOST_WEB}/contest/${contestId}`);
   await expect(page.getByRole('heading', { name: 'Balcony Cook-off' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 });

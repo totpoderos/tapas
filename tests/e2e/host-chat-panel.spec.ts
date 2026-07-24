@@ -106,7 +106,7 @@ test('the chat panel is keyboard-operable and has no accessibility violations', 
   await sendMessage(page, `close contest ${id}`);
   await expect(page.getByRole('alertdialog')).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Focus opened on the safe default (Cancel); Tab to the confirm and press Enter.
