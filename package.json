@@ -21,7 +21,8 @@
     "format": "prettier --write .",
     "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
     "prepare": "husky",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "eval:infra": "node scripts/infra-eval.mjs"
   },
   "devDependencies": {
     "@amiceli/vitest-cucumber": "^5.2.1",
