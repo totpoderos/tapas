@@ -101,8 +101,8 @@ export function buildProductionDeps(
     }),
     getContest: new GetContest(contests),
     listMyContests: new ListMyContests({ drafts, contests }),
-    closeContest: new CloseContest({ contests, clock }),
-    revealContest: new RevealContest({ contests, clock }),
+    closeContest: new CloseContest({ contests, clock, audit }),
+    revealContest: new RevealContest({ contests, clock, audit }),
     getResults: new GetResults({ contests, voteSessions }),
     getTally: new GetTally({ contests, roster, voteSessions }),
     clock,
@@ -124,6 +124,7 @@ export function buildProductionDeps(
       isProduction: env.NODE_ENV === 'production',
       allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],
     },
+    auditLog,
     llmClient,
     assistantConfirmationSecret: env.ASSISTANT_CONFIRMATION_SECRET,
   };

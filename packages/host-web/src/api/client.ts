@@ -167,6 +167,25 @@ export async function sendAssistantMessage(messages: readonly AssistantMessage[]
   return assistant({ messages });
 }
 
+/** One recorded action on a contest — a projection of a domain event (design.md §5). */
+export interface AuditEntry {
+  readonly id: string;
+  readonly type: string;
+  readonly actorId: string;
+  readonly sourcePath: 'form' | 'mcp' | 'system';
+  readonly toolName?: string;
+  readonly toolArgs?: unknown;
+  readonly confirmation?: 'host' | 'auto';
+  readonly occurredAt: string;
+}
+
+/** Reads a contest's activity log, oldest action first; throws ApiError (404/403 when not the host's). */
+export async function getAuditLog(contestId: string): Promise<AuditEntry[]> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/audit`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as AuditEntry[];
+}
+
 /** Confirms a destructive action the assistant asked about, carrying it out. */
 export async function confirmAssistantAction(pending: PendingAction): Promise<AssistantTurn> {
   return assistant({ confirm: pending });

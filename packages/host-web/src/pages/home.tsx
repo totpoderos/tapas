@@ -83,15 +83,14 @@ export function Home() {
         <ul className={styles.list} aria-label="Your contests">
           {state.contests.map((contest) => (
             <li key={contest.id} className={styles.row}>
-              {/* A draft can be opened for review and publishing; live/revealed
-                  contests get their own detail screens in a later slice. */}
-              {contest.status === 'draft' ? (
-                <Link to={`/review/${contest.id}`} className={styles.name}>
-                  {contest.name}
-                </Link>
-              ) : (
-                <span className={styles.name}>{contest.name}</span>
-              )}
+              {/* A draft opens for review + publishing; a published contest opens
+                  its activity log (its detail screen for now). */}
+              <Link
+                to={contest.status === 'draft' ? `/review/${contest.id}` : `/log/${contest.id}`}
+                className={styles.name}
+              >
+                {contest.name}
+              </Link>
               <StatusPill status={contest.status} />
             </li>
           ))}

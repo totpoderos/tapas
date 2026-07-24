@@ -5,6 +5,7 @@ import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
 import { ReviewDraft } from './pages/review-draft';
 import { Chat } from './pages/chat';
+import { AuditLog } from './pages/audit-log';
 import { useSession } from './auth/session';
 
 /**
@@ -40,6 +41,7 @@ export function App() {
         element={authed ? <ReviewDraft /> : <Navigate to="/sign-in" replace />}
       />
       <Route path="/chat" element={authed ? <Chat /> : <Navigate to="/sign-in" replace />} />
+      <Route path="/log/:id" element={authed ? <AuditLog /> : <Navigate to="/sign-in" replace />} />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
   );

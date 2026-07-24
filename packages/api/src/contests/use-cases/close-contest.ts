@@ -1,14 +1,15 @@
-import type { CloseContestDeps, CloseContestResult } from './shared.js';
+import type { CloseContestDeps, CloseContestResult, StatusChangeContext } from './shared.js';
 
 /**
  * Host-triggered close: freezes the contest for good. No ownership check
  * here — matches {@link GetContest}, where ownership is enforced only at the
- * HTTP route (unlike draft use cases, which check it internally).
+ * HTTP route (unlike draft use cases, which check it internally). The close is
+ * recorded in the audit log, carrying whether the host confirmed it.
  */
 export class CloseContest {
   constructor(private readonly deps: CloseContestDeps) {}
 
-  execute(contestId: string): CloseContestResult {
+  execute(contestId: string, context: StatusChangeContext): CloseContestResult {
     const contest = this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
@@ -21,6 +22,16 @@ export class CloseContest {
 
     const closedAt = this.deps.clock.now();
     this.deps.contests.updateStatus(contestId, 'closed', closedAt, null);
+    this.deps.audit.record(
+      {
+        type: 'contest.closed',
+        contestId,
+        actorId: context.actorId,
+        before: { status: 'live' },
+        after: { status: 'closed' },
+      },
+      { sourcePath: 'form', confirmation: context.confirmation },
+    );
     return { ok: true, contest: { ...contest, status: 'closed', closedAt } };
   }
 }

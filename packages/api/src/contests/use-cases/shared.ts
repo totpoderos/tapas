@@ -38,6 +38,7 @@ export interface CloseContestError {
 export interface CloseContestDeps {
   readonly contests: ContestRepository;
   readonly clock: Clock;
+  readonly audit: AuditRecorder;
 }
 
 export type CloseContestResult =
@@ -54,6 +55,14 @@ export interface RevealContestError {
 export interface RevealContestDeps {
   readonly contests: ContestRepository;
   readonly clock: Clock;
+  readonly audit: AuditRecorder;
+}
+
+/** How a status-changing action was triggered, for the audit trail. */
+export interface StatusChangeContext {
+  readonly actorId: string;
+  /** 'host' when the host confirmed it (e.g. via the assistant), else 'auto'. */
+  readonly confirmation: 'host' | 'auto';
 }
 
 export type RevealContestResult =

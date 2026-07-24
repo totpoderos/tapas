@@ -6,6 +6,7 @@ import type { RevokePat } from '../auth/use-cases/revoke-pat.js';
 import type { SignOutHost } from '../auth/use-cases/sign-out-host.js';
 import type { SessionStore } from '../auth/session-store.js';
 import type { TokenIssuer } from '../auth/token-issuer.js';
+import type { AuditLogRepository } from '../db/audit-repository.js';
 import type { ContestRepository } from '../db/contest-repository.js';
 import type { DishRepository } from '../db/dish-repository.js';
 import type { DraftRepository } from '../db/draft-repository.js';
@@ -76,6 +77,8 @@ export interface ServerDeps {
   readonly pats: HostPatRepository;
   readonly securityLog: SecurityEventLog;
   readonly security: SecurityConfig;
+  /** The audit log (a projection of domain events) — read for a contest's activity view. */
+  readonly auditLog: AuditLogRepository;
   /** The LLM behind the in-app host assistant (same provider as draft extraction). */
   readonly llmClient: LLMClient;
   /** Secret keying the HMAC that gates the assistant's destructive actions (design.md §7.1). */
