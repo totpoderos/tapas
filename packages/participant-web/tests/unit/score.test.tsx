@@ -112,15 +112,62 @@ describe('Score screen', () => {
     expect(api.getBallot).not.toHaveBeenCalled();
   });
 
-  it('shows a deferred note for a strict-ranking contest', async () => {
-    vi.mocked(api.getBallot).mockResolvedValue({ ...BALLOT, uniquePerCategory: true });
-    renderScore();
-    expect(await screen.findByText(/strict ranking/i)).toBeInTheDocument();
-  });
-
   it('has no accessibility violations', async () => {
     const { container } = renderScore();
     await screen.findByRole('radiogroup', { name: /Tortilla/ });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+const RANKING = { ...BALLOT, uniquePerCategory: true, range: { min: 1, max: 2 } };
+const rankSelect = (dish: string) => screen.getByRole('combobox', { name: new RegExp(`rank for ${dish}`, 'i') });
+
+describe('Score screen — strict ranking', () => {
+  beforeEach(() => {
+    stubLocalStorage('c1');
+    vi.mocked(api.getBallot).mockReset().mockResolvedValue(RANKING);
+    vi.mocked(api.getMyScores).mockReset().mockResolvedValue([]);
+    vi.mocked(api.saveScore).mockReset().mockResolvedValue();
+    vi.mocked(api.sendVote).mockReset().mockResolvedValue();
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  it('saves a category once every dish has a rank, and enables send', async () => {
+    renderScore();
+    await screen.findByRole('heading', { name: 'Rank the dishes' });
+
+    await userEvent.selectOptions(rankSelect('Tortilla'), '1');
+    expect(screen.getByRole('button', { name: 'Send my vote' })).toBeDisabled(); // one dish still unranked
+    expect(api.saveScore).not.toHaveBeenCalled(); // category not full yet
+
+    await userEvent.selectOptions(rankSelect('Gazpacho'), '2');
+    // Full permutation → the whole category is saved.
+    expect(api.saveScore).toHaveBeenCalledWith('c1', { dishId: 'D-C', categoryId: 'cat1', value: 1 });
+    expect(api.saveScore).toHaveBeenCalledWith('c1', { dishId: 'D-D', categoryId: 'cat1', value: 2 });
+    expect(screen.getByRole('button', { name: 'Send my vote' })).toBeEnabled();
+  });
+
+  it('swaps when a rank held by another dish is chosen, keeping a permutation', async () => {
+    // Resume with a full ranking: Tortilla 1, Gazpacho 2.
+    vi.mocked(api.getMyScores).mockResolvedValue([
+      { dishId: 'D-C', categoryId: 'cat1', value: 1 },
+      { dishId: 'D-D', categoryId: 'cat1', value: 2 },
+    ]);
+    renderScore();
+    await screen.findByRole('heading', { name: 'Rank the dishes' });
+
+    // Give Tortilla rank 2 — Gazpacho already holds it, so they swap.
+    await userEvent.selectOptions(rankSelect('Tortilla'), '2');
+
+    expect(rankSelect('Tortilla')).toHaveValue('2');
+    expect(rankSelect('Gazpacho')).toHaveValue('1');
+    expect(api.saveScore).toHaveBeenCalledWith('c1', { dishId: 'D-C', categoryId: 'cat1', value: 2 });
+    expect(api.saveScore).toHaveBeenCalledWith('c1', { dishId: 'D-D', categoryId: 'cat1', value: 1 });
+  });
+
+  it('has no accessibility violations in ranking mode', async () => {
+    const { container } = renderScore();
+    await screen.findByRole('heading', { name: 'Rank the dishes' });
     expect(await axe(container)).toHaveNoViolations();
   });
 });
