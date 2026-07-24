@@ -9,6 +9,7 @@ import {
   type Identity,
   type Place,
 } from '../api/client';
+import { YourDish } from './your-dish';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 
@@ -166,15 +167,7 @@ export function Join() {
         </>
       )}
 
-      {step.name === 'joined' && (
-        <div className="pt-joined" role="status">
-          <div className="pt-check" aria-hidden="true">
-            ✓
-          </div>
-          <p className="pt-you">You’re in, {step.identity.displayName}.</p>
-          <p className="pt-note">Hold tight — scoring opens when the host is ready.</p>
-        </div>
-      )}
+      {step.name === 'joined' && <YourDish identity={step.identity} />}
     </main>
   );
 }
