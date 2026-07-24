@@ -119,5 +119,90 @@ vitest ✅**.
   serves `dist/` and reverse-proxies the same API prefixes; it must be
   re-verified against the first-party-cookie E2E before replacing `vite preview`.
 - The **compose file (6.2)** wires these together (API + both frontends via
-  `API_PROXY_TARGET`, a TLS-terminating front, volumes, secrets) and is the next
-  slice.
+  `API_PROXY_TARGET`, volumes, secrets) — see the next section.
+
+---
+
+## 6.2 — `docker-compose.yml` (local-development stack)
+
+### The task / effective prompt
+
+> Generate a `docker-compose.yml` that runs the whole Tapas stack locally from the
+> Phase-6.1 images: the API, both frontends wired to it, persistent data, and
+> sane secret handling. It must preserve the first-party-cookie model. Then bring
+> it up and verify the stack actually works end to end.
+
+### The output
+
+- **`docker-compose.yml`** (repo root) — services `api`, `host-web`,
+  `participant-web`, and a profile-gated `mcp`; a named volume `tapas-db`.
+- **`.env.example`** — documents every secret/tunable with safe dev fallbacks;
+  `.env` itself stays gitignored.
+
+**Key decisions (and why):**
+
+- **API runs `NODE_ENV=development` here.** The session/voter cookies are always
+  `Secure; SameSite=None` (browsers honour those on `http://localhost`, a secure
+  context), so they work locally — but `NODE_ENV=production` *also* forces an
+  HTTP→HTTPS **redirect** that would make the stack unreachable over plain http
+  without a TLS-terminating proxy. Local dev therefore runs in development mode;
+  the production deployment (CD, 6.4) fronts the API with TLS and flips
+  `NODE_ENV=production`. This is the one deliberate dev/prod difference.
+- **Frontends point `API_PROXY_TARGET` at `http://api:3000`** (the compose service
+  DNS name). `vite preview` forwards the API path prefixes there, so the browser
+  only ever talks to the app origin (`localhost:4173` / `:4174`) and the
+  httpOnly/Secure cookies stay **first-party** — the tested model, now in compose.
+- **CORS allowlist** (`HOST_WEB_ORIGIN` / `PARTICIPANT_WEB_ORIGIN`) is set to the
+  two app origins.
+- **`tapas-db` named volume** for the SQLite file so data survives
+  `docker compose down` (cleared only with `down -v`).
+- **Healthchecks use `node -e "fetch(...)"`** — the slim base has no curl/wget, and
+  Node 24 ships global `fetch`. Frontends `depend_on: { api: service_healthy }`.
+- **Secrets via `${VAR:-dev-default}`** substitution: `docker compose up` works out
+  of the box, and a real deployment overrides via `.env`/the environment. The API
+  and MCP still fail-fast on genuinely missing required secrets.
+- **`mcp` is behind `profiles: [mcp]`** — it speaks stdio and is launched by an
+  MCP client (`docker run -i` / `docker compose --profile mcp run --rm mcp`), not
+  a service a plain `up` should start. Kept in the file so it builds with the
+  stack; excluded from the default lifecycle.
+
+### Verification (build + up + smoke, 2026-07-24)
+
+`docker compose config` valid (services: api, host-web, participant-web — `mcp`
+correctly hidden by its profile). `docker compose up --build -d`:
+
+| Check | Result |
+| --- | --- |
+| all three services build, reach **healthy**, and run **non-root (uid 1000)** | ✅ |
+| API direct `:3000/health` (dev mode, no redirect) | `200 {"status":"ok"}` |
+| frontends serve their SPA (`:4173`, `:4174`) | `200` + `#root` |
+| **proxy chain** browser→frontend→api: `:4174/health` | `{"status":"ok"}` |
+| proxy reaches a protected route: `:4173/contests` unauth | `401` |
+| **first-party cookie**: register (`201`) + login through `:4173/auth/*` | `200` + `Set-Cookie: access_token/refresh_token … HttpOnly; Secure; SameSite=None` on the `:4173` origin |
+| **volume persistence**: `down` (keep volume) → `up` → login same host | `200` (host survived in `tapas-db`) |
+
+Repo suite unaffected: **typecheck ✅, lint ✅, 924/924 vitest ✅**.
+
+### Bug caught during verification
+
+- **`vite preview` needs a writable temp dir, which broke under non-root.** Running
+  the frontends as `node` (uid 1000) surfaced a real issue the earlier root-running
+  smoke had masked: `vite preview` transpiles `vite.config.ts` and writes a
+  transient bundled config to `node_modules/.vite-temp/` (and next to the config) —
+  both copied as root, so `node` got `EACCES` and the container exited. Fix: in each
+  frontend runtime stage, `mkdir -p node_modules/.vite-temp` and `chown` just that
+  dir plus the small app dir to `node` — keeping the non-root guarantee without
+  chowning all of `node_modules`. (Reinforces that the non-root hardening is load-
+  bearing: it caught a latent write-permission bug.)
+
+### Known tradeoffs / follow-ons
+
+- **No TLS in the local stack** (development mode, as above). TLS termination +
+  `NODE_ENV=production` is the CD/production concern (6.4). A production compose /
+  deploy manifest would add a reverse proxy (Caddy/Traefik/nginx) terminating TLS
+  and forwarding `X-Forwarded-Proto` so the API's HTTPS-redirect and Secure cookies
+  behave as designed.
+- **`LLM_BASE_URL` defaults to a host-run Ollama** (`host.docker.internal`); the
+  stack runs without it, only the assistant's model calls fail lazily.
+- The **CI pipeline (6.3)** builds these images with `--provenance=false` and runs
+  the deterministic + eval + a11y gates; **CD (6.4)** is the production/TLS story.

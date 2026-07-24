@@ -49,7 +49,15 @@ COPY --from=builder /app/packages/participant-web/dist    packages/participant-w
 COPY --from=builder /app/packages/participant-web/package.json packages/participant-web/package.json
 COPY --from=builder /app/packages/participant-web/vite.config.ts packages/participant-web/vite.config.ts
 
-# Serve as the unprivileged `node` user (static assets only, no writes needed).
+# `vite preview` transpiles vite.config.ts and writes a transient bundled config
+# under node_modules/.vite-temp (and next to the config), so both must be
+# writable by the runtime user. Own just those dirs (not all of node_modules) so
+# we can still drop root.
+RUN mkdir -p node_modules/.vite-temp \
+  && chown node:node node_modules/.vite-temp \
+  && chown -R node:node packages/participant-web
+
+# Serve as the unprivileged `node` user.
 USER node
 
 ENV API_PROXY_TARGET=http://localhost:3000
