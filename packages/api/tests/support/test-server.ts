@@ -17,6 +17,7 @@ const BASE_ENV: Env = {
   LLM_BASE_URL: 'http://localhost:11434/v1',
   LLM_API_KEY: '',
   LLM_MODEL: 'llama3.1',
+  ASSISTANT_CONFIRMATION_SECRET: 'test-assistant-confirmation-secret-32chars',
 };
 
 export interface TestApp {

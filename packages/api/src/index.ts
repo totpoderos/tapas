@@ -74,6 +74,14 @@ export { RandomJoinCodeGenerator, type JoinCodeGenerator } from './contests/join
 export { serializeMaterialized, deserializeMaterialized } from './contests/materialized-codec.js';
 export { PublishContest } from './contests/use-cases/publish-contest.js';
 export { GetContest } from './contests/use-cases/get-contest.js';
+export {
+  runAssistantMessage,
+  runConfirmedAction,
+  UnknownActionError,
+  type AssistantTurn,
+  type ConfirmRequest,
+  type TurnDeps,
+} from './assistant/host-assistant-turn.js';
 export { ListMyContests, type ListMyContestsDeps } from './contests/use-cases/list-my-contests.js';
 export type { ContestSummary } from './contests/contest-summary.js';
 export { CloseContest } from './contests/use-cases/close-contest.js';

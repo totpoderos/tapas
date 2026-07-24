@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { registerAssistantRoutes } from './http/assistant-routes.js';
 import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerContestRoutes } from './http/contest-routes.js';
 import { registerDraftRoutes } from './http/draft-routes.js';
@@ -45,6 +46,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     registerDraftRoutes(app, deps);
     registerContestRoutes(app, deps);
     registerVoterRoutes(app, deps);
+    registerAssistantRoutes(app, deps);
   });
 
   return app;

@@ -121,5 +121,7 @@ export function buildProductionDeps(
       isProduction: env.NODE_ENV === 'production',
       allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],
     },
+    llmClient,
+    assistantConfirmationSecret: env.ASSISTANT_CONFIRMATION_SECRET,
   };
 }
