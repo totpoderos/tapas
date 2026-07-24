@@ -87,6 +87,8 @@ npm run eval:gate            -- --suite creation --report reports/creation.json
                              SQLite
 ```
 
+> Full diagrams — system context, the three entry points, the authorization check, the propose→confirm→act sequence, the audit projection, packages, and deployment — are in [`docs/architecture.md`](docs/architecture.md).
+
 **One backend API** is the source of truth and the sole authorization authority, with two scopes (host, voter). **Three entry points** reach it — the HTTP API, the **MCP server** (a thin protocol adapter with no business logic, speaking stdio to an MCP client and authenticating with a host-issued personal access token), and the in-app **chat assistant** (which re-enters the same routes, so every rule is enforced exactly once). Every action from any path lands in one **audit log** — a projection of domain events, tagged with its source and whether the host confirmed it.
 
 **Destructive actions** (close, publish, reveal) are gated by an action-bound HMAC confirmation across three layers: the MCP server refuses to dispatch without a valid token, the in-app assistant surfaces a focus-trapped confirmation card, and the API records who confirmed it. A token for one action can never authorize another.
