@@ -10,7 +10,7 @@ expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, getPlaces: vi.fn(), claimPlace: vi.fn(), getMe: vi.fn() };
+  return { ...actual, getPlaces: vi.fn(), claimPlace: vi.fn(), getMe: vi.fn(), getDishes: vi.fn() };
 });
 import * as api from '../../src/api/client';
 
@@ -48,6 +48,7 @@ describe('Participant join', () => {
     vi.mocked(api.getMe).mockReset().mockResolvedValue(null);
     vi.mocked(api.getPlaces).mockReset().mockResolvedValue(PLACES);
     vi.mocked(api.claimPlace).mockReset().mockResolvedValue(ANA);
+    vi.mocked(api.getDishes).mockReset().mockResolvedValue([]);
   });
   afterEach(() => vi.clearAllMocks());
 
@@ -61,7 +62,7 @@ describe('Participant join', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Ana' }));
 
     expect(api.claimPlace).toHaveBeenCalledWith('ABC123', 'A');
-    expect(await screen.findByText(/you.re in, ana/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /your dish, ana/i })).toBeInTheDocument();
     expect(localStorage.getItem('tapas.contestId')).toBe('c1');
   });
 
@@ -99,7 +100,7 @@ describe('Participant join', () => {
     vi.mocked(api.getMe).mockResolvedValue(ANA);
     renderAt('/');
 
-    expect(await screen.findByText(/you.re in, ana/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /your dish, ana/i })).toBeInTheDocument();
     expect(api.getMe).toHaveBeenCalledWith('c1');
     expect(api.getPlaces).not.toHaveBeenCalled();
   });

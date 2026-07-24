@@ -73,3 +73,28 @@ export async function getMe(contestId: string): Promise<Identity | null> {
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as Identity;
 }
+
+/** A dish a cook has submitted. `submitterIds` says whose it is (a couple may share one). */
+export interface Dish {
+  readonly dishId: string;
+  readonly name: string;
+  readonly description: string | null;
+  readonly submitterIds: readonly string[];
+}
+
+/** The dishes submitted so far in the contest. */
+export async function getDishes(contestId: string): Promise<Dish[]> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/dishes`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { dishes: Dish[] }).dishes;
+}
+
+/** Submits (or revises) the participant's own dish; throws ApiError (e.g. a name is required). */
+export async function submitDish(
+  contestId: string,
+  dish: { name: string; description?: string },
+): Promise<Dish> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/dishes`, 'POST', dish);
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Dish;
+}

@@ -96,6 +96,51 @@
   border-color: var(--brand);
 }
 
+/* Your-dish screen. */
+.pt-subhead {
+  font-size: 19px;
+  margin: 32px 0 12px;
+}
+.pt-dishes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pt-dish-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.pt-dish-name {
+  font-family: var(--serif);
+  font-size: 17px;
+}
+.pt-dish-desc {
+  color: var(--ink-2);
+  font-size: 14px;
+  flex-basis: 100%;
+}
+.pt-yours {
+  padding: 1px 9px;
+  border-radius: 999px;
+  background: var(--good-soft);
+  color: var(--good);
+  font-size: 12px;
+  font-weight: 600;
+}
+.pt-wait {
+  margin-top: 28px;
+  text-align: center;
+}
+
 /* Joined confirmation. */
 .pt-joined {
   margin-top: 40px;

@@ -44,7 +44,7 @@ test('a participant joins by choosing their place', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
 
   await page.getByRole('button', { name: 'Ana' }).click();
-  await expect(page.getByText(/you.re in, ana/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your dish, ana/i })).toBeVisible();
 });
 
 test('an unrecognised join code is refused', async ({ page }) => {
@@ -75,10 +75,10 @@ test('a returning participant is remembered on their device', async ({ page }) =
 
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await expect(page.getByText(/you.re in, bruno/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
 
   await page.goto(`${PARTICIPANT}/`); // reopen, no code
-  await expect(page.getByText(/you.re in, bruno/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
 });
 
 test('joining is keyboard-operable and has no accessibility violations', async ({ page }) => {
@@ -94,5 +94,5 @@ test('joining is keyboard-operable and has no accessibility violations', async (
   await page.keyboard.press('Enter');
 
   await page.getByRole('button', { name: 'Carmen' }).click();
-  await expect(page.getByText(/you.re in, carmen/i)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /your dish, carmen/i })).toBeVisible();
 });
