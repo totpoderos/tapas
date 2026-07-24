@@ -1,0 +1,326 @@
+# Tapas — Threat Model (OWASP Top 10)
+
+*Defense artifact for task 6.10. Security is this project's curriculum anchor
+(design.md §11B); this document states what Tapas defends against — with
+references to the actual code — and, just as importantly, **what it does not
+defend against and why**. It is written from the code as built, not from design
+intent: where the design promised a control that is not implemented, that is
+recorded as a gap, not glossed.*
+
+Mapped against the **OWASP Top 10 : 2025** (the current list, which adds *Software
+Supply Chain Failures* and *Mishandling of Exceptional Conditions* and reorders
+the rest), cross-referenced to the 2021 `A0x` codes design.md §11B.9 uses.
+
+---
+
+## 1. System, assets, and trust boundaries
+
+**One API is the single source of truth and the sole authorization authority.**
+Everything else is a client of it.
+
+```
+                          ┌─────────────────────────── trust boundary: the API ───────────────────────────┐
+  Host browser  ──cookie──▶│  Fastify API (packages/api)                                                    │
+  (host-web SPA)           │   • helmet, CORS allowlist, HTTPS redirect, rate limit                         │
+                           │   • requireHostSession / requireVoterSession  ── ownership checks ──▶  SQLite  │
+  Participant   ──cookie──▶│   • use cases (domain) → repositories (parameterized SQL)                      │
+  (participant-web SPA)    │   • audit log + security-event log (event projections)                        │
+                           │                                                                                │
+  External MCP   ─Bearer──▶│  ◀── in-app assistant re-enters via app.inject (same routes, same authz)      │
+  client (PAT)   PAT       │  ◀── external MCP server dispatches via HTTP+Bearer (no authz of its own)     │
+                          └────────────────────────────────────────────────────────────────────────────────┘
+       ▲                                                        │
+       └──────────────── untrusted input crosses here ─────────┘
+         participant display names, dish text, LLM output, join codes, request bodies
+```
+
+**Assets to protect:** host account credentials & sessions; contest integrity
+(only the owner may close/reveal/configure); vote integrity (one voter, their own
+ballot, no cross-contest access); the audit trail; the destructive-action
+confirmation channel; secrets (JWT/HMAC keys, PATs).
+
+**Primary trust boundaries:** (1) browser ↔ API (cookies, CORS); (2) external MCP
+client ↔ API (PAT bearer); (3) the API ↔ the LLM and participant-authored text
+(**both untrusted** — the model can be induced, names can carry injection); (4)
+the process ↔ its configuration/secrets (env).
+
+**Principals:** `host` (owns their contests), `voter` (scoped to one contest).
+Note an `admin` role is named in the domain type but never assigned — see §Gaps.
+
+---
+
+## 2. OWASP 2025 → Tapas mapping (at a glance)
+
+| # | OWASP 2025 (2021 code) | Principal defenses in Tapas | Verdict |
+|---|---|---|---|
+| 1 | Broken Access Control (A01) | Backend authz on every request; **ownership** checks; MCP has no authz of its own | Strong; `admin`/`requireRole` gap |
+| 2 | Security Misconfiguration (A05) | Helmet; CORS allowlist (never `*`); generic prod errors; env fail-fast | Strong; CSP/HSTS via Helmet defaults |
+| 3 | Software Supply Chain Failures (2025) | `npm audit` CI gate w/ expiring allowlist; committed lockfile; `npm ci` | Strong; **no Dependabot** |
+| 4 | Cryptographic Failures (A02) | bcrypt 12; HS256 via `node:crypto` + timing-safe compare; httpOnly+Secure cookies | Strong; **weak secret enforcement** |
+| 5 | Injection (A03) | Parameterized SQL (zero string-built); two-phase LLM validation; participant-name guard | Strong |
+| 6 | Insecure Design (A04) | Destructive-tool confirmation ×3 layers (HMAC); rate limiting; least-privilege scoping | Strong; replayable token |
+| 7 | Authentication Failures (A07) | 12-char complex password policy; **account lockout 5/15m**; refresh rotation; generic errors | Strong |
+| 8 | Software/Data Integrity Failures (A08) | Action-bound HMAC on destructive ops; committed lockfile + integrity install; two-phase validation | Strong; audit log not signed |
+| 9 | Logging & Alerting Failures (A09) | Auth security-event log (actor+IP+time); unified audit log; no secrets logged | Logging strong; **no alerting** |
+| 10 | Mishandling of Exceptional Conditions (2025) | Env fail-fast; generic prod errors (no stack traces); fail-closed rate-limit & audit gate | Strong |
+
+Detail and evidence per category follow. `path:line` references are to the code
+as of this writing.
+
+---
+
+## 3. Defenses in depth (by category)
+
+### 3.1 Broken Access Control — A01 *(the primary control)*
+
+- **Authenticated on every protected request.** `requireHostSession`
+  ([require-host-session.ts:37](../packages/api/src/http/require-host-session.ts)) accepts
+  *either* the httpOnly `access_token` cookie (verified, then checked live against
+  the `SessionStore`) *or* an `Authorization: Bearer <PAT>` (hash lookup, must not
+  be revoked). In-app session and external PAT resolve to the **same**
+  `{id, role}` and the **same** downstream checks — one authorization path, two
+  credentials. `requireVoterSession`
+  ([require-voter-session.ts:30](../packages/api/src/http/require-voter-session.ts))
+  requires a voter token whose `contestId` claim equals the route's `:contestId`
+  (`401` = unauthenticated, `403` = a token for a *different* contest).
+- **Ownership is the real check, enforced in the backend.** Every host contest
+  operation verifies `contest.hostId === request.hostSession.id` before acting —
+  get / close / reveal / results / tally / audit all guard at the route
+  ([contest-routes.ts:63,85,103,130,157,181](../packages/api/src/http/contest-routes.ts)),
+  returning `403` otherwise. Draft operations check ownership *inside* the use
+  case via `findOwnedDraft()`
+  ([drafts/use-cases/shared.ts:31](../packages/api/src/drafts/use-cases/shared.ts)).
+  `ListMyContests` is scoped to the caller's `hostId` and can never return another
+  host's data.
+- **The MCP server makes no authorization decision.** It dispatches every call to
+  the API over HTTP carrying the host's PAT
+  ([api-dispatcher.ts:32](../packages/mcp/src/api-dispatcher.ts)); the in-app
+  assistant re-enters the same routes via `app.inject`, forwarding the session
+  cookie ([assistant-routes.ts:54](../packages/api/src/http/assistant-routes.ts)).
+  Both funnel through the checks above — there is no second, weaker path.
+
+**Residual risk / gap:** the `admin` role and a `requireRole()` middleware named
+in the design do **not** exist (see §4). And contest `get/close/reveal` use cases
+carry no *internal* ownership check — it lives only at the route — so a future
+non-route caller of those use cases would bypass it (drafts do not have this
+weakness). Tracked for 6.11.
+
+### 3.2 Security Misconfiguration — A05
+
+- **Helmet** is registered on the API with `X-Frame-Options: DENY`
+  ([server.ts:30](../packages/api/src/server.ts)); its other secure defaults
+  (`X-Content-Type-Options`, `Referrer-Policy`, HSTS, a baseline CSP) apply.
+- **CORS is an explicit allowlist** of the two known frontend origins with
+  `credentials: true` — never `origin: '*'`
+  ([server.ts:31](../packages/api/src/server.ts), origins from
+  [env.ts:13](../packages/api/src/config/env.ts)).
+- **Generic errors in production**: unhandled errors return
+  `{code:'INTERNAL_ERROR', message:'Something went wrong.'}` with the real error
+  logged server-side only — no stack traces to the client
+  ([error-handling.ts:8](../packages/api/src/http/error-handling.ts)).
+- **Fail-fast configuration**: both the API and MCP validate env with Zod at
+  startup and refuse to boot on invalid config, reporting only the offending keys
+  ([api env.ts:35](../packages/api/src/config/env.ts),
+  [mcp env.ts:22](../packages/mcp/src/config/env.ts)).
+
+**Residual risk:** CSP and HSTS ride Helmet's defaults rather than being explicitly
+tuned (max-age/preload, script-src). Acceptable, but not hardened — noted for 6.11.
+
+### 3.3 Software Supply Chain Failures — *new in 2025*
+
+- **CI supply-chain gate**: `npm run audit:ci`
+  ([scripts/audit-gate.mjs](../scripts/audit-gate.mjs)) blocks the build on any
+  **high/critical** advisory not covered by a **justified, expiring** allowlist
+  entry ([.audit-allowlist.json](../.audit-allowlist.json)); expired entries stop
+  suppressing (forcing re-review), new/unlisted highs block. Wired into the hard
+  gate ([ci.yml](../.github/workflows/ci.yml)).
+- **Committed lockfile + integrity installs**: `package-lock.json` is committed
+  and CI uses `npm ci` (exact, lockfile-verified installs).
+
+**Residual risk / gap:** **Dependabot is not configured** (`.github/dependabot.yml`
+absent) despite the design; updates are currently manual. Two moderate advisories
+remain ungated by policy. Tracked for 6.11.
+
+### 3.4 Cryptographic Failures — A02
+
+- **Passwords**: bcrypt at **12 rounds**
+  ([password-hasher.ts:11](../packages/api/src/auth/password-hasher.ts)) — never
+  stored plaintext.
+- **Tokens**: JWTs signed **HS256 by hand** over `node:crypto` HMAC-SHA256, verified
+  with `timingSafeEqual` and an expiry check
+  ([token-issuer.ts:41](../packages/api/src/auth/token-issuer.ts)); access **15 min**,
+  refresh **7 days**. PATs are 32 random bytes stored as SHA-256
+  ([pat-hasher.ts](../packages/api/src/auth/pat-hasher.ts)) — a fast hash is fine
+  for a high-entropy random token.
+- **Cookies**: all session/voter cookies are `httpOnly + Secure + SameSite=None`
+  ([session-cookies.ts:14](../packages/api/src/http/session-cookies.ts)) — no token
+  in JS (XSS-resistant); `SameSite=None` is deliberate (cross-origin frontends) and
+  always paired with `Secure`.
+- **Transport**: production forces HTTP→HTTPS
+  ([https-redirect.ts:8](../packages/api/src/http/https-redirect.ts)) with
+  `trustProxy` so `X-Forwarded-Proto` is honored behind the TLS edge (Caddy, 6.4).
+
+**Residual risk / gap (HIGH):** `JWT_SECRET` enforces only `min(1)` — no length
+floor (design said 64+); and `ASSISTANT_CONFIRMATION_SECRET` ships a **committed,
+publicly-known default** and no required override, so a deployment that forgets to
+set it keys the destructive-action HMAC with a secret that is in the repo. (MCP's
+secrets are correctly required at `min(32)` with no default.) These are the
+highest-value quick fixes — see §4 and §5.
+
+### 3.5 Injection — A03
+
+- **Parameterized SQL everywhere.** Every repository uses
+  `db.prepare(...).run/get/all(...)` with `?` placeholders (e.g.
+  [vote-session-repository.ts:66](../packages/api/src/db/vote-session-repository.ts),
+  [host-account-repository.ts:52](../packages/api/src/db/host-account-repository.ts)).
+  A search for template-literal SQL interpolation returns zero hits.
+- **The LLM and participant text are treated as untrusted, with two-phase
+  validation.** (1) Structural: the extraction tool schemas set
+  `additionalProperties:false` at every level and Zod `.strict()`
+  ([contest-draft-tool.ts](../packages/api/src/drafts/extraction/contest-draft-tool.ts));
+  (2) Semantic: the API re-validates each field itself and **reads only known
+  keys**, so smuggled fields are discarded
+  ([proposed-draft-guard.ts:66](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
+- **Participant-name injection defense (deterministic).** A convincing name can
+  fool the model into reporting a high-stakes rule as *host-stated*; so a guard
+  reads the participant names **directly** (not the model's `source` tag) and drops
+  any high-stakes rule (`attribution|antiBias|scoring`) a name tries to dictate,
+  replacing it with a clarification — surgical, leaving genuinely host-stated rules
+  intact ([participant-text-injection.ts:51](../packages/api/src/drafts/extraction/participant-text-injection.ts),
+  applied at [proposed-draft-guard.ts:129](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
+- **XSS**: React auto-escapes; no `dangerouslySetInnerHTML` in the app.
+
+**Residual risk:** no least-privilege DB user — `node:sqlite` is a single-file
+embedded DB with no user/role layer (architectural, acceptable for v1).
+
+### 3.6 Insecure Design — A04
+
+- **Destructive actions require confirmation across three layers**, all bound to an
+  **action-specific HMAC** ([confirmation-token.ts:29](../packages/mcp/src/confirmation-token.ts),
+  HMAC-SHA256 over `toolName + canonical args`, timing-safe compared): (1) the MCP
+  server refuses to dispatch a `destructive` tool without a valid server-issued
+  token ([mcp-server.ts:36](../packages/mcp/src/mcp-server.ts)); (2) the in-app
+  assistant surfaces a focus-trapped confirmation card and only the confirm path
+  runs the action, stamping `x-tapas-confirmation: host`
+  ([assistant-routes.ts:60](../packages/api/src/http/assistant-routes.ts)); (3) the
+  API records whether the action was host-confirmed in the audit log
+  ([contest-routes.ts:43](../packages/api/src/http/contest-routes.ts)). A token for
+  contest A cannot confirm an action on contest B (action-bound).
+- **Rate limiting**: sensitive routes (login, join-by-code) limited to **5/min**,
+  env-tunable and fail-closed (min 1)
+  ([rate-limit.ts:13](../packages/api/src/http/rate-limit.ts)); global default
+  1000/min.
+
+**Residual risk:** confirmation tokens are **replayable for the same action** until
+the state changes — a single-use nonce store is deliberately deferred
+([confirmation-token.ts:16](../packages/mcp/src/confirmation-token.ts)). Low impact
+(the action is idempotent-ish and still ownership-checked), noted for 6.11.
+
+### 3.7 Authentication Failures — A07
+
+- **Password policy**: min **12** chars with upper, lower, number, symbol
+  ([password-policy.ts:9](../packages/domain/src/auth/password-policy.ts)).
+- **Account lockout**: **5 failed attempts → 15-minute lock**
+  ([host-account.ts:1](../packages/domain/src/auth/host-account.ts),
+  wired in [authenticate-host.ts:40](../packages/api/src/auth/use-cases/authenticate-host.ts));
+  the route returns **423 Locked**.
+- **Refresh-token rotation**: presenting a refresh token revokes its `jti` and
+  issues a fresh session
+  ([refresh-session.ts:22](../packages/api/src/auth/use-cases/refresh-session.ts)).
+- **Revocation**: a server-side active-session store is checked on every request
+  ([require-host-session.ts:53](../packages/api/src/http/require-host-session.ts));
+  sign-out revokes the `jti`.
+- **No user enumeration**: unknown email and wrong password return the identical
+  `Invalid email or password.`
+  ([authenticate-host.ts:19](../packages/api/src/auth/use-cases/authenticate-host.ts));
+  the distinguishing reason is written only to the security log.
+
+### 3.8 Software or Data Integrity Failures — A08
+
+- **Destructive-operation integrity**: the action-bound HMAC (§3.6) guarantees a
+  destructive action was explicitly authorized for exactly those arguments —
+  a tampered or replayed-across-actions token is rejected.
+- **Untrusted-output integrity**: the two-phase validation (§3.5) means the
+  authoritative shape of a contest never comes from the model — the API re-derives
+  it.
+- **Dependency integrity**: committed lockfile + `npm ci` (exact installs) + the
+  audit gate (§3.3).
+
+**Residual risk / gap:** the audit log is an append-only event projection but is
+**not cryptographically signed or hash-chained** — a DB-level compromise could
+edit history undetectably. Out of scope for v1; noted.
+
+### 3.9 Security Logging & Alerting Failures — A09
+
+- **Security-event log**: `sign_in.succeeded` / `sign_in.refused` (with reason) /
+  `pat.issued` / `pat.used`, each with **actor + source IP + timestamp**
+  ([security-event.ts](../packages/api/src/security/security-event.ts), recorded at
+  [auth-routes.ts:51](../packages/api/src/http/auth-routes.ts) and
+  [require-host-session.ts:44](../packages/api/src/http/require-host-session.ts)).
+  The event type comment states it never carries a password or full token.
+- **Unified audit log**: domain actions (draft saved, published, closed, revealed)
+  are projected to one audit trail with actor and host-confirmation status,
+  browsable per contest (5B.7).
+- **No secrets in logs**: security events exclude credentials; env validation
+  reports keys/reasons, never values.
+
+**Residual risk / gap:** **there is no alerting.** Events are recorded but nothing
+watches them — the design's "alert on >N failed logins" is unbuilt. Also,
+destructive-tool calls are audited as *domain* events (actor + confirmation) but
+**without source IP** and outside the security-event stream. Tracked for 6.11.
+
+### 3.10 Mishandling of Exceptional Conditions — *new in 2025*
+
+- **Fail-fast on bad config**: the process refuses to start on invalid env rather
+  than running half-configured (§3.2).
+- **Fail-secure error handling**: unexpected errors become a generic message with
+  no internal detail leaked to the client (§3.2); the rate limiter fails closed
+  (min 1) even on a misconfigured env; the CI audit gate fails closed on a missing
+  metric/parse error.
+- **Explicit, typed error paths**: the domain returns typed errors (e.g.
+  `CompileError`, `INVALID_CREDENTIALS`, `INCOMPLETE_DRAFT`) rather than throwing
+  raw, so exceptional states are handled deliberately and surfaced with host-facing
+  reasons.
+
+---
+
+## 4. What Tapas does **not** defend against (and why)
+
+An honest threat model names its gaps. These are real — several are design promises
+the code does not yet keep — prioritized for the 6.11 security pass.
+
+| # | Gap | Risk | Why it exists / disposition |
+|---|---|---|---|
+| G1 | **`ASSISTANT_CONFIRMATION_SECRET` has a committed default** and no required override ([env.ts:22](../packages/api/src/config/env.ts)) | **High** — a deploy that forgets to set it keys the destructive-action HMAC with a repo-known secret | Convenience default for local dev leaked into prod posture. Fix: require it in production (no insecure default). |
+| G2 | **`JWT_SECRET` has no length floor** (`min(1)`) ([env.ts:12](../packages/api/src/config/env.ts)); design said 64+ | **High** — a short/weak signing key is brute-forceable | Oversight vs the design. Fix: `min(32)` (or 64) + a strong `.env.example`. |
+| G3 | **No `admin` role / `requireRole()`** — `admin` is a type never assigned; no role middleware (design.md §11B.2) | Medium — no moderation / "see all contests" capability; not a hole in *existing* endpoints (all are ownership-checked) | Never built; the app shipped with host+voter. Either build it or drop the claim. |
+| G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. |
+| G5 | **No Dependabot** (`.github/dependabot.yml` absent) | Medium — advisories are caught by the CI gate but updates are manual | Quick fix: add a Dependabot config (6.11). |
+| G6 | **Contest get/close/reveal use cases have no *internal* ownership check** — route-only ([get-contest.ts:8](../packages/api/src/contests/use-cases/get-contest.ts)) | Low today — every real caller goes through the guarded route | Deliberate split; add a defense-in-depth check or a lint note so a future caller can't bypass it. |
+| G7 | **Confirmation tokens are replayable for the same action** (no nonce store) | Low — action is ownership-checked and state-gated | Single-use nonce deferred ([confirmation-token.ts:16](../packages/mcp/src/confirmation-token.ts)). |
+| G8 | **Audit log is not signed/hash-chained** | Low — requires DB-level compromise to exploit | Out of scope for v1. |
+| G9 | **No least-privilege DB user**; **CSP/HSTS via Helmet defaults** not explicitly tuned | Low | Architectural (`node:sqlite`) / hardening polish for 6.11. |
+
+**Explicitly out of scope** (accepted risk for a thesis demo): DDoS/volumetric
+attacks, physical/host compromise, malicious insider with DB access, secrets
+management beyond env vars (no vault/KMS), and formal pentest.
+
+---
+
+## 5. Remediation roadmap → 6.11 (security pass)
+
+Prioritized, from this threat model:
+
+1. **G1, G2 (cheap, high value):** enforce secret strength — `JWT_SECRET` `min(32)`;
+   refuse the known `ASSISTANT_CONFIRMATION_SECRET` default in production. ~10 lines
+   in `env.ts` + `.env*.example`, plus tests.
+2. **G5:** add `.github/dependabot.yml`.
+3. **G4, G6:** add source IP to destructive-action audit records; add a
+   defense-in-depth ownership assertion (or lint guard) to the contest use cases.
+4. **G3:** decide `admin`/`requireRole()` — build it or remove the design claim so
+   the artifact and the code agree.
+5. **G7–G9:** hardening polish (nonce store, signed audit log, explicit CSP/HSTS,
+   Helmet tuning) as time allows.
+
+The security **pass** (6.11) will work this list and re-verify authz on every
+endpoint, audit-log integrity, `npm audit` clean, and secrets-not-logged.
