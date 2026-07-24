@@ -8,6 +8,14 @@
       "reason": "RSC/framework-mode CSRF (Action execution before a 400 response). Both frontends use react-router-dom in declarative SPA mode (BrowserRouter + <Routes>, client-side only) with no server actions and no RSC, so the vulnerable code path is not reachable in this app. The only non-vulnerable version is react-router 8.2.1+ (a major upgrade); tracked as its own slice.",
       "url": "https://github.com/advisories/GHSA-qwww-vcr4-c8h2",
       "expires": "2026-10-24"
+    },
+    {
+      "id": "GHSA-mh99-v99m-4gvg",
+      "package": "brace-expansion",
+      "severity": "high",
+      "reason": "DoS via unbounded brace expansion (OOM). Reached only through BUILD TOOLING glob matching (eslint -> minimatch@3 -> brace-expansion@1.x); it is absent from the production dependency tree (`npm audit --omit=dev` does not report it), and no runtime code path passes an attacker-controlled glob to minimatch, so the vulnerable expansion is unreachable in the running app. The 5.x path was genuinely fixed (5.0.7 -> 5.0.8 via `npm audit fix`); no patched 1.x exists (1.1.16 is the latest), so the remaining path can only be cleared by an eslint 10 major upgrade, tracked as its own slice.",
+      "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+      "expires": "2026-10-25"
     }
   ]
 }
