@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type {
   CloseContestErrorCode,
   GetResultsErrorCode,
@@ -34,9 +34,36 @@ const GET_TALLY_ERROR_STATUS: Record<GetTallyErrorCode, number> = {
   CONTEST_NOT_FOUND: 404,
 };
 
+/**
+ * Whether a status change was explicitly confirmed by the host. The in-app
+ * assistant sets `x-tapas-confirmation: host` on the request it dispatches after
+ * the host accepts the confirmation card; a plain API call carries no such
+ * marker and is recorded as `auto`.
+ */
+function hostConfirmed(request: FastifyRequest): 'host' | 'auto' {
+  return request.headers['x-tapas-confirmation'] === 'host' ? 'host' : 'auto';
+}
+
 /** Host-scoped contest reads. Voter-scoped contest routes live in voter-routes.ts. */
 export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): void {
   const requireSession = requireHostSession(deps);
+
+  app.get<{ Params: { id: string } }>(
+    '/contests/:id/audit',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const contest = deps.getContest.execute(request.params.id);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
+      return reply.code(200).send(deps.auditLog.findByContest(request.params.id));
+    },
+  );
 
   app.get('/contests', { preHandler: requireSession }, async (request, reply) => {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
@@ -75,7 +102,10 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
 
-      const closed = deps.closeContest.execute(request.params.id);
+      const closed = deps.closeContest.execute(request.params.id, {
+        actorId: request.hostSession.id,
+        confirmation: hostConfirmed(request),
+      });
       if (!closed.ok) {
         return reply
           .code(CLOSE_CONTEST_ERROR_STATUS[closed.error.code])
@@ -99,7 +129,10 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
 
-      const revealed = deps.revealContest.execute(request.params.id);
+      const revealed = deps.revealContest.execute(request.params.id, {
+        actorId: request.hostSession.id,
+        confirmation: hostConfirmed(request),
+      });
       if (!revealed.ok) {
         return reply
           .code(REVEAL_CONTEST_ERROR_STATUS[revealed.error.code])

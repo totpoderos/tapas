@@ -45,31 +45,37 @@ export function registerAssistantRoutes(app: FastifyInstance, deps: ServerDeps):
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
       // Every tool the assistant runs is dispatched back through this API as the
-      // same host, by forwarding their session cookie — one execution path.
-      const execute = async (apiRequest: ApiRequest): Promise<unknown> => {
-        const response = await app.inject({
-          method: apiRequest.method,
-          url: apiRequest.path,
-          payload: apiRequest.body as object | undefined,
-          headers: { cookie: request.headers.cookie ?? '' },
-        });
-        return response.statusCode === 204 || response.body === '' ? undefined : response.json();
-      };
+      // same host, by forwarding their session cookie — one execution path. A
+      // confirmed destructive action also carries the host-confirmation marker,
+      // so the audit log records that the host approved it (design.md §7.1).
+      const execute =
+        (hostConfirmed: boolean) =>
+        async (apiRequest: ApiRequest): Promise<unknown> => {
+          const response = await app.inject({
+            method: apiRequest.method,
+            url: apiRequest.path,
+            payload: apiRequest.body as object | undefined,
+            headers: {
+              cookie: request.headers.cookie ?? '',
+              ...(hostConfirmed ? { 'x-tapas-confirmation': 'host' } : {}),
+            },
+          });
+          return response.statusCode === 204 || response.body === '' ? undefined : response.json();
+        };
 
-      const turnDeps: TurnDeps = {
-        assistant: await getAssistant(),
-        confirmationSecret: deps.assistantConfirmationSecret,
-        execute,
-      };
+      const assistant = await getAssistant();
+      const secret = deps.assistantConfirmationSecret;
 
       try {
         if (request.body?.confirm) {
+          const turnDeps: TurnDeps = { assistant, confirmationSecret: secret, execute: execute(true) };
           return reply.code(200).send(await runConfirmedAction(request.body.confirm, turnDeps));
         }
         const messages = request.body?.messages;
         if (!messages || messages.length === 0) {
           return reply.code(400).send(badRequest('A message or a confirmation is required.'));
         }
+        const turnDeps: TurnDeps = { assistant, confirmationSecret: secret, execute: execute(false) };
         return reply.code(200).send(await runAssistantMessage(messages, turnDeps));
       } catch (error) {
         if (error instanceof UnknownActionError) {
