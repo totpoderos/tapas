@@ -1,0 +1,44 @@
+Feature: Directing a contest from the chat panel
+  A host can open a chat panel in their app and tell the assistant, in plain
+  language, what to do. The panel shows not just the assistant's words but the
+  actions it takes and their results, so the host is always in the loop. A
+  reversible action is carried out straight away; an action that cannot be undone
+  is held behind a confirmation card the host must accept before anything happens.
+  Cancelling changes nothing. The panel is fully keyboard-operable and meets
+  accessibility standards (WCAG 2.1 AA).
+
+  Scenario: The assistant answers when it needs more detail
+    Given a signed-in host with the chat panel open
+    When they ask for something the assistant needs more detail about
+    Then the assistant replies asking them to clarify
+    And no action is taken
+
+  Scenario: The assistant carries out a reversible action and shows what it did
+    Given a signed-in host with the chat panel open
+    When they ask the assistant to start a new draft called "Summer Tapas"
+    Then the panel shows the assistant carried the action out
+    And the new draft exists
+
+  Scenario: A destructive action is held behind a confirmation card
+    Given a signed-in host with a running contest and the chat panel open
+    When they ask the assistant to close that contest
+    Then the panel shows a confirmation card for closing it
+    And the contest is not closed
+
+  Scenario: Confirming the card carries out the action
+    Given a host shown a confirmation card for closing their running contest
+    When they accept the confirmation
+    Then the contest is closed
+    And the panel shows it was done
+
+  Scenario: Cancelling the card changes nothing
+    Given a host shown a confirmation card for closing their running contest
+    When they cancel the confirmation
+    Then the contest is still running
+    And no action was taken
+
+  Scenario: The chat panel is keyboard-operable and accessible
+    Given a signed-in host with a running contest and the chat panel open
+    When they ask to close the contest and accept the confirmation using only the keyboard
+    Then the confirmation card is reachable and focus-managed
+    And the screen has no accessibility violations

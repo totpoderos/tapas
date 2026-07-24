@@ -9,6 +9,7 @@ const proxy = {
   '/auth': { target: apiTarget, changeOrigin: true },
   '/drafts': { target: apiTarget, changeOrigin: true },
   '/contests': { target: apiTarget, changeOrigin: true },
+  '/assistant': { target: apiTarget, changeOrigin: true },
 };
 
 export default defineConfig({

@@ -22,6 +22,9 @@ const API_ENV = [
   'LLM_MODEL=llama3.1',
   // Many logins from one host across the suite; raise the per-IP login ceiling.
   'RATE_LIMIT_SENSITIVE_MAX=1000',
+  // Drive the assistant with a deterministic keyword stub — no live model needed
+  // headless. The chat-panel E2E steers it by what it types (see the stub client).
+  'ASSISTANT_STUB=1',
 ].join(' ');
 
 export default defineConfig({
