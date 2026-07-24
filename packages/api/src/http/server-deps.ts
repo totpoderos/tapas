@@ -14,6 +14,7 @@ import type { HostPatRepository } from '../db/host-pat-repository.js';
 import type { RosterRepository } from '../db/roster-repository.js';
 import type { VoteSessionRepository } from '../db/vote-session-repository.js';
 import type { SubmitDish } from '../dishes/use-cases/submit-dish.js';
+import type { GetBallot } from '../scoring/use-cases/get-ballot.js';
 import type { GetMyScores } from '../scoring/use-cases/get-my-scores.js';
 import type { SaveScore } from '../scoring/use-cases/save-score.js';
 import type { SendVote } from '../scoring/use-cases/send-vote.js';
@@ -70,6 +71,7 @@ export interface ServerDeps {
   readonly dishes: DishRepository;
   readonly saveScore: SaveScore;
   readonly getMyScores: GetMyScores;
+  readonly getBallot: GetBallot;
   readonly sendVote: SendVote;
   readonly voteSessions: VoteSessionRepository;
   readonly issuePat: IssuePat;

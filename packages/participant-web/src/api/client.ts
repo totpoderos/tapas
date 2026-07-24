@@ -98,3 +98,45 @@ export async function submitDish(
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as Dish;
 }
+
+/** The voter's ballot — what they may score, derived from the compiled constraint view. */
+export interface Ballot {
+  readonly contestId: string;
+  readonly dishes: readonly { readonly dishId: string; readonly name: string }[];
+  readonly categories: readonly { readonly id: string; readonly name: string }[];
+  readonly range: { readonly min: number; readonly max: number };
+  readonly uniquePerCategory: boolean;
+}
+
+/** One draft score the voter has saved. */
+export interface Score {
+  readonly dishId: string;
+  readonly categoryId: string;
+  readonly value: number;
+}
+
+/** Reads the voter's ballot; throws ApiError (401 when they haven't claimed a place). */
+export async function getBallot(contestId: string): Promise<Ballot> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/ballot`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Ballot;
+}
+
+/** Reads the scores the voter has saved so far. */
+export async function getMyScores(contestId: string): Promise<Score[]> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/scores`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { scores: Score[] }).scores;
+}
+
+/** Saves (or revises) one draft score; throws ApiError (e.g. out of range, or the vote is sent). */
+export async function saveScore(contestId: string, score: Score): Promise<void> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/scores`, 'POST', score);
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/** Sends (locks) the vote; throws ApiError (e.g. incomplete, or already sent). */
+export async function sendVote(contestId: string): Promise<void> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/send-vote`, 'POST');
+  if (!response.ok) throw await errorFrom(response);
+}

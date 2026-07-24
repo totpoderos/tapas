@@ -141,6 +141,104 @@
   text-align: center;
 }
 
+/* Score screen. */
+.pt-score-list {
+  list-style: none;
+  margin: 8px 0 24px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pt-score-dish {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.pt-score-dish .pt-dish-name {
+  display: block;
+  margin-bottom: 12px;
+}
+.pt-rating {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.pt-rating + .pt-rating {
+  margin-top: 12px;
+}
+.pt-rating-legend {
+  padding: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.pt-rating-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pt-rating-value {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.pt-rating-value input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.pt-rating-value:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.pt-rating-value.chosen {
+  background: var(--brand);
+  color: var(--on-brand);
+  border-color: var(--brand);
+  font-weight: 700;
+}
+
+/* Send-vote confirmation beat. */
+.pt-confirm {
+  border: 1px solid var(--brand-line);
+  border-radius: var(--radius-card);
+  background: var(--brand-soft);
+  padding: 16px 18px;
+}
+.pt-confirm-title {
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+.pt-confirm-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.pt-score-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 8px;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+.pt-score-link:hover {
+  text-decoration: underline;
+}
+
 /* Joined confirmation. */
 .pt-joined {
   margin-top: 40px;
