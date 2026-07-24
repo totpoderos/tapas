@@ -210,6 +210,50 @@
   font-weight: 700;
 }
 
+/* Strict-ranking assignment. */
+.pt-rank-cats {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 8px 0 24px;
+}
+.pt-rank-cat {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 16px 18px;
+}
+.pt-rank-cat .pt-subhead {
+  margin: 0 0 12px;
+}
+.pt-rank-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pt-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pt-rank-row .pt-dish-name {
+  margin-right: auto;
+}
+.pt-rank-select {
+  min-width: 72px;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+
 /* Send-vote confirmation beat. */
 .pt-confirm {
   border: 1px solid var(--brand-line);
