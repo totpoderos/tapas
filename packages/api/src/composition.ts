@@ -39,6 +39,7 @@ import { GetResults } from './contests/use-cases/get-results.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
+import { GetBallot } from './scoring/use-cases/get-ballot.js';
 import { GetMyScores } from './scoring/use-cases/get-my-scores.js';
 import { SaveScore } from './scoring/use-cases/save-score.js';
 import { SendVote } from './scoring/use-cases/send-vote.js';
@@ -114,6 +115,7 @@ export function buildProductionDeps(
     dishes,
     saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
     getMyScores: new GetMyScores({ voteSessions }),
+    getBallot: new GetBallot({ contests, dishes }),
     sendVote: new SendVote({ contests, voteSessions, roster, clock }),
     voteSessions,
     issuePat: new IssuePat({ pats, ids, clock }),

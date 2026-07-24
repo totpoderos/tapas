@@ -1,9 +1,18 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, type RenderResult } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { YourDish } from '../../src/pages/your-dish';
 import type { Dish, Identity } from '../../src/api/client';
+
+/** Renders the your-dish screen inside a router (it links to the score screen). */
+const renderYourDish = (identity: Identity): RenderResult =>
+  render(
+    <MemoryRouter>
+      <YourDish identity={identity} />
+    </MemoryRouter>,
+  );
 
 expect.extend(toHaveNoViolations);
 
@@ -30,7 +39,7 @@ describe('Your dish', () => {
     vi.mocked(api.getDishes)
       .mockResolvedValueOnce([]) // initial load: nothing yet
       .mockResolvedValueOnce([dish({ dishId: 'd-a', name: 'Patatas bravas', submitterIds: ['a'] })]); // after submit
-    render(<YourDish identity={ANA} />);
+    renderYourDish(ANA);
 
     await userEvent.type(await screen.findByLabelText('Dish name'), 'Patatas bravas');
     await userEvent.click(screen.getByRole('button', { name: 'Submit dish' }));
@@ -43,7 +52,7 @@ describe('Your dish', () => {
 
   it('pre-fills the cook’s existing dish so re-submitting revises it', async () => {
     vi.mocked(api.getDishes).mockResolvedValue([dish({ dishId: 'd-a', name: 'Old name', submitterIds: ['a'] })]);
-    render(<YourDish identity={ANA} />);
+    renderYourDish(ANA);
 
     // The form is pre-filled and the button offers to update, not add.
     expect(await screen.findByLabelText('Dish name')).toHaveValue('Old name');
@@ -51,7 +60,7 @@ describe('Your dish', () => {
   });
 
   it('requires a name and submits nothing without one', async () => {
-    render(<YourDish identity={ANA} />);
+    renderYourDish(ANA);
     await screen.findByLabelText('Dish name');
 
     await userEvent.click(screen.getByRole('button', { name: 'Submit dish' }));
@@ -64,7 +73,7 @@ describe('Your dish', () => {
     vi.mocked(api.getDishes).mockResolvedValue([
       dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] }),
     ]);
-    render(<YourDish identity={ANA} />);
+    renderYourDish(ANA);
 
     const list = await screen.findByRole('list', { name: 'Dishes submitted' });
     expect(within(list).getByText('Tortilla')).toBeInTheDocument();
@@ -73,7 +82,7 @@ describe('Your dish', () => {
 
   it('has no accessibility violations', async () => {
     vi.mocked(api.getDishes).mockResolvedValue([dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] })]);
-    const { container } = render(<YourDish identity={ANA} />);
+    const { container } = renderYourDish(ANA);
     await screen.findByLabelText('Dish name');
     expect(await axe(container)).toHaveNoViolations();
   });

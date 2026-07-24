@@ -169,6 +169,18 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
+  app.get<{ Params: { contestId: string } }>(
+    '/contests/:contestId/ballot',
+    { preHandler: requireVoterSession(deps) },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+
+      const ballot = deps.getBallot.execute(request.voterSession.contestId, request.voterSession.id);
+      if (!ballot.ok) return reply.code(404).send({ error: ballot.error });
+      return reply.code(200).send(ballot.ballot);
+    },
+  );
+
   app.post<{ Params: { contestId: string } }>(
     '/contests/:contestId/send-vote',
     { preHandler: requireVoterSession(deps) },

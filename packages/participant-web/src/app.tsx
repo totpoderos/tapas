@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import { Join } from './pages/join';
+import { Score } from './pages/score';
 
 /**
  * Participant app routing. The join flow handles both a freshly typed code and a
@@ -12,6 +13,7 @@ export function App() {
     <Routes>
       <Route path="/" element={<Join />} />
       <Route path="/j/:code" element={<Join />} />
+      <Route path="/score" element={<Score />} />
       <Route path="*" element={<Join />} />
     </Routes>
   );

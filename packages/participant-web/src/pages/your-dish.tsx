@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { Button, FormField } from '@tapas/ui';
 import { getDishes, submitDish, type Dish, type Identity } from '../api/client';
 
@@ -109,7 +110,10 @@ export function YourDish({ identity }: { identity: Identity }) {
         </ul>
       )}
 
-      <p className="pt-note pt-wait">Scoring opens when the host is ready.</p>
+      <p className="pt-note pt-wait">When the dishes are in, it’s time to score.</p>
+      <Link to="/score" className="pt-score-link">
+        Score the dishes →
+      </Link>
     </section>
   );
 }
