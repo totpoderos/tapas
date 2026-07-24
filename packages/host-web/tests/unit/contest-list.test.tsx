@@ -54,6 +54,20 @@ describe('Host contest list', () => {
     expect(within(closed!).getByText('Closed')).toBeInTheDocument();
   });
 
+  it('lets a host open a draft for review, but not a live contest', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({ id: 'draft-1', name: 'Summer Tapas', status: 'draft' }),
+      summary({ id: 'live-1', name: 'Balcony Cook-off', status: 'live' }),
+    ]);
+    renderApp();
+
+    const draftLink = await screen.findByRole('link', { name: 'Summer Tapas' });
+    expect(draftLink).toHaveAttribute('href', '/review/draft-1');
+    // The live contest has no detail screen yet, so its name is not a link.
+    expect(screen.queryByRole('link', { name: 'Balcony Cook-off' })).not.toBeInTheDocument();
+    expect(screen.getByText('Balcony Cook-off')).toBeInTheDocument();
+  });
+
   it('offers a way to start a new contest', async () => {
     vi.mocked(api.listContests).mockResolvedValue([summary({ id: 'a', name: 'Balcony Cook-off', status: 'live' })]);
     renderApp();
