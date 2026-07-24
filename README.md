@@ -66,6 +66,8 @@ npm run eval:gate            -- --suite creation --report reports/creation.json
 - [`docs/host-assistant-eval-trajectory.md`](docs/host-assistant-eval-trajectory.md) — host-assistant tool-use eval
 - [`docs/infra-generation.md`](docs/infra-generation.md) — the AI-generated infrastructure surface (prompt → output → verification)
 
+Want the guided tour? [`docs/demo-script.md`](docs/demo-script.md) walks the whole system in 15 minutes — both creation paths, the eval trajectory, the destructive-action confirmation, and the audit log.
+
 ## Architecture
 
 ```
