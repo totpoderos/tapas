@@ -17,6 +17,7 @@
     "eval:host-assistant": "npm run eval:host-assistant -w @tapas/evals --",
     "eval:gate": "npm run eval:gate -w @tapas/evals --",
     "lint": "eslint .",
+    "audit:ci": "node scripts/audit-gate.mjs",
     "format": "prettier --write .",
     "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
     "prepare": "husky",

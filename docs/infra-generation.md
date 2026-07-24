@@ -291,10 +291,12 @@ The Fastify-router bump (from `npm audit fix`) is covered by the same 930 vitest
 
 ### Known tradeoffs / follow-ons
 
-- **`npm audit` gate at `--audit-level=high`.** Moderate advisories (currently 2,
-  via `@modelcontextprotocol/sdk`, `--force`-only) are not gated to avoid blocking
-  on transitive dev/SDK noise outside our control; they are visible in the audit
-  output and revisited as fixes land. Dependabot (task 6.11) will track them.
+- **`npm audit` gate.** High/critical block; moderate/low don't (2 moderate remain,
+  via `@modelcontextprotocol/sdk`, `--force`-only). *Updated in 6.4:* the raw
+  `npm audit --audit-level=high` became `npm run audit:ci` (`scripts/audit-gate.mjs`
+  + `.audit-allowlist.json`) so a genuinely-not-applicable high can be allowlisted
+  with a written reason and an **expiry**, while any new/unlisted high still blocks
+  — see 6.4. Dependabot (task 6.11) will track the moderates.
 - **The eval job needs `secrets.LLM_BASE_URL`/`LLM_API_KEY` (+ `vars.LLM_MODEL`)**
   to run in CI — a self-hosted runner with Ollama or a hosted OpenAI-compatible
   endpoint. Until configured it only runs on demand; the weekly schedule fires but
@@ -378,6 +380,29 @@ Repo suite unaffected: **typecheck ✅, lint ✅, 930/930 vitest ✅**.
   older image. The images were always built correctly and non-root. Fix: **brace
   the interpolation** (`-t "tapas-${svc}:local"`). The 6.1 note above is corrected
   accordingly.
+
+### Supply-chain gate hardening (the gate caught a live advisory)
+
+While verifying, CI's `gate` job went **red on the `evals`-adjacent supply-chain
+step** — not from anything in this slice, but because a **high advisory was
+published mid-session**: `GHSA-qwww-vcr4-c8h2`, a **React Router RSC-mode CSRF
+bypass** affecting `react-router` `7.12.0 – 8.2.0` (so our `react-router-dom
+^7.18.1`). The gate did exactly its job. Resolution:
+
+- A downgrade is a dead end — `react-router` `6.0.0 – 7.17.0` carries a *larger*
+  pile of highs (XSS, RCE via vendored turbo-stream, DoS…), all fixed in `7.18.0`;
+  the only fully-clean version is `8.2.1+`, a major upgrade (its own slice).
+- The `^7.18.1` advisory is **RSC/framework-mode only**; both apps use
+  `react-router-dom` in declarative SPA mode (`BrowserRouter` + `<Routes>`, no
+  server actions, no RSC), so the path isn't reachable here.
+- So the raw `npm audit --audit-level=high` became **`npm run audit:ci`**
+  (`scripts/audit-gate.mjs`), backed by **`.audit-allowlist.json`** — a small,
+  reviewed list of high/critical advisories that are genuinely not applicable, each
+  with a **reason, advisory URL, and `expires` date**. An allowlisted advisory is
+  reported as a justified exception; an **expired** entry stops suppressing (the
+  gate re-blocks, forcing re-review); any **new/unlisted** high still blocks.
+  Verified both ways: PASS with the entry, exit 1 with it removed. The react-router
+  v8 upgrade is tracked to retire the exception.
 
 ### Known tradeoffs / follow-ons
 
