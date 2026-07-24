@@ -31,7 +31,7 @@ services:
       API_PORT: '3000'
       DATABASE_PATH: /data/tapas.sqlite
       # Required (fail-fast). Dev fallback keeps the stack bootable; override in prod.
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-in-production}
       ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:-dev-assistant-confirmation-secret-change-me}
       # CORS allowlist = the two app origins the browser loads.
       HOST_WEB_ORIGIN: http://localhost:4173

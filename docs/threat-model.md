@@ -291,11 +291,11 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 
 | # | Gap | Risk | Why it exists / disposition |
 |---|---|---|---|
-| G1 | **`ASSISTANT_CONFIRMATION_SECRET` has a committed default** and no required override ([env.ts:22](../packages/api/src/config/env.ts)) | **High** — a deploy that forgets to set it keys the destructive-action HMAC with a repo-known secret | Convenience default for local dev leaked into prod posture. Fix: require it in production (no insecure default). |
-| G2 | **`JWT_SECRET` has no length floor** (`min(1)`) ([env.ts:12](../packages/api/src/config/env.ts)); design said 64+ | **High** — a short/weak signing key is brute-forceable | Oversight vs the design. Fix: `min(32)` (or 64) + a strong `.env.example`. |
-| G3 | **No `admin` role / `requireRole()`** — `admin` is a type never assigned; no role middleware (design.md §11B.2) | Medium — no moderation / "see all contests" capability; not a hole in *existing* endpoints (all are ownership-checked) | Never built; the app shipped with host+voter. Either build it or drop the claim. |
-| G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. |
-| G5 | **No Dependabot** (`.github/dependabot.yml` absent) | Medium — advisories are caught by the CI gate but updates are manual | Quick fix: add a Dependabot config (6.11). |
+| G1 | ~~`ASSISTANT_CONFIRMATION_SECRET` has a committed default~~ — **FIXED (6.11)** | ~~High~~ | The API now **refuses to boot in production** if this (or `JWT_SECRET`) is a committed dev default ([env.ts superRefine](../packages/api/src/config/env.ts)); dev/test keep the convenience default. |
+| G2 | ~~`JWT_SECRET` has no length floor~~ — **FIXED (6.11)** | ~~High~~ | Now `min(32, …)` ([env.ts](../packages/api/src/config/env.ts)); examples/compose bumped; `.env*.example` document 64+ random for prod. |
+| G3 | **No `admin` role / `requireRole()`** — `admin` is a type never assigned; no role middleware (design.md §11B.2) | Medium — no moderation / "see all contests" capability; not a hole in *existing* endpoints (all are ownership-checked) | Never built; the app shipped with host+voter. **Disposition (6.11): accepted for v1** — no endpoint needs it today; either build it or drop the design claim in a later slice. |
+| G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. **Deferred.** |
+| G5 | ~~No Dependabot~~ — **FIXED (6.11)** | ~~Medium~~ | Added [.github/dependabot.yml](../.github/dependabot.yml) (weekly npm + actions, grouped); the CI `audit:ci` gate vets each bump. |
 | G6 | **Contest get/close/reveal use cases have no *internal* ownership check** — route-only ([get-contest.ts:8](../packages/api/src/contests/use-cases/get-contest.ts)) | Low today — every real caller goes through the guarded route | Deliberate split; add a defense-in-depth check or a lint note so a future caller can't bypass it. |
 | G7 | **Confirmation tokens are replayable for the same action** (no nonce store) | Low — action is ownership-checked and state-gated | Single-use nonce deferred ([confirmation-token.ts:16](../packages/mcp/src/confirmation-token.ts)). |
 | G8 | **Audit log is not signed/hash-chained** | Low — requires DB-level compromise to exploit | Out of scope for v1. |
@@ -307,20 +307,26 @@ management beyond env vars (no vault/KMS), and formal pentest.
 
 ---
 
-## 5. Remediation roadmap → 6.11 (security pass)
+## 5. Remediation status (6.11 security pass)
 
-Prioritized, from this threat model:
+Worked from this threat model:
 
-1. **G1, G2 (cheap, high value):** enforce secret strength — `JWT_SECRET` `min(32)`;
-   refuse the known `ASSISTANT_CONFIRMATION_SECRET` default in production. ~10 lines
-   in `env.ts` + `.env*.example`, plus tests.
-2. **G5:** add `.github/dependabot.yml`.
-3. **G4, G6:** add source IP to destructive-action audit records; add a
-   defense-in-depth ownership assertion (or lint guard) to the contest use cases.
-4. **G3:** decide `admin`/`requireRole()` — build it or remove the design claim so
-   the artifact and the code agree.
-5. **G7–G9:** hardening polish (nonce store, signed audit log, explicit CSP/HSTS,
-   Helmet tuning) as time allows.
+- ✅ **G1, G2 — DONE.** Secret strength is enforced: `JWT_SECRET` `min(32)`, and in
+  production the API refuses to boot on any committed dev-default secret (a `superRefine`
+  in [env.ts](../packages/api/src/config/env.ts)). Examples/compose bumped; unit tests
+  cover the short-secret rejection, the prod-default rejection, and that dev/test keep
+  working. `.env*.example` document 64+ random for production.
+- ✅ **G5 — DONE.** [.github/dependabot.yml](../.github/dependabot.yml) added (weekly
+  npm + GitHub-Actions updates, grouped); the CI `audit:ci` gate vets each bump.
+- ⏸ **G3 — accepted for v1.** No endpoint needs `admin`; every existing route is
+  ownership-checked. Building `requireRole()`/`admin` (or dropping the design claim) is
+  a later decision, not a hole in what ships.
+- ⏭ **G4, G6, G7–G9 — deferred** (source IP on destructive-action audit records; a
+  defense-in-depth ownership assertion in the contest use cases; single-use nonce;
+  signed audit log; explicit CSP/HSTS tuning). Each is low-risk today and tracked here.
 
-The security **pass** (6.11) will work this list and re-verify authz on every
-endpoint, audit-log integrity, `npm audit` clean, and secrets-not-logged.
+**Pass verification (from 6.10's evidence sweep + this slice):** authorization is
+ownership-checked on every host endpoint and the MCP/assistant re-enter the same path
+(§3.1); parameterized SQL throughout (§3.5); secrets are never logged (§3.9); the CI
+supply-chain gate is green (§3.3). The two production-secret holes that were the real
+risk are now closed.
