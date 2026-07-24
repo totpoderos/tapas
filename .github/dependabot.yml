@@ -1,0 +1,22 @@
+# Dependabot (threat-model gap G5 / OWASP 2025 Software Supply Chain Failures).
+# Weekly PRs for dependency and GitHub Actions updates; the CI supply-chain gate
+# (npm run audit:ci) then vets each one. Grouped to keep PR volume sane.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One PR for routine minor/patch bumps; majors come as their own PRs.
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
