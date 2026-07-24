@@ -84,9 +84,9 @@ export function Home() {
           {state.contests.map((contest) => (
             <li key={contest.id} className={styles.row}>
               {/* A draft opens for review + publishing; a published contest opens
-                  its activity log (its detail screen for now). */}
+                  its control room (tally + close/reveal, and a link to its log). */}
               <Link
-                to={contest.status === 'draft' ? `/review/${contest.id}` : `/log/${contest.id}`}
+                to={contest.status === 'draft' ? `/review/${contest.id}` : `/contest/${contest.id}`}
                 className={styles.name}
               >
                 {contest.name}

@@ -54,7 +54,7 @@ describe('Host contest list', () => {
     expect(within(closed!).getByText('Closed')).toBeInTheDocument();
   });
 
-  it('opens a draft for review and a published contest for its activity log', async () => {
+  it('opens a draft for review and a published contest for its control room', async () => {
     vi.mocked(api.listContests).mockResolvedValue([
       summary({ id: 'draft-1', name: 'Summer Tapas', status: 'draft' }),
       summary({ id: 'live-1', name: 'Balcony Cook-off', status: 'live' }),
@@ -64,7 +64,7 @@ describe('Host contest list', () => {
     const draftLink = await screen.findByRole('link', { name: 'Summer Tapas' });
     expect(draftLink).toHaveAttribute('href', '/review/draft-1');
     // A published contest opens its activity log.
-    expect(screen.getByRole('link', { name: 'Balcony Cook-off' })).toHaveAttribute('href', '/log/live-1');
+    expect(screen.getByRole('link', { name: 'Balcony Cook-off' })).toHaveAttribute('href', '/contest/live-1');
   });
 
   it('offers a way to start a new contest', async () => {
