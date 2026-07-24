@@ -17,6 +17,12 @@ const EnvSchema = z.object({
   LLM_BASE_URL: z.string().min(1).default('http://localhost:11434/v1'),
   LLM_API_KEY: z.string().default(''),
   LLM_MODEL: z.string().min(1).default('llama3.1'),
+  // Keys the HMAC that gates the in-app assistant's destructive actions
+  // (design.md §7.1). A dev default keeps the app booting; production overrides.
+  ASSISTANT_CONFIRMATION_SECRET: z
+    .string()
+    .min(32)
+    .default('dev-assistant-confirmation-secret-change-me'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

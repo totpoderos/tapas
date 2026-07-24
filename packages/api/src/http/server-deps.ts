@@ -32,6 +32,7 @@ import type { GetTally } from '../contests/use-cases/get-tally.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
 import type { Clock } from '../audit/audit-projection.js';
+import type { LLMClient } from '@tapas/shared';
 
 export interface SecurityConfig {
   readonly isProduction: boolean;
@@ -75,4 +76,8 @@ export interface ServerDeps {
   readonly pats: HostPatRepository;
   readonly securityLog: SecurityEventLog;
   readonly security: SecurityConfig;
+  /** The LLM behind the in-app host assistant (same provider as draft extraction). */
+  readonly llmClient: LLMClient;
+  /** Secret keying the HMAC that gates the assistant's destructive actions (design.md §7.1). */
+  readonly assistantConfirmationSecret: string;
 }
