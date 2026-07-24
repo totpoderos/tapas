@@ -6,6 +6,7 @@ import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireVoterSession } from './require-voter-session.js';
 import type { ServerDeps } from './server-deps.js';
 import { setVoterCookie } from './session-cookies.js';
+import { toRevealDto } from '../contests/reveal-dto.js';
 
 interface ClaimBody {
   readonly participantId: string;
@@ -178,6 +179,39 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       const ballot = deps.getBallot.execute(request.voterSession.contestId, request.voterSession.id);
       if (!ballot.ok) return reply.code(404).send({ error: ballot.error });
       return reply.code(200).send(ballot.ballot);
+    },
+  );
+
+  // The participant view of a revealed contest — held back (409) until the host
+  // reveals, which the app polls on. Distinct from the host's `/results`.
+  app.get<{ Params: { contestId: string } }>(
+    '/contests/:contestId/reveal',
+    { preHandler: requireVoterSession(deps) },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+      const contestId = request.voterSession.contestId;
+
+      const results = deps.getResults.execute(contestId);
+      if (!results.ok) {
+        return reply
+          .code(results.error.code === 'NOT_REVEALED' ? 409 : 404)
+          .send({ error: results.error });
+      }
+
+      const contest = deps.getContest.execute(contestId);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      const names = new Map(deps.dishes.findByContest(contestId).map((d) => [d.dishId, d.name]));
+      const dto = toRevealDto(
+        contest.name,
+        contest.materialized.categories,
+        results.results,
+        (dishId) => names.get(dishId) ?? 'A dish',
+      );
+      return reply.code(200).send(dto);
     },
   );
 
