@@ -38,6 +38,11 @@ const GET_TALLY_ERROR_STATUS: Record<GetTallyErrorCode, number> = {
 export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): void {
   const requireSession = requireHostSession(deps);
 
+  app.get('/contests', { preHandler: requireSession }, async (request, reply) => {
+    if (!request.hostSession) return reply.code(401).send(notSignedIn);
+    return reply.code(200).send(deps.listMyContests.execute(request.hostSession.id));
+  });
+
   app.get<{ Params: { id: string } }>(
     '/contests/:id',
     { preHandler: requireSession },

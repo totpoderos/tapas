@@ -19,7 +19,7 @@ test('a new host creates an account and lands signed in', async ({ page }) => {
   await page.getByLabel('Email').fill('brand-new@sobremesa.es');
   await page.getByLabel('Password').fill('An0ther!Str0ngPass');
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
 });
 
 test('a returning host signs in and lands on home', async ({ page }) => {
@@ -27,7 +27,7 @@ test('a returning host signs in and lands on home', async ({ page }) => {
   await page.getByLabel('Email').fill(HOST.email);
   await page.getByLabel('Password').fill(HOST.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
 });
 
 test('the wrong password is refused with an announced error', async ({ page }) => {
@@ -44,10 +44,10 @@ test('a signed-in host is remembered across a reload', async ({ page }) => {
   await page.getByLabel('Email').fill(HOST.email);
   await page.getByLabel('Password').fill(HOST.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
 });
 
 test('a signed-in host can sign out', async ({ page }) => {
@@ -71,5 +71,5 @@ test('the sign-in screen is keyboard-operable and has no accessibility violation
   await page.keyboard.press('Tab');
   await page.keyboard.type(HOST.password);
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'You’re signed in' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
 });

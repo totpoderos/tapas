@@ -18,6 +18,9 @@ export class FakeContestRepository implements ContestRepository {
   findByJoinCode(joinCode: string): StoredContest | undefined {
     return [...this.store.values()].find((contest) => contest.joinCode === joinCode);
   }
+  findByHost(hostId: string): StoredContest[] {
+    return [...this.store.values()].filter((contest) => contest.hostId === hostId);
+  }
   updateStatus(
     id: string,
     status: StoredContest['status'],

@@ -23,6 +23,26 @@ A host SHALL be able to list, rename, and discard their own drafts through the A
 - **WHEN** a host discards their saved draft through the API
 - **THEN** the draft no longer appears among their drafts
 
+### Requirement: A host can list all of their contests over the API
+A host SHALL be able to list all of their own contests through the API in one place — drafts still being prepared and published contests alike — each marked with the state it is in (being prepared, live, closed, or revealed). Listing SHALL return only that host's contests.
+
+#### Scenario: A host sees their contests across every state, each marked with its state
+- **WHEN** a signed-in host who is preparing one contest, has a live contest, and has a revealed contest lists their contests
+- **THEN** all three contests are listed
+- **AND** the one being prepared is marked as being prepared, the live one as live, and the revealed one as revealed
+
+#### Scenario: A contest whose voting has closed is listed as closed
+- **WHEN** a signed-in host whose contest has had its voting closed lists their contests
+- **THEN** that contest is marked as closed
+
+#### Scenario: A host only sees their own contests
+- **WHEN** a host with a contest, alongside a second host with their own contest, lists their contests through the API
+- **THEN** only the requesting host's contest is listed
+
+#### Scenario: Listing contests requires being signed in
+- **WHEN** listing contests is attempted through the API with no one signed in
+- **THEN** the API refuses it as not signed in
+
 ### Requirement: A host can read their own contest over the API
 A host SHALL be able to read a contest they own through the API.
 
