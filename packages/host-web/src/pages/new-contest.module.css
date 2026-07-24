@@ -1,0 +1,192 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 28px 96px;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: auto;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--saffron);
+  box-shadow: 0 0 0 3px var(--saffron-soft);
+}
+.brand b {
+  font-family: var(--serif);
+  font-size: 21px;
+}
+.title {
+  font-size: 32px;
+  margin: 0 0 6px;
+}
+.lead {
+  color: var(--ink-2);
+  margin: 0 0 28px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* A grouped section of the rule space. */
+.group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 20px 22px;
+  margin: 0;
+}
+.legend {
+  font-family: var(--serif);
+  font-size: 19px;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.groupHint {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+
+/* Radio / checkbox choices. */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  align-items: center;
+}
+.choice input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand);
+}
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Rows of repeatable inputs (categories, participants). */
+.rows {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.row input {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+.numberField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.numberField label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.numberField input {
+  width: 120px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+.remove {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+.remove:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.add {
+  align-self: flex-start;
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--brand);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}
+.empty {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+/* Sticky-ish action bar. */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cancel {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-weight: 600;
+}
+.cancel:hover {
+  color: var(--ink);
+}
