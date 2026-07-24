@@ -1,0 +1,140 @@
+# Tapas — local-development stack.
+#
+#   docker compose up --build
+#     -> host app   http://localhost:4173
+#        participant http://localhost:4174
+#        API        http://localhost:3000  (also reached same-origin via the apps)
+#
+# The two frontends serve their built assets with `vite preview`, which forwards
+# API path prefixes to the `api` service (API_PROXY_TARGET). That keeps the
+# httpOnly session / voter cookies FIRST-PARTY to the app origin the browser sees
+# (http://localhost:4173 / :4174) — the exact model the E2E suite exercises.
+#
+# Why the API runs with NODE_ENV=development here: the cookies are always
+# `Secure; SameSite=None` (browsers honour those on http://localhost, a secure
+# context), but NODE_ENV=production additionally forces an HTTP->HTTPS *redirect*
+# that would make the stack unreachable over plain http without a TLS-terminating
+# proxy. Local dev therefore runs in development mode; the production deployment
+# (CD, task 6.4) puts TLS termination in front and sets NODE_ENV=production.
+#
+# Secrets come from a root .env (see .env.example) with safe dev fallbacks, so
+# `docker compose up` works out of the box and a real deployment overrides them.
+name: tapas
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    environment:
+      NODE_ENV: development
+      API_PORT: '3000'
+      DATABASE_PATH: /data/tapas.sqlite
+      # Required (fail-fast). Dev fallback keeps the stack bootable; override in prod.
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
+      ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:-dev-assistant-confirmation-secret-change-me}
+      # CORS allowlist = the two app origins the browser loads.
+      HOST_WEB_ORIGIN: http://localhost:4173
+      PARTICIPANT_WEB_ORIGIN: http://localhost:4174
+      # The in-app assistant's model. Defaults to an Ollama running on the HOST
+      # machine (host.docker.internal). Without it the app still runs — only the
+      # assistant's model calls fail, lazily.
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-llama3.1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    ports:
+      - '3000:3000'
+    volumes:
+      - tapas-db:/data
+    extra_hosts:
+      # Lets the container reach a host-run Ollama on Linux too (automatic on
+      # Docker Desktop, harmless there).
+      - 'host.docker.internal:host-gateway'
+    healthcheck:
+      # The slim base has no curl/wget; Node 24 has global fetch. In development
+      # mode /health returns 200 directly (no HTTPS redirect).
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  host-web:
+    build:
+      context: .
+      dockerfile: packages/host-web/Dockerfile
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - '4173:4173'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4173/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  participant-web:
+    build:
+      context: .
+      dockerfile: packages/participant-web/Dockerfile
+    environment:
+      API_PROXY_TARGET: http://api:3000
+    ports:
+      - '4174:4174'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4174/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # The MCP server speaks the protocol over STDIO — it is launched by an MCP
+  # client (e.g. Claude Desktop) as `docker run -i tapas-mcp`, not run as a
+  # long-lived network service. It is included here (opt-in profile) so it builds
+  # with the stack and can be exercised against the compose API, but it is NOT
+  # started by a plain `docker compose up`. Bring it up with:
+  #   docker compose --profile mcp run --rm mcp
+  # and supply a real host personal-access token in MCP_HOST_TOKEN.
+  mcp:
+    build:
+      context: .
+      dockerfile: packages/mcp/Dockerfile
+    profiles: ['mcp']
+    stdin_open: true
+    environment:
+      API_BASE_URL: http://api:3000
+      MCP_HOST_TOKEN: ${MCP_HOST_TOKEN:-}
+      MCP_CONFIRMATION_SECRET: ${MCP_CONFIRMATION_SECRET:-dev-mcp-confirmation-secret-change-me}
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  # Named volume so the SQLite database survives `docker compose down` (removed
+  # only with `docker compose down -v`).
+  tapas-db:
