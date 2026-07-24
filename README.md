@@ -6,7 +6,7 @@ Tapas is an AI-augmented app for organized tapas competitions: a host opens a co
 
 It is also a master's thesis project, so three things are first-class deliverables alongside the features: **security** (OWASP-mapped, with a written [threat model](docs/threat-model.md)), **evaluated AI** (three AI surfaces, each with its own eval set and committed thresholds), and **accessibility** (WCAG 2.1 AA, gated in CI).
 
-> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **935 unit/acceptance tests + 56 Playwright E2E**, all axe-clean. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/tapas-contest-app/proposal.md), [design](openspec/changes/tapas-contest-app/design.md), [tasks](openspec/changes/tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/tapas-contest-app/glossary.md).
+> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **935 unit/acceptance tests + 58 Playwright E2E**, all axe-clean. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/tapas-contest-app/proposal.md), [design](openspec/changes/tapas-contest-app/design.md), [tasks](openspec/changes/tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/tapas-contest-app/glossary.md).
 
 ## The idea
 
@@ -42,7 +42,7 @@ Open the **host app**, sign up, create a contest (form or chat), publish it, and
 
 ```bash
 npm test          # 935 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
-npm run test:e2e  # 56 whole-system E2E (Playwright: real API + both apps + SQLite), axe-gated
+npm run test:e2e  # 58 whole-system E2E (Playwright: real API + both apps + SQLite), axe-gated
 npm run typecheck
 npm run lint
 npm run audit:ci  # supply-chain gate: blocks on high/critical advisories
@@ -108,7 +108,7 @@ AI is integrated in three distinct places, each with the same discipline (schema
 - **DDD** — rich tactical modeling in the core (the rule space + pure compiler) in a `domain` package with zero I/O (lint-enforced); pragmatic elsewhere.
 - **TDD / ATDD** — outside-in double loop: Gherkin `*.feature` acceptance specs (domain language only — the glossary as executable tests) over unit TDD. Acceptance tests run against real in-memory SQLite, faking only the LLM, clock, and notifications.
 - **Security** (the degree's curriculum anchor) — ownership-checked authorization on every endpoint, bcrypt + hand-rolled HS256 tokens in httpOnly/Secure cookies, account lockout, parameterized SQL, injection defenses, rate limiting, secrets hygiene. Mapped to the OWASP Top 10 — with the gaps named honestly — in [`docs/threat-model.md`](docs/threat-model.md).
-- **Accessibility** — WCAG 2.1 AA; the participant app is used live at a venue (one-handed, poor light, time pressure), so accessibility is core UX, not a compliance checkbox.
+- **Accessibility** — WCAG 2.1 AA; the participant app is used live at a venue (one-handed, poor light, time pressure), so accessibility is core UX, not a compliance checkbox. axe (component + E2E) and a 320 px reflow test gate every PR; the pass, including what is *not* covered, is in [`docs/accessibility.md`](docs/accessibility.md).
 
 ## Tech stack
 

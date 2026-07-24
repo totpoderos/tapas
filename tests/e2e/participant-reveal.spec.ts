@@ -107,6 +107,6 @@ test('the reveal is accessible and honours reduced motion', async ({ page }) => 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`${PARTICIPANT}/reveal`);
   await expect(page.locator('.pt-reveal-winner')).toBeVisible();
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 });
