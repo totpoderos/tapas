@@ -1,0 +1,181 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 28px 96px;
+}
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 28px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: auto;
+}
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--saffron);
+  box-shadow: 0 0 0 3px var(--saffron-soft);
+}
+.brand b {
+  font-family: var(--serif);
+  font-size: 21px;
+}
+.back {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-weight: 600;
+}
+.back:hover {
+  color: var(--ink);
+}
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.title {
+  font-size: 32px;
+  margin: 0;
+}
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font: 600 13px var(--sans);
+}
+.live {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.closed {
+  background: var(--pending-soft);
+  color: var(--pending);
+}
+.revealed {
+  background: var(--saffron-soft);
+  color: var(--on-saffron);
+}
+.note {
+  color: var(--ink-2);
+  margin: 0;
+}
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-weight: 600;
+  margin: 16px 0;
+}
+
+/* Join code, for sharing. */
+.code {
+  margin: 20px 0;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.codeLabel {
+  color: var(--ink-2);
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+.codeValue {
+  font-family: var(--mono);
+  font-size: 28px;
+  letter-spacing: 0.12em;
+}
+
+/* Tally. */
+.tally {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+}
+.stat {
+  flex: 1;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  text-align: center;
+}
+.statNum {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-variant-numeric: tabular-nums;
+}
+.statLabel {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+.logLink {
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.logLink:hover {
+  text-decoration: underline;
+}
+
+/* Confirmation dialog. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 12, 18, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+.card {
+  width: min(440px, 100%);
+  background: var(--surface);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  border-top: 4px solid var(--danger);
+}
+.cardTitle {
+  font-size: 20px;
+  margin: 0 0 8px;
+}
+.cardBody {
+  color: var(--ink-2);
+  margin: 0 0 20px;
+}
+.cardActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}

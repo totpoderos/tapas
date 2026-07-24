@@ -38,7 +38,9 @@ test('a host opens a contest’s activity log from their list', async ({ page })
   await contestWithHistory(page.request, 'Balcony Cook-off');
 
   await page.goto('/');
+  // A published contest opens its control room; the activity log is a link from there.
   await page.getByRole('link', { name: 'Balcony Cook-off' }).click();
+  await page.getByRole('link', { name: 'Activity log' }).click();
 
   await expect(page.getByRole('heading', { name: 'Activity log' })).toBeVisible();
   const list = page.getByRole('list', { name: 'Activity' });

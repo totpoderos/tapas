@@ -19,11 +19,18 @@ export class ApiError extends Error {
   }
 }
 
-async function send(path: string, method: 'GET' | 'POST' | 'PATCH', body?: unknown): Promise<Response> {
+async function send(
+  path: string,
+  method: 'GET' | 'POST' | 'PATCH',
+  body?: unknown,
+  extraHeaders?: Record<string, string>,
+): Promise<Response> {
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (body !== undefined) headers['content-type'] = 'application/json';
   return fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
-    headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 }
@@ -184,6 +191,52 @@ export async function getAuditLog(contestId: string): Promise<AuditEntry[]> {
   const response = await send(`/contests/${encodeURIComponent(contestId)}/audit`, 'GET');
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as AuditEntry[];
+}
+
+/** The live-contest control view of a contest a host owns. */
+export interface ContestDetail {
+  readonly id: string;
+  readonly name: string;
+  readonly status: 'live' | 'closed' | 'revealed';
+  readonly joinCode: string;
+}
+
+/** How the contest is progressing: who has joined, is still scoring, and has sent their vote. */
+export interface Tally {
+  readonly claimedCount: number;
+  readonly draftCount: number;
+  readonly sentCount: number;
+}
+
+/** Reads a contest the host owns; throws ApiError (404/403 when not theirs). */
+export async function getContest(id: string): Promise<ContestDetail> {
+  const response = await send(`/contests/${encodeURIComponent(id)}`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  const dto = (await response.json()) as ContestDetail;
+  return { id: dto.id, name: dto.name, status: dto.status, joinCode: dto.joinCode };
+}
+
+/** Reads the live tally of a contest the host owns. */
+export async function getTally(id: string): Promise<Tally> {
+  const response = await send(`/contests/${encodeURIComponent(id)}/tally`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Tally;
+}
+
+// The host is confirming in the UI, so these carry the host-confirmation marker —
+// the audit log records the close/reveal as confirmed by the host (design.md §7.1).
+const HOST_CONFIRMED = { 'x-tapas-confirmation': 'host' };
+
+/** Closes voting on a live contest (host-confirmed); throws ApiError. */
+export async function closeContest(id: string): Promise<void> {
+  const response = await send(`/contests/${encodeURIComponent(id)}/close`, 'POST', undefined, HOST_CONFIRMED);
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/** Reveals a closed contest (host-confirmed); throws ApiError. */
+export async function revealContest(id: string): Promise<void> {
+  const response = await send(`/contests/${encodeURIComponent(id)}/reveal`, 'POST', undefined, HOST_CONFIRMED);
+  if (!response.ok) throw await errorFrom(response);
 }
 
 /** Confirms a destructive action the assistant asked about, carrying it out. */
