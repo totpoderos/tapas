@@ -37,6 +37,20 @@
   margin: 0;
 }
 
+/* Secondary nav link (Assistant): a plain, 44px-tall text link. */
+.assistantLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  color: var(--brand);
+  font-weight: 600;
+  text-decoration: none;
+}
+.assistantLink:hover {
+  text-decoration: underline;
+}
+
 /* "New contest" — a link that reads as the primary action (design: brand button). */
 .newButton {
   display: inline-flex;

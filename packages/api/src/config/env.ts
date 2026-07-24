@@ -23,6 +23,9 @@ const EnvSchema = z.object({
     .string()
     .min(32)
     .default('dev-assistant-confirmation-secret-change-me'),
+  // Test-only: when 1, the assistant runs on a deterministic keyword stub instead
+  // of a real model, so a headless E2E can drive it. Never set in production.
+  ASSISTANT_STUB: z.coerce.number().int().default(0),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

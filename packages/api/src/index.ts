@@ -64,6 +64,7 @@ export {
   NON_DEFAULTABLE_FIELDS,
 } from './drafts/extraction/contest-draft-tool.js';
 export type { ProposedDraft, Source } from './drafts/extraction/contest-draft-tool.js';
+export { KeywordStubLLMClient } from './llm/keyword-stub-llm-client.js';
 export { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
 export { LLMTimeoutError } from './llm/openai-compatible-llm-client.js';
 export type { OpenAiCompatibleLLMClientOptions } from './llm/openai-compatible-llm-client.js';

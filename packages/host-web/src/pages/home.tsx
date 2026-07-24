@@ -44,6 +44,9 @@ export function Home() {
           <span className={styles.dot} aria-hidden="true" />
           <b>Tapas</b>
         </div>
+        <Link to="/chat" className={styles.assistantLink}>
+          Assistant
+        </Link>
         <Link to="/new" className={styles.newButton}>
           New contest
         </Link>

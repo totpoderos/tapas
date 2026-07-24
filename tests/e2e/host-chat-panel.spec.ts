@@ -1,0 +1,119 @@
+import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+
+/**
+ * Implements tests/e2e/host-chat-panel.feature against a real API (run with the
+ * deterministic ASSISTANT_STUB) + the host app in a real browser. The stub maps
+ * what the host types to a tool call, so the propose → confirm → act loop runs
+ * end-to-end with no live model: "start a draft called X" → create_draft, and
+ * "close ... <contest-id>" → close_contest.
+ */
+const PASSWORD = 'Str0ng!Passw0rd';
+
+function completeContent(name: string) {
+  const person = (id: string, partnerId: string) => ({ id, displayName: id, partnerId });
+  return {
+    name,
+    attribution: 'per_person',
+    antiBias: 'couples',
+    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
+  };
+}
+
+async function signInFreshHost(request: APIRequestContext, email: string): Promise<void> {
+  await request.post('/auth/register', { data: { email, password: PASSWORD } });
+  await request.post('/auth/login', { data: { email, password: PASSWORD } });
+}
+
+async function liveContest(request: APIRequestContext, name: string): Promise<string> {
+  const created = await request.post('/drafts', { data: completeContent(name) });
+  const draftId = (await created.json()).id as string;
+  await request.post(`/drafts/${draftId}/publish`);
+  return draftId;
+}
+
+async function statusOf(request: APIRequestContext, contestId: string): Promise<string> {
+  const res = await request.get(`/contests/${contestId}`);
+  return (await res.json()).status as string;
+}
+
+async function sendMessage(page: Page, text: string): Promise<void> {
+  await page.getByLabel('Message the assistant').fill(text);
+  await page.getByRole('button', { name: 'Send' }).click();
+}
+
+test('the assistant answers when it needs more detail', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-clarify@sobremesa.es');
+  await page.goto('/chat');
+  await sendMessage(page, 'what can you do?');
+
+  await expect(page.getByText('Which contest do you mean?')).toBeVisible();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+});
+
+test('the assistant carries out a reversible action and shows what it did', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-create@sobremesa.es');
+  await page.goto('/chat');
+  await sendMessage(page, 'start a draft called Summer Tapas');
+
+  await expect(page.getByText(/create draft/i)).toBeVisible();
+  const drafts = await page.request.get('/drafts');
+  const names = (await drafts.json()).map((d: { content: { name: string } }) => d.content.name);
+  expect(names).toContain('Summer Tapas');
+});
+
+test('a destructive action is held behind a confirmation card', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
+  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+  await expect(page.getByRole('alertdialog')).toContainText(/close this contest/i);
+  expect(await statusOf(page.request, id)).toBe('live');
+});
+
+test('confirming the card carries out the action', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-confirm@sobremesa.es');
+  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+
+  await page.getByRole('button', { name: 'Yes, do it' }).click();
+
+  await expect(page.getByText(/close this contest — now closed/i)).toBeVisible();
+  expect(await statusOf(page.request, id)).toBe('closed');
+});
+
+test('cancelling the card changes nothing', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-cancel@sobremesa.es');
+  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+
+  await page.getByRole('button', { name: 'Cancel' }).click();
+
+  await expect(page.getByText(/cancelled — nothing was changed/i)).toBeVisible();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  expect(await statusOf(page.request, id)).toBe('live');
+});
+
+test('the chat panel is keyboard-operable and has no accessibility violations', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-a11y@sobremesa.es');
+  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+  await expect(page.getByRole('alertdialog')).toBeVisible();
+
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  expect(results.violations).toEqual([]);
+
+  // Focus opened on the safe default (Cancel); Tab to the confirm and press Enter.
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Yes, do it' })).toBeFocused();
+  await page.keyboard.press('Enter');
+
+  await expect(page.getByText(/close this contest — now closed/i)).toBeVisible();
+  expect(await statusOf(page.request, id)).toBe('closed');
+});

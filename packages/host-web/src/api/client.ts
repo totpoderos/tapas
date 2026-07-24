@@ -136,3 +136,38 @@ export async function publishDraft(id: string): Promise<string> {
   if (!response.ok) throw await errorFrom(response);
   return ((await response.json()) as { id: string }).id;
 }
+
+/** A single message in the assistant conversation. */
+export interface AssistantMessage {
+  readonly role: 'user' | 'assistant';
+  readonly content: string;
+}
+
+/** A destructive action the host is being asked to confirm — echoed back verbatim to confirm it. */
+export interface PendingAction {
+  readonly action: string;
+  readonly args: Record<string, unknown>;
+  readonly confirmationToken: string;
+}
+
+/** The assistant's response to one turn: a plain reply, a carried-out action, or a confirmation request. */
+export type AssistantTurn =
+  | { readonly kind: 'reply'; readonly text: string }
+  | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
+  | ({ readonly kind: 'confirm'; readonly message: string } & PendingAction);
+
+async function assistant(body: unknown): Promise<AssistantTurn> {
+  const response = await send('/assistant/messages', 'POST', body);
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as AssistantTurn;
+}
+
+/** Sends the conversation so far and returns the assistant's next turn. */
+export async function sendAssistantMessage(messages: readonly AssistantMessage[]): Promise<AssistantTurn> {
+  return assistant({ messages });
+}
+
+/** Confirms a destructive action the assistant asked about, carrying it out. */
+export async function confirmAssistantAction(pending: PendingAction): Promise<AssistantTurn> {
+  return assistant({ confirm: pending });
+}

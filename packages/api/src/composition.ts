@@ -2,6 +2,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { LLMClient } from '@tapas/shared';
 import type { Env } from './config/env.js';
 import type { Clock } from './audit/audit-projection.js';
+import { KeywordStubLLMClient } from './llm/keyword-stub-llm-client.js';
 import { OpenAiCompatibleLLMClient } from './llm/openai-compatible-llm-client.js';
 import { ExtractContestDraft } from './drafts/extraction/extract-contest-draft.js';
 import { MergeContestDraft } from './drafts/extraction/merge-contest-draft.js';
@@ -53,11 +54,13 @@ export function buildProductionDeps(
   env: Env,
   clock: Clock = new SystemClock(),
   hasher: PasswordHasher = new BcryptPasswordHasher(BCRYPT_COST),
-  llmClient: LLMClient = new OpenAiCompatibleLLMClient({
-    baseUrl: env.LLM_BASE_URL,
-    apiKey: env.LLM_API_KEY,
-    model: env.LLM_MODEL,
-  }),
+  llmClient: LLMClient = env.ASSISTANT_STUB === 1
+    ? new KeywordStubLLMClient()
+    : new OpenAiCompatibleLLMClient({
+        baseUrl: env.LLM_BASE_URL,
+        apiKey: env.LLM_API_KEY,
+        model: env.LLM_MODEL,
+      }),
 ): ServerDeps {
   const ids = new UuidIdGenerator();
 
