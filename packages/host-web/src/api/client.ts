@@ -69,3 +69,37 @@ export async function listContests(): Promise<ContestSummary[]> {
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as ContestSummary[];
 }
+
+/** How a dish is credited: to each cook, or to a couple as a pair. */
+export type Attribution = 'per_person' | 'per_couple';
+/** Which same-side scoring is barred, to guard against bias. */
+export type AntiBias = 'none' | 'couples' | 'arbitrary_pairs';
+/** The score band voters use: derived automatically, or a fixed min–max. */
+export type ScoreRange = { readonly type: 'auto' } | { readonly type: 'fixed'; readonly min: number; readonly max: number };
+
+export interface ScoringConfig {
+  readonly categories: readonly { readonly id: string; readonly name: string }[];
+  readonly range: ScoreRange;
+  readonly uniquePerCategory: boolean;
+}
+
+export interface Participant {
+  readonly id: string;
+  readonly displayName: string;
+}
+
+/** The editable content of a draft. Only `name` is required; the rest is filled over time. */
+export interface DraftContent {
+  readonly name: string;
+  readonly attribution?: Attribution;
+  readonly antiBias?: AntiBias;
+  readonly scoring?: ScoringConfig;
+  readonly participants?: readonly Participant[];
+}
+
+/** Saves a new contest draft; throws ApiError (e.g. a name is required). Returns the draft's id. */
+export async function createDraft(content: DraftContent): Promise<string> {
+  const response = await send('/drafts', 'POST', content);
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { id: string }).id;
+}
