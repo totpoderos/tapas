@@ -140,3 +140,38 @@ export async function sendVote(contestId: string): Promise<void> {
   const response = await send(`/contests/${encodeURIComponent(contestId)}/send-vote`, 'POST');
   if (!response.ok) throw await errorFrom(response);
 }
+
+/** A dish's place on a reveal leaderboard. */
+export interface Standing {
+  readonly dishId: string;
+  readonly name: string;
+  readonly total: number;
+}
+export interface Winner {
+  readonly dishId: string;
+  readonly name: string;
+}
+
+/** The revealed results: winners and leaderboards, by dish name. */
+export interface Reveal {
+  readonly contestName: string;
+  readonly overall: { readonly winners: readonly Winner[]; readonly standings: readonly Standing[] };
+  readonly categories: readonly {
+    readonly categoryId: string;
+    readonly name: string;
+    readonly winners: readonly Winner[];
+    readonly standings: readonly Standing[];
+  }[];
+}
+
+/**
+ * Reads the revealed results, or `null` while the contest hasn't been revealed
+ * yet (the app polls on that). Throws ApiError for other failures (401 when the
+ * caller hasn't claimed a place).
+ */
+export async function getReveal(contestId: string): Promise<Reveal | null> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/reveal`, 'GET');
+  if (response.status === 409) return null; // not revealed yet
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Reveal;
+}
