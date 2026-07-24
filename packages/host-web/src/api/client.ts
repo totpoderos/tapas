@@ -19,7 +19,7 @@ export class ApiError extends Error {
   }
 }
 
-async function send(path: string, method: 'GET' | 'POST', body?: unknown): Promise<Response> {
+async function send(path: string, method: 'GET' | 'POST' | 'PATCH', body?: unknown): Promise<Response> {
   return fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
@@ -100,6 +100,39 @@ export interface DraftContent {
 /** Saves a new contest draft; throws ApiError (e.g. a name is required). Returns the draft's id. */
 export async function createDraft(content: DraftContent): Promise<string> {
   const response = await send('/drafts', 'POST', content);
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { id: string }).id;
+}
+
+/** A stored draft, as returned when reading one for review. */
+export interface StoredDraft {
+  readonly id: string;
+  readonly content: DraftContent;
+  readonly status: 'draft';
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
+/** Reads one of the host's drafts for review; throws ApiError (404 when it isn't theirs / doesn't exist). */
+export async function getDraft(id: string): Promise<StoredDraft> {
+  const response = await send(`/drafts/${encodeURIComponent(id)}`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as StoredDraft;
+}
+
+/** Renames a draft; throws ApiError. Returns nothing — the caller re-reads or navigates. */
+export async function renameDraft(id: string, name: string): Promise<void> {
+  const response = await send(`/drafts/${encodeURIComponent(id)}`, 'PATCH', { name });
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/**
+ * Publishes a draft into a live contest. On failure the thrown `ApiError` carries
+ * the API's host-facing reason (e.g. the draft is incomplete), which the caller
+ * surfaces to the host. Returns the new live contest's id.
+ */
+export async function publishDraft(id: string): Promise<string> {
+  const response = await send(`/drafts/${encodeURIComponent(id)}/publish`, 'POST');
   if (!response.ok) throw await errorFrom(response);
   return ((await response.json()) as { id: string }).id;
 }

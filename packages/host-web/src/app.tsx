@@ -3,6 +3,7 @@ import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
 import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
+import { ReviewDraft } from './pages/review-draft';
 import { useSession } from './auth/session';
 
 /**
@@ -30,6 +31,13 @@ export function App() {
       <Route path="/sign-up" element={authed ? <Navigate to="/" replace /> : <SignUp />} />
       <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
       <Route path="/new" element={authed ? <NewContest /> : <Navigate to="/sign-in" replace />} />
+      {/* `/review/:id`, not `/drafts/:id`: the dev/preview proxy forwards
+          `/drafts/*` to the API, so a browsable route there would be proxied
+          away on a direct load or reload. The API reads still use `/drafts`. */}
+      <Route
+        path="/review/:id"
+        element={authed ? <ReviewDraft /> : <Navigate to="/sign-in" replace />}
+      />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
   );
