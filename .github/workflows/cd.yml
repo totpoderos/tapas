@@ -1,0 +1,100 @@
+name: CD
+
+# Deploy-on-tag (tasks.md 6.4). Cutting a version tag (`v1.2.3`) builds and
+# pushes the four service images to GHCR, then runs a dry-run "deploy" that
+# renders the production compose manifest against the just-pushed tag. There is
+# no real host in this thesis, so the deploy step validates the manifest rather
+# than shipping to a server; swapping in a real `ssh` / `compose up` step on a
+# provisioned host is the only change a real deployment needs.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag to build/push (e.g. v0.0.0-test)'
+        required: true
+        default: v0.0.0-test
+
+permissions:
+  contents: read
+  packages: write # push to GHCR
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  # --- Build + push the four images to GHCR ----------------------------------
+  images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api, mcp, host-web, participant-web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Resolve version + lowercase owner
+        id: meta
+        run: |
+          ref='${{ github.event.inputs.tag }}'
+          [ -z "$ref" ] && ref='${{ github.ref_name }}'
+          echo "version=$ref" >> "$GITHUB_OUTPUT"
+          echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: packages/${{ matrix.service }}/Dockerfile
+          push: true
+          # Single-manifest image (no attestation) — see the 6.1 note in
+          # docs/infra-generation.md on why provenance is disabled here.
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner }}/tapas-${{ matrix.service }}:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ steps.meta.outputs.owner }}/tapas-${{ matrix.service }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # --- Dry-run deploy: render the production manifest against the pushed tag --
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve version + lowercase owner
+        id: meta
+        run: |
+          ref='${{ github.event.inputs.tag }}'
+          [ -z "$ref" ] && ref='${{ github.ref_name }}'
+          echo "version=$ref" >> "$GITHUB_OUTPUT"
+          echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - name: Render production compose against the pushed images (dry run)
+        # `config` resolves image refs, env, and volumes — it fails if the
+        # manifest is malformed or an image ref can't be composed. This is the
+        # deploy gate in the absence of a real target host.
+        env:
+          REGISTRY_OWNER: ${{ steps.meta.outputs.owner }}
+          TAG: ${{ steps.meta.outputs.version }}
+          HOST_DOMAIN: host.example.com
+          PARTICIPANT_DOMAIN: app.example.com
+          # Placeholder secrets so `config` validates; a real deploy injects real ones.
+          JWT_SECRET: dry-run-placeholder-secret-not-used-anywhere
+          ASSISTANT_CONFIRMATION_SECRET: dry-run-placeholder-confirmation-secret-32c
+          TLS_EMAIL: admin@example.com
+        run: |
+          echo "Would deploy these images:"
+          docker compose -f docker-compose.prod.yml config --images
+          echo
+          docker compose -f docker-compose.prod.yml config >/dev/null && echo "production manifest is valid"
+      - name: Deploy summary
+        run: |
+          {
+            echo "## CD dry run — ${{ steps.meta.outputs.version }}"
+            echo "Pushed to \`${{ env.REGISTRY }}/${{ steps.meta.outputs.owner }}/tapas-{api,mcp,host-web,participant-web}\`."
+            echo "A real deploy pulls this tag on the target host and runs \`docker compose -f docker-compose.prod.yml up -d\` behind Caddy TLS."
+          } >> "$GITHUB_STEP_SUMMARY"
