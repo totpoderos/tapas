@@ -11,7 +11,14 @@ expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, hasSession: vi.fn(), register: vi.fn(), signIn: vi.fn(), signOut: vi.fn() };
+  return {
+    ...actual,
+    hasSession: vi.fn(),
+    register: vi.fn(),
+    signIn: vi.fn(),
+    signOut: vi.fn(),
+    listContests: vi.fn(),
+  };
 });
 import * as api from '../../src/api/client';
 
@@ -30,6 +37,7 @@ describe('Host sign-up', () => {
     vi.mocked(api.hasSession).mockResolvedValue(false);
     vi.mocked(api.register).mockReset();
     vi.mocked(api.signIn).mockReset();
+    vi.mocked(api.listContests).mockResolvedValue([]);
   });
   afterEach(() => vi.clearAllMocks());
 
@@ -45,7 +53,7 @@ describe('Host sign-up', () => {
 
     expect(api.register).toHaveBeenCalledWith('new@sobremesa.es', 'Str0ng!Passw0rd');
     expect(api.signIn).toHaveBeenCalledWith('new@sobremesa.es', 'Str0ng!Passw0rd');
-    expect(await screen.findByRole('heading', { name: 'You’re signed in' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();
   });
 
   it('shows a form notice when the email is already registered', async () => {

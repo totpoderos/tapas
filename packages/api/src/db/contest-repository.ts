@@ -7,6 +7,8 @@ export interface ContestRepository {
   insert(contest: StoredContest): void;
   findById(id: string): StoredContest | undefined;
   findByJoinCode(joinCode: string): StoredContest | undefined;
+  /** Every contest a host owns, whatever its state — backs the host's contest list. */
+  findByHost(hostId: string): StoredContest[];
   /** Persists a status transition (close/reveal) — the rest of a contest is immutable after publish. */
   updateStatus(
     id: string,
@@ -82,6 +84,13 @@ export class SqliteContestRepository implements ContestRepository {
       .prepare(`SELECT * FROM contests WHERE join_code = ?`)
       .get(joinCode) as unknown as ContestRow | undefined;
     return row ? toContest(row) : undefined;
+  }
+
+  findByHost(hostId: string): StoredContest[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM contests WHERE host_id = ? ORDER BY created_at`)
+      .all(hostId) as unknown as ContestRow[];
+    return rows.map(toContest);
   }
 
   updateStatus(

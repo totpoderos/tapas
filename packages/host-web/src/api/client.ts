@@ -54,3 +54,18 @@ export async function hasSession(): Promise<boolean> {
   const response = await send('/drafts', 'GET');
   return response.ok;
 }
+
+/** A one-line view of a host's contest, whatever state it is in — the contest list's rows. */
+export interface ContestSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly status: 'draft' | 'live' | 'closed' | 'revealed';
+  readonly updatedAt: string;
+}
+
+/** Every contest the signed-in host owns, most recently touched first. */
+export async function listContests(): Promise<ContestSummary[]> {
+  const response = await send('/contests', 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as ContestSummary[];
+}

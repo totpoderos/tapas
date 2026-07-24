@@ -30,6 +30,7 @@ import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
+import { ListMyContests } from './contests/use-cases/list-my-contests.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { CloseContest } from './contests/use-cases/close-contest.js';
 import { RevealContest } from './contests/use-cases/reveal-contest.js';
@@ -96,6 +97,7 @@ export function buildProductionDeps(
       joinCodes: new RandomJoinCodeGenerator(),
     }),
     getContest: new GetContest(contests),
+    listMyContests: new ListMyContests({ drafts, contests }),
     closeContest: new CloseContest({ contests, clock }),
     revealContest: new RevealContest({ contests, clock }),
     getResults: new GetResults({ contests, voteSessions }),
