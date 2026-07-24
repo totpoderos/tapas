@@ -48,3 +48,13 @@ export {
 export type { CaseOutcome, HAMetricCounts, HAMetrics, ProposedCall } from './host-assistant/metrics.js';
 export { runHostAssistantEval } from './host-assistant/run-eval.js';
 export type { HACaseResult, HAEvalReport } from './host-assistant/run-eval.js';
+
+// Threshold gate (tasks.md 6.3) — committed thresholds + the pure pass/fail check.
+export { checkThresholds, formatGateResult } from './gate.js';
+export type { GateResult, GateRow } from './gate.js';
+export {
+  CREATION_THRESHOLDS,
+  HOST_ASSISTANT_THRESHOLDS,
+  THRESHOLDS_BY_SUITE,
+} from './thresholds.js';
+export type { EvalSuite, Threshold, ThresholdKind } from './thresholds.js';

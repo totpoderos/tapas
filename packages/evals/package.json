@@ -11,6 +11,7 @@
   "scripts": {
     "eval:creation": "tsx src/cli.ts",
     "eval:host-assistant": "tsx src/host-assistant-cli.ts",
+    "eval:gate": "tsx src/gate-cli.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

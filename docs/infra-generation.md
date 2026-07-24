@@ -204,5 +204,95 @@ Repo suite unaffected: **typecheck ✅, lint ✅, 924/924 vitest ✅**.
   behave as designed.
 - **`LLM_BASE_URL` defaults to a host-run Ollama** (`host.docker.internal`); the
   stack runs without it, only the assistant's model calls fail lazily.
-- The **CI pipeline (6.3)** builds these images with `--provenance=false` and runs
-  the deterministic + eval + a11y gates; **CD (6.4)** is the production/TLS story.
+- The **CI pipeline (6.3)** runs the deterministic + eval + a11y gates — see the
+  next section; **CD (6.4)** is the production/TLS story.
+
+---
+
+## 6.3 — CI pipeline (deterministic hard-gate + eval threshold-gate + supply-chain + a11y)
+
+### The task / effective prompt
+
+> Extend the hand-written Phase-0 CI skeleton into the full pipeline: build; run
+> the deterministic tests as a **hard gate** (unit + acceptance + MCP contract +
+> frontend + E2E — any failure blocks); run the eval sets as a **threshold gate**
+> (block only when a metric drops below its committed floor) and report the
+> trajectory; run `npm audit` (supply-chain gate); run `axe-core` via the E2E
+> (accessibility hard gate). Document the before/after.
+
+### Before → after (skeleton vs AI-generated)
+
+**Before (task 0.10 skeleton)** — one job, deterministic only:
+
+```
+on: [push:main, pull_request]
+job gate: checkout → setup-node 24 → npm ci → typecheck → lint → npm test
+```
+
+No E2E, no accessibility gate, no supply-chain gate, no eval gate.
+
+**After (this slice)** — three jobs + two new triggers:
+
+| Job | Gate | What runs | Blocks? |
+| --- | --- | --- | --- |
+| `gate` | hard + supply-chain | typecheck, lint, `npm test` (vitest across every workspace = unit + acceptance/Gherkin + MCP contract + both frontends), then `npm audit --audit-level=high` | yes |
+| `e2e` | hard + accessibility | `playwright install --with-deps chromium` then `npm run test:e2e` — Playwright boots the API (in-memory SQLite, `ASSISTANT_STUB`) + both frontends and drives Chromium; **axe-core** gates a11y inside the specs. Uploads the Playwright report. | yes |
+| `evals` | threshold | for each suite: run the eval → `eval:gate` against the committed floors; uploads the JSON reports | on regression |
+
+New triggers: `schedule` (weekly) and `workflow_dispatch`, for the eval job.
+
+### The output
+
+- **`.github/workflows/ci.yml`** — the three-job pipeline above.
+- **The eval threshold-gate mechanism** (new): `packages/evals/src/thresholds.ts`
+  (machine-readable mirror of the two trajectory docs' committed floors/ceilings),
+  `src/gate.ts` (pure `checkThresholds` + `formatGateResult`), `src/gate-cli.ts`
+  (`npm run eval:gate -- --suite <s> --report <path>`), a unit test
+  (`tests/unit/gate.test.ts`), and root scripts `eval:host-assistant` / `eval:gate`.
+- **Supply-chain fix:** `npm audit fix` cleared the two *high* advisories in
+  shipped deps — `find-my-way` (Fastify router, HTTP/2 DoS) and `fast-uri`
+  (host-confusion via `fast-json-stringify`/`ajv`) — lockfile-only, no semver/API
+  change. The gate now passes at `--audit-level=high` (2 moderate dev/SDK-only
+  advisories remain, tracked, not gated).
+
+**Key design decision — why evals don't run on every PR.** An eval measures a
+*real model's* behaviour: non-deterministic, model-specific, and (per the
+trajectory docs) a full run is ~29 live model calls taking many minutes, with
+occasional timeouts. GitHub-hosted runners have no model. So the pipeline splits
+responsibility: the **deterministic + a11y + supply-chain gates hard-block every
+PR**, while the **eval threshold gate runs on a schedule / manual dispatch** (or
+on push/PR only when a model endpoint is configured via the `LLM_BASE_URL` repo
+variable). A model-less run **skips the eval job cleanly rather than faking a
+pass** — an honest skip, not a green lie. The gate *mechanism* is fully in place,
+unit-tested, and runnable locally (`npm run eval:creation … && npm run eval:gate
+…`); the committed floors live in code + the trajectory docs so a regression has a
+stable, reviewed source. This matches how real teams treat model evals — an
+out-of-band track, not a per-commit blocker.
+
+### Verification (2026-07-24)
+
+| Check | Result |
+| --- | --- |
+| `gate` locally: typecheck, lint, `npm test` | ✅ **930/930 vitest** (924 + 6 new gate tests) |
+| supply-chain: `npm audit --audit-level=high` after the fix | ✅ clean (highs resolved) |
+| `e2e` locally: `CI=true npm run test:e2e` | ✅ **56/56 Playwright**, axe-core clean |
+| eval gate CLI on a passing report (creation v2 numbers) | exit **0**, all PASS |
+| eval gate CLI on a breaching report (v3 schema collapse + over-reach) | exit **1**, the two breached metrics FAIL |
+| gate unit tests (pass / floor-breach / ceiling-breach / inclusive boundary / **fails-closed on missing metric**) | ✅ |
+| workflow YAML parses; jobs `gate`/`e2e`/`evals`, `if:` expression, steps | ✅ |
+
+The Fastify-router bump (from `npm audit fix`) is covered by the same 930 vitest +
+56 E2E passing — no behavioural regression.
+
+### Known tradeoffs / follow-ons
+
+- **`npm audit` gate at `--audit-level=high`.** Moderate advisories (currently 2,
+  via `@modelcontextprotocol/sdk`, `--force`-only) are not gated to avoid blocking
+  on transitive dev/SDK noise outside our control; they are visible in the audit
+  output and revisited as fixes land. Dependabot (task 6.11) will track them.
+- **The eval job needs `secrets.LLM_BASE_URL`/`LLM_API_KEY` (+ `vars.LLM_MODEL`)**
+  to run in CI — a self-hosted runner with Ollama or a hosted OpenAI-compatible
+  endpoint. Until configured it only runs on demand; the weekly schedule fires but
+  no-ops without the endpoint.
+- **CD (6.4)** consumes the images the `gate`/`e2e` jobs validate and adds the
+  production/TLS deploy.

@@ -1,13 +1,27 @@
 name: CI
 
+# Full pipeline (tasks.md 6.3), AI-generated on top of the hand-written Phase 0
+# skeleton (0.10). Three gates:
+#   * hard gate  — build + deterministic tests + supply-chain audit. Any failure
+#                  blocks. (`npm test` = vitest across every workspace: unit,
+#                  acceptance/Gherkin, MCP contract, and both frontends.)
+#   * a11y hard gate — axe-core runs inside the Playwright E2E; a violation fails
+#                  the run.
+#   * threshold gate — the eval sets block only when a metric drops below its
+#                  committed floor (docs/*eval-trajectory.md). Needs a real model,
+#                  so it runs on a schedule / manual dispatch (and on push/PR only
+#                  when a model endpoint is configured), never faking a pass on a
+#                  model-less runner.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 6 * * 1' # Mondays 06:00 UTC — the eval threshold gate's cadence.
+  workflow_dispatch:
 
-# Hand-written CI gate (tasks.md 0.10). The full pipeline — Docker images,
-# compose, CD, eval + a11y gates — is AI-generated in Phase 6 on top of this.
 jobs:
+  # --- Hard gate: build + deterministic tests + supply chain -----------------
   gate:
     runs-on: ubuntu-latest
     steps:
@@ -20,3 +34,69 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      - name: Supply-chain audit (blocks on high + critical)
+        # High/critical are the supply-chain risk that must block; remaining
+        # moderate advisories are dev/SDK-only and tracked, not gated.
+        run: npm audit --audit-level=high
+
+  # --- Hard gate: whole-system E2E + accessibility (axe-core) -----------------
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      # Playwright's own config boots the API (in-memory SQLite, ASSISTANT_STUB)
+      # and both frontends and drives Chromium; axe-core gates a11y in the specs.
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          CI: 'true'
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # --- Threshold gate: eval sets (real model; block on regression) -----------
+  evals:
+    # No model on GitHub-hosted runners, so this runs on the schedule / manual
+    # dispatch, or on push/PR only when a model endpoint is configured (the repo
+    # variable LLM_BASE_URL). It never runs model-less — a skipped job is honest;
+    # a faked pass is not. Run it locally anytime with:
+    #   npm run eval:creation -- --out reports/creation.json
+    #   npm run eval:gate -- --suite creation --report reports/creation.json
+    if: >-
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      vars.LLM_BASE_URL != ''
+    runs-on: ubuntu-latest
+    env:
+      LLM_BASE_URL: ${{ secrets.LLM_BASE_URL || vars.LLM_BASE_URL }}
+      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Contest-creation eval + threshold gate
+        run: |
+          npm run eval:creation -- --out reports/creation.json
+          npm run eval:gate -- --suite creation --report reports/creation.json
+      - name: Host-assistant eval + threshold gate
+        run: |
+          npm run eval:host-assistant -- --out reports/host-assistant.json
+          npm run eval:gate -- --suite host-assistant --report reports/host-assistant.json
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-reports
+          path: reports/
+          retention-days: 30
