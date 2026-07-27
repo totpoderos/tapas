@@ -82,6 +82,19 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     },
   );
 
+  // What's inside a contest, found by name: participants + scoring categories,
+  // reading the same for a draft or a published contest. Ownership-scoped. A
+  // static path, so it is matched ahead of `/contests/:id`.
+  app.get<{ Querystring: { name?: string } }>(
+    '/contests/details',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const name = request.query.name ?? '';
+      return reply.code(200).send(deps.getContestDetails.execute(request.hostSession.id, name));
+    },
+  );
+
   app.get<{ Params: { id: string } }>(
     '/contests/:id',
     { preHandler: requireSession },

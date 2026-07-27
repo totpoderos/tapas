@@ -35,6 +35,32 @@ interface ContestRow {
   readonly status: string;
 }
 
+interface ContestDetails {
+  readonly name: string;
+  readonly status: string;
+  readonly participants: readonly string[];
+  readonly categories: readonly string[];
+}
+
+/** Reads the get_contest_details response: one contest's details, or candidates to choose from. */
+function readDetails(result: unknown): { details?: ContestDetails; candidates?: ContestRow[] } {
+  if (!result || typeof result !== 'object') return {};
+  const record = result as Record<string, unknown>;
+  const candidates = contestRows(record.candidates);
+  if (record.details && typeof record.details === 'object') {
+    const d = record.details as Record<string, unknown>;
+    return {
+      details: {
+        name: typeof d.name === 'string' ? d.name : '',
+        status: typeof d.status === 'string' ? d.status : '',
+        participants: Array.isArray(d.participants) ? d.participants.map(String) : [],
+        categories: Array.isArray(d.categories) ? d.categories.map(String) : [],
+      },
+    };
+  }
+  return { candidates: candidates ?? [] };
+}
+
 /** Reads a contest list out of a tool result, defensively — null if it is not one. */
 function contestRows(result: unknown): ContestRow[] | null {
   if (!Array.isArray(result)) return null;
@@ -53,10 +79,18 @@ function summariseRows(rows: ContestRow[]): string {
   return `Your contests: ${rows.map((r) => `${r.name} (${r.status})`).join(', ')}.`;
 }
 
+/** A one-line recap of a contest's details, kept in the conversation for context. */
+function detailsSummary(details: ContestDetails): string {
+  const who = details.participants.length ? details.participants.join(', ') : 'no one yet';
+  const cats = details.categories.length ? details.categories.join(', ') : 'no categories yet';
+  return `${details.name} (${details.status}) — taking part: ${who}; scored on: ${cats}.`;
+}
+
 type Feed =
   | { readonly id: number; readonly kind: 'user' | 'assistant' | 'note'; readonly text: string }
   | { readonly id: number; readonly kind: 'ticket'; readonly text: string }
-  | { readonly id: number; readonly kind: 'contests'; readonly rows: readonly ContestRow[] };
+  | { readonly id: number; readonly kind: 'contests'; readonly rows: readonly ContestRow[] }
+  | { readonly id: number; readonly kind: 'details'; readonly details: ContestDetails };
 
 /** Omit that distributes over a union, so each member keeps its own fields. */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -91,6 +125,20 @@ export function Chat() {
       const text = turn.text.trim() || 'I didn’t catch that. Try, for example, “list my contests”.';
       add({ kind: 'assistant', text });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
+    } else if (turn.kind === 'result' && turn.action === 'get_contest_details') {
+      // Details resolve to one contest, or to candidates when a name is shared.
+      const { details, candidates } = readDetails(turn.result);
+      if (details) {
+        add({ kind: 'details', details });
+        setHistory((h) => [...h, { role: 'assistant', content: detailsSummary(details) }]);
+      } else if (candidates && candidates.length > 0) {
+        add({ kind: 'note', text: 'Several contests have that name — which one?' });
+        add({ kind: 'contests', rows: candidates });
+        setHistory((h) => [...h, { role: 'assistant', content: 'Several contests have that name.' }]);
+      } else {
+        add({ kind: 'note', text: 'No contest by that name.' });
+        setHistory((h) => [...h, { role: 'assistant', content: 'No contest by that name.' }]);
+      }
     } else if (turn.kind === 'result') {
       const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result) : null;
       if (rows) {
@@ -176,6 +224,26 @@ export function Chat() {
           item.kind === 'ticket' ? (
             <div key={item.id} className={styles.ticket}>
               <span className={styles.ticketAction}>{item.text}</span>
+            </div>
+          ) : item.kind === 'details' ? (
+            <div key={item.id} className={styles.details}>
+              <div className={styles.detailsHead}>
+                <span className={styles.contestMark} aria-hidden="true">
+                  {STATUS_MARK[item.details.status] ?? '•'}
+                </span>
+                <span className={styles.contestName}>{item.details.name}</span>
+                <span className={styles.contestStatus}>{item.details.status}</span>
+              </div>
+              <dl className={styles.detailsBody}>
+                <dt className={styles.detailsTerm}>Taking part</dt>
+                <dd className={styles.detailsValue}>
+                  {item.details.participants.length ? item.details.participants.join(', ') : 'No one yet'}
+                </dd>
+                <dt className={styles.detailsTerm}>Scored on</dt>
+                <dd className={styles.detailsValue}>
+                  {item.details.categories.length ? item.details.categories.join(', ') : 'No categories yet'}
+                </dd>
+              </dl>
             </div>
           ) : item.kind === 'contests' ? (
             <ul key={item.id} className={styles.contestList} aria-label="Contests">

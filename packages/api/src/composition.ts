@@ -31,6 +31,7 @@ import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
+import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { ListMyContests } from './contests/use-cases/list-my-contests.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
@@ -104,6 +105,12 @@ export function buildProductionDeps(
     getContest: new GetContest(contests),
     listMyContests: new ListMyContests({ drafts, contests }),
     findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+    getContestDetails: new GetContestDetails({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      contests,
+      roster,
+    }),
     closeContest: new CloseContest({ contests, clock, audit }),
     revealContest: new RevealContest({ contests, clock, audit }),
     getResults: new GetResults({ contests, voteSessions }),

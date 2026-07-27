@@ -145,6 +145,37 @@
   text-transform: capitalize;
 }
 
+/* A contest's details returned by get_contest_details. */
+.details {
+  align-self: flex-start;
+  max-width: 78%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.detailsHead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.detailsBody {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 8px 0 0;
+}
+.detailsTerm {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.detailsValue {
+  margin: 0;
+  color: var(--ink);
+}
+
 /* Composer. */
 .composer {
   display: flex;

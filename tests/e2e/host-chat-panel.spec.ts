@@ -74,6 +74,30 @@ test("the assistant lists the host's contests by name", async ({ page }) => {
   await expect(log.getByText('Tapas Night')).toBeVisible();
 });
 
+test("the assistant shows a contest's participants by name", async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-details@sobremesa.es');
+  // A contest whose participants are Ana and Bob (so the details are recognisable).
+  const created = await page.request.post('/drafts', {
+    data: {
+      name: 'Tapas Night',
+      attribution: 'per_person',
+      antiBias: 'none',
+      scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
+      participants: [
+        { id: 'a', displayName: 'Ana' },
+        { id: 'b', displayName: 'Bob' },
+      ],
+    },
+  });
+  await page.request.post(`/drafts/${(await created.json()).id}/publish`);
+  await page.goto('/chat');
+  await sendMessage(page, "who is in Tapas Night");
+
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('Ana, Bob')).toBeVisible();
+  await expect(log.getByText('Taste')).toBeVisible();
+});
+
 test('a destructive action is held behind a confirmation card', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

@@ -35,6 +35,16 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('maps get_contest_details to a GET on the details endpoint, url-encoding the name', () => {
+    const getContestDetails = TOOL_CATALOG.find((tool) => tool.name === 'get_contest_details');
+    expect(getContestDetails?.scope).toBe('host');
+    expect(getContestDetails?.destructive).toBe(false);
+    expect(getContestDetails?.toRequest({ name: 'Tapas Night' })).toEqual({
+      method: 'GET',
+      path: '/contests/details?name=Tapas%20Night',
+    });
+  });
+
   it('maps get_draft to a GET on the draft', () => {
     const getDraft = TOOL_CATALOG.find((tool) => tool.name === 'get_draft');
     expect(getDraft?.scope).toBe('host');

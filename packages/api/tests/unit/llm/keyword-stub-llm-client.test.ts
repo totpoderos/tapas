@@ -26,6 +26,16 @@ describe('KeywordStubLLMClient (test-only assistant stub)', () => {
     expect(out.toolCalls).toEqual([{ name: 'find_contest', arguments: { name: 'Tapas Night' } }]);
   });
 
+  it('maps "details of <name>" to a get_contest_details tool call', async () => {
+    const out = await ask('show me the details of Tapas Night');
+    expect(out.toolCalls).toEqual([{ name: 'get_contest_details', arguments: { name: 'Tapas Night' } }]);
+  });
+
+  it('maps "who\'s in <name>" to a get_contest_details tool call', async () => {
+    const out = await ask("who's in Tapas Night");
+    expect(out.toolCalls).toEqual([{ name: 'get_contest_details', arguments: { name: 'Tapas Night' } }]);
+  });
+
   it('asks to clarify when it recognises no action', async () => {
     const out = await ask('what can you do?');
     expect(out.toolCalls).toEqual([]);
