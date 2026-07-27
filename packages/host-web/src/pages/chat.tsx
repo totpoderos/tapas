@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Button } from '@tapas/ui';
 import {
   confirmAssistantAction,
@@ -10,19 +12,20 @@ import {
 } from '../api/client';
 import styles from './chat.module.css';
 
-const ACTION_LABEL: Record<string, string> = {
-  close_contest: 'close this contest',
-  publish_contest: 'publish this contest',
-  trigger_reveal: 'reveal the results',
-};
-const labelFor = (action: string) => ACTION_LABEL[action] ?? action.replace(/_/g, ' ');
+// Known actions have a fixed, human phrasing (translated fixed UI); anything else
+// falls back to the raw action name made readable — that fallback is data, not chrome.
+const ACTION_KEYS = new Set(['close_contest', 'publish_contest', 'trigger_reveal']);
+const labelFor = (action: string, t: TFunction) =>
+  ACTION_KEYS.has(action) ? t(`chat.action.${action}`) : action.replace(/_/g, ' ');
 
-function resultSummary(action: string, result: unknown): string {
+function resultSummary(action: string, result: unknown, t: TFunction): string {
   const status =
     result && typeof result === 'object' && 'status' in result
       ? String((result as { status: unknown }).status)
       : undefined;
-  return status ? `✓ ${labelFor(action)} — now ${status}` : `✓ ${labelFor(action)} — done`;
+  return status
+    ? t('chat.resultNow', { action: labelFor(action, t), status })
+    : t('chat.resultDone', { action: labelFor(action, t) });
 }
 
 // Read tools that return a *list of contests* — their answer is the data, so it
@@ -45,10 +48,10 @@ interface ContestDetails {
 }
 
 /** Reads the get_contest_details response: one contest's details, or candidates to choose from. */
-function readDetails(result: unknown): { details?: ContestDetails; candidates?: ContestRow[] } {
+function readDetails(result: unknown, t: TFunction): { details?: ContestDetails; candidates?: ContestRow[] } {
   if (!result || typeof result !== 'object') return {};
   const record = result as Record<string, unknown>;
-  const candidates = contestRows(record.candidates);
+  const candidates = contestRows(record.candidates, t);
   if (record.details && typeof record.details === 'object') {
     const d = record.details as Record<string, unknown>;
     return {
@@ -64,28 +67,29 @@ function readDetails(result: unknown): { details?: ContestDetails; candidates?: 
 }
 
 /** Reads a contest list out of a tool result, defensively — null if it is not one. */
-function contestRows(result: unknown): ContestRow[] | null {
+function contestRows(result: unknown, t: TFunction): ContestRow[] | null {
   if (!Array.isArray(result)) return null;
   return result.map((row) => {
     const record = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
     return {
-      name: typeof record.name === 'string' ? record.name : '(unnamed contest)',
+      name: typeof record.name === 'string' ? record.name : t('chat.unnamedContest'),
       status: typeof record.status === 'string' ? record.status : '',
     };
   });
 }
 
 /** A one-line recap of a contest list, kept in the conversation so the model has context. */
-function summariseRows(rows: ContestRow[]): string {
-  if (rows.length === 0) return 'You have no contests.';
-  return `Your contests: ${rows.map((r) => `${r.name} (${r.status})`).join(', ')}.`;
+function summariseRows(rows: ContestRow[], t: TFunction): string {
+  if (rows.length === 0) return t('chat.contestsRecapEmpty');
+  const list = rows.map((r) => `${r.name} (${r.status})`).join(', ');
+  return t('chat.contestsRecap', { list });
 }
 
 /** A one-line recap of a contest's details, kept in the conversation for context. */
-function detailsSummary(details: ContestDetails): string {
-  const who = details.participants.length ? details.participants.join(', ') : 'no one yet';
-  const cats = details.categories.length ? details.categories.join(', ') : 'no categories yet';
-  return `${details.name} (${details.status}) — taking part: ${who}; scored on: ${cats}.`;
+function detailsSummary(details: ContestDetails, t: TFunction): string {
+  const who = details.participants.length ? details.participants.join(', ') : t('chat.recapNoOne');
+  const cats = details.categories.length ? details.categories.join(', ') : t('chat.recapNoCategories');
+  return t('chat.detailsRecap', { name: details.name, status: details.status, who, cats });
 }
 
 type Feed =
@@ -130,6 +134,7 @@ function loadChat(): PersistedChat {
  * surfaces a confirmation card the host must accept first (§7.1).
  */
 export function Chat() {
+  const { t } = useTranslation();
   const initial = useMemo(loadChat, []);
   const [feed, setFeed] = useState<readonly Feed[]>(initial.feed);
   const [history, setHistory] = useState<readonly AssistantMessage[]>(initial.history);
@@ -166,44 +171,47 @@ export function Chat() {
     if (turn.kind === 'reply') {
       // A small model sometimes returns an empty reply; show a nudge rather than
       // a blank bubble, so the host always gets a response.
-      const text = turn.text.trim() || 'I didn’t catch that. Try, for example, “list my contests”.';
+      const text = turn.text.trim() || t('chat.nudge');
       add({ kind: 'assistant', text });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
     } else if (turn.kind === 'result' && DETAILS_ACTIONS.has(turn.action)) {
       // Details resolve to one contest, or to candidates when a name is shared.
-      const { details, candidates } = readDetails(turn.result);
+      const { details, candidates } = readDetails(turn.result, t);
       if (details) {
         add({ kind: 'details', details });
-        setHistory((h) => [...h, { role: 'assistant', content: detailsSummary(details) }]);
+        setHistory((h) => [...h, { role: 'assistant', content: detailsSummary(details, t) }]);
       } else if (candidates && candidates.length > 0) {
-        add({ kind: 'note', text: 'Several contests have that name — which one?' });
+        add({ kind: 'note', text: t('chat.severalWhichOne') });
         add({ kind: 'contests', rows: candidates });
-        setHistory((h) => [...h, { role: 'assistant', content: 'Several contests have that name.' }]);
+        setHistory((h) => [...h, { role: 'assistant', content: t('chat.severalRecap') }]);
       } else {
         // Adding/removing works on a draft; the details tool works on any contest.
         const text =
-          turn.action === 'get_contest_details' ? 'No contest by that name.' : 'No draft by that name to change.';
+          turn.action === 'get_contest_details' ? t('chat.noContestByName') : t('chat.noDraftByName');
         add({ kind: 'note', text });
         setHistory((h) => [...h, { role: 'assistant', content: text }]);
       }
     } else if (turn.kind === 'result') {
-      const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result) : null;
+      const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result, t) : null;
       if (rows) {
         // A read tool's answer IS its data — render the contests, not a "done" ticket.
         if (rows.length === 0) {
           add({
             kind: 'note',
-            text: turn.action === 'find_contest' ? 'No contest by that name.' : 'You have no contests yet.',
+            text: turn.action === 'find_contest' ? t('chat.noContestByName') : t('chat.noContestsYet'),
           });
         } else {
           add({ kind: 'contests', rows });
         }
         if (turn.text) add({ kind: 'assistant', text: turn.text });
-        setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows) }]);
+        setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows, t) }]);
       } else {
-        add({ kind: 'ticket', text: resultSummary(turn.action, turn.result) });
+        add({ kind: 'ticket', text: resultSummary(turn.action, turn.result, t) });
         if (turn.text) add({ kind: 'assistant', text: turn.text });
-        setHistory((h) => [...h, { role: 'assistant', content: turn.text || `Done — ${labelFor(turn.action)}.` }]);
+        setHistory((h) => [
+          ...h,
+          { role: 'assistant', content: turn.text || t('chat.doneRecap', { action: labelFor(turn.action, t) }) },
+        ]);
       }
     } else {
       add({ kind: 'assistant', text: turn.message });
@@ -223,7 +231,7 @@ export function Chat() {
     try {
       applyTurn(await sendAssistantMessage(nextHistory));
     } catch {
-      add({ kind: 'note', text: 'Something went wrong. Please try again.' });
+      add({ kind: 'note', text: t('chat.errorGeneric') });
     } finally {
       setBusy(false);
     }
@@ -237,7 +245,7 @@ export function Chat() {
     try {
       applyTurn(await confirmAssistantAction(action));
     } catch {
-      add({ kind: 'note', text: 'Something went wrong carrying that out. Please try again.' });
+      add({ kind: 'note', text: t('chat.errorCarryingOut') });
     } finally {
       setBusy(false);
       inputRef.current?.focus();
@@ -246,8 +254,8 @@ export function Chat() {
 
   function onCancel() {
     setPending(null);
-    add({ kind: 'note', text: 'Cancelled — nothing was changed.' });
-    setHistory((h) => [...h, { role: 'assistant', content: 'Cancelled — nothing was changed.' }]);
+    add({ kind: 'note', text: t('chat.cancelled') });
+    setHistory((h) => [...h, { role: 'assistant', content: t('chat.cancelled') }]);
     inputRef.current?.focus();
   }
 
@@ -256,17 +264,17 @@ export function Chat() {
       <div className={styles.bar}>
         <div className={styles.brand}>
           <span className={styles.dot} aria-hidden="true" />
-          <b>Tapas</b>
+          <b>{t('common.brand')}</b>
         </div>
         <Link to="/" className={styles.back}>
-          Back to contests
+          {t('chat.back')}
         </Link>
       </div>
 
-      <h1 className={styles.title}>Assistant</h1>
-      <p className={styles.lead}>Tell the assistant what to do with your contests, in plain language.</p>
+      <h1 className={styles.title}>{t('chat.title')}</h1>
+      <p className={styles.lead}>{t('chat.lead')}</p>
 
-      <div className={styles.feed} role="log" aria-label="Conversation" aria-live="polite">
+      <div className={styles.feed} role="log" aria-label={t('chat.conversationLabel')} aria-live="polite">
         {feed.map((item) =>
           item.kind === 'ticket' ? (
             <div key={item.id} className={styles.ticket}>
@@ -282,18 +290,18 @@ export function Chat() {
                 <span className={styles.contestStatus}>{item.details.status}</span>
               </div>
               <dl className={styles.detailsBody}>
-                <dt className={styles.detailsTerm}>Taking part</dt>
+                <dt className={styles.detailsTerm}>{t('chat.takingPart')}</dt>
                 <dd className={styles.detailsValue}>
-                  {item.details.participants.length ? item.details.participants.join(', ') : 'No one yet'}
+                  {item.details.participants.length ? item.details.participants.join(', ') : t('chat.noOneYet')}
                 </dd>
-                <dt className={styles.detailsTerm}>Scored on</dt>
+                <dt className={styles.detailsTerm}>{t('chat.scoredOn')}</dt>
                 <dd className={styles.detailsValue}>
-                  {item.details.categories.length ? item.details.categories.join(', ') : 'No categories yet'}
+                  {item.details.categories.length ? item.details.categories.join(', ') : t('chat.noCategoriesYet')}
                 </dd>
               </dl>
             </div>
           ) : item.kind === 'contests' ? (
-            <ul key={item.id} className={styles.contestList} aria-label="Contests">
+            <ul key={item.id} className={styles.contestList} aria-label={t('chat.contestsLabel')}>
               {item.rows.map((row, index) => (
                 <li key={index} className={styles.contestRow}>
                   <span className={styles.contestMark} aria-hidden="true">
@@ -321,14 +329,14 @@ export function Chat() {
         <input
           ref={inputRef}
           className={styles.input}
-          aria-label="Message the assistant"
-          placeholder="e.g. Close my contest"
+          aria-label={t('chat.composerLabel')}
+          placeholder={t('chat.composerPlaceholder')}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={busy}
         />
         <Button type="submit" disabled={busy || !input.trim()}>
-          {busy ? 'Working…' : 'Send'}
+          {busy ? t('chat.working') : t('chat.send')}
         </Button>
       </form>
 
@@ -351,6 +359,7 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -390,17 +399,18 @@ function ConfirmDialog({
         className={styles.card}
       >
         <h2 id="confirm-title" className={styles.cardTitle}>
-          <span aria-hidden="true">⚠</span> Confirm
+          <span aria-hidden="true">⚠</span> {t('chat.confirmTitle')}
         </h2>
         <p id="confirm-body" className={styles.cardBody}>
-          The assistant wants to <span className={styles.cardDetail}>{labelFor(action)}</span>. This can’t be undone.
+          {t('chat.confirmBodyLead')} <span className={styles.cardDetail}>{labelFor(action, t)}</span>
+          {t('chat.confirmBodyTail')}
         </p>
         <div className={styles.cardActions}>
           <Button variant="ghost" onClick={onCancel}>
-            Cancel
+            {t('chat.cancel')}
           </Button>
           <Button variant="danger" onClick={onConfirm}>
-            Yes, do it
+            {t('chat.confirmYes')}
           </Button>
         </div>
       </div>

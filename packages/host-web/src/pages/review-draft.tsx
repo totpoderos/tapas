@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button, FormField } from '@tapas/ui';
 import {
@@ -13,14 +14,14 @@ import {
 } from '../api/client';
 import styles from './review-draft.module.css';
 
-const ATTRIBUTION: readonly { value: Attribution; label: string }[] = [
-  { value: 'per_person', label: 'Each person is scored on their own' },
-  { value: 'per_couple', label: 'Each couple is scored together' },
+const ATTRIBUTION: readonly { value: Attribution; labelKey: string }[] = [
+  { value: 'per_person', labelKey: 'attributionPerPerson' },
+  { value: 'per_couple', labelKey: 'attributionPerCouple' },
 ];
-const ANTI_BIAS: readonly { value: AntiBias; label: string }[] = [
-  { value: 'none', label: 'No restriction' },
-  { value: 'couples', label: 'Couples cannot score each other' },
-  { value: 'arbitrary_pairs', label: 'Chosen pairs cannot score each other' },
+const ANTI_BIAS: readonly { value: AntiBias; labelKey: string }[] = [
+  { value: 'none', labelKey: 'antiBiasNone' },
+  { value: 'couples', labelKey: 'antiBiasCouples' },
+  { value: 'arbitrary_pairs', labelKey: 'antiBiasArbitrary' },
 ];
 
 interface Category {
@@ -48,6 +49,7 @@ type State =
  * and a publish failure is surfaced with the API's own reason.
  */
 export function ReviewDraft() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const nextKey = useRef(0);
@@ -185,7 +187,7 @@ export function ReviewDraft() {
     setError(undefined);
     setSaved(false);
     if (!name.trim()) {
-      setNameError('A name is required.');
+      setNameError(t('reviewDraft.nameRequired'));
       return;
     }
     setNameError(undefined);
@@ -194,7 +196,7 @@ export function ReviewDraft() {
       await updateDraft(id, buildContent());
       setSaved(true);
     } catch {
-      setError('Your changes couldn’t be saved. Please try again.');
+      setError(t('reviewDraft.saveError'));
     } finally {
       setSaving(false);
     }
@@ -209,8 +211,8 @@ export function ReviewDraft() {
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.message
-          ? `This contest can’t go live yet: ${caught.message}`
-          : 'This contest couldn’t be published. Please try again.',
+          ? t('reviewDraft.publishError', { reason: caught.message })
+          : t('reviewDraft.publishErrorGeneric'),
       );
       setPublishing(false);
     }
@@ -221,34 +223,34 @@ export function ReviewDraft() {
       <div className={styles.bar}>
         <div className={styles.brand}>
           <span className={styles.dot} aria-hidden="true" />
-          <b>Tapas</b>
+          <b>{t('common.brand')}</b>
         </div>
         <Link to="/" className={styles.back}>
-          Back to contests
+          {t('reviewDraft.back')}
         </Link>
       </div>
 
       {state.kind === 'loading' && (
         <p role="status" className={styles.note}>
-          Loading the draft…
+          {t('reviewDraft.loading')}
         </p>
       )}
       {state.kind === 'missing' && (
         <>
-          <h1 className={styles.title}>Draft not found</h1>
-          <p className={styles.note}>This draft doesn’t exist, or isn’t yours to review.</p>
+          <h1 className={styles.title}>{t('reviewDraft.notFoundTitle')}</h1>
+          <p className={styles.note}>{t('reviewDraft.notFoundBody')}</p>
         </>
       )}
       {state.kind === 'error' && (
         <p role="alert" className={styles.note}>
-          The draft couldn’t be loaded. Please try again.
+          {t('reviewDraft.loadError')}
         </p>
       )}
 
       {state.kind === 'ready' && (
         <>
-          <h1 className={styles.title}>Edit “{name}”</h1>
-          <p className={styles.lead}>Change any of the rules, save, and publish it when you’re ready to go live.</p>
+          <h1 className={styles.title}>{t('reviewDraft.editTitle', { name })}</h1>
+          <p className={styles.lead}>{t('reviewDraft.lead')}</p>
 
           {error ? (
             <div className={styles.alert} role="alert">
@@ -258,14 +260,14 @@ export function ReviewDraft() {
           ) : null}
           {saved ? (
             <p className={styles.saved} role="status">
-              Saved.
+              {t('reviewDraft.saved')}
             </p>
           ) : null}
 
           <form className={styles.form} onSubmit={onSave} noValidate>
             <FormField
               id="draft-name"
-              label="Contest name"
+              label={t('reviewDraft.nameLabel')}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -275,7 +277,7 @@ export function ReviewDraft() {
             />
 
             <fieldset className={styles.group}>
-              <legend className={styles.legend}>How dishes are attributed</legend>
+              <legend className={styles.legend}>{t('reviewDraft.attributionLegend')}</legend>
               <div className={styles.choices}>
                 {ATTRIBUTION.map((option) => (
                   <label key={option.value} className={styles.choice}>
@@ -285,14 +287,14 @@ export function ReviewDraft() {
                       checked={attribution === option.value}
                       onChange={() => setAttribution(option.value)}
                     />
-                    {option.label}
+                    {t(`reviewDraft.${option.labelKey}`)}
                   </label>
                 ))}
               </div>
             </fieldset>
 
             <fieldset className={styles.group}>
-              <legend className={styles.legend}>Guarding against bias</legend>
+              <legend className={styles.legend}>{t('reviewDraft.antiBiasLegend')}</legend>
               <div className={styles.choices}>
                 {ANTI_BIAS.map((option) => (
                   <label key={option.value} className={styles.choice}>
@@ -302,19 +304,19 @@ export function ReviewDraft() {
                       checked={antiBias === option.value}
                       onChange={() => setAntiBias(option.value)}
                     />
-                    {option.label}
+                    {t(`reviewDraft.${option.labelKey}`)}
                   </label>
                 ))}
               </div>
             </fieldset>
 
             <fieldset className={styles.group}>
-              <legend className={styles.legend}>Scoring</legend>
-              <ul className={styles.rows} aria-label="Scoring categories">
+              <legend className={styles.legend}>{t('reviewDraft.scoringLegend')}</legend>
+              <ul className={styles.rows} aria-label={t('reviewDraft.scoringCategoriesLabel')}>
                 {categories.map((category, index) => (
                   <li key={category.key} className={styles.row}>
                     <input
-                      aria-label={`Category ${index + 1} name`}
+                      aria-label={t('reviewDraft.categoryName', { number: index + 1 })}
                       value={category.name}
                       onChange={(e) =>
                         setCategories((rows) =>
@@ -325,10 +327,10 @@ export function ReviewDraft() {
                     <button
                       type="button"
                       className={styles.remove}
-                      aria-label={`Remove category ${index + 1}`}
+                      aria-label={t('reviewDraft.removeCategory', { number: index + 1 })}
                       onClick={() => setCategories((rows) => rows.filter((r) => r.key !== category.key))}
                     >
-                      Remove
+                      {t('reviewDraft.remove')}
                     </button>
                   </li>
                 ))}
@@ -338,29 +340,29 @@ export function ReviewDraft() {
                 className={styles.add}
                 onClick={() => setCategories((r) => [...r, { key: freshId(), name: '' }])}
               >
-                Add category
+                {t('reviewDraft.addCategory')}
               </button>
 
               <fieldset className={styles.group} style={{ marginTop: 20 }}>
-                <legend className={styles.legend}>Score range</legend>
+                <legend className={styles.legend}>{t('reviewDraft.rangeLegend')}</legend>
                 <div className={styles.choices}>
                   <label className={styles.choice}>
                     <input type="radio" name="range" checked={rangeType === 'auto'} onChange={() => setRangeType('auto')} />
-                    Set it automatically
+                    {t('reviewDraft.rangeAuto')}
                   </label>
                   <label className={styles.choice}>
                     <input type="radio" name="range" checked={rangeType === 'fixed'} onChange={() => setRangeType('fixed')} />
-                    Fixed range
+                    {t('reviewDraft.rangeFixed')}
                   </label>
                 </div>
                 {rangeType === 'fixed' ? (
                   <div className={styles.inline} style={{ marginTop: 12 }}>
                     <div className={styles.numberField}>
-                      <label htmlFor="range-min">Lowest score</label>
+                      <label htmlFor="range-min">{t('reviewDraft.rangeMin')}</label>
                       <input id="range-min" type="number" value={rangeMin} onChange={(e) => setRangeMin(e.target.value)} />
                     </div>
                     <div className={styles.numberField}>
-                      <label htmlFor="range-max">Highest score</label>
+                      <label htmlFor="range-max">{t('reviewDraft.rangeMax')}</label>
                       <input id="range-max" type="number" value={rangeMax} onChange={(e) => setRangeMax(e.target.value)} />
                     </div>
                   </div>
@@ -373,15 +375,15 @@ export function ReviewDraft() {
                   checked={uniquePerCategory}
                   onChange={(e) => setUniquePerCategory(e.target.checked)}
                 />
-                A voter can’t give the same score twice in a category
+                {t('reviewDraft.uniquePerCategory')}
               </label>
             </fieldset>
 
             <fieldset className={styles.group}>
-              <legend className={styles.legend}>Participants</legend>
+              <legend className={styles.legend}>{t('reviewDraft.participants')}</legend>
               <div className={styles.row}>
                 <input
-                  aria-label="New participant name"
+                  aria-label={t('reviewDraft.newParticipantLabel')}
                   value={personDraft}
                   onChange={(e) => setPersonDraft(e.target.value)}
                   onKeyDown={(e) => {
@@ -392,21 +394,23 @@ export function ReviewDraft() {
                   }}
                 />
                 <button type="button" className={styles.remove} onClick={addPerson}>
-                  Add
+                  {t('reviewDraft.add')}
                 </button>
               </div>
 
               {people.length === 0 ? (
-                <p className={styles.empty}>No participants yet.</p>
+                <p className={styles.empty}>{t('reviewDraft.emptyParticipants')}</p>
               ) : (
-                <ul className={styles.rows} aria-label="Participants">
+                <ul className={styles.rows} aria-label={t('reviewDraft.participants')}>
                   {people.map((person, index) => {
                     const others = people.filter((p) => p.id !== person.id);
+                    const fallbackName =
+                      person.displayName || t('reviewDraft.participantFallback', { number: index + 1 });
                     return (
                       <li key={person.id} className={styles.personRow}>
                         <div className={styles.row}>
                           <input
-                            aria-label={`Participant ${index + 1} name`}
+                            aria-label={t('reviewDraft.participantName', { number: index + 1 })}
                             value={person.displayName}
                             onChange={(e) =>
                               setPeople((ps) =>
@@ -415,16 +419,16 @@ export function ReviewDraft() {
                             }
                           />
                           <label className={styles.partner}>
-                            <span className={styles.partnerLabel}>Partner</span>
+                            <span className={styles.partnerLabel}>{t('reviewDraft.partnerLabel')}</span>
                             <select
-                              aria-label={`Partner of ${person.displayName || `participant ${index + 1}`}`}
+                              aria-label={t('reviewDraft.partnerOf', { name: fallbackName })}
                               value={person.partnerId ?? ''}
                               onChange={(e) => setPartner(person.id, e.target.value || null)}
                             >
-                              <option value="">— none —</option>
+                              <option value="">{t('reviewDraft.partnerNone')}</option>
                               {others.map((o) => (
                                 <option key={o.id} value={o.id}>
-                                  {o.displayName || '(unnamed)'}
+                                  {o.displayName || t('reviewDraft.unnamed')}
                                 </option>
                               ))}
                             </select>
@@ -432,15 +436,15 @@ export function ReviewDraft() {
                           <button
                             type="button"
                             className={styles.remove}
-                            aria-label={`Remove ${person.displayName || `participant ${index + 1}`}`}
+                            aria-label={t('reviewDraft.removePerson', { name: fallbackName })}
                             onClick={() => removePerson(person.id)}
                           >
-                            Remove
+                            {t('reviewDraft.remove')}
                           </button>
                         </div>
                         {others.length > 0 ? (
                           <details className={styles.noScore}>
-                            <summary>Can’t score…</summary>
+                            <summary>{t('reviewDraft.cantScore')}</summary>
                             <ul className={styles.noScoreList}>
                               {others.map((o) => (
                                 <li key={o.id}>
@@ -450,7 +454,7 @@ export function ReviewDraft() {
                                       checked={person.noScoreWith.includes(o.id)}
                                       onChange={() => toggleNoScore(person.id, o.id)}
                                     />
-                                    {o.displayName || '(unnamed)'}
+                                    {o.displayName || t('reviewDraft.unnamed')}
                                   </label>
                                 </li>
                               ))}
@@ -466,13 +470,13 @@ export function ReviewDraft() {
 
             <div className={styles.actions}>
               <Button type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? t('reviewDraft.saving') : t('reviewDraft.save')}
               </Button>
               <Button type="button" variant="ghost" onClick={() => void onPublish()} disabled={publishing}>
-                {publishing ? 'Publishing…' : 'Publish — go live'}
+                {publishing ? t('reviewDraft.publishing') : t('reviewDraft.publish')}
               </Button>
               <Link to="/" className={styles.back}>
-                Cancel
+                {t('reviewDraft.cancel')}
               </Link>
             </div>
           </form>

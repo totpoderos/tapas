@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@tapas/ui';
 import {
@@ -12,10 +13,10 @@ import {
 } from '../api/client';
 import styles from './contest-control.module.css';
 
-const STATUS: Record<ContestDetail['status'], { label: string; mark: string }> = {
-  live: { label: 'Live', mark: '●' },
-  closed: { label: 'Closed', mark: '◆' },
-  revealed: { label: 'Revealed', mark: '✓' },
+const STATUS_MARK: Record<ContestDetail['status'], string> = {
+  live: '●',
+  closed: '◆',
+  revealed: '✓',
 };
 
 const TALLY_POLL_MS = 3000;
@@ -34,6 +35,7 @@ type State =
  * the host confirmed it.
  */
 export function ContestControl() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [pending, setPending] = useState<'close' | 'reveal' | null>(null);
@@ -78,8 +80,8 @@ export function ContestControl() {
     } catch {
       setActionError(
         action === 'close'
-          ? 'The contest couldn’t be closed. Please try again.'
-          : 'The contest couldn’t be revealed. Please try again.',
+          ? t('contestControl.closeError')
+          : t('contestControl.revealError'),
       );
     } finally {
       setBusy(false);
@@ -91,27 +93,27 @@ export function ContestControl() {
       <div className={styles.bar}>
         <div className={styles.brand}>
           <span className={styles.dot} aria-hidden="true" />
-          <b>Tapas</b>
+          <b>{t('common.brand')}</b>
         </div>
         <Link to="/" className={styles.back}>
-          Back to contests
+          {t('contestControl.back')}
         </Link>
       </div>
 
       {state.kind === 'loading' && (
         <p role="status" className={styles.note}>
-          Loading the contest…
+          {t('contestControl.loading')}
         </p>
       )}
       {state.kind === 'missing' && (
         <>
-          <h1 className={styles.title}>Contest not found</h1>
-          <p className={styles.note}>This contest doesn’t exist, or isn’t yours.</p>
+          <h1 className={styles.title}>{t('contestControl.notFoundTitle')}</h1>
+          <p className={styles.note}>{t('contestControl.notFoundBody')}</p>
         </>
       )}
       {state.kind === 'error' && (
         <p role="alert" className={styles.note}>
-          The contest couldn’t be loaded. Please try again.
+          {t('contestControl.loadError')}
         </p>
       )}
 
@@ -120,22 +122,22 @@ export function ContestControl() {
           <div className={styles.head}>
             <h1 className={styles.title}>{state.contest.name}</h1>
             <span className={`${styles.pill} ${styles[state.contest.status]}`}>
-              <span aria-hidden="true">{STATUS[state.contest.status].mark}</span>{' '}
-              {STATUS[state.contest.status].label}
+              <span aria-hidden="true">{STATUS_MARK[state.contest.status]}</span>{' '}
+              {t(`contestControl.status.${state.contest.status}`)}
             </span>
           </div>
 
           {state.contest.status !== 'revealed' && (
             <div className={styles.code}>
-              <p className={styles.codeLabel}>Join code</p>
+              <p className={styles.codeLabel}>{t('contestControl.joinCode')}</p>
               <span className={styles.codeValue}>{state.contest.joinCode}</span>
             </div>
           )}
 
-          <div className={styles.tally} aria-label="Progress">
-            <Stat num={state.tally.claimedCount} label="Joined" />
-            <Stat num={state.tally.draftCount} label="Still scoring" />
-            <Stat num={state.tally.sentCount} label="Votes sent" />
+          <div className={styles.tally} aria-label={t('contestControl.progress')}>
+            <Stat num={state.tally.claimedCount} label={t('contestControl.joined')} />
+            <Stat num={state.tally.draftCount} label={t('contestControl.stillScoring')} />
+            <Stat num={state.tally.sentCount} label={t('contestControl.votesSent')} />
           </div>
 
           {actionError ? (
@@ -148,17 +150,17 @@ export function ContestControl() {
           <div className={styles.actions}>
             {state.contest.status === 'live' && (
               <Button variant="danger" onClick={() => setPending('close')}>
-                Close voting
+                {t('contestControl.closeVoting')}
               </Button>
             )}
             {state.contest.status === 'closed' && (
-              <Button onClick={() => setPending('reveal')}>Reveal results</Button>
+              <Button onClick={() => setPending('reveal')}>{t('contestControl.revealResults')}</Button>
             )}
             {state.contest.status === 'revealed' && (
-              <p className={styles.note}>The results are out — participants can see them.</p>
+              <p className={styles.note}>{t('contestControl.revealedNote')}</p>
             )}
             <Link to={`/log/${state.contest.id}`} className={styles.logLink}>
-              Activity log
+              {t('contestControl.activityLog')}
             </Link>
           </div>
         </>
@@ -185,19 +187,6 @@ function Stat({ num, label }: { num: number; label: string }) {
   );
 }
 
-const COPY: Record<'close' | 'reveal', { title: string; body: string; confirm: string }> = {
-  close: {
-    title: 'Close voting?',
-    body: 'No more votes can be sent after this, and it can’t be reopened.',
-    confirm: 'Close voting',
-  },
-  reveal: {
-    title: 'Reveal the results?',
-    body: 'The winners become visible to everyone. This can’t be undone.',
-    confirm: 'Reveal results',
-  },
-};
-
 /** A focus-trapped confirmation before an irreversible action (design.md §7.1). */
 function ConfirmDialog({
   action,
@@ -210,8 +199,8 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const copy = COPY[action];
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -249,17 +238,17 @@ function ConfirmDialog({
         className={styles.card}
       >
         <h2 id="confirm-title" className={styles.cardTitle}>
-          {copy.title}
+          {t(`contestControl.confirm.${action}.title`)}
         </h2>
         <p id="confirm-body" className={styles.cardBody}>
-          {copy.body}
+          {t(`contestControl.confirm.${action}.body`)}
         </p>
         <div className={styles.cardActions}>
           <Button variant="ghost" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t('contestControl.confirm.cancel')}
           </Button>
           <Button variant={action === 'close' ? 'danger' : 'brand'} onClick={onConfirm} disabled={busy}>
-            {busy ? 'Working…' : copy.confirm}
+            {busy ? t('contestControl.confirm.working') : t(`contestControl.confirm.${action}.confirm`)}
           </Button>
         </div>
       </div>

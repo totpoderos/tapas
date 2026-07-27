@@ -189,6 +189,13 @@ highest-value quick fixes — see §4 and §5.
   intact ([participant-text-injection.ts:51](../packages/api/src/drafts/extraction/participant-text-injection.ts),
   applied at [proposed-draft-guard.ts:129](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
 - **XSS**: React auto-escapes; no `dangerouslySetInnerHTML` in the app.
+- **Internationalization is not an injection surface.** Translations (EN/ES) are
+  **static application assets** authored in-repo (`packages/*/src/i18n/locales/`),
+  never user- or model-supplied, and are rendered through React (escaped) — not as
+  HTML. Only interface *chrome* is translated; API/assistant/participant text is
+  passed through as data and never interpolated into a translation lookup key. The
+  i18next `escapeValue:false` setting is safe precisely because React, not i18next,
+  does the escaping ([i18n.ts](../packages/ui/src/i18n.ts)).
 
 **Residual risk:** no least-privilege DB user — `node:sqlite` is a single-file
 embedded DB with no user/role layer (architectural, acceptable for v1).

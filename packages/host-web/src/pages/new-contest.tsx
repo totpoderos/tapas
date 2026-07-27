@@ -1,4 +1,5 @@
 import { useRef, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, FormField } from '@tapas/ui';
 import {
@@ -15,15 +16,15 @@ interface Row {
   readonly value: string;
 }
 
-const ATTRIBUTION: readonly { value: Attribution; label: string }[] = [
-  { value: 'per_person', label: 'Each person is scored on their own' },
-  { value: 'per_couple', label: 'Each couple is scored together' },
+const ATTRIBUTION: readonly { value: Attribution; labelKey: string }[] = [
+  { value: 'per_person', labelKey: 'attributionPerPerson' },
+  { value: 'per_couple', labelKey: 'attributionPerCouple' },
 ];
 
-const ANTI_BIAS: readonly { value: AntiBias; label: string }[] = [
-  { value: 'none', label: 'No restriction' },
-  { value: 'couples', label: 'Couples cannot score each other' },
-  { value: 'arbitrary_pairs', label: 'Chosen pairs cannot score each other' },
+const ANTI_BIAS: readonly { value: AntiBias; labelKey: string }[] = [
+  { value: 'none', labelKey: 'antiBiasNone' },
+  { value: 'couples', labelKey: 'antiBiasCouples' },
+  { value: 'arbitrary_pairs', labelKey: 'antiBiasArbitrary' },
 ];
 
 /**
@@ -34,6 +35,7 @@ const ANTI_BIAS: readonly { value: AntiBias; label: string }[] = [
  * per-pair exclusions are handled in draft review, not here.
  */
 export function NewContest() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const nextId = useRef(0);
   const makeRow = (value = ''): Row => ({ id: `r${nextId.current++}`, value });
@@ -85,7 +87,7 @@ export function NewContest() {
     event.preventDefault();
     setFormError(undefined);
     if (!name.trim()) {
-      setNameError('A name is required to save this contest.');
+      setNameError(t('newContest.nameRequired'));
       return;
     }
     setNameError(undefined);
@@ -94,7 +96,7 @@ export function NewContest() {
       await createDraft(buildContent());
       navigate('/'); // back to the contest list, where it now shows as a draft
     } catch {
-      setFormError('Your contest couldn’t be saved. Please try again.');
+      setFormError(t('newContest.saveError'));
       setSubmitting(false);
     }
   }
@@ -104,14 +106,12 @@ export function NewContest() {
       <div className={styles.bar}>
         <div className={styles.brand}>
           <span className={styles.dot} aria-hidden="true" />
-          <b>Tapas</b>
+          <b>{t('common.brand')}</b>
         </div>
       </div>
 
-      <h1 className={styles.title}>New contest</h1>
-      <p className={styles.lead}>
-        Set it up now and save it as a draft — it won’t go live until you publish it.
-      </p>
+      <h1 className={styles.title}>{t('newContest.title')}</h1>
+      <p className={styles.lead}>{t('newContest.lead')}</p>
 
       <form className={styles.form} onSubmit={onSubmit} noValidate>
         {formError ? (
@@ -123,14 +123,14 @@ export function NewContest() {
 
         <FormField
           id="contest-name"
-          label="Contest name"
+          label={t('newContest.contestName')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={nameError}
         />
 
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>How dishes are attributed</legend>
+          <legend className={styles.legend}>{t('newContest.attributionLegend')}</legend>
           <div className={styles.choices}>
             {ATTRIBUTION.map((option) => (
               <label key={option.value} className={styles.choice}>
@@ -141,14 +141,14 @@ export function NewContest() {
                   checked={attribution === option.value}
                   onChange={() => setAttribution(option.value)}
                 />
-                {option.label}
+                {t(`newContest.${option.labelKey}`)}
               </label>
             ))}
           </div>
         </fieldset>
 
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>Guarding against bias</legend>
+          <legend className={styles.legend}>{t('newContest.antiBiasLegend')}</legend>
           <div className={styles.choices}>
             {ANTI_BIAS.map((option) => (
               <label key={option.value} className={styles.choice}>
@@ -159,21 +159,21 @@ export function NewContest() {
                   checked={antiBias === option.value}
                   onChange={() => setAntiBias(option.value)}
                 />
-                {option.label}
+                {t(`newContest.${option.labelKey}`)}
               </label>
             ))}
           </div>
         </fieldset>
 
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>Scoring</legend>
-          <p className={styles.groupHint}>What each dish is judged on, and the score band.</p>
+          <legend className={styles.legend}>{t('newContest.scoringLegend')}</legend>
+          <p className={styles.groupHint}>{t('newContest.scoringHint')}</p>
 
-          <ul className={styles.rows} aria-label="Scoring categories">
+          <ul className={styles.rows} aria-label={t('newContest.categoriesLabel')}>
             {categories.map((category, index) => (
               <li key={category.id} className={styles.row}>
                 <input
-                  aria-label={`Category ${index + 1} name`}
+                  aria-label={t('newContest.categoryNameLabel', { n: index + 1 })}
                   value={category.value}
                   onChange={(e) =>
                     setCategories((rows) =>
@@ -184,20 +184,20 @@ export function NewContest() {
                 <button
                   type="button"
                   className={styles.remove}
-                  aria-label={`Remove category ${index + 1}`}
+                  aria-label={t('newContest.removeCategory', { n: index + 1 })}
                   onClick={() => setCategories((rows) => rows.filter((r) => r.id !== category.id))}
                 >
-                  Remove
+                  {t('newContest.remove')}
                 </button>
               </li>
             ))}
           </ul>
           <button type="button" className={styles.add} onClick={() => setCategories((r) => [...r, makeRow()])}>
-            Add category
+            {t('newContest.addCategory')}
           </button>
 
           <fieldset className={styles.group} style={{ marginTop: 20 }}>
-            <legend className={styles.legend}>Score range</legend>
+            <legend className={styles.legend}>{t('newContest.rangeLegend')}</legend>
             <div className={styles.choices}>
               <label className={styles.choice}>
                 <input
@@ -206,7 +206,7 @@ export function NewContest() {
                   checked={rangeType === 'auto'}
                   onChange={() => setRangeType('auto')}
                 />
-                Set it automatically
+                {t('newContest.rangeAuto')}
               </label>
               <label className={styles.choice}>
                 <input
@@ -215,13 +215,13 @@ export function NewContest() {
                   checked={rangeType === 'fixed'}
                   onChange={() => setRangeType('fixed')}
                 />
-                Fixed range
+                {t('newContest.rangeFixed')}
               </label>
             </div>
             {rangeType === 'fixed' ? (
               <div className={styles.inline} style={{ marginTop: 12 }}>
                 <div className={styles.numberField}>
-                  <label htmlFor="range-min">Lowest score</label>
+                  <label htmlFor="range-min">{t('newContest.rangeMin')}</label>
                   <input
                     id="range-min"
                     type="number"
@@ -230,7 +230,7 @@ export function NewContest() {
                   />
                 </div>
                 <div className={styles.numberField}>
-                  <label htmlFor="range-max">Highest score</label>
+                  <label htmlFor="range-max">{t('newContest.rangeMax')}</label>
                   <input
                     id="range-max"
                     type="number"
@@ -248,17 +248,17 @@ export function NewContest() {
               checked={uniquePerCategory}
               onChange={(e) => setUniquePerCategory(e.target.checked)}
             />
-            A voter can’t give the same score twice in a category
+            {t('newContest.uniquePerCategory')}
           </label>
         </fieldset>
 
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>Participants</legend>
-          <p className={styles.groupHint}>Add who is taking part. You can pair couples later.</p>
+          <legend className={styles.legend}>{t('newContest.participantsLegend')}</legend>
+          <p className={styles.groupHint}>{t('newContest.participantsHint')}</p>
 
           <div className={styles.row}>
             <input
-              aria-label="New participant name"
+              aria-label={t('newContest.newParticipantLabel')}
               value={participantDraft}
               onChange={(e) => setParticipantDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -269,18 +269,18 @@ export function NewContest() {
               }}
             />
             <button type="button" className={styles.remove} onClick={addParticipant}>
-              Add
+              {t('newContest.add')}
             </button>
           </div>
 
           {participants.length === 0 ? (
-            <p className={styles.empty}>No participants added yet.</p>
+            <p className={styles.empty}>{t('newContest.participantsEmpty')}</p>
           ) : (
-            <ul className={styles.rows} aria-label="Participants">
+            <ul className={styles.rows} aria-label={t('newContest.participantsLabel')}>
               {participants.map((participant, index) => (
                 <li key={participant.id} className={styles.row}>
                   <input
-                    aria-label={`Participant ${index + 1} name`}
+                    aria-label={t('newContest.participantNameLabel', { n: index + 1 })}
                     value={participant.value}
                     onChange={(e) =>
                       setParticipants((rows) =>
@@ -293,12 +293,14 @@ export function NewContest() {
                   <button
                     type="button"
                     className={styles.remove}
-                    aria-label={`Remove participant ${participant.value || index + 1}`}
+                    aria-label={t('newContest.removeParticipant', {
+                      name: participant.value || index + 1,
+                    })}
                     onClick={() =>
                       setParticipants((rows) => rows.filter((r) => r.id !== participant.id))
                     }
                   >
-                    Remove
+                    {t('newContest.remove')}
                   </button>
                 </li>
               ))}
@@ -308,10 +310,10 @@ export function NewContest() {
 
         <div className={styles.actions}>
           <Button type="submit" disabled={submitting}>
-            {submitting ? 'Saving…' : 'Save as draft'}
+            {submitting ? t('newContest.saving') : t('newContest.saveDraft')}
           </Button>
           <Link to="/" className={styles.cancel}>
-            Cancel
+            {t('newContest.cancel')}
           </Link>
         </div>
       </form>
