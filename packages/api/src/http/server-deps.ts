@@ -25,6 +25,7 @@ import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
 import type { ExtractContestDraft } from '../drafts/extraction/extract-contest-draft.js';
 import type { MergeContestDraft } from '../drafts/extraction/merge-contest-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
+import type { FindContestsByName } from '../contests/use-cases/find-contests-by-name.js';
 import type { ListMyContests } from '../contests/use-cases/list-my-contests.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -58,6 +59,7 @@ export interface ServerDeps {
   readonly publishContest: PublishContest;
   readonly getContest: GetContest;
   readonly listMyContests: ListMyContests;
+  readonly findContestsByName: FindContestsByName;
   readonly closeContest: CloseContest;
   readonly revealContest: RevealContest;
   readonly getResults: GetResults;

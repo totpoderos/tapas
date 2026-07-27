@@ -40,6 +40,46 @@ const getContest: McpTool = {
   }),
 };
 
+/**
+ * `list_my_contests` — lists everything the host owns (drafts still being
+ * prepared and published contests alike), each with its id, name, and state, so
+ * the host has an overview by name and never needs an internal id. Read-only and
+ * host-scoped; the API returns only the host's own.
+ */
+const listMyContests: McpTool = {
+  name: 'list_my_contests',
+  description:
+    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {},
+  toRequest: () => ({ method: 'GET', path: '/contests' }),
+};
+
+/**
+ * `find_contest` — resolves one of the host's contests by name (exact, but
+ * case-insensitive), so a host can refer to a contest the way they say it rather
+ * than by id. A name is not unique — a host may run "Tapas Night" more than once —
+ * so this returns every match; the assistant asks the host which one when more
+ * than one comes back. A name that matches nothing returns an empty list.
+ * Read-only and host-scoped; the API searches only the host's own contests. The
+ * name is URL-encoded so a value can never break out of the query.
+ */
+const findContest: McpTool = {
+  name: 'find_contest',
+  description:
+    "Find one of the host's own contests by name (case-insensitive). Returns every contest with that exact name — usually one, but more if the host has reused a name — each with its id, name, and current state; an empty list means no contest has that name.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    name: z.string().min(1).describe('The exact name of the contest to find (case-insensitive).'),
+  },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests?name=${encodeURIComponent(String(args.name))}`,
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -223,6 +263,8 @@ const getResults: McpTool = {
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
 export const TOOL_CATALOG: readonly McpTool[] = [
   getContest,
+  listMyContests,
+  findContest,
   getDraft,
   getTally,
   closeContest,

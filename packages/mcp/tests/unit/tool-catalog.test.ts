@@ -17,6 +17,24 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('maps list_my_contests to a GET on the contest list, with no arguments', () => {
+    const listMyContests = TOOL_CATALOG.find((tool) => tool.name === 'list_my_contests');
+    expect(listMyContests?.scope).toBe('host');
+    expect(listMyContests?.destructive).toBe(false);
+    expect(listMyContests?.inputSchema).toEqual({});
+    expect(listMyContests?.toRequest({})).toEqual({ method: 'GET', path: '/contests' });
+  });
+
+  it('maps find_contest to a GET on the contest list filtered by name, url-encoding the name', () => {
+    const findContest = TOOL_CATALOG.find((tool) => tool.name === 'find_contest');
+    expect(findContest?.scope).toBe('host');
+    expect(findContest?.destructive).toBe(false);
+    expect(findContest?.toRequest({ name: 'Tapas Night & Co' })).toEqual({
+      method: 'GET',
+      path: '/contests?name=Tapas%20Night%20%26%20Co',
+    });
+  });
+
   it('maps get_draft to a GET on the draft', () => {
     const getDraft = TOOL_CATALOG.find((tool) => tool.name === 'get_draft');
     expect(getDraft?.scope).toBe('host');
