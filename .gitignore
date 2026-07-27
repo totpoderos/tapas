@@ -13,6 +13,8 @@ coverage/
 # local sqlite
 *.sqlite
 *.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.db
 
 # test / tooling caches
