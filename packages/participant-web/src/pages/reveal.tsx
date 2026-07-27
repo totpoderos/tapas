@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ApiError, getReveal, type Reveal as RevealData, type Winner } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
@@ -21,6 +22,7 @@ const names = (winners: readonly Winner[]) => winners.map((w) => w.name).join(' 
  * `prefers-reduced-motion` neutralises via the shared tokens.
  */
 export function Reveal() {
+  const { t } = useTranslation();
   const contestId = localStorage.getItem(REMEMBERED_CONTEST);
   const [state, setState] = useState<State>({ kind: 'loading' });
 
@@ -57,30 +59,30 @@ export function Reveal() {
     <main id="main" className="pt-main">
       <div className="pt-brand">
         <span className="dot" aria-hidden="true" />
-        <b>Tapas</b>
+        <b>{t('common.brand')}</b>
       </div>
 
       {(state.kind === 'loading' || state.kind === 'waiting') && (
         <div className="pt-waiting" role="status" aria-live="polite">
           <div className="pt-waiting-dot" aria-hidden="true" />
-          <p className="pt-you">Almost there…</p>
-          <p className="pt-note">The results appear the moment the host reveals them.</p>
+          <p className="pt-you">{t('reveal.waitingLead')}</p>
+          <p className="pt-note">{t('reveal.waitingNote')}</p>
         </div>
       )}
 
       {state.kind === 'need-join' && (
         <>
-          <h1 className="pt-title">Join first</h1>
-          <p className="pt-lead">You need to join the contest before you can see the results.</p>
+          <h1 className="pt-title">{t('reveal.joinFirstTitle')}</h1>
+          <p className="pt-lead">{t('reveal.joinFirstLead')}</p>
           <Link to="/" className="pt-note">
-            Go to join
+            {t('reveal.goToJoin')}
           </Link>
         </>
       )}
 
       {state.kind === 'error' && (
         <p role="alert" className="pt-note">
-          The results couldn’t be loaded. Please try again.
+          {t('reveal.errorLoad')}
         </p>
       )}
 
@@ -90,6 +92,7 @@ export function Reveal() {
 }
 
 function RevealMoment({ reveal }: { reveal: RevealData }) {
+  const { t } = useTranslation();
   return (
     <div className="pt-reveal" aria-live="polite">
       <p className="pt-reveal-kicker">{reveal.contestName}</p>
@@ -97,13 +100,13 @@ function RevealMoment({ reveal }: { reveal: RevealData }) {
         🏆
       </div>
       <h1 className="pt-reveal-title">
-        {reveal.overall.winners.length > 1 ? 'Joint winners' : 'Winner'}
+        {reveal.overall.winners.length > 1 ? t('reveal.jointWinners') : t('reveal.winner')}
       </h1>
       <p className="pt-reveal-winner">{names(reveal.overall.winners)}</p>
 
       {reveal.categories.length > 1 && (
-        <section className="pt-reveal-cats" aria-label="Category winners">
-          <h2 className="pt-subhead">Best in each category</h2>
+        <section className="pt-reveal-cats" aria-label={t('reveal.categoryWinnersLabel')}>
+          <h2 className="pt-subhead">{t('reveal.bestInCategory')}</h2>
           <ul className="pt-cat-list">
             {reveal.categories.map((category) => (
               <li key={category.categoryId} className="pt-cat-row">
@@ -115,8 +118,8 @@ function RevealMoment({ reveal }: { reveal: RevealData }) {
         </section>
       )}
 
-      <section aria-label="Leaderboard">
-        <h2 className="pt-subhead">Leaderboard</h2>
+      <section aria-label={t('reveal.leaderboard')}>
+        <h2 className="pt-subhead">{t('reveal.leaderboard')}</h2>
         <ol className="pt-board">
           {reveal.overall.standings.map((standing, i) => (
             <li key={standing.dishId} className="pt-board-row">

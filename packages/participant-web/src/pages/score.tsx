@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
 import { ApiError, getBallot, getMyScores, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
@@ -23,6 +24,7 @@ type State =
  * only once every dish is scored, and sending locks it.
  */
 export function Score() {
+  const { t } = useTranslation();
   const contestId = localStorage.getItem(REMEMBERED_CONTEST);
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -75,7 +77,7 @@ export function Score() {
         });
         return next;
       });
-      setError('That couldn’t be saved. Please try again.');
+      setError(t('score.errorSave'));
     }
   }
 
@@ -89,8 +91,8 @@ export function Score() {
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.code === 'INCOMPLETE'
-          ? 'Score every dish before sending your vote.'
-          : 'Your vote couldn’t be sent. Please try again.',
+          ? t('score.errorIncomplete')
+          : t('score.errorSend'),
       );
       setConfirming(false);
     } finally {
@@ -106,20 +108,20 @@ export function Score() {
     <main id="main" className="pt-main">
       <div className="pt-brand">
         <span className="dot" aria-hidden="true" />
-        <b>Tapas</b>
+        <b>{t('common.brand')}</b>
       </div>
 
       {state.kind === 'loading' && (
         <p role="status" className="pt-note">
-          Loading your ballot…
+          {t('score.loadingBallot')}
         </p>
       )}
       {state.kind === 'need-join' && (
         <>
-          <h1 className="pt-title">Join first</h1>
-          <p className="pt-lead">You need to join the contest before you can score.</p>
+          <h1 className="pt-title">{t('score.joinFirstTitle')}</h1>
+          <p className="pt-lead">{t('score.joinFirstLead')}</p>
           <Link to="/" className="pt-note">
-            Go to join
+            {t('score.goToJoin')}
           </Link>
         </>
       )}
@@ -133,21 +135,21 @@ export function Score() {
           <div className="pt-check" aria-hidden="true">
             ✓
           </div>
-          <p className="pt-you">Vote sent — thank you!</p>
-          <p className="pt-note">Results appear when the host reveals them.</p>
+          <p className="pt-you">{t('score.voteSent')}</p>
+          <p className="pt-note">{t('score.resultsLater')}</p>
           <Link to="/reveal" className="pt-score-link">
-            See the results →
+            {t('score.seeResults')}
           </Link>
         </div>
       )}
 
       {ballot && (
         <>
-          <h1 className="pt-title">{ballot.uniquePerCategory ? 'Rank the dishes' : 'Score the dishes'}</h1>
+          <h1 className="pt-title">{ballot.uniquePerCategory ? t('score.titleRank') : t('score.titleScore')}</h1>
           <p className="pt-lead">
             {ballot.uniquePerCategory
-              ? 'Give every dish a rank in each category — each rank used once.'
-              : 'Give every dish a score in each category.'}{' '}
+              ? t('score.leadRank')
+              : t('score.leadScore')}{' '}
             {Object.keys(scores).length} of {total} done.
           </p>
 
@@ -178,13 +180,13 @@ export function Score() {
                   Not yet
                 </Button>
                 <Button onClick={() => void onSend()} disabled={sending}>
-                  {sending ? 'Sending…' : 'Yes, send my vote'}
+                  {sending ? t('score.sending') : t('score.confirmSend')}
                 </Button>
               </div>
             </div>
           ) : (
             <Button block disabled={!complete} onClick={() => setConfirming(true)}>
-              Send my vote
+              {t('score.send')}
             </Button>
           )}
         </>
@@ -253,6 +255,7 @@ function RankingInputs({
   initial: readonly ScoreEntry[];
   onSaveCategory: (entries: readonly ScoreEntry[]) => void;
 }) {
+  const { t } = useTranslation();
   const n = ballot.dishes.length;
   const ranksSeed = () => {
     const seed: Record<string, Record<string, number>> = {};
@@ -296,11 +299,11 @@ function RankingInputs({
                   <span className="pt-dish-name">{dish.name}</span>
                   <select
                     className="pt-rank-select"
-                    aria-label={`Rank for ${dish.name} in ${category.name}`}
+                    aria-label={t('score.rankFor', { dish: dish.name, category: category.name })}
                     value={rank ?? ''}
                     onChange={(e) => assign(dish.dishId, category.id, Number(e.target.value))}
                   >
-                    {rank === undefined && <option value="">Rank…</option>}
+                    {rank === undefined && <option value="">{t('score.rankPlaceholder')}</option>}
                     {seq(1, n).map((r) => (
                       <option key={r} value={r}>
                         {r}

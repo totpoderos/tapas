@@ -1,0 +1,18 @@
+{
+  "title": "Your dish, {{name}}",
+  "lead": "What did you bring? You can change it until scoring starts.",
+  "dishName": "Dish name",
+  "description": "Description (optional)",
+  "saving": "Saving…",
+  "update": "Update dish",
+  "submit": "Submit dish",
+  "errorNameRequired": "Give your dish a name.",
+  "errorSave": "Your dish couldn’t be saved. Please try again.",
+  "dishesSoFar": "Dishes so far",
+  "dishesLabel": "Dishes submitted",
+  "loadingDishes": "Loading…",
+  "noDishes": "No dishes yet. Be the first.",
+  "yours": "Yours",
+  "waiting": "When the dishes are in, it’s time to score.",
+  "scoreLink": "Score the dishes →"
+}
