@@ -26,6 +26,7 @@ import type { ExtractContestDraft } from '../drafts/extraction/extract-contest-d
 import type { MergeContestDraft } from '../drafts/extraction/merge-contest-draft.js';
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { FindContestsByName } from '../contests/use-cases/find-contests-by-name.js';
+import type { GetContestDetails } from '../contests/use-cases/get-contest-details.js';
 import type { ListMyContests } from '../contests/use-cases/list-my-contests.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -60,6 +61,7 @@ export interface ServerDeps {
   readonly getContest: GetContest;
   readonly listMyContests: ListMyContests;
   readonly findContestsByName: FindContestsByName;
+  readonly getContestDetails: GetContestDetails;
   readonly closeContest: CloseContest;
   readonly revealContest: RevealContest;
   readonly getResults: GetResults;

@@ -76,6 +76,7 @@ describeFeature(feature, ({ Scenario }) => {
         'create_draft',
         'find_contest',
         'get_contest',
+        'get_contest_details',
         'get_draft',
         'get_results',
         'get_tally',

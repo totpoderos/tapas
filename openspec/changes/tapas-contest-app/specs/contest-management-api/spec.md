@@ -77,6 +77,29 @@ A host SHALL be able to find their own contests by name through the API, so they
 - **WHEN** finding a contest by name is attempted through the API with no one signed in
 - **THEN** the API refuses it as not authorized
 
+### Requirement: A host can read a contest's details by name over the API
+A host SHALL be able to read the details of one of their own contests by name through the API — who is taking part and how it is scored — reading the same whether the contest is a draft or already published. Resolution SHALL be exact but case-insensitive over the host's own contests. When the name resolves to a single contest its details SHALL be returned; when a name is shared by more than one contest the candidates SHALL be returned so the host can choose; a name that matches nothing SHALL return no candidates. It SHALL be refused when no one is signed in.
+
+#### Scenario: A host reads their draft's participants and categories by name
+- **WHEN** a host who is preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category asks for its details through the API
+- **THEN** the details name Ana and Bob as taking part and "Taste" as a category
+
+#### Scenario: A host reads their live contest's details by name
+- **WHEN** a host who has a live contest named "Balcony Cook-off" with Ana and Bob taking part asks for its details through the API
+- **THEN** the details name Ana and Bob as taking part
+
+#### Scenario: When two contests share a name, the details request offers the choice
+- **WHEN** a host who has two contests both named "Tapas Night" asks for the details of "Tapas Night"
+- **THEN** both contests are offered to choose from
+
+#### Scenario: A host cannot read another host's contest details by name
+- **WHEN** a host asks for the details of a name only another host's contest has
+- **THEN** no contest is found
+
+#### Scenario: Reading a contest's details by name requires being signed in
+- **WHEN** reading a contest's details by name is attempted through the API with no one signed in
+- **THEN** the API refuses it as not authorized
+
 ### Requirement: API contest operations enforce ownership and authentication
 Contest and draft operations over the API SHALL be refused when no one is signed in, and refused as not-allowed when the signed-in host is acting on another host's work.
 

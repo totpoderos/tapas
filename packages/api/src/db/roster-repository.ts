@@ -14,6 +14,8 @@ export interface RosterRepository {
   listAvailable(contestId: string): RosterPlace[];
   /** The places already claimed, in roster order — for checking whether everyone who joined has sent. */
   listClaimed(contestId: string): RosterPlace[];
+  /** Every place, claimed or not, in roster order — the full set of participants the host listed. */
+  listAll(contestId: string): RosterPlace[];
   find(contestId: string, participantId: string): RosterPlace | undefined;
   /** Atomically claims an open place; false if it does not exist or is already taken. */
   claim(contestId: string, participantId: string, claimedAt: string): boolean;
@@ -59,6 +61,13 @@ export class SqliteRosterRepository implements RosterRepository {
       .prepare(
         `SELECT * FROM persons WHERE contest_id = ? AND claimed_at IS NOT NULL ORDER BY participant_id`,
       )
+      .all(contestId) as unknown as PersonRow[];
+    return rows.map(toPlace);
+  }
+
+  listAll(contestId: string): RosterPlace[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM persons WHERE contest_id = ? ORDER BY participant_id`)
       .all(contestId) as unknown as PersonRow[];
     return rows.map(toPlace);
   }

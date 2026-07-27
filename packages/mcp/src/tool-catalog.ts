@@ -80,6 +80,28 @@ const findContest: McpTool = {
   }),
 };
 
+/**
+ * `get_contest_details` — reads what is inside one of the host's contests, found
+ * by name: who is taking part and how it is scored. Works for a draft or a
+ * published contest. Like `find_contest`, a name is not unique, so when several
+ * share a name the candidates come back for the host to choose from. Read-only
+ * and host-scoped; the name is URL-encoded so a value can never break out.
+ */
+const getContestDetails: McpTool = {
+  name: 'get_contest_details',
+  description:
+    "Read the details of one of the host's own contests by name — its status, who is taking part, and its scoring categories. Works for a draft or a published contest. When several contests share the name, returns the candidates to choose from instead.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    name: z.string().min(1).describe('The exact name of the contest whose details to read (case-insensitive).'),
+  },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests/details?name=${encodeURIComponent(String(args.name))}`,
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -265,6 +287,7 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   getContest,
   listMyContests,
   findContest,
+  getContestDetails,
   getDraft,
   getTally,
   closeContest,

@@ -25,6 +25,9 @@ export class FakeRosterRepository implements RosterRepository {
       (p) => p.contestId === contestId && p.claimedAt !== null,
     );
   }
+  listAll(contestId: string): RosterPlace[] {
+    return [...this.places.values()].filter((p) => p.contestId === contestId);
+  }
   find(contestId: string, participantId: string): RosterPlace | undefined {
     return this.places.get(this.key(contestId, participantId));
   }

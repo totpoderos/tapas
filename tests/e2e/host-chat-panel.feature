@@ -24,6 +24,11 @@ Feature: Directing a contest from the chat panel
     When they ask the assistant to list their contests
     Then the panel shows "Tapas Night" among their contests
 
+  Scenario: The assistant shows a contest's participants by name
+    Given a signed-in host with a contest named "Tapas Night" that Ana and Bob are taking part in, and the chat panel open
+    When they ask the assistant who is in "Tapas Night"
+    Then the panel shows Ana and Bob taking part
+
   Scenario: A destructive action is held behind a confirmation card
     Given a signed-in host with a running contest and the chat panel open
     When they ask the assistant to close that contest

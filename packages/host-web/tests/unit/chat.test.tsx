@@ -113,6 +113,55 @@ describe('Chat panel', () => {
     expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
   });
 
+  it("renders a contest's details (participants + categories) when asked", async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: {
+        details: { id: 'c1', name: 'Tapas Night', status: 'live', participants: ['Ana', 'Bob'], categories: ['Taste'] },
+      },
+    });
+    renderChat();
+    await send('who is in Tapas Night');
+
+    expect(await screen.findByText('Ana, Bob')).toBeInTheDocument();
+    expect(screen.getByText('Taste')).toBeInTheDocument();
+    expect(screen.getByText('Taking part')).toBeInTheDocument();
+  });
+
+  it('asks which one when a details request matches several contests', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: {
+        candidates: [
+          { id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'c2', name: 'Tapas Night', status: 'draft', updatedAt: '2026-01-01T00:00:00.000Z' },
+        ],
+      },
+    });
+    renderChat();
+    await send('details of Tapas Night');
+
+    expect(await screen.findByText(/which one/i)).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Contests' })).toBeInTheDocument();
+  });
+
+  it('says so when a details request matches nothing', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: { candidates: [] },
+    });
+    renderChat();
+    await send('details of Nope');
+
+    expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
+  });
+
   it('always shows a response, even when the model replies with empty text', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: '' });
     renderChat();

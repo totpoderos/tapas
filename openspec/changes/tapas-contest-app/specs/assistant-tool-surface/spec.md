@@ -66,6 +66,21 @@ So a host can talk to their assistant about contests the way they think of them 
 - **WHEN** a host asks a connected assistant to find a contest by a name only another host's contest has, using their own token
 - **THEN** no contest is found
 
+### Requirement: A host can read a contest's details by name through a connected assistant
+So a host can ask their assistant "who's in Tapas Night?" and get an answer, a host SHALL be able to have their connected assistant read one of their contests' details by name — who is taking part and how it is scored — reading the same whether the contest is a draft or published. It acts strictly as that host: only their own contests, only while the token is valid. When a name is shared by more than one contest the assistant SHALL be given the candidates so it can ask the host which one; a name that matches nothing comes back empty.
+
+#### Scenario: The assistant reads a contest's details by name
+- **WHEN** a host asks a connected assistant for the details of a contest named "Tapas Night" with Ana and Bob taking part, using their personal access token
+- **THEN** the details name Ana and Bob as taking part
+
+#### Scenario: The assistant is given the choice when several share a name
+- **WHEN** a host asks a connected assistant for the details of a name two of their contests share, using their personal access token
+- **THEN** both contests are offered to choose from
+
+#### Scenario: The assistant reads only the host's own contest details by name
+- **WHEN** a host asks a connected assistant for the details of a name only another host's contest has, using their own token
+- **THEN** no contest is found
+
 ### Requirement: A destructive action must be confirmed before the assistant carries it out
 The assistant SHALL require an explicit confirmation for a destructive action
 (closing a contest, publishing, sending reminders) before carrying it out. A

@@ -11,6 +11,7 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  *   "close ... <contest-id>"            → close_contest { contestId }  (destructive)
  *   "list my contests"                  → list_my_contests {}          (reversible)
  *   "find <name>"                       → find_contest { name }        (reversible)
+ *   "details of <name>" / "who's in <name>" → get_contest_details { name } (reversible)
  *   anything else                       → a plain reply asking to clarify
  *
  * The contest id is read straight out of the message so the E2E, which knows the
@@ -18,6 +19,7 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  */
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const DRAFT_CALLED = /draft called ["']?(.+?)["']?\s*$/i;
+const DETAILS_OF = /(?:details of|who(?:'s| is) (?:in|taking part in))\s+["']?(.+?)["']?\s*$/i;
 const FIND_NAMED = /\bfind\b(?:\s+the)?(?:\s+contest)?\s+["']?(.+?)["']?\s*$/i;
 
 export class KeywordStubLLMClient implements LLMClient {
@@ -37,6 +39,11 @@ export class KeywordStubLLMClient implements LLMClient {
 
     if (/\blist\b/i.test(text) && /contest/i.test(text)) {
       return { text: 'Here are your contests.', toolCalls: [{ name: 'list_my_contests', arguments: {} }] };
+    }
+
+    const detailsMatch = DETAILS_OF.exec(text);
+    if (detailsMatch) {
+      return { text: '', toolCalls: [{ name: 'get_contest_details', arguments: { name: detailsMatch[1] } }] };
     }
 
     const findMatch = FIND_NAMED.exec(text);

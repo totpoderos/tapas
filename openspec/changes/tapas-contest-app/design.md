@@ -333,6 +333,7 @@ DRAFT MANAGEMENT
   publish_contest           publishes the draft, runs the compiler (host-only, destructive)
   list_my_contests          lists contests the host owns (host-only)
   find_contest              finds the host's contests by name, exact/case-insensitive (host-only)
+  get_contest_details       reads a contest's participants + categories by name (host-only)
 
 PARTICIPANT MANAGEMENT
   add_participant           adds a participant to a contest (host-only)
