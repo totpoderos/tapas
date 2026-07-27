@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "audit:ci": "node scripts/audit-gate.mjs",
     "format": "prettier --write .",
-    "dev": "concurrently -n api,mcp,host,participant -c blue,magenta,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/mcp\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
+    "dev": "concurrently -n api,host,participant -c blue,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
+    "dev:mcp": "npm run dev -w @tapas/mcp",
     "prepare": "husky",
     "test:e2e": "playwright test",
     "eval:infra": "node scripts/infra-eval.mjs"

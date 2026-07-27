@@ -27,8 +27,13 @@ Requires **Node ≥ 24** (uses the built-in `node:sqlite`).
 ```bash
 npm install
 cp .env.example .env       # dev defaults work as-is; set real secrets for anything deployed
-npm run dev                # api :3000 · host app :5173 · participant app :5174 (mcp speaks stdio)
+npm run dev                # api :3000 · host app :5173 · participant app :5174
 ```
+
+`npm run dev` reads the root `.env` automatically (via Node's `--env-file`), so no
+manual exporting is needed. The MCP server speaks stdio and is launched by an MCP
+client, not a web service — run it on its own with a real host PAT when needed:
+`MCP_HOST_TOKEN=<pat> npm run dev:mcp`.
 
 Or run the whole stack in containers:
 
