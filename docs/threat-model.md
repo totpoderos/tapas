@@ -97,7 +97,24 @@ as of this writing.
   ([api-dispatcher.ts:32](../packages/mcp/src/api-dispatcher.ts)); the in-app
   assistant re-enters the same routes via `app.inject`, forwarding the session
   cookie ([assistant-routes.ts:54](../packages/api/src/http/assistant-routes.ts)).
-  Both funnel through the checks above — there is no second, weaker path.
+  Both funnel through the checks above — there is no second, weaker path **for
+  authorization**. That qualifier is deliberate: see the note below on how the
+  two paths once diverged on *validation*.
+
+> **Same routes ≠ same checks — a gap this document previously papered over.**
+> "Both re-enter the same routes" was written about **authorization**, and for
+> authorization it held. It did **not** hold for **input validation**. The MCP
+> server hands each tool's `inputSchema` to the SDK, which validates arguments
+> before the tool runs; the in-app assistant dispatched `tool.toRequest(
+> call.arguments)` **directly**, so a model's malformed arguments reached the API
+> unchecked. That is not hypothetical — it is how drafts came to hold participants
+> with `id: undefined`, unaddressable for pairing and failing publish with
+> `DUPLICATE_PERSON_ID "undefined"`. **Closed** by `parseToolArguments` in the tool
+> catalog ([tool-catalog.ts](../packages/mcp/src/tool-catalog.ts)), now applied by
+> both entry points and on both the reversible and the confirm legs of the
+> assistant. The lesson generalises past this one bug: *two paths that share a
+> destination still have to be shown to share each check individually* — see the
+> recurring-asymmetry note in §4.
 
 **Residual risk / gap:** the `admin` role and a `requireRole()` middleware named
 in the design do **not** exist (see §4). And contest `get/close/reveal` use cases
@@ -181,6 +198,11 @@ highest-value quick fixes — see §4 and §5.
   (2) Semantic: the API re-validates each field itself and **reads only known
   keys**, so smuggled fields are discarded
   ([proposed-draft-guard.ts:66](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
+  Note this covers the *draft-extraction* path. The *tool-calling* path is
+  validated separately, by each tool's own `inputSchema` — enforced by the SDK on
+  the MCP side and by `parseToolArguments` on the assistant side, which likewise
+  **strips unknown keys rather than forwarding them**. Both were not always in
+  place; see the note in §3.1.
 - **Participant-name injection defense (deterministic).** A convincing name can
   fool the model into reporting a high-stakes rule as *host-stated*; so a guard
   reads the participant names **directly** (not the model's `source` tag) and drops
@@ -311,6 +333,30 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 **Explicitly out of scope** (accepted risk for a thesis demo): DDoS/volumetric
 attacks, physical/host compromise, malicious insider with DB access, secrets
 management beyond env vars (no vault/KMS), and formal pentest.
+
+### The failure mode this system is actually prone to
+
+Worth naming, because it has now produced three defects rather than one:
+**two paths assumed equivalent, which agree on one concern and quietly diverge on
+another.** All three shipped with a green test suite.
+
+| # | The two paths | Agreed on | Diverged on |
+|---|---|---|---|
+| 1 | MCP server vs in-app assistant | authorization (both re-enter the same routes) | **input validation** — only the MCP side validated `inputSchema`, so malformed model arguments were stored (§3.1) |
+| 2 | Form vs assistant | the draft is stored either way | **id assignment** — the form minted a participant id per row, `CreateDraft` did not, so assistant-authored participants were unaddressable |
+| 3 | Test fixture vs real app | the component renders | **resource shape** — a flat i18n fixture resolved a key the nested app could not, so a control's accessible name was a raw key in production |
+
+The security-relevant reading: **"it goes through the same code" is a claim about a
+destination, not about a check.** Each control has to be shown to hold on each
+path individually — which is precisely why this document cites `path:line` per
+control rather than asserting that one path implies the other. Where practical the
+paths are now made to *share the implementation* (`parseToolArguments`,
+`withParticipantIds`) rather than to agree by convention, because shared code
+cannot drift the way parallel code does.
+
+It also argues for a testing rule the project now follows: **assert against the
+real production wiring, not a convenient fixture.** Defects 1 and 3 both survived
+their tests because the test constructed a world subtly unlike the running app.
 
 ---
 
