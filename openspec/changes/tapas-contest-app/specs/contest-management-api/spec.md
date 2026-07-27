@@ -8,6 +8,30 @@ A signed-in host SHALL be able to save a draft and publish it into a live contes
 - **THEN** a live contest with a join code exists
 - **AND** a participant can join that contest with the code
 
+### Requirement: A host can edit a draft's rules over the API
+While a contest is still a draft, a host SHALL be able to change any of its rules through the API — how dishes are attributed, the anti-bias pairings, the scoring, who is taking part (adding or removing participants), which participants are a couple, and which participants may not score each other — not only its name. A draft need not be complete or valid to be saved this way; only its name is required (the full rules are checked at publish). Editing SHALL only ever change the host's own draft, and SHALL be refused when no one is signed in.
+
+#### Scenario: A host changes their draft's attribution, anti-bias, scoring and participants
+- **WHEN** a host revises their draft's attribution, anti-bias, scoring categories and participants through the API
+- **THEN** the stored draft reflects the revised rules
+- **AND** the audit log records the change
+
+#### Scenario: A host removes a participant from their draft
+- **WHEN** a host revises their draft to remove one of its participants through the API
+- **THEN** that participant is no longer part of the stored draft
+
+#### Scenario: An edited draft still requires a name
+- **WHEN** a host tries to revise their draft to have no name through the API
+- **THEN** the revision is rejected because a name is required
+
+#### Scenario: A host cannot edit another host's draft
+- **WHEN** a host tries to revise a draft owned by a different host through the API
+- **THEN** the revision is refused and the other host's draft is unchanged
+
+#### Scenario: Editing a draft requires being signed in
+- **WHEN** editing a draft is attempted through the API with no one signed in
+- **THEN** the API refuses it as not authorized
+
 ### Requirement: Draft management is available over the API, scoped to the host
 A host SHALL be able to list, rename, and discard their own drafts through the API. Listing SHALL return only that host's drafts.
 

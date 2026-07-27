@@ -1,0 +1,31 @@
+import { Draft, type DraftContent } from '@tapas/domain';
+import type { SourcePath } from '@tapas/shared';
+import type { StoredDraft } from '../stored-draft.js';
+import { draftNotFound, findOwnedDraft, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
+
+/**
+ * Replaces the whole content of a host's own draft — how it is scored, who is
+ * taking part, the couple pairings, everything but the id. This is "real"
+ * editing, beyond the name-only {@link RenameDraft}. A draft may be incomplete
+ * or not-yet-publishable; only the name is required (the domain `Draft` enforces
+ * that), and the full rules are validated later, at publish.
+ */
+export class UpdateDraft {
+  constructor(private readonly deps: DraftUseCaseDeps) {}
+
+  execute(draftId: string, hostId: string, content: DraftContent, sourcePath: SourcePath = 'form'): DraftWriteResult {
+    const existing = findOwnedDraft(this.deps.drafts, draftId, hostId);
+    if (!existing) return { ok: false, error: draftNotFound };
+
+    const edited = Draft.rehydrate(existing.id, existing.hostId, existing.content).withContent(content);
+    if (!edited.ok) return { ok: false, error: edited.error };
+
+    const updated: StoredDraft = { ...existing, content: edited.draft.content, updatedAt: this.deps.clock.now() };
+    this.deps.drafts.update(updated);
+    this.deps.audit.record(
+      { type: 'draft.updated', contestId: draftId, actorId: hostId, before: existing.content, after: edited.draft.content },
+      { sourcePath },
+    );
+    return { ok: true, draft: updated };
+  }
+}

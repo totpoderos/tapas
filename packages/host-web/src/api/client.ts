@@ -21,7 +21,7 @@ export class ApiError extends Error {
 
 async function send(
   path: string,
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT',
   body?: unknown,
   extraHeaders?: Record<string, string>,
 ): Promise<Response> {
@@ -93,6 +93,10 @@ export interface ScoringConfig {
 export interface Participant {
   readonly id: string;
   readonly displayName: string;
+  /** The id of this participant's partner, when they are scored as a couple. */
+  readonly partnerId?: string;
+  /** Ids of participants this one may not score (anti-bias). */
+  readonly noScoreWith?: readonly string[];
 }
 
 /** The editable content of a draft. Only `name` is required; the rest is filled over time. */
@@ -130,6 +134,16 @@ export async function getDraft(id: string): Promise<StoredDraft> {
 /** Renames a draft; throws ApiError. Returns nothing — the caller re-reads or navigates. */
 export async function renameDraft(id: string, name: string): Promise<void> {
   const response = await send(`/drafts/${encodeURIComponent(id)}`, 'PATCH', { name });
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/**
+ * Replaces a draft's whole content — real editing, not just the name. Throws
+ * ApiError (e.g. a name is required). The draft may be incomplete; the full
+ * rules are checked at publish.
+ */
+export async function updateDraft(id: string, content: DraftContent): Promise<void> {
+  const response = await send(`/drafts/${encodeURIComponent(id)}`, 'PUT', content);
   if (!response.ok) throw await errorFrom(response);
 }
 

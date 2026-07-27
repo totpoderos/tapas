@@ -100,6 +100,20 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
+  // Real editing: replace the whole draft content (rules, participants, pairings),
+  // not just the name. PATCH stays rename-only; PUT is the full-content replace.
+  app.put<{ Params: { id: string }; Body: DraftContent }>(
+    '/drafts/:id',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!loadOwnedDraft(request, reply)) return reply;
+      const updated = deps.updateDraft.execute(request.params.id, request.hostSession!.id, request.body);
+      if (!updated.ok)
+        return reply.code(DRAFT_ERROR_STATUS[updated.error.code]).send({ error: updated.error });
+      return reply.code(200).send(updated.draft);
+    },
+  );
+
   app.delete<{ Params: { id: string } }>(
     '/drafts/:id',
     { preHandler: requireSession },
