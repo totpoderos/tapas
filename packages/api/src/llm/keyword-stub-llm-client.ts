@@ -9,6 +9,8 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  *
  *   "start a draft called X"            → create_draft { name: "X" }  (reversible)
  *   "close ... <contest-id>"            → close_contest { contestId }  (destructive)
+ *   "list my contests"                  → list_my_contests {}          (reversible)
+ *   "find <name>"                       → find_contest { name }        (reversible)
  *   anything else                       → a plain reply asking to clarify
  *
  * The contest id is read straight out of the message so the E2E, which knows the
@@ -16,6 +18,7 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  */
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 const DRAFT_CALLED = /draft called ["']?(.+?)["']?\s*$/i;
+const FIND_NAMED = /\bfind\b(?:\s+the)?(?:\s+contest)?\s+["']?(.+?)["']?\s*$/i;
 
 export class KeywordStubLLMClient implements LLMClient {
   async complete(request: LLMCompletionRequest): Promise<LLMCompletion> {
@@ -30,6 +33,15 @@ export class KeywordStubLLMClient implements LLMClient {
     const idMatch = UUID.exec(text);
     if (/\bclose\b/i.test(text) && idMatch) {
       return { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId: idMatch[0] } }] };
+    }
+
+    if (/\blist\b/i.test(text) && /contest/i.test(text)) {
+      return { text: 'Here are your contests.', toolCalls: [{ name: 'list_my_contests', arguments: {} }] };
+    }
+
+    const findMatch = FIND_NAMED.exec(text);
+    if (findMatch) {
+      return { text: '', toolCalls: [{ name: 'find_contest', arguments: { name: findMatch[1] } }] };
     }
 
     return { text: 'Which contest do you mean?', toolCalls: [] };

@@ -25,9 +25,42 @@ function resultSummary(action: string, result: unknown): string {
   return status ? `✓ ${labelFor(action)} — now ${status}` : `✓ ${labelFor(action)} — done`;
 }
 
+// Read tools that return a *list of contests* — their answer is the data, so it
+// is rendered as a list rather than a bare "done" ticket.
+const CONTEST_LIST_ACTIONS = new Set(['list_my_contests', 'find_contest']);
+const STATUS_MARK: Record<string, string> = { live: '●', draft: '◇', closed: '◆', revealed: '✓' };
+
+interface ContestRow {
+  readonly name: string;
+  readonly status: string;
+}
+
+/** Reads a contest list out of a tool result, defensively — null if it is not one. */
+function contestRows(result: unknown): ContestRow[] | null {
+  if (!Array.isArray(result)) return null;
+  return result.map((row) => {
+    const record = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+    return {
+      name: typeof record.name === 'string' ? record.name : '(unnamed contest)',
+      status: typeof record.status === 'string' ? record.status : '',
+    };
+  });
+}
+
+/** A one-line recap of a contest list, kept in the conversation so the model has context. */
+function summariseRows(rows: ContestRow[]): string {
+  if (rows.length === 0) return 'You have no contests.';
+  return `Your contests: ${rows.map((r) => `${r.name} (${r.status})`).join(', ')}.`;
+}
+
 type Feed =
   | { readonly id: number; readonly kind: 'user' | 'assistant' | 'note'; readonly text: string }
-  | { readonly id: number; readonly kind: 'ticket'; readonly text: string };
+  | { readonly id: number; readonly kind: 'ticket'; readonly text: string }
+  | { readonly id: number; readonly kind: 'contests'; readonly rows: readonly ContestRow[] };
+
+/** Omit that distributes over a union, so each member keeps its own fields. */
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+type FeedInput = DistributiveOmit<Feed, 'id'>;
 
 /**
  * The host's chat panel (design.md §7). The host directs their contest in plain
@@ -45,7 +78,7 @@ export function Chat() {
   const inputRef = useRef<HTMLInputElement>(null);
   const feedEndRef = useRef<HTMLDivElement>(null);
 
-  const add = (item: Omit<Feed, 'id'>) => setFeed((f) => [...f, { ...item, id: nextId.current++ } as Feed]);
+  const add = (item: FeedInput) => setFeed((f) => [...f, { ...item, id: nextId.current++ } as Feed]);
 
   useEffect(() => {
     feedEndRef.current?.scrollIntoView?.({ block: 'end' });
@@ -53,12 +86,30 @@ export function Chat() {
 
   function applyTurn(turn: AssistantTurn) {
     if (turn.kind === 'reply') {
-      add({ kind: 'assistant', text: turn.text });
-      setHistory((h) => [...h, { role: 'assistant', content: turn.text }]);
+      // A small model sometimes returns an empty reply; show a nudge rather than
+      // a blank bubble, so the host always gets a response.
+      const text = turn.text.trim() || 'I didn’t catch that. Try, for example, “list my contests”.';
+      add({ kind: 'assistant', text });
+      setHistory((h) => [...h, { role: 'assistant', content: text }]);
     } else if (turn.kind === 'result') {
-      add({ kind: 'ticket', text: resultSummary(turn.action, turn.result) });
-      if (turn.text) add({ kind: 'assistant', text: turn.text });
-      setHistory((h) => [...h, { role: 'assistant', content: turn.text || `Done — ${labelFor(turn.action)}.` }]);
+      const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result) : null;
+      if (rows) {
+        // A read tool's answer IS its data — render the contests, not a "done" ticket.
+        if (rows.length === 0) {
+          add({
+            kind: 'note',
+            text: turn.action === 'find_contest' ? 'No contest by that name.' : 'You have no contests yet.',
+          });
+        } else {
+          add({ kind: 'contests', rows });
+        }
+        if (turn.text) add({ kind: 'assistant', text: turn.text });
+        setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows) }]);
+      } else {
+        add({ kind: 'ticket', text: resultSummary(turn.action, turn.result) });
+        if (turn.text) add({ kind: 'assistant', text: turn.text });
+        setHistory((h) => [...h, { role: 'assistant', content: turn.text || `Done — ${labelFor(turn.action)}.` }]);
+      }
     } else {
       add({ kind: 'assistant', text: turn.message });
       setPending({ action: turn.action, args: turn.args, confirmationToken: turn.confirmationToken });
@@ -126,6 +177,18 @@ export function Chat() {
             <div key={item.id} className={styles.ticket}>
               <span className={styles.ticketAction}>{item.text}</span>
             </div>
+          ) : item.kind === 'contests' ? (
+            <ul key={item.id} className={styles.contestList} aria-label="Contests">
+              {item.rows.map((row, index) => (
+                <li key={index} className={styles.contestRow}>
+                  <span className={styles.contestMark} aria-hidden="true">
+                    {STATUS_MARK[row.status] ?? '•'}
+                  </span>
+                  <span className={styles.contestName}>{row.name}</span>
+                  <span className={styles.contestStatus}>{row.status}</span>
+                </li>
+              ))}
+            </ul>
           ) : item.kind === 'note' ? (
             <p key={item.id} className={styles.note}>
               {item.text}

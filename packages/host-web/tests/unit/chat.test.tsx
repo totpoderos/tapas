@@ -66,6 +66,61 @@ describe('Chat panel', () => {
     expect(screen.getByText('Done — I saved your draft.')).toBeInTheDocument();
   });
 
+  it('renders the contest list when the assistant lists contests', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'list_my_contests',
+      text: '',
+      result: [
+        { id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+        { id: 'c2', name: 'Paella Sunday', status: 'draft', updatedAt: '2026-01-01T00:00:00.000Z' },
+      ],
+    });
+    renderChat();
+    await send('list my contests');
+
+    const list = await screen.findByRole('list', { name: 'Contests' });
+    expect(within(list).getByText('Tapas Night')).toBeInTheDocument();
+    expect(within(list).getByText('Paella Sunday')).toBeInTheDocument();
+    // Not the bare "done" ticket — the data is the answer.
+    expect(screen.queryByText(/list my contests — done/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the matches when the assistant finds a contest by name', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'find_contest',
+      text: '',
+      result: [{ id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    });
+    renderChat();
+    await send('find Tapas Night');
+
+    const list = await screen.findByRole('list', { name: 'Contests' });
+    expect(within(list).getByText('Tapas Night')).toBeInTheDocument();
+  });
+
+  it('says so when a find turns up nothing, rather than showing an empty result', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'find_contest',
+      text: '',
+      result: [],
+    });
+    renderChat();
+    await send('find Nonexistent');
+
+    expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
+  });
+
+  it('always shows a response, even when the model replies with empty text', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: '' });
+    renderChat();
+    await send('list my contests');
+
+    expect(await screen.findByText(/i didn.t catch that/i)).toBeInTheDocument();
+  });
+
   it('holds a destructive action behind a confirmation card and does not act until accepted', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue(CONFIRM_TURN);
     renderChat();

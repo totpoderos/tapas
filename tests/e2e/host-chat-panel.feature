@@ -19,6 +19,11 @@ Feature: Directing a contest from the chat panel
     Then the panel shows the assistant carried the action out
     And the new draft exists
 
+  Scenario: The assistant lists the host's contests by name
+    Given a signed-in host with a contest named "Tapas Night" and the chat panel open
+    When they ask the assistant to list their contests
+    Then the panel shows "Tapas Night" among their contests
+
   Scenario: A destructive action is held behind a confirmation card
     Given a signed-in host with a running contest and the chat panel open
     When they ask the assistant to close that contest
