@@ -220,7 +220,12 @@ const scoringShape = z
 
 const personShape = z
   .object({
-    id: z.string().min(1),
+    // Optional on purpose: an id is internal identity, not something a host
+    // states, so a model asked for "participants: Juan and Paco" has no id to
+    // give. The API assigns one to any participant that arrives without it (see
+    // `withParticipantIds`). Supply an existing id to keep referring to the same
+    // person — that is what pairings and `noScoreWith` point at.
+    id: z.string().min(1).optional().describe('Existing participant id; omit for a new participant.'),
     displayName: z.string().min(1),
     partnerId: z.string().min(1).optional(),
     noScoreWith: z.array(z.string().min(1)).optional(),
@@ -347,3 +352,29 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   triggerReveal,
   getResults,
 ];
+
+/**
+ * Validates a proposed tool call's arguments against that tool's own input
+ * schema, returning the parsed arguments.
+ *
+ * The MCP server gets this for free — it hands `inputSchema` to the SDK, which
+ * validates before the tool runs. The in-app assistant dispatches tool calls
+ * itself, so without this the model's arguments reached the API unchecked: a
+ * malformed call was stored rather than refused (that is how drafts came to hold
+ * participants with no id). Both entry points now apply the same schema.
+ *
+ * Unknown keys are stripped rather than rejected: only fields the tool declares
+ * are forwarded, so a model that volunteers an extra field is tidied up, not
+ * refused — the same "read only known fields" discipline the draft guard uses.
+ */
+export function parseToolArguments(
+  tool: McpTool,
+  args: Record<string, unknown>,
+): { readonly ok: true; readonly args: Record<string, unknown> } | { readonly ok: false; readonly message: string } {
+  const parsed = z.object(tool.inputSchema).safeParse(args);
+  if (parsed.success) return { ok: true, args: parsed.data as Record<string, unknown> };
+  const detail = parsed.error.issues
+    .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+    .join('; ');
+  return { ok: false, message: detail };
+}
