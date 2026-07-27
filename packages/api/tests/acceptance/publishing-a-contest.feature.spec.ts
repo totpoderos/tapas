@@ -66,6 +66,28 @@ function completeContent(name: string): DraftContent {
   };
 }
 
+/**
+ * Participants given by name alone — no id. This is what a host talking to the
+ * assistant produces ("two participants: Juan and Paco"): an id is internal
+ * identity, not something they say. `Person['id']` is required by the domain, so
+ * the omission is expressed here the way it arrives over the wire.
+ */
+function namesOnlyContent(name: string): DraftContent {
+  return {
+    name,
+    attribution: 'per_person',
+    antiBias: 'none',
+    scoring: {
+      categories: [{ id: 'c1', name: 'Taste' }],
+      range: { type: 'auto' },
+      uniquePerCategory: true,
+    },
+    // `as unknown as` on purpose: the domain requires an id, and the point of
+    // this case is content that arrives WITHOUT one, exactly as it does over the wire.
+    participants: [{ displayName: 'Juan' }, { displayName: 'Paco' }] as unknown as DraftContent['participants'],
+  };
+}
+
 /** A single couple with couples barred — the compiler rejects it (no one can score). */
 function singleCoupleContent(name: string): DraftContent {
   return {
@@ -119,6 +141,33 @@ describeFeature(feature, ({ Scenario }) => {
         .findByContest(draftId)
         .some((entry) => entry.type === 'contest.published');
       expect(wasPublished).toBe(true);
+    });
+  });
+
+  Scenario('A draft whose participants were given by name alone can be published', ({ Given, Then, When }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let contestId = '';
+
+    Given('a host with a draft whose participants were listed by name only', () => {
+      workspace = makeContestWorkspace();
+      draftId = saveDraft(workspace, hostId, namesOnlyContent('Whatever'));
+    });
+    Then('each participant can be told apart from the others', () => {
+      const saved = workspace.listHostDrafts.execute(hostId).find((draft) => draft.id === draftId);
+      const ids = (saved?.content.participants ?? []).map((person) => person.id);
+      expect(ids).toHaveLength(2);
+      expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+    When('the host publishes that draft', () => {
+      const published = workspace.publishContest.execute(draftId, hostId);
+      expect(published.ok).toBe(true);
+      if (published.ok) contestId = published.contest.id;
+    });
+    Then('the contest goes live', () => {
+      expect(workspace.getContest.execute(contestId)?.status).toBe('live');
     });
   });
 

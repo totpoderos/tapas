@@ -1,3 +1,4 @@
+import type { DraftContent } from '@tapas/domain';
 import type { Clock, IdGenerator } from '../../audit/audit-projection.js';
 import type { AuditRecorder } from '../../audit/audit-recorder.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
@@ -36,4 +37,30 @@ export function findOwnedDraft(
 ): StoredDraft | undefined {
   const draft = drafts.findById(draftId);
   return draft && draft.hostId === hostId ? draft : undefined;
+}
+
+/**
+ * Gives every participant an id, keeping the ones that already have one.
+ *
+ * A participant's id is internal identity, not something the host states: the
+ * form generates one per row, and `AddDraftParticipant` mints one when a host
+ * says "add Paco". A draft arriving from the assistant has neither — a model
+ * asked for "two participants: Juan and Paco" sends names, because an id is not
+ * its to invent. Left alone, those participants were stored with `id:
+ * undefined`, which made them unaddressable (no pairing, no `noScoreWith`) and
+ * failed publish with `DUPLICATE_PERSON_ID "undefined"` as soon as there were
+ * two of them. Assigning ids here — where every write path already passes —
+ * keeps that impossible however the draft was authored.
+ *
+ * Existing ids are preserved so an edit keeps referring to the same people, and
+ * so `partnerId`/`noScoreWith` references stay intact.
+ */
+export function withParticipantIds(content: DraftContent, ids: IdGenerator): DraftContent {
+  if (!content.participants?.length) return content;
+  return {
+    ...content,
+    participants: content.participants.map((person) =>
+      person.id ? person : { ...person, id: ids.next() },
+    ),
+  };
 }

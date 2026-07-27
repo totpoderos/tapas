@@ -3,6 +3,7 @@ import {
   TOOL_CATALOG,
   confirmationTokenFor,
   isValidConfirmation,
+  parseToolArguments,
   type ApiRequest,
   type HostAssistant,
   type McpTool,
@@ -73,9 +74,20 @@ export async function runAssistantMessage(
   const tool = TOOLS.get(call.name);
   if (!tool) return { kind: 'reply', text: completion.text || 'I’m not sure how to help with that yet.' };
 
-  if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, call.arguments);
+  // Check the model's arguments against the tool's own schema before anything
+  // acts on them. The MCP server gets this from the SDK; this path has to ask.
+  // A malformed call is reported back, never dispatched.
+  const parsed = parseToolArguments(tool, call.arguments);
+  if (!parsed.ok) {
+    return {
+      kind: 'reply',
+      text: `I couldn’t do that — the details didn’t look right (${parsed.message}). Could you rephrase?`,
+    };
+  }
 
-  const result = await deps.execute(tool.toRequest(call.arguments));
+  if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, parsed.args);
+
+  const result = await deps.execute(tool.toRequest(parsed.args));
   return { kind: 'result', action: tool.name, text: completion.text, result };
 }
 
@@ -90,6 +102,13 @@ export async function runConfirmedAction(confirm: ConfirmRequest, deps: TurnDeps
     return askToConfirm(deps.confirmationSecret, tool, confirm.args);
   }
 
-  const result = await deps.execute(tool.toRequest(confirm.args));
+  // The token proves the host approved these arguments; the schema proves they
+  // are usable. Both must hold before a destructive action runs.
+  const parsed = parseToolArguments(tool, confirm.args);
+  if (!parsed.ok) {
+    return { kind: 'reply', text: `I couldn’t do that — the details didn’t look right (${parsed.message}).` };
+  }
+
+  const result = await deps.execute(tool.toRequest(parsed.args));
   return { kind: 'result', action: tool.name, text: '', result };
 }
