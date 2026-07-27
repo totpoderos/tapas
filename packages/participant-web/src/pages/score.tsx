@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
 import { ApiError, getBallot, getMyScores, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
