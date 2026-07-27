@@ -6,7 +6,7 @@ Tapas is an AI-augmented app for organized tapas competitions: a host opens a co
 
 It is also a master's thesis project, so three things are first-class deliverables alongside the features: **security** (OWASP-mapped, with a written [threat model](docs/threat-model.md)), **evaluated AI** (three AI surfaces, each with its own eval set and committed thresholds), and **accessibility** (WCAG 2.1 AA, gated in CI).
 
-> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **935 unit/acceptance tests + 58 Playwright E2E**, all axe-clean. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/tapas-contest-app/proposal.md), [design](openspec/changes/tapas-contest-app/design.md), [tasks](openspec/changes/tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/tapas-contest-app/glossary.md).
+> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **1126 unit/acceptance tests + 76 Playwright E2E**, all axe-clean. Both apps read in **English or Spanish**. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/tapas-contest-app/proposal.md), [design](openspec/changes/tapas-contest-app/design.md), [tasks](openspec/changes/tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/tapas-contest-app/glossary.md).
 
 ## The idea
 
@@ -46,8 +46,8 @@ Open the **host app**, sign up, create a contest (form or chat), publish it, and
 ## How to test
 
 ```bash
-npm test          # 935 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
-npm run test:e2e  # 58 whole-system E2E (Playwright: real API + both apps + SQLite), axe-gated
+npm test          # 1126 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
+npm run test:e2e  # 76 whole-system E2E (Playwright: real API + both apps + SQLite), axe-gated
 npm run typecheck
 npm run lint
 npm run audit:ci  # supply-chain gate: blocks on high/critical advisories

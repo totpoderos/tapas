@@ -119,3 +119,16 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
 
   expect(await scrollsSideways(page)).toBe(false);
 });
+
+test('the join screen reflows with the language and theme controls mounted', async ({ page }) => {
+  // The two shared controls are fixed to the top-right corner. At 320px they must
+  // still fit without pushing the document sideways, and the screen's own heading
+  // must remain readable rather than hidden underneath them.
+  await page.setViewportSize(NARROW);
+  await page.goto(PARTICIPANT);
+
+  await expect(page.getByRole('heading', { name: 'Join the contest' })).toBeVisible();
+  await expect(page.getByLabel('Language')).toBeVisible();
+
+  expect(await scrollsSideways(page)).toBe(false);
+});

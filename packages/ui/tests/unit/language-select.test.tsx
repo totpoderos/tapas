@@ -7,11 +7,15 @@ import { LanguageSelect, createI18n } from '../../src/index';
 
 expect.extend(toHaveNoViolations);
 
-// A tiny two-language instance, enough to drive the selector.
+// A tiny two-language instance, enough to drive the selector. The resources are
+// nested under `common` exactly as both real apps nest them — a flatter shape
+// here once hid a real defect: the component asked for `language.label`, which
+// resolves to nothing against the app's tree, so the selector's accessible name
+// was the raw key. Test fixtures mirror the app's shape for that reason.
 function renderSelect() {
   const i18n = createI18n({
-    en: { translation: { language: { label: 'Language' } } },
-    es: { translation: { language: { label: 'Idioma' } } },
+    en: { translation: { common: { language: { label: 'Language' } } } },
+    es: { translation: { common: { language: { label: 'Idioma' } } } },
   });
   return render(
     <I18nextProvider i18n={i18n}>

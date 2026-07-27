@@ -50,6 +50,18 @@ small-screen target: 640 px at 200 % zoom) and asserts both that the document do
 
 - **scoring** — reflows, and a participant can still score every dish and send their vote
 - **the reveal** — reflows, and the winner is still announced
+- **the join screen** — reflows with the shared language and theme controls mounted
+
+> **This test earned its keep.** Extending it to the join screen (when the language
+> selector landed) failed immediately and exposed a **pre-existing 1.4.10
+> violation**: `FormField`'s input had no `width`, so it took the browser's
+> intrinsic ~20-character size — and the join-code field's 22px monospace with wide
+> letter-spacing made that ~310px inside a 280px column, scrolling the page
+> sideways at 320px. The fix is in `form-field.module.css`: `width: 100%` plus
+> `min-width: 0`, and `grid-template-columns: minmax(0, 1fr)` on the wrapper —
+> grid and flex items floor at their content's intrinsic width unless told
+> otherwise, so the *column* has to be allowed to shrink, not just the wrapper.
+> Every form field in both apps benefits.
 
 Both pass.
 

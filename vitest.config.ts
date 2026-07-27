@@ -21,7 +21,19 @@ export default defineConfig({
           environment: 'jsdom',
           globals: true,
           setupFiles: ['./vitest.setup.ts'],
-          include: ['packages/{ui,participant-web}/tests/**/*.{test,spec}.{ts,tsx}'],
+          include: ['packages/ui/tests/**/*.{test,spec}.{ts,tsx}'],
+        },
+      },
+      {
+        plugins: [react()],
+        test: {
+          name: 'participant-web',
+          environment: 'jsdom',
+          globals: true,
+          // Second setup bootstraps i18next (like the app entry), so participant
+          // screens rendered directly in a test — not only via <App /> — resolve t().
+          setupFiles: ['./vitest.setup.ts', './packages/participant-web/tests/setup.ts'],
+          include: ['packages/participant-web/tests/**/*.{test,spec}.{ts,tsx}'],
         },
       },
       {

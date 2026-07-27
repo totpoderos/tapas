@@ -2,5 +2,11 @@
   "brand": "Tapas",
   "skipToContent": "Saltar al contenido",
   "loading": "Cargando…",
-  "language": { "label": "Idioma" }
+  "language": {
+    "label": "Idioma"
+  },
+  "theme": {
+    "switchToDark": "Cambiar al tema oscuro",
+    "switchToLight": "Cambiar al tema claro"
+  }
 }

@@ -1,0 +1,13 @@
+{
+  "waitingLead": "Almost there…",
+  "waitingNote": "The results appear the moment the host reveals them.",
+  "joinFirstTitle": "Join first",
+  "joinFirstLead": "You need to join the contest before you can see the results.",
+  "goToJoin": "Go to join",
+  "winner": "Winner",
+  "jointWinners": "Joint winners",
+  "bestInCategory": "Best in each category",
+  "categoryWinnersLabel": "Category winners",
+  "leaderboard": "Leaderboard",
+  "errorLoad": "The results couldn’t be loaded. Please try again."
+}

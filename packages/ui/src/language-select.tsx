@@ -11,6 +11,12 @@ import styles from './language-select.module.css';
  * whole app at once (i18next re-renders every translated component) and the
  * choice is remembered (see createI18n). The label is translated too, so it
  * reads in whatever language is current.
+ *
+ * The key is the FULL path into the app's resources (`common.language.label`) —
+ * both apps nest each screen's file under its own key, so a bare `language.label`
+ * resolves to nothing and i18next falls back to echoing the key as the accessible
+ * name. An English default is passed as well, so an app that has not added the
+ * key still announces sensibly instead of reading out "language.label".
  */
 export function LanguageSelect() {
   const { t, i18n } = useTranslation();
@@ -29,7 +35,7 @@ export function LanguageSelect() {
         className={styles.select}
         value={current}
         onChange={change}
-        aria-label={t('language.label')}
+        aria-label={t('common.language.label', 'Language')}
       >
         {LANGUAGES.map((language) => (
           <option key={language.code} value={language.code}>

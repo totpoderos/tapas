@@ -1,0 +1,13 @@
+{
+  "waitingLead": "Ya casi…",
+  "waitingNote": "Los resultados aparecen en cuanto el anfitrión los revela.",
+  "joinFirstTitle": "Únete primero",
+  "joinFirstLead": "Tienes que unirte al concurso antes de poder ver los resultados.",
+  "goToJoin": "Ir a unirte",
+  "winner": "Ganador",
+  "jointWinners": "Ganadores ex aequo",
+  "bestInCategory": "Lo mejor de cada categoría",
+  "categoryWinnersLabel": "Ganadores por categoría",
+  "leaderboard": "Clasificación",
+  "errorLoad": "No se pudieron cargar los resultados. Inténtalo de nuevo."
+}
