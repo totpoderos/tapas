@@ -8,10 +8,12 @@ describe('hostAssistantTools', () => {
     expect(tools.map((tool) => tool.name).sort()).toEqual([
       'close_contest',
       'create_draft',
+      'find_contest',
       'get_contest',
       'get_draft',
       'get_results',
       'get_tally',
+      'list_my_contests',
       'publish_contest',
       'trigger_reveal',
       'update_draft',

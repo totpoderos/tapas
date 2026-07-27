@@ -127,6 +127,27 @@ export async function publishContestAs(app: FastifyInstance, token: string): Pro
   return published.json().id as string;
 }
 
+/** Publishes a live contest with a specific name as the given host; returns its id. */
+export async function publishNamedContestAs(
+  app: FastifyInstance,
+  token: string,
+  name: string,
+): Promise<string> {
+  const created = await asBearer(app, token, 'POST', '/drafts', { ...DRAFT_CONTENT, name });
+  const published = await asBearer(app, token, 'POST', `/drafts/${created.json().id}/publish`);
+  return published.json().id as string;
+}
+
+/** Registers/logs in a host and publishes a live contest with a specific name; returns its id and token. */
+export async function hostWithNamedContest(
+  app: FastifyInstance,
+  email: string,
+  name: string,
+): Promise<{ token: string; contestId: string }> {
+  const token = await hostWithToken(app, email);
+  return { token, contestId: await publishNamedContestAs(app, token, name) };
+}
+
 /** Registers/logs in a host, saves a simple draft as them, and returns its id and token. */
 export async function hostWithDraft(
   app: FastifyInstance,

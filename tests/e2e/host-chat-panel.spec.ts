@@ -63,6 +63,17 @@ test('the assistant carries out a reversible action and shows what it did', asyn
   expect(names).toContain('Summer Tapas');
 });
 
+test("the assistant lists the host's contests by name", async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-list@sobremesa.es');
+  await liveContest(page.request, 'Tapas Night');
+  await page.goto('/chat');
+  await sendMessage(page, 'list my contests');
+
+  // The panel shows the actual contest — not a bare "done" ticket.
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('Tapas Night')).toBeVisible();
+});
+
 test('a destructive action is held behind a confirmation card', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

@@ -43,6 +43,29 @@ what the host owns, and deciding nothing itself.
 - **WHEN** a host asks a connected assistant to read a draft owned by a different host, using their own token
 - **THEN** the request is refused as not allowed
 
+### Requirement: A host can list and find their contests by name through a connected assistant
+So a host can talk to their assistant about contests the way they think of them — by name, not by an internal id — a host SHALL be able to have their connected assistant list all of their contests, and find one of their contests by name. Listing SHALL return all of the host's contests (drafts and published alike), each with its name and state. Finding by name SHALL match exactly but case-insensitively and return every contest with that name, so the assistant can ask the host which one when more than one shares a name. Both act strictly as that host — only the host's own contests, only while the token is valid — and the assistant decides nothing itself; a name that matches nothing simply comes back empty.
+
+#### Scenario: The assistant lists the host's contests
+- **WHEN** a host asks a connected assistant to list their contests, using their personal access token
+- **THEN** the host's contests are listed
+
+#### Scenario: The assistant lists only the host's own contests
+- **WHEN** a host asks a connected assistant to list their contests while another host has a contest of their own, using their personal access token
+- **THEN** the other host's contest is not listed
+
+#### Scenario: The assistant finds a contest by name
+- **WHEN** a host asks a connected assistant to find a contest by a name one of their contests has, using their personal access token
+- **THEN** the matching contest is found
+
+#### Scenario: The assistant is given every contest that shares a name
+- **WHEN** a host asks a connected assistant to find a contest by a name two of their contests share, using their personal access token
+- **THEN** both contests with that name are found
+
+#### Scenario: The assistant finds only the host's own contests by name
+- **WHEN** a host asks a connected assistant to find a contest by a name only another host's contest has, using their own token
+- **THEN** no contest is found
+
 ### Requirement: A destructive action must be confirmed before the assistant carries it out
 The assistant SHALL require an explicit confirmation for a destructive action
 (closing a contest, publishing, sending reminders) before carrying it out. A
