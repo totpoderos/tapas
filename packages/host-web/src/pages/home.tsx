@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
 import { Button } from '@tapas/ui';
 import { listContests, type ContestSummary } from '../api/client';
 import { useSession } from '../auth/session';

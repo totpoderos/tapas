@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
