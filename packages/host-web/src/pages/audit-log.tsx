@@ -1,22 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, getAuditLog, type AuditEntry } from '../api/client';
 import styles from './audit-log.module.css';
 
-const EVENT_LABEL: Record<string, string> = {
-  'draft.saved': 'Draft saved',
-  'draft.updated': 'Draft renamed',
-  'draft.discarded': 'Draft discarded',
-  'contest.published': 'Contest published',
-  'contest.closed': 'Contest closed',
-  'contest.revealed': 'Results revealed',
+// Known event types map to a translation key; an unknown type falls back to its
+// raw value (data), never a missing-key blank.
+const EVENT_KEY: Record<string, string> = {
+  'draft.saved': 'draftSaved',
+  'draft.updated': 'draftUpdated',
+  'draft.discarded': 'draftDiscarded',
+  'contest.published': 'contestPublished',
+  'contest.closed': 'contestClosed',
+  'contest.revealed': 'contestRevealed',
 };
-const eventLabel = (type: string) => EVENT_LABEL[type] ?? type;
 
-const SOURCE_LABEL: Record<AuditEntry['sourcePath'], { label: string; mark: string }> = {
-  form: { label: 'In-app', mark: '◇' },
-  system: { label: 'System', mark: '◈' },
-  mcp: { label: 'Connected tool', mark: '⬡' },
+const SOURCE_MARK: Record<AuditEntry['sourcePath'], string> = {
+  form: '◇',
+  system: '◈',
+  mcp: '⬡',
 };
 
 type Source = 'all' | AuditEntry['sourcePath'];
@@ -35,6 +37,7 @@ type State =
  * only ever the host's own.
  */
 export function AuditLog() {
+  const { t } = useTranslation();
   const { id = '' } = useParams();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [source, setSource] = useState<Source>('all');
@@ -63,48 +66,48 @@ export function AuditLog() {
       <div className={styles.bar}>
         <div className={styles.brand}>
           <span className={styles.dot} aria-hidden="true" />
-          <b>Tapas</b>
+          <b>{t('common.brand')}</b>
         </div>
         <Link to="/" className={styles.back}>
-          Back to contests
+          {t('auditLog.back')}
         </Link>
       </div>
 
-      <h1 className={styles.title}>Activity log</h1>
-      <p className={styles.lead}>Everything that has happened to this contest, and how each action was triggered.</p>
+      <h1 className={styles.title}>{t('auditLog.title')}</h1>
+      <p className={styles.lead}>{t('auditLog.lead')}</p>
 
       {state.kind === 'loading' && (
         <p role="status" className={styles.note}>
-          Loading the activity log…
+          {t('auditLog.loading')}
         </p>
       )}
-      {state.kind === 'missing' && <p className={styles.note}>This contest doesn’t exist, or isn’t yours to view.</p>}
+      {state.kind === 'missing' && <p className={styles.note}>{t('auditLog.missing')}</p>}
       {state.kind === 'error' && (
         <p role="alert" className={styles.note}>
-          The activity log couldn’t be loaded. Please try again.
+          {t('auditLog.error')}
         </p>
       )}
 
       {state.kind === 'ready' && (
         <>
           <div className={styles.filter}>
-            <label htmlFor="source-filter">Filter by source</label>
+            <label htmlFor="source-filter">{t('auditLog.filterLabel')}</label>
             <select
               id="source-filter"
               value={source}
               onChange={(e) => setSource(e.target.value as Source)}
             >
-              <option value="all">All sources</option>
-              <option value="form">In-app</option>
-              <option value="system">System</option>
-              <option value="mcp">Connected tool</option>
+              <option value="all">{t('auditLog.sourceAll')}</option>
+              <option value="form">{t('auditLog.source.form')}</option>
+              <option value="system">{t('auditLog.source.system')}</option>
+              <option value="mcp">{t('auditLog.source.mcp')}</option>
             </select>
           </div>
 
           {shown.length === 0 ? (
-            <p className={styles.note}>No activity from this source yet.</p>
+            <p className={styles.note}>{t('auditLog.empty')}</p>
           ) : (
-            <ul className={styles.list} aria-label="Activity">
+            <ul className={styles.list} aria-label={t('auditLog.listLabel')}>
               {shown.map((entry) => (
                 <Entry key={entry.id} entry={entry} />
               ))}
@@ -117,22 +120,25 @@ export function AuditLog() {
 }
 
 function Entry({ entry }: { entry: AuditEntry }) {
-  const source = SOURCE_LABEL[entry.sourcePath];
+  const { t } = useTranslation();
+  const eventKey = EVENT_KEY[entry.type];
+  const eventLabel = eventKey ? t(`auditLog.event.${eventKey}`) : entry.type;
+  const actor = t(entry.actorId === 'system' ? 'auditLog.actorSystem' : 'auditLog.actorYou');
   return (
     <li className={styles.entry}>
-      <span className={styles.event}>{eventLabel(entry.type)}</span>
+      <span className={styles.event}>{eventLabel}</span>
       <span className={styles.when}>{new Date(entry.occurredAt).toLocaleString()}</span>
       <div className={styles.meta}>
         <span className={`${styles.badge} ${styles[entry.sourcePath]}`}>
-          <span aria-hidden="true">{source.mark}</span> {source.label}
+          <span aria-hidden="true">{SOURCE_MARK[entry.sourcePath]}</span> {t(`auditLog.source.${entry.sourcePath}`)}
         </span>
         {entry.confirmation === 'host' && (
           <span className={`${styles.badge} ${styles.confirmed}`}>
-            <span aria-hidden="true">✓</span> You confirmed
+            <span aria-hidden="true">✓</span> {t('auditLog.confirmed')}
           </span>
         )}
         <span>
-          by {entry.actorId === 'system' ? 'the system' : 'you'}
+          {t('auditLog.by', { actor })}
           {entry.toolName ? ` · ${entry.toolName}` : ''}
         </span>
       </div>

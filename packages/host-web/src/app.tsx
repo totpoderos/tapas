@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
 import { Home } from './pages/home';
@@ -17,11 +19,12 @@ import { useSession } from './auth/session';
  */
 export function App() {
   const { status } = useSession();
+  const { t } = useTranslation();
 
   if (status === 'loading') {
     return (
       <main id="main" style={{ padding: 28 }}>
-        <p role="status">Loading…</p>
+        <p role="status">{t('common.loading')}</p>
       </main>
     );
   }

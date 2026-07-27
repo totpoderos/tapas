@@ -1,0 +1,37 @@
+{
+  "back": "Volver a los concursos",
+  "loading": "Cargando el concurso…",
+  "notFoundTitle": "Concurso no encontrado",
+  "notFoundBody": "Este concurso no existe o no es tuyo.",
+  "loadError": "No se pudo cargar el concurso. Inténtalo de nuevo.",
+  "closeError": "No se pudo cerrar el concurso. Inténtalo de nuevo.",
+  "revealError": "No se pudo revelar el concurso. Inténtalo de nuevo.",
+  "status": {
+    "live": "En curso",
+    "closed": "Cerrado",
+    "revealed": "Revelado"
+  },
+  "joinCode": "Código de acceso",
+  "progress": "Progreso",
+  "joined": "Se han unido",
+  "stillScoring": "Aún puntuando",
+  "votesSent": "Votos enviados",
+  "closeVoting": "Cerrar la votación",
+  "revealResults": "Revelar los resultados",
+  "revealedNote": "Los resultados ya están — los participantes pueden verlos.",
+  "activityLog": "Registro de actividad",
+  "confirm": {
+    "cancel": "Cancelar",
+    "working": "Procesando…",
+    "close": {
+      "title": "¿Cerrar la votación?",
+      "body": "Después de esto no se podrán enviar más votos y no se podrá reabrir.",
+      "confirm": "Cerrar la votación"
+    },
+    "reveal": {
+      "title": "¿Revelar los resultados?",
+      "body": "Los ganadores se harán visibles para todos. Esto no se puede deshacer.",
+      "confirm": "Revelar los resultados"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "back": "Back to contests",
+  "title": "Activity log",
+  "lead": "Everything that has happened to this contest, and how each action was triggered.",
+  "loading": "Loading the activity log…",
+  "missing": "This contest doesn’t exist, or isn’t yours to view.",
+  "error": "The activity log couldn’t be loaded. Please try again.",
+  "filterLabel": "Filter by source",
+  "sourceAll": "All sources",
+  "source": {
+    "form": "In-app",
+    "system": "System",
+    "mcp": "Connected tool"
+  },
+  "listLabel": "Activity",
+  "empty": "No activity from this source yet.",
+  "event": {
+    "draftSaved": "Draft saved",
+    "draftUpdated": "Draft renamed",
+    "draftDiscarded": "Draft discarded",
+    "contestPublished": "Contest published",
+    "contestClosed": "Contest closed",
+    "contestRevealed": "Results revealed"
+  },
+  "confirmed": "You confirmed",
+  "by": "by {{actor}}",
+  "actorSystem": "the system",
+  "actorYou": "you"
+}

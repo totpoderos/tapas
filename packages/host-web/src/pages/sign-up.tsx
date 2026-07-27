@@ -1,10 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
 import { ApiError } from '../api/client';
 import { useSession } from '../auth/session';
 import styles from './auth.module.css';
-
-const PASSWORD_HINT = 'At least 12 characters, with upper- and lower-case, a number, and a symbol.';
 
 /**
  * Host sign-up (design system "Host sign-in/up"). Creates the account and signs
@@ -14,6 +13,8 @@ const PASSWORD_HINT = 'At least 12 characters, with upper- and lower-case, a num
  * email as a form-level notice pointing at sign-in.
  */
 export function SignUp() {
+  const { t } = useTranslation();
+  const passwordHint = t('signUp.passwordHint');
   const { signUp } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,13 +35,13 @@ export function SignUp() {
     } catch (caught) {
       const code = caught instanceof ApiError ? caught.code : undefined;
       if (code === 'EMAIL_TAKEN') {
-        setFormError('That email is already registered. Try signing in instead.');
+        setFormError(t('signUp.errorEmailTaken'));
       } else if (code === 'INVALID_EMAIL') {
-        setEmailError('Enter a valid email address.');
+        setEmailError(t('signUp.errorInvalidEmail'));
       } else if (code === 'WEAK_PASSWORD') {
-        setPasswordError(PASSWORD_HINT);
+        setPasswordError(passwordHint);
       } else {
-        setFormError('Something went wrong creating your account. Please try again.');
+        setFormError(t('signUp.errorGeneric'));
       }
       setSubmitting(false);
     }
@@ -52,10 +53,10 @@ export function SignUp() {
         <form className={styles.form} onSubmit={onSubmit} noValidate>
           <div className={styles.brand}>
             <span className={styles.dot} aria-hidden="true" />
-            <b>Tapas</b>
+            <b>{t('common.brand')}</b>
           </div>
-          <h1 className={styles.title}>Create your account</h1>
-          <p className={styles.sub}>Set up and run tapas contests from here.</p>
+          <h1 className={styles.title}>{t('signUp.title')}</h1>
+          <p className={styles.sub}>{t('signUp.subtitle')}</p>
 
           {formError ? (
             <div className={styles.alert} role="alert">
@@ -67,7 +68,7 @@ export function SignUp() {
           <div className={styles.fields}>
             <FormField
               id="email"
-              label="Email"
+              label={t('signUp.email')}
               type="email"
               autoComplete="email"
               value={email}
@@ -76,32 +77,29 @@ export function SignUp() {
             />
             <FormField
               id="password"
-              label="Password"
+              label={t('signUp.password')}
               type="password"
               autoComplete="new-password"
               value={password}
-              hint={PASSWORD_HINT}
+              hint={passwordHint}
               error={passwordError}
               onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" block disabled={submitting}>
-              {submitting ? 'Creating your account…' : 'Create account'}
+              {submitting ? t('signUp.submitting') : t('signUp.submit')}
             </Button>
             <p className={styles.foot}>
-              Already have an account? <a href="/sign-in">Sign in</a>
+              {t('signUp.footPrompt')} <a href="/sign-in">{t('signUp.footLink')}</a>
             </p>
           </div>
         </form>
 
-        <aside className={styles.panel} aria-label="Tonight">
+        <aside className={styles.panel} aria-label={t('signUp.panelKicker')}>
           <div className={styles.stripe} aria-hidden="true" />
           <div className={styles.content}>
-            <p className={styles.kicker}>Your table</p>
-            <div className={styles.contest}>Plate up the rules.</div>
-            <p className={styles.detail}>
-              Scoring, anti-bias, categories — set the contest once, and run the night from one
-              place.
-            </p>
+            <p className={styles.kicker}>{t('signUp.panelKicker')}</p>
+            <div className={styles.contest}>{t('signUp.panelContest')}</div>
+            <p className={styles.detail}>{t('signUp.panelDetail')}</p>
           </div>
         </aside>
       </div>
