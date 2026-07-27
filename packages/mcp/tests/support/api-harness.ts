@@ -120,6 +120,20 @@ export async function saveDraftAs(app: FastifyInstance, token: string): Promise<
   return created.json().id as string;
 }
 
+/** Saves a draft with a specific name + participant display names as the given host; returns its id. */
+export async function saveNamedDraftAs(
+  app: FastifyInstance,
+  token: string,
+  name: string,
+  participantNames: readonly string[],
+): Promise<string> {
+  const created = await asBearer(app, token, 'POST', '/drafts', {
+    name,
+    participants: participantNames.map((displayName, i) => ({ id: `p${i}`, displayName })),
+  });
+  return created.json().id as string;
+}
+
 /** Publishes a live contest as the given host (by bearer token) and returns its id; reusable for several. */
 export async function publishContestAs(app: FastifyInstance, token: string): Promise<string> {
   const draftId = await saveDraftAs(app, token);

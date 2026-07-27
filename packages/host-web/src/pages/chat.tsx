@@ -28,6 +28,8 @@ function resultSummary(action: string, result: unknown): string {
 // Read tools that return a *list of contests* — their answer is the data, so it
 // is rendered as a list rather than a bare "done" ticket.
 const CONTEST_LIST_ACTIONS = new Set(['list_my_contests', 'find_contest']);
+// Tools whose result is a single contest's details (or candidates to choose from).
+const DETAILS_ACTIONS = new Set(['get_contest_details', 'add_participant', 'remove_participant']);
 const STATUS_MARK: Record<string, string> = { live: '●', draft: '◇', closed: '◆', revealed: '✓' };
 
 interface ContestRow {
@@ -125,7 +127,7 @@ export function Chat() {
       const text = turn.text.trim() || 'I didn’t catch that. Try, for example, “list my contests”.';
       add({ kind: 'assistant', text });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
-    } else if (turn.kind === 'result' && turn.action === 'get_contest_details') {
+    } else if (turn.kind === 'result' && DETAILS_ACTIONS.has(turn.action)) {
       // Details resolve to one contest, or to candidates when a name is shared.
       const { details, candidates } = readDetails(turn.result);
       if (details) {
@@ -136,8 +138,11 @@ export function Chat() {
         add({ kind: 'contests', rows: candidates });
         setHistory((h) => [...h, { role: 'assistant', content: 'Several contests have that name.' }]);
       } else {
-        add({ kind: 'note', text: 'No contest by that name.' });
-        setHistory((h) => [...h, { role: 'assistant', content: 'No contest by that name.' }]);
+        // Adding/removing works on a draft; the details tool works on any contest.
+        const text =
+          turn.action === 'get_contest_details' ? 'No contest by that name.' : 'No draft by that name to change.';
+        add({ kind: 'note', text });
+        setHistory((h) => [...h, { role: 'assistant', content: text }]);
       }
     } else if (turn.kind === 'result') {
       const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result) : null;

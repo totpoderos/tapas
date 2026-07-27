@@ -334,6 +334,8 @@ DRAFT MANAGEMENT
   list_my_contests          lists contests the host owns (host-only)
   find_contest              finds the host's contests by name, exact/case-insensitive (host-only)
   get_contest_details       reads a contest's participants + categories by name (host-only)
+  add_participant           adds a participant to a draft, by name (host-only)
+  remove_participant        removes a participant from a draft, by name (host-only, destructive)
 
 PARTICIPANT MANAGEMENT
   add_participant           adds a participant to a contest (host-only)

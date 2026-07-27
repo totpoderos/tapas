@@ -45,6 +45,27 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('maps add_participant to a POST with the contest + participant, non-destructive', () => {
+    const addParticipant = TOOL_CATALOG.find((tool) => tool.name === 'add_participant');
+    expect(addParticipant?.scope).toBe('host');
+    expect(addParticipant?.destructive).toBe(false);
+    expect(addParticipant?.toRequest({ contest: 'Tapas Night', participant: 'Carmen' })).toEqual({
+      method: 'POST',
+      path: '/drafts/participants',
+      body: { contest: 'Tapas Night', participant: 'Carmen' },
+    });
+  });
+
+  it('marks remove_participant destructive and maps it to a DELETE with url-encoded params', () => {
+    const removeParticipant = TOOL_CATALOG.find((tool) => tool.name === 'remove_participant');
+    expect(removeParticipant?.scope).toBe('host');
+    expect(removeParticipant?.destructive).toBe(true);
+    expect(removeParticipant?.toRequest({ contest: 'Tapas Night', participant: 'Bob' })).toEqual({
+      method: 'DELETE',
+      path: '/drafts/participants?contest=Tapas%20Night&participant=Bob',
+    });
+  });
+
   it('maps get_draft to a GET on the draft', () => {
     const getDraft = TOOL_CATALOG.find((tool) => tool.name === 'get_draft');
     expect(getDraft?.scope).toBe('host');
