@@ -43,4 +43,16 @@ export class Draft {
     if (error) return { ok: false, error };
     return { ok: true, draft: new Draft(this.id, this.hostId, { ...this.content, name: newName }) };
   }
+
+  /**
+   * Replace the draft's whole content, enforcing invariants. Editing a draft is
+   * a full replacement of the rules: a draft may be incomplete or not-yet-valid
+   * (the full rules are checked at publish), so only the name is required here.
+   * Returns a new draft.
+   */
+  withContent(newContent: DraftContent): DraftResult {
+    const error = checkName(newContent.name);
+    if (error) return { ok: false, error };
+    return { ok: true, draft: new Draft(this.id, this.hostId, newContent) };
+  }
 }

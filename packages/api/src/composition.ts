@@ -30,6 +30,7 @@ import { CreateDraft } from './drafts/use-cases/create-draft.js';
 import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
+import { UpdateDraft } from './drafts/use-cases/update-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
 import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
@@ -90,6 +91,7 @@ export function buildProductionDeps(
     signOutHost: new SignOutHost({ tokens, sessions }),
     createDraft: new CreateDraft({ drafts, audit, clock, ids }),
     renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
+    updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
     discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),
