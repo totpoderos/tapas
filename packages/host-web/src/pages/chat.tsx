@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@tapas/ui';
 import {
@@ -98,6 +98,31 @@ type Feed =
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 type FeedInput = DistributiveOmit<Feed, 'id'>;
 
+// The conversation is kept in sessionStorage so it survives leaving the chat for
+// another screen (e.g. the new-contest form) and coming back, and a reload —
+// cleared only when the tab closes. No secrets live here (just the visible
+// conversation), and it is scoped to the tab.
+const CHAT_STORAGE_KEY = 'tapas.chat.v1';
+
+interface PersistedChat {
+  readonly feed: readonly Feed[];
+  readonly history: readonly AssistantMessage[];
+}
+
+function loadChat(): PersistedChat {
+  try {
+    const raw = sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return { feed: [], history: [] };
+    const parsed = JSON.parse(raw) as Partial<PersistedChat>;
+    return {
+      feed: Array.isArray(parsed.feed) ? parsed.feed : [],
+      history: Array.isArray(parsed.history) ? parsed.history : [],
+    };
+  } catch {
+    return { feed: [], history: [] };
+  }
+}
+
 /**
  * The host's chat panel (design.md §7). The host directs their contest in plain
  * language; the panel shows the assistant's words AND the actions it takes, so
@@ -105,12 +130,13 @@ type FeedInput = DistributiveOmit<Feed, 'id'>;
  * surfaces a confirmation card the host must accept first (§7.1).
  */
 export function Chat() {
-  const [feed, setFeed] = useState<readonly Feed[]>([]);
-  const [history, setHistory] = useState<readonly AssistantMessage[]>([]);
+  const initial = useMemo(loadChat, []);
+  const [feed, setFeed] = useState<readonly Feed[]>(initial.feed);
+  const [history, setHistory] = useState<readonly AssistantMessage[]>(initial.history);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
-  const nextId = useRef(0);
+  const nextId = useRef(initial.feed.reduce((max, item) => Math.max(max, item.id + 1), 0));
   const inputRef = useRef<HTMLInputElement>(null);
   const feedEndRef = useRef<HTMLDivElement>(null);
 
@@ -119,6 +145,22 @@ export function Chat() {
   useEffect(() => {
     feedEndRef.current?.scrollIntoView?.({ block: 'end' });
   }, [feed, pending]);
+
+  // Persist the conversation so it survives navigating away and back, or a reload.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ feed, history }));
+    } catch {
+      // Storage full or unavailable — the conversation just won't persist.
+    }
+  }, [feed, history]);
+
+  // Return focus to the composer after each turn (and on entering the panel), so
+  // the host can keep typing without reaching for the mouse. Not while a
+  // confirmation card is open — that traps its own focus.
+  useEffect(() => {
+    if (!busy && !pending) inputRef.current?.focus();
+  }, [busy, pending]);
 
   function applyTurn(turn: AssistantTurn) {
     if (turn.kind === 'reply') {

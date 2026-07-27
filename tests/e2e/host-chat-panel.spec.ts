@@ -117,6 +117,22 @@ test('the assistant adds a participant to a draft by name', async ({ page }) => 
   await expect(log.getByText('Ana, Bob, Carmen')).toBeVisible();
 });
 
+test('the conversation is kept when leaving the panel and coming back', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-persist@sobremesa.es');
+  await page.goto('/chat');
+  await sendMessage(page, 'hello there');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('hello there')).toBeVisible();
+
+  // Leave for the contest list, then return via the Assistant link.
+  await page.getByRole('link', { name: 'Back to contests' }).click();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
+  await page.getByRole('link', { name: 'Assistant' }).click();
+
+  // The earlier message (and the assistant's reply) are still on screen.
+  await expect(page.getByRole('log', { name: 'Conversation' }).getByText('hello there')).toBeVisible();
+});
+
 test('a destructive action is held behind a confirmation card', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
