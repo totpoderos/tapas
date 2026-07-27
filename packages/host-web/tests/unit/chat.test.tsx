@@ -37,6 +37,7 @@ async function send(text: string) {
 
 describe('Chat panel', () => {
   beforeEach(() => {
+    sessionStorage.clear(); // the conversation persists there — don't leak between tests
     vi.mocked(api.sendAssistantMessage).mockReset();
     vi.mocked(api.confirmAssistantAction).mockReset();
   });
@@ -173,6 +174,28 @@ describe('Chat panel', () => {
     await send('add Carmen to Tapas Night');
 
     expect(await screen.findByText('Ana, Bob, Carmen')).toBeInTheDocument();
+  });
+
+  it('returns focus to the composer after the assistant responds', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: 'Which contest do you mean?' });
+    renderChat();
+    await send('close it');
+
+    await screen.findByText('Which contest do you mean?');
+    expect(screen.getByLabelText('Message the assistant')).toHaveFocus();
+  });
+
+  it('keeps the conversation when the panel is left and reopened', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: 'Here is my reply.' });
+    const { unmount } = renderChat();
+    await send('hello');
+    await screen.findByText('Here is my reply.');
+
+    // Navigate away (unmount) and come back (fresh mount) — the conversation is restored.
+    unmount();
+    renderChat();
+    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(screen.getByText('Here is my reply.')).toBeInTheDocument();
   });
 
   it('always shows a response, even when the model replies with empty text', async () => {
