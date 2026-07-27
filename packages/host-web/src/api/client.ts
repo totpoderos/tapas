@@ -175,6 +175,7 @@ export interface PendingAction {
 export type AssistantTurn =
   | { readonly kind: 'reply'; readonly text: string }
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
+  | { readonly kind: 'failed'; readonly action: string; readonly message: string }
   | ({ readonly kind: 'confirm'; readonly message: string } & PendingAction);
 
 async function assistant(body: unknown): Promise<AssistantTurn> {

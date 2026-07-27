@@ -110,6 +110,25 @@
   font-style: italic;
 }
 
+/*
+ * An action that did not happen. Deliberately unlike the green result ticket —
+ * a refusal read as a success is what this styling exists to prevent — and it
+ * carries the reason, not just the fact. Colour is never the only signal: the
+ * ✕ and the wording say it too, and role="alert" announces it.
+ */
+.refusal {
+  align-self: stretch;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-control);
+  background: var(--danger-soft);
+  color: var(--ink);
+  font-size: 14px;
+}
+
 /* A contest list returned by list_my_contests / find_contest. */
 .contestList {
   align-self: flex-start;

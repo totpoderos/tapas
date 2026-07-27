@@ -6,6 +6,7 @@ import {
   runConfirmedAction,
   UnknownActionError,
   type ConfirmRequest,
+  type ToolOutcome,
   type TurnDeps,
 } from '../assistant/host-assistant-turn.js';
 import { requireHostSession } from './require-host-session.js';
@@ -50,7 +51,7 @@ export function registerAssistantRoutes(app: FastifyInstance, deps: ServerDeps):
       // so the audit log records that the host approved it (design.md §7.1).
       const execute =
         (hostConfirmed: boolean) =>
-        async (apiRequest: ApiRequest): Promise<unknown> => {
+        async (apiRequest: ApiRequest): Promise<ToolOutcome> => {
           const response = await app.inject({
             method: apiRequest.method,
             url: apiRequest.path,
@@ -60,7 +61,10 @@ export function registerAssistantRoutes(app: FastifyInstance, deps: ServerDeps):
               ...(hostConfirmed ? { 'x-tapas-confirmation': 'host' } : {}),
             },
           });
-          return response.statusCode === 204 || response.body === '' ? undefined : response.json();
+          const body = response.statusCode === 204 || response.body === '' ? undefined : response.json();
+          // Report the API's verdict, not just its body: a refusal must not reach
+          // the host dressed as a result (they are told what failed, and why).
+          return { ok: response.statusCode < 400, body };
         };
 
       const assistant = await getAssistant();

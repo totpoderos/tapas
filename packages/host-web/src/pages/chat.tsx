@@ -95,6 +95,7 @@ function detailsSummary(details: ContestDetails, t: TFunction): string {
 type Feed =
   | { readonly id: number; readonly kind: 'user' | 'assistant' | 'note'; readonly text: string }
   | { readonly id: number; readonly kind: 'ticket'; readonly text: string }
+  | { readonly id: number; readonly kind: 'refusal'; readonly text: string }
   | { readonly id: number; readonly kind: 'contests'; readonly rows: readonly ContestRow[] }
   | { readonly id: number; readonly kind: 'details'; readonly details: ContestDetails };
 
@@ -174,6 +175,14 @@ export function Chat() {
       const text = turn.text.trim() || t('chat.nudge');
       add({ kind: 'assistant', text });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
+    } else if (turn.kind === 'failed') {
+      // The action did not happen. Say so, and say why — the API writes these
+      // reasons for hosts, so they are shown rather than swallowed.
+      const text = t('chat.failed', { action: labelFor(turn.action, t), reason: turn.message });
+      add({ kind: 'refusal', text });
+      // Fed back to the model too, so the next turn can react to the reason
+      // instead of cheerfully repeating the same call.
+      setHistory((h) => [...h, { role: 'assistant', content: text }]);
     } else if (turn.kind === 'result' && DETAILS_ACTIONS.has(turn.action)) {
       // Details resolve to one contest, or to candidates when a name is shared.
       const { details, candidates } = readDetails(turn.result, t);
@@ -207,11 +216,13 @@ export function Chat() {
         setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows, t) }]);
       } else {
         add({ kind: 'ticket', text: resultSummary(turn.action, turn.result, t) });
-        if (turn.text) add({ kind: 'assistant', text: turn.text });
-        setHistory((h) => [
-          ...h,
-          { role: 'assistant', content: turn.text || t('chat.doneRecap', { action: labelFor(turn.action, t) }) },
-        ]);
+        // A small model often calls a tool and says nothing at all. Rather than
+        // leave a bare ticket, put what happened into words — the same sentence
+        // that goes to the model's history, so screen and history agree.
+        const said = turn.text.trim();
+        const sentence = said || t('chat.doneRecap', { action: labelFor(turn.action, t) });
+        add({ kind: 'assistant', text: sentence });
+        setHistory((h) => [...h, { role: 'assistant', content: sentence }]);
       }
     } else {
       add({ kind: 'assistant', text: turn.message });
@@ -312,6 +323,10 @@ export function Chat() {
                 </li>
               ))}
             </ul>
+          ) : item.kind === 'refusal' ? (
+            <p key={item.id} className={styles.refusal} role="alert">
+              <span aria-hidden="true">✕</span> {item.text}
+            </p>
           ) : item.kind === 'note' ? (
             <p key={item.id} className={styles.note}>
               {item.text}

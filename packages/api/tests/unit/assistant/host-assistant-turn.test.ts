@@ -17,7 +17,7 @@ function assistantReturning(completion: LLMCompletion): HostAssistant {
 }
 
 function turnDeps(overrides: Partial<TurnDeps> & Pick<TurnDeps, 'assistant'>): TurnDeps {
-  return { confirmationSecret: SECRET, execute: vi.fn(async () => ({ ok: true })), ...overrides };
+  return { confirmationSecret: SECRET, execute: vi.fn(async () => ({ ok: true, body: {} })), ...overrides };
 }
 
 describe('runAssistantMessage', () => {
@@ -32,7 +32,7 @@ describe('runAssistantMessage', () => {
   });
 
   it('executes a reversible tool and returns its result', async () => {
-    const execute = vi.fn(async () => ({ id: 'd1' }));
+    const execute = vi.fn(async () => ({ ok: true, body: { id: 'd1' } }));
     const turn = await runAssistantMessage(
       [{ role: 'user', content: 'make a draft' }],
       turnDeps({
@@ -63,7 +63,7 @@ describe('runAssistantMessage', () => {
 
 describe('runConfirmedAction', () => {
   it('executes when the token matches the action', async () => {
-    const execute = vi.fn(async () => ({ status: 'closed' }));
+    const execute = vi.fn(async () => ({ ok: true, body: { status: 'closed' } }));
     const token = confirmationTokenFor(SECRET, 'close_contest', { contestId: 'c1' });
     const turn = await runConfirmedAction(
       { action: 'close_contest', args: { contestId: 'c1' }, confirmationToken: token },
