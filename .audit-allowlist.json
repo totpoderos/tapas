@@ -1,13 +1,4 @@
 {
-  "$comment": "Documented, EXPIRING exceptions for `npm run audit:ci` (the CI supply-chain gate, tasks.md 6.3/6.4). Every entry needs a reason, an advisory URL, and an `expires` date; once expired it no longer suppresses the advisory, so the gate re-blocks and forces a fresh review. Any high/critical advisory NOT listed here still blocks. Keep this list short and each entry justified.",
-  "allow": [
-    {
-      "id": "GHSA-mh99-v99m-4gvg",
-      "package": "brace-expansion",
-      "severity": "high",
-      "reason": "DoS via unbounded brace expansion (OOM). Reached only through BUILD TOOLING glob matching (eslint -> minimatch@3 -> brace-expansion@1.x); it is absent from the production dependency tree (`npm audit --omit=dev` does not report it), and no runtime code path passes an attacker-controlled glob to minimatch, so the vulnerable expansion is unreachable in the running app. The 5.x path was genuinely fixed (5.0.7 -> 5.0.8 via `npm audit fix`); no patched 1.x exists (1.1.16 is the latest), so the remaining path can only be cleared by an eslint 10 major upgrade, tracked as its own slice.",
-      "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
-      "expires": "2026-10-25"
-    }
-  ]
+  "$comment": "Documented, EXPIRING exceptions for `npm run audit:ci` (the CI supply-chain gate, tasks.md 6.3/6.4). Every entry needs a reason, an advisory URL, and an `expires` date; once expired it no longer suppresses the advisory, so the gate re-blocks and forces a fresh review. Any high/critical advisory NOT listed here still blocks. Keep this list short and each entry justified. Currently EMPTY: the two exceptions it once held (react-router GHSA-qwww-vcr4-c8h2, brace-expansion GHSA-mh99-v99m-4gvg) were retired by upgrading to react-router 8 and ESLint 10 rather than renewed.",
+  "allow": []
 }
