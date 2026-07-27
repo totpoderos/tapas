@@ -67,6 +67,38 @@ describe('Chat panel', () => {
     expect(screen.getByText('Done — I saved your draft.')).toBeInTheDocument();
   });
 
+  it('puts what happened into words even when the model says nothing', async () => {
+    // gemma4 and friends routinely call a tool and contribute no sentence.
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'create_draft',
+      text: '',
+      result: { id: 'd1' },
+    });
+    renderChat();
+    await send('start a draft called Summer Tapas');
+
+    // The ticket is there, and so is a sentence — not a bare ticket.
+    expect(await screen.findByText(/create draft — done/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Done — create draft\.$/i)).toBeInTheDocument();
+  });
+
+  it('says an action did not happen, and why', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'failed',
+      action: 'publish_contest',
+      message: 'The draft is missing its scoring rules.',
+    });
+    renderChat();
+    await send('publish Bare');
+
+    // Announced, names the action, and carries the reason — never a green tick.
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/didn’t happen/i);
+    expect(alert).toHaveTextContent('The draft is missing its scoring rules.');
+    expect(screen.queryByText(/publish contest — done/i)).not.toBeInTheDocument();
+  });
+
   it('renders the contest list when the assistant lists contests', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({
       kind: 'result',

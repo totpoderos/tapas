@@ -39,5 +39,6 @@
   "noContestsYet": "Aún no tienes concursos.",
   "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
   "errorCarryingOut": "Algo salió mal al realizarlo. Inténtalo de nuevo.",
-  "cancelled": "Cancelado — no se ha cambiado nada."
+  "cancelled": "Cancelado — no se ha cambiado nada.",
+  "failed": "{{action}} no se realizó — {{reason}}"
 }
