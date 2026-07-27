@@ -162,6 +162,19 @@ describe('Chat panel', () => {
     expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
   });
 
+  it('renders the updated participants after adding one', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_participant',
+      text: '',
+      result: { details: { id: 'd1', name: 'Tapas Night', status: 'draft', participants: ['Ana', 'Bob', 'Carmen'], categories: [] } },
+    });
+    renderChat();
+    await send('add Carmen to Tapas Night');
+
+    expect(await screen.findByText('Ana, Bob, Carmen')).toBeInTheDocument();
+  });
+
   it('always shows a response, even when the model replies with empty text', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: '' });
     renderChat();

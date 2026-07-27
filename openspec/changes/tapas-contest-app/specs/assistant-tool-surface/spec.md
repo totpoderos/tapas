@@ -81,6 +81,21 @@ So a host can ask their assistant "who's in Tapas Night?" and get an answer, a h
 - **WHEN** a host asks a connected assistant for the details of a name only another host's contest has, using their own token
 - **THEN** no contest is found
 
+### Requirement: A host can manage a draft's participants through a connected assistant
+A host SHALL be able to have their connected assistant add and remove the people taking part in a contest they are still preparing, naming the contest rather than quoting an id. This is for drafts only — once a contest is published its participants are settled. Adding is carried out straight away; removing someone is a destructive change, so the assistant SHALL NOT carry it out until the host confirms (see the destructive-action requirement). Both act strictly as that host — only the host's own drafts, only while the token is valid; a name shared by more than one draft returns the candidates to choose from, and a name that matches no draft comes back with none to change.
+
+#### Scenario: The assistant adds a participant to a draft by name
+- **WHEN** a host asks a connected assistant to add someone to one of their drafts, naming the draft, using their personal access token
+- **THEN** that person is taking part in the draft
+
+#### Scenario: Removing a participant is not carried out until the host confirms
+- **WHEN** a host asks a connected assistant to remove someone from one of their drafts without a confirmation
+- **THEN** the assistant asks the host to confirm first, and the person is still taking part
+
+#### Scenario: The assistant removes a participant once the host confirms
+- **WHEN** a host asks a connected assistant to remove someone from one of their drafts with a valid confirmation
+- **THEN** that person is no longer taking part in the draft
+
 ### Requirement: A destructive action must be confirmed before the assistant carries it out
 The assistant SHALL require an explicit confirmation for a destructive action
 (closing a contest, publishing, sending reminders) before carrying it out. A

@@ -102,6 +102,54 @@ const getContestDetails: McpTool = {
   }),
 };
 
+/**
+ * `add_participant` — adds someone to one of the host's drafts, found by name.
+ * For drafts only (a published contest's participants are settled). Reversible,
+ * so not destructive. When several drafts share the name, the candidates come
+ * back for the host to choose from.
+ */
+const addParticipant: McpTool = {
+  name: 'add_participant',
+  description:
+    "Add a participant, by their display name, to one of the host's contest DRAFTS (found by the contest's name). Returns the draft's updated participant list, or — when several drafts share the name — the candidates to choose from.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: z.string().min(1).describe('The exact name of the draft to add to (case-insensitive).'),
+    participant: z.string().min(1).describe('The display name of the participant to add.'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: '/drafts/participants',
+    body: { contest: args.contest, participant: args.participant },
+  }),
+};
+
+/**
+ * `remove_participant` — removes someone from one of the host's drafts, found by
+ * name. Destructive (removing a person), so the assistant confirms with the host
+ * before it runs (design.md §6.1). The params ride the query so no body is needed.
+ */
+const removeParticipant: McpTool = {
+  name: 'remove_participant',
+  description:
+    "Remove a participant, by their display name, from one of the host's contest DRAFTS (found by the contest's name). Returns the draft's updated participant list.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contest: z.string().min(1).describe('The exact name of the draft to remove from (case-insensitive).'),
+    participant: z.string().min(1).describe('The display name of the participant to remove.'),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => ({
+    method: 'DELETE',
+    path: `/drafts/participants?contest=${encodeURIComponent(String(args.contest))}&participant=${encodeURIComponent(String(args.participant))}`,
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -288,6 +336,8 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   listMyContests,
   findContest,
   getContestDetails,
+  addParticipant,
+  removeParticipant,
   getDraft,
   getTally,
   closeContest,

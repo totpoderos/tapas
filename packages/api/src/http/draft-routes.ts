@@ -74,6 +74,31 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     return reply.code(200).send(deps.listHostDrafts.execute(request.hostSession.id));
   });
 
+  // Managing a draft's participants by name (drafts only — a published contest's
+  // roster is settled at publish). Static paths, so matched ahead of /drafts/:id.
+  app.post<{ Body: { contest: string; participant: string } }>(
+    '/drafts/participants',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const { contest, participant } = request.body;
+      return reply.code(200).send(deps.addDraftParticipant.execute(request.hostSession.id, contest, participant));
+    },
+  );
+
+  // Removing is destructive (the assistant confirms with the host first); the
+  // params go in the query so a body isn't needed on DELETE.
+  app.delete<{ Querystring: { contest?: string; participant?: string } }>(
+    '/drafts/participants',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const contest = request.query.contest ?? '';
+      const participant = request.query.participant ?? '';
+      return reply.code(200).send(deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant));
+    },
+  );
+
   app.get<{ Params: { id: string } }>(
     '/drafts/:id',
     { preHandler: requireSession },

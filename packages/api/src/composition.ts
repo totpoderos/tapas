@@ -30,6 +30,7 @@ import { CreateDraft } from './drafts/use-cases/create-draft.js';
 import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
+import { AddDraftParticipant, RemoveDraftParticipant } from './drafts/use-cases/manage-draft-participants.js';
 import { UpdateDraft } from './drafts/use-cases/update-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
 import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
@@ -92,6 +93,18 @@ export function buildProductionDeps(
     createDraft: new CreateDraft({ drafts, audit, clock, ids }),
     renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
     updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+    addDraftParticipant: new AddDraftParticipant({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+      ids,
+    }),
+    removeDraftParticipant: new RemoveDraftParticipant({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+      ids,
+    }),
     discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),

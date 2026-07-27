@@ -22,6 +22,7 @@ import type { CreateDraft } from '../drafts/use-cases/create-draft.js';
 import type { DiscardDraft } from '../drafts/use-cases/discard-draft.js';
 import type { ListHostDrafts } from '../drafts/use-cases/list-host-drafts.js';
 import type { RenameDraft } from '../drafts/use-cases/rename-draft.js';
+import type { AddDraftParticipant, RemoveDraftParticipant } from '../drafts/use-cases/manage-draft-participants.js';
 import type { UpdateDraft } from '../drafts/use-cases/update-draft.js';
 import type { ExtractContestDraft } from '../drafts/extraction/extract-contest-draft.js';
 import type { MergeContestDraft } from '../drafts/extraction/merge-contest-draft.js';
@@ -55,6 +56,8 @@ export interface ServerDeps {
   readonly createDraft: CreateDraft;
   readonly renameDraft: RenameDraft;
   readonly updateDraft: UpdateDraft;
+  readonly addDraftParticipant: AddDraftParticipant;
+  readonly removeDraftParticipant: RemoveDraftParticipant;
   readonly discardDraft: DiscardDraft;
   readonly listHostDrafts: ListHostDrafts;
   readonly extractContestDraft: ExtractContestDraft;

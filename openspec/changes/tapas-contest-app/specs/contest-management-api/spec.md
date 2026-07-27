@@ -32,6 +32,25 @@ While a contest is still a draft, a host SHALL be able to change any of its rule
 - **WHEN** editing a draft is attempted through the API with no one signed in
 - **THEN** the API refuses it as not authorized
 
+### Requirement: A host can add and remove a draft's participants by name over the API
+A host SHALL be able to add a participant to, and remove a participant from, one of their own contest *drafts* through the API, naming the contest rather than quoting an id. This is for drafts only — a published contest's participants are settled. Removing a participant SHALL also clear any pairing that named them, so a draft never holds a dangling reference. Resolution SHALL be exact but case-insensitive over the host's own drafts; a name shared by more than one draft returns the candidates to choose from, and a name matching no draft (including a published contest's or another host's) returns none. It SHALL be refused when no one is signed in.
+
+#### Scenario: A host adds a participant to a draft by name
+- **WHEN** a host adds a participant to one of their drafts, naming the draft, through the API
+- **THEN** that participant is taking part in the draft
+
+#### Scenario: A host removes a participant from a draft by name
+- **WHEN** a host removes a participant from one of their drafts, naming the draft, through the API
+- **THEN** that participant is no longer taking part in the draft
+
+#### Scenario: Managing participants of a published contest by name finds no draft
+- **WHEN** a host tries to add a participant to a name that only a published contest has
+- **THEN** no draft is found to change
+
+#### Scenario: Managing draft participants requires being signed in
+- **WHEN** adding a participant is attempted through the API with no one signed in
+- **THEN** the API refuses it as not authorized
+
 ### Requirement: Draft management is available over the API, scoped to the host
 A host SHALL be able to list, rename, and discard their own drafts through the API. Listing SHALL return only that host's drafts.
 
