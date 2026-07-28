@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
-import { Button } from '@tapas/ui';
+import { Link, useNavigate, useParams } from 'react-router';
+import { Button, ConfirmDialog } from '@tapas/ui';
 import {
   ApiError,
   closeContest,
@@ -11,6 +11,7 @@ import {
   type ContestDetail,
   type Tally,
 } from '../api/client';
+import { useDeleteContest } from '../contests/use-delete-contest';
 import styles from './contest-control.module.css';
 
 const STATUS_MARK: Record<ContestDetail['status'], string> = {
@@ -37,10 +38,16 @@ type State =
 export function ContestControl() {
   const { t } = useTranslation();
   const { id = '' } = useParams();
+  const navigate = useNavigate();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [pending, setPending] = useState<'close' | 'reveal' | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
+
+  // Deleting takes the contest away, so it takes the host back to their list.
+  const { ask: askDelete, dialog: deleteDialog, error: deleteError } = useDeleteContest(() =>
+    navigate('/'),
+  );
 
   const load = useCallback(async () => {
     try {
@@ -140,6 +147,13 @@ export function ContestControl() {
             <Stat num={state.tally.sentCount} label={t('contestControl.votesSent')} />
           </div>
 
+          {deleteError ? (
+            <div className={styles.alert} role="alert">
+              <span aria-hidden="true">✕</span>
+              <span>{deleteError}</span>
+            </div>
+          ) : null}
+
           {actionError ? (
             <div className={styles.alert} role="alert">
               <span aria-hidden="true">✕</span>
@@ -169,13 +183,26 @@ export function ContestControl() {
             <Link to={`/log/${state.contest.id}`} className={styles.logLink}>
               {t('contestControl.activityLog')}
             </Link>
+            <Button
+              variant="danger"
+              onClick={() => askDelete({ id: state.contest.id, name: state.contest.name })}
+            >
+              {t('deleteContest.action')}
+            </Button>
           </div>
         </>
       )}
 
+      {deleteDialog}
+
       {pending ? (
         <ConfirmDialog
-          action={pending}
+          title={t(`contestControl.confirm.${pending}.title`)}
+          body={t(`contestControl.confirm.${pending}.body`)}
+          confirmLabel={t(`contestControl.confirm.${pending}.confirm`)}
+          cancelLabel={t('contestControl.confirm.cancel')}
+          workingLabel={t('contestControl.confirm.working')}
+          variant={pending === 'close' ? 'danger' : 'brand'}
           busy={busy}
           onConfirm={() => void onConfirm()}
           onCancel={() => setPending(null)}
@@ -190,75 +217,6 @@ function Stat({ num, label }: { num: number; label: string }) {
     <div className={styles.stat}>
       <div className={styles.statNum}>{num}</div>
       <div className={styles.statLabel}>{label}</div>
-    </div>
-  );
-}
-
-/** A focus-trapped confirmation before an irreversible action (design.md §7.1). */
-function ConfirmDialog({
-  action,
-  busy,
-  onConfirm,
-  onCancel,
-}: {
-  action: 'close' | 'reveal';
-  busy: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const { t } = useTranslation();
-  const dialogRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    dialog?.querySelector<HTMLButtonElement>('button')?.focus();
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        onCancel();
-        return;
-      }
-      if (event.key !== 'Tab' || !dialog) return;
-      const focusable = [...dialog.querySelectorAll<HTMLElement>('button')];
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last?.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first?.focus();
-      }
-    }
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [onCancel]);
-
-  return (
-    <div className={styles.backdrop}>
-      <div
-        ref={dialogRef}
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="confirm-title"
-        aria-describedby="confirm-body"
-        className={styles.card}
-      >
-        <h2 id="confirm-title" className={styles.cardTitle}>
-          {t(`contestControl.confirm.${action}.title`)}
-        </h2>
-        <p id="confirm-body" className={styles.cardBody}>
-          {t(`contestControl.confirm.${action}.body`)}
-        </p>
-        <div className={styles.cardActions}>
-          <Button variant="ghost" onClick={onCancel} disabled={busy}>
-            {t('contestControl.confirm.cancel')}
-          </Button>
-          <Button variant={action === 'close' ? 'danger' : 'brand'} onClick={onConfirm} disabled={busy}>
-            {busy ? t('contestControl.confirm.working') : t(`contestControl.confirm.${action}.confirm`)}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }

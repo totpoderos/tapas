@@ -21,7 +21,7 @@ Feature: Managing a contest draft
     Given a host with a saved draft named "Summer Tapas 2026"
     When the host discards the draft
     Then the draft no longer appears among the host's drafts
-    And the audit log records that the draft was discarded
+    And nothing recorded about it remains except that it was deleted
 
   Scenario: A draft without a name cannot be saved
     Given a host

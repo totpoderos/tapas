@@ -298,6 +298,55 @@ watches them — the design's "alert on >N failed logins" is unbuilt. Also,
 destructive-tool calls are audited as *domain* events (actor + confirmation) but
 **without source IP** and outside the security-event stream. Tracked for 6.11.
 
+#### The one place the audit log is reduced: deleting a contest
+
+The audit log is append-only everywhere except one operation, and the exception is
+deliberate. `DeleteContest`
+([delete-contest.ts](../packages/api/src/contests/use-cases/delete-contest.ts))
+**erases a contest's audit entries** and writes a single `contest.deleted`
+tombstone in their place. Anyone finding a `DELETE FROM audit_log` should read
+this before assuming it is a bug.
+
+**Why.** The log stores participant names *inside* recorded draft content —
+`draft.saved` keeps the whole `DraftContent`, and the retired `DiscardDraft`
+recorded `before: content`, so discarding a draft used to *copy* every
+participant's name into the log at the moment of discarding it. A delete that
+spared the log would therefore erase nothing that identifies anyone: the product
+would say "deleted" and be wrong. A host acting on their own contest's personal
+data is exactly the case where erasure is the point, so between a complete trail
+and a real deletion, the deletion wins here.
+
+**What survives.** Actor, timestamp, source path, and `confirmation` — that a
+destructive act happened, by whom, when, and that it was confirmed. This is the
+accountability A09 actually asks for. What does **not** survive is the payload:
+the tombstone carries no `before`/`after`, asserted by test (no participant or
+dish name appears anywhere in the row).
+
+**How narrow the exception is.** The erasure is reachable only through
+`AuditRecorder.deleteByContest`, whose only caller is `DeleteContest`, which
+requires (a) a signed-in host, (b) ownership of that contest, and (c) — once
+anyone has claimed a place or cast a vote — the contest's exact name on the
+request. It runs in one transaction with the destruction it records.
+
+**Known limitations, stated rather than discovered later:**
+
+- **The tombstone has no reader inside the product.** Deleting removes the row
+  that held `host_id`, so the audit route can no longer authorize anyone against
+  that contest — the former owner gets a 404 like everyone else. The record is an
+  operator/forensic artifact in the database, not a screen. (Participants are
+  answered `410 Gone` instead, since a voter token already proves prior
+  association with that contest — see
+  [refuse-deleted-contest.ts](../packages/api/src/http/refuse-deleted-contest.ts).)
+- **The confirmation token is replayable.** `confirmation-token.ts` documents it:
+  a deterministic HMAC over tool and arguments, with no nonce store, so a token
+  for `delete_contest(X)` always validates. The blast radius is bounded by the
+  target already being gone — a replay hits `CONTEST_NOT_FOUND` — so this
+  destructive action is not *repeatable*. True single-use remains future
+  hardening.
+- **Deletion is not itself alerted on**, sharing the gap above: it is a domain
+  event with actor and confirmation, but carries no source IP and is outside the
+  security-event stream.
+
 ### 3.10 Mishandling of Exceptional Conditions — *new in 2025*
 
 - **Fail-fast on bad config**: the process refuses to start on invalid env rather

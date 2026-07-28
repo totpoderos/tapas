@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
-import { ApiError, getBallot, getMyScores, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
+import { ApiError, getBallot, getMyScores, isContestDeleted, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 const key = (dishId: string, categoryId: string) => `${dishId} ${categoryId}`;
@@ -13,6 +13,7 @@ type State =
   | { readonly kind: 'ready'; readonly ballot: Ballot }
   | { readonly kind: 'sent' }
   | { readonly kind: 'need-join' }
+  | { readonly kind: 'gone' }
   | { readonly kind: 'error' };
 
 /**
@@ -48,6 +49,7 @@ export function Score() {
       })
       .catch((caught) => {
         if (!live) return;
+        if (isContestDeleted(caught)) return setState({ kind: 'gone' });
         setState(caught instanceof ApiError && caught.status === 401 ? { kind: 'need-join' } : { kind: 'error' });
       });
     return () => {
@@ -89,6 +91,13 @@ export function Score() {
       await sendVote(contestId);
       setState({ kind: 'sent' });
     } catch (caught) {
+      // Deleted mid-vote: there is nothing to retry, so leave the form behind
+      // rather than offering a send that cannot succeed.
+      if (isContestDeleted(caught)) {
+        setConfirming(false);
+        setState({ kind: 'gone' });
+        return;
+      }
       setError(
         caught instanceof ApiError && caught.code === 'INCOMPLETE'
           ? t('score.errorIncomplete')
@@ -120,6 +129,15 @@ export function Score() {
         <>
           <h1 className="pt-title">{t('score.joinFirstTitle')}</h1>
           <p className="pt-lead">{t('score.joinFirstLead')}</p>
+          <Link to="/" className="pt-note">
+            {t('score.goToJoin')}
+          </Link>
+        </>
+      )}
+      {state.kind === 'gone' && (
+        <>
+          <h1 className="pt-title">{t('score.goneTitle')}</h1>
+          <p className="pt-lead">{t('score.goneLead')}</p>
           <Link to="/" className="pt-note">
             {t('score.goToJoin')}
           </Link>

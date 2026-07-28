@@ -15,6 +15,8 @@ export interface VoteSessionRepository {
   listSentScores(contestId: string): StoredScore[];
   /** Every vote session in this contest, any status — for the live draft/sent progress tally. */
   listSessions(contestId: string): StoredVoteSession[];
+  /** Removes every vote session in a contest and all the scores inside them. */
+  deleteByContest(contestId: string): void;
 }
 
 interface SessionRow {
@@ -134,5 +136,20 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
       .prepare(`SELECT * FROM vote_sessions WHERE contest_id = ? ORDER BY voter_id`)
       .all(contestId) as unknown as SessionRow[];
     return rows.map(toSession);
+  }
+
+  /**
+   * Scores are keyed by vote session, not by contest, so they go first — there is
+   * no foreign key doing it for us, and deleting the sessions first would orphan
+   * every score in the contest.
+   */
+  deleteByContest(contestId: string): void {
+    this.db
+      .prepare(
+        `DELETE FROM scores WHERE vote_session_id IN
+           (SELECT id FROM vote_sessions WHERE contest_id = ?)`,
+      )
+      .run(contestId);
+    this.db.prepare(`DELETE FROM vote_sessions WHERE contest_id = ?`).run(contestId);
   }
 }

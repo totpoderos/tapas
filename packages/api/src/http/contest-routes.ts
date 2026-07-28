@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import type {
   CloseContestErrorCode,
+  DeleteContestErrorCode,
   GetResultsErrorCode,
   GetTallyErrorCode,
   RevealContestErrorCode,
@@ -9,6 +10,7 @@ import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
 import { toRevealDto } from '../contests/reveal-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
+import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -33,6 +35,14 @@ const GET_RESULTS_ERROR_STATUS: Record<GetResultsErrorCode, number> = {
 
 const GET_TALLY_ERROR_STATUS: Record<GetTallyErrorCode, number> = {
   CONTEST_NOT_FOUND: 404,
+};
+
+const DELETE_CONTEST_ERROR_STATUS: Record<DeleteContestErrorCode, number> = {
+  CONTEST_NOT_FOUND: 404,
+  NOT_ALLOWED: 403,
+  // The contest exists and is theirs, but they have not typed its name. 428:
+  // the request is fine, a precondition on the client's side is not met.
+  CONFIRMATION_REQUIRED: 428,
 };
 
 /**
@@ -111,6 +121,38 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
       const fresh = ensureContestFresh(contest, { contests: deps.contests, clock: deps.clock });
       return reply.code(200).send(toContestDto(fresh));
+    },
+  );
+
+  /**
+   * Deleting a contest, at any point in its life. **One route for drafts and
+   * published contests alike** — they share an id space, and two routes for one
+   * host intent is the "one destination, two paths" shape behind the defects in
+   * docs/threat-model.md §4. `DELETE /drafts/:id` was retired into this.
+   *
+   * `?confirm=<name>` carries the typed-name confirmation. The use case decides
+   * whether it is required (once anyone has claimed a place or cast a vote), so
+   * the guard holds for the form, the assistant and any MCP client alike rather
+   * than living in whichever screen happens to show a dialog.
+   */
+  app.delete<{ Params: { id: string }; Querystring: { confirm?: string } }>(
+    '/contests/:id',
+    // Rate-limited like the other sensitive entry points: this is the one action
+    // with no undo, and the tightest ceiling in the API is the right one for it.
+    { preHandler: requireSession, config: { rateLimit: SENSITIVE_RATE_LIMIT } },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const deleted = deps.deleteContest.execute(request.params.id, request.hostSession.id, {
+        confirmName: request.query.confirm,
+        confirmation: hostConfirmed(request),
+      });
+      if (!deleted.ok) {
+        return reply
+          .code(DELETE_CONTEST_ERROR_STATUS[deleted.error.code])
+          .send({ error: deleted.error });
+      }
+      return reply.code(204).send();
     },
   );
 

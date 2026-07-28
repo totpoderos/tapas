@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '@tapas/ui';
 import { listContests, type ContestSummary } from '../api/client';
+import { useDeleteContest } from '../contests/use-delete-contest';
 import { useSession } from '../auth/session';
 import styles from './home.module.css';
 
@@ -28,6 +29,16 @@ export function Home() {
   const { t } = useTranslation();
   const { signOut } = useSession();
   const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const [announcement, setAnnouncement] = useState<string | undefined>();
+
+  const { ask, dialog, error: deleteError } = useDeleteContest((deleted) => {
+    setState((s) =>
+      s.kind === 'ready'
+        ? { kind: 'ready', contests: s.contests.filter((c) => c.id !== deleted.id) }
+        : s,
+    );
+    setAnnouncement(t('deleteContest.deleted', { name: deleted.name }));
+  });
 
   useEffect(() => {
     let live = true;
@@ -81,6 +92,16 @@ export function Home() {
         </div>
       )}
 
+      {/* The list changes underneath the host, so the outcome is announced. */}
+      <p role="status" className={styles.note}>
+        {announcement}
+      </p>
+      {deleteError && (
+        <p role="alert" className={styles.note}>
+          {deleteError}
+        </p>
+      )}
+
       {state.kind === 'ready' && state.contests.length > 0 && (
         <ul className={styles.list} aria-label={t('home.listLabel')}>
           {state.contests.map((contest) => (
@@ -94,10 +115,18 @@ export function Home() {
                 {contest.name}
               </Link>
               <StatusPill status={contest.status} />
+              <Button
+                variant="ghost"
+                aria-label={t('deleteContest.actionFor', { name: contest.name })}
+                onClick={() => ask({ id: contest.id, name: contest.name })}
+              >
+                {t('deleteContest.action')}
+              </Button>
             </li>
           ))}
         </ul>
       )}
+      {dialog}
     </main>
   );
 }

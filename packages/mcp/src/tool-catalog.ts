@@ -319,6 +319,44 @@ const triggerReveal: McpTool = {
   }),
 };
 
+/**
+ * `delete_contest` — destroys one of the host's contests and everything in it.
+ * The most destructive thing the surface offers and the only one with no undo,
+ * so it is confirmation-gated like the rest.
+ *
+ * `confirmName` is not protocol ceremony: the API refuses (428) without the exact
+ * contest name once anyone has claimed a place or cast a vote, so the assistant
+ * must know and reproduce the name of the thing it is destroying. Because the
+ * confirmation token is an HMAC over the arguments, a token issued for deleting
+ * one contest cannot validate deleting another.
+ */
+const deleteContest: McpTool = {
+  name: 'delete_contest',
+  description:
+    "Delete one of the host's own contests — a draft or a published one — together with its participants, dishes, scores and votes. Everything is destroyed and THIS CANNOT BE UNDONE. Once anyone has claimed a place or cast a vote, `confirmName` must be the contest's exact name.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contestId: z.string().min(1).describe('The id of the contest or draft to delete.'),
+    confirmName: z
+      .string()
+      .optional()
+      .describe("The contest's exact name. Required once anyone has taken part in it."),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => {
+    const path = `/contests/${encodeURIComponent(String(args.contestId))}`;
+    const name = args.confirmName;
+    return {
+      method: 'DELETE',
+      path: name === undefined ? path : `${path}?confirm=${encodeURIComponent(String(name))}`,
+    };
+  },
+};
+
 /** `get_results` — reads the final results of one of the host's revealed contests. */
 const getResults: McpTool = {
   name: 'get_results',
@@ -350,6 +388,7 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   updateDraft,
   publishContest,
   triggerReveal,
+  deleteContest,
   getResults,
 ];
 

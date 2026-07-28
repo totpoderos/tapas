@@ -14,5 +14,7 @@
   "noDishes": "Todavía no hay platos. Sé el primero.",
   "yours": "El tuyo",
   "waiting": "Cuando estén todos los platos, llega la hora de puntuar.",
-  "scoreLink": "Puntuar los platos →"
+  "scoreLink": "Puntuar los platos →",
+  "goneTitle": "Este concurso ya no existe",
+  "goneLead": "El anfitrión lo eliminó. No hay nada para lo que apuntar un plato."
 }

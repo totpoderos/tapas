@@ -27,7 +27,6 @@ import { RegisterHost } from './auth/use-cases/register-host.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
-import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { AddDraftParticipant, RemoveDraftParticipant } from './drafts/use-cases/manage-draft-participants.js';
@@ -40,6 +39,8 @@ import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { CloseContest } from './contests/use-cases/close-contest.js';
 import { RevealContest } from './contests/use-cases/reveal-contest.js';
 import { GetResults } from './contests/use-cases/get-results.js';
+import { DeleteContest } from './contests/use-cases/delete-contest.js';
+import { SqliteUnitOfWork } from './db/unit-of-work.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
@@ -105,7 +106,6 @@ export function buildProductionDeps(
       updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
       ids,
     }),
-    discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),
     mergeContestDraft: new MergeContestDraft({ llmClient }),
@@ -129,6 +129,15 @@ export function buildProductionDeps(
     closeContest: new CloseContest({ contests, clock, audit }),
     revealContest: new RevealContest({ contests, clock, audit }),
     getResults: new GetResults({ contests, voteSessions }),
+    deleteContest: new DeleteContest({
+      contests,
+      drafts,
+      roster,
+      dishes,
+      voteSessions,
+      audit,
+      unitOfWork: new SqliteUnitOfWork(db),
+    }),
     getTally: new GetTally({ contests, roster, voteSessions }),
     clock,
     drafts,

@@ -23,10 +23,6 @@ export type DraftWriteResult =
   | { readonly ok: true; readonly draft: StoredDraft }
   | { readonly ok: false; readonly error: DraftFailure };
 
-export type DiscardResult =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly error: DraftFailure };
-
 export const draftNotFound: DraftFailure = { code: 'DRAFT_NOT_FOUND', message: 'No such draft.' };
 
 /** Ownership check (OWASP A01): returns the draft only if it belongs to the host. */

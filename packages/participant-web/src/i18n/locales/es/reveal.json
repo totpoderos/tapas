@@ -9,5 +9,7 @@
   "bestInCategory": "Lo mejor de cada categoría",
   "categoryWinnersLabel": "Ganadores por categoría",
   "leaderboard": "Clasificación",
-  "errorLoad": "No se pudieron cargar los resultados. Inténtalo de nuevo."
+  "errorLoad": "No se pudieron cargar los resultados. Inténtalo de nuevo.",
+  "goneTitle": "Este concurso ya no existe",
+  "goneLead": "El anfitrión lo eliminó. No hay resultados que mostrar."
 }

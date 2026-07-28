@@ -17,5 +17,7 @@
   "rankFor": "Puesto de {{dish}} en {{category}}",
   "errorSave": "No se pudo guardar. Inténtalo de nuevo.",
   "errorIncomplete": "Puntúa todos los platos antes de enviar tu voto.",
-  "errorSend": "No se pudo enviar tu voto. Inténtalo de nuevo."
+  "errorSend": "No se pudo enviar tu voto. Inténtalo de nuevo.",
+  "goneTitle": "Este concurso ya no existe",
+  "goneLead": "El anfitrión lo eliminó, así que no se pueden enviar tus puntuaciones."
 }
