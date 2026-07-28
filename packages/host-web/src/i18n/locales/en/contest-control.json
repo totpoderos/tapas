@@ -1,0 +1,38 @@
+{
+  "back": "Back to contests",
+  "loading": "Loading the contest…",
+  "notFoundTitle": "Contest not found",
+  "notFoundBody": "This contest doesn’t exist, or isn’t yours.",
+  "loadError": "The contest couldn’t be loaded. Please try again.",
+  "closeError": "The contest couldn’t be closed. Please try again.",
+  "revealError": "The contest couldn’t be revealed. Please try again.",
+  "status": {
+    "live": "Live",
+    "closed": "Closed",
+    "revealed": "Revealed"
+  },
+  "joinCode": "Join code",
+  "progress": "Progress",
+  "joined": "Joined",
+  "stillScoring": "Still scoring",
+  "votesSent": "Votes sent",
+  "closeVoting": "Close voting",
+  "revealResults": "Reveal results",
+  "revealedNote": "The results are out — participants can see them.",
+  "seeResults": "See the results",
+  "activityLog": "Activity log",
+  "confirm": {
+    "cancel": "Cancel",
+    "working": "Working…",
+    "close": {
+      "title": "Close voting?",
+      "body": "No more votes can be sent after this, and it can’t be reopened.",
+      "confirm": "Close voting"
+    },
+    "reveal": {
+      "title": "Reveal the results?",
+      "body": "The winners become visible to everyone. This can’t be undone.",
+      "confirm": "Reveal results"
+    }
+  }
+}

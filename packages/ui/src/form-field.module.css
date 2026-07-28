@@ -1,12 +1,32 @@
 .field {
   display: grid;
+  /* minmax(0, …) — an implicit grid column floors at its content's min width,
+     so the column itself must be told it may shrink, not just the wrapper. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
+  /*
+   * Grid and flex items floor at min-width:auto, i.e. their content's intrinsic
+   * width. A large-font input would therefore push this wrapper — and the page —
+   * wider than a narrow screen. Allowing it to shrink is what lets the field
+   * reflow (WCAG 2.1 AA 1.4.10) instead of scrolling sideways.
+   */
+  min-width: 0;
 }
 .label {
   font: 600 13px var(--sans);
   color: var(--ink);
 }
 .input {
+  /*
+   * Fill the column rather than taking the browser's intrinsic ~20-character
+   * width: with a large font (the join-code field is 22px monospace with wide
+   * letter-spacing) the intrinsic size overflows a narrow screen and the page
+   * scrolls sideways, breaking WCAG 2.1 AA 1.4.10 Reflow at 320px.
+   * `box-sizing: border-box` is set globally in tokens.css, so padding and
+   * border stay inside this width.
+   */
+  width: 100%;
+  min-width: 0; /* same reason as .field — never floor at the intrinsic size */
   font-family: var(--sans);
   font-size: 16px; /* 16px min — no zoom-on-focus on iOS */
   color: var(--ink);

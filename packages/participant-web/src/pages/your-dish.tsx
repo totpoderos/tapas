@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
-import { getDishes, submitDish, type Dish, type Identity } from '../api/client';
+import { getDishes, isContestDeleted, submitDish, type Dish, type Identity } from '../api/client';
 
 /**
  * The cook's dish, once they have joined: register (or revise) the dish they
@@ -10,12 +11,14 @@ import { getDishes, submitDish, type Dish, type Identity } from '../api/client';
  * screen pre-fills it from the roster). Scoring opens later, from here.
  */
 export function YourDish({ identity }: { identity: Identity }) {
+  const { t } = useTranslation();
   const [dishes, setDishes] = useState<readonly Dish[] | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState(false);
 
   const mine = dishes?.find((dish) => dish.submitterIds.includes(identity.participantId));
 
@@ -31,7 +34,13 @@ export function YourDish({ identity }: { identity: Identity }) {
           setDescription(own.description ?? '');
         }
       })
-      .catch(() => live && setDishes([]));
+      .catch((caught: unknown) => {
+        if (!live) return;
+        // The host deleted the contest — say so rather than showing an empty list
+        // as if nobody had entered a dish yet.
+        if (isContestDeleted(caught)) setGone(true);
+        else setDishes([]);
+      });
     return () => {
       live = false;
     };
@@ -41,7 +50,7 @@ export function YourDish({ identity }: { identity: Identity }) {
     event.preventDefault();
     setSaved(false);
     if (!name.trim()) {
-      setNameError('Give your dish a name.');
+      setNameError(t('yourDish.errorNameRequired'));
       return;
     }
     setNameError(undefined);
@@ -53,34 +62,44 @@ export function YourDish({ identity }: { identity: Identity }) {
       });
       setDishes(await getDishes(identity.contestId));
       setSaved(true);
-    } catch {
-      setNameError('Your dish couldn’t be saved. Please try again.');
+    } catch (caught) {
+      if (isContestDeleted(caught)) setGone(true);
+      else setNameError(t('yourDish.errorSave'));
     } finally {
       setBusy(false);
     }
   }
 
+  if (gone) {
+    return (
+      <section className="pt-dish">
+        <h1 className="pt-title">{t('yourDish.goneTitle')}</h1>
+        <p className="pt-lead">{t('yourDish.goneLead')}</p>
+      </section>
+    );
+  }
+
   return (
     <section className="pt-dish">
-      <h1 className="pt-title">Your dish, {identity.displayName}</h1>
-      <p className="pt-lead">What did you bring? You can change it until scoring starts.</p>
+      <h1 className="pt-title">{t('yourDish.title', { name: identity.displayName })}</h1>
+      <p className="pt-lead">{t('yourDish.lead')}</p>
 
       <form className="pt-form" onSubmit={onSubmit} noValidate>
         <FormField
           id="dish-name"
-          label="Dish name"
+          label={t('yourDish.dishName')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           error={nameError}
         />
         <FormField
           id="dish-description"
-          label="Description (optional)"
+          label={t('yourDish.description')}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
         <Button type="submit" block disabled={busy}>
-          {busy ? 'Saving…' : mine ? 'Update dish' : 'Submit dish'}
+          {busy ? t('yourDish.saving') : mine ? t('yourDish.update') : t('yourDish.submit')}
         </Button>
       </form>
       {saved ? (
@@ -89,20 +108,20 @@ export function YourDish({ identity }: { identity: Identity }) {
         </p>
       ) : null}
 
-      <h2 className="pt-subhead">Dishes so far</h2>
+      <h2 className="pt-subhead">{t('yourDish.dishesSoFar')}</h2>
       {dishes === null ? (
         <p className="pt-note" role="status">
-          Loading…
+          {t('yourDish.loadingDishes')}
         </p>
       ) : dishes.length === 0 ? (
-        <p className="pt-note">No dishes yet. Be the first.</p>
+        <p className="pt-note">{t('yourDish.noDishes')}</p>
       ) : (
-        <ul className="pt-dishes" aria-label="Dishes submitted">
+        <ul className="pt-dishes" aria-label={t('yourDish.dishesLabel')}>
           {dishes.map((dish) => (
             <li key={dish.dishId} className="pt-dish-row">
               <span className="pt-dish-name">{dish.name}</span>
               {dish.submitterIds.includes(identity.participantId) ? (
-                <span className="pt-yours">Yours</span>
+                <span className="pt-yours">{t('yourDish.yours')}</span>
               ) : null}
               {dish.description ? <span className="pt-dish-desc">{dish.description}</span> : null}
             </li>
@@ -110,9 +129,9 @@ export function YourDish({ identity }: { identity: Identity }) {
         </ul>
       )}
 
-      <p className="pt-note pt-wait">When the dishes are in, it’s time to score.</p>
+      <p className="pt-note pt-wait">{t('yourDish.waiting')}</p>
       <Link to="/score" className="pt-score-link">
-        Score the dishes →
+        {t('yourDish.scoreLink')}
       </Link>
     </section>
   );

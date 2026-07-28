@@ -137,6 +137,77 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('The assistant says what it did in plain language', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host chatting with the assistant', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+    });
+    When('the assistant carries out a reversible action but offers no words of its own', async () => {
+      // A small model routinely calls a tool and says nothing at all.
+      llm.next = { text: '', toolCalls: [{ name: 'create_draft', arguments: { name: 'Summer Tapas' } }] };
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'Start a draft called Summer Tapas' }] },
+      });
+    });
+    Then('the host is still told, in plain language, what was done', () => {
+      // The turn names the action that succeeded, so the panel can say so even
+      // when the model contributed no sentence of its own.
+      expect(response.json().kind).toBe('result');
+      expect(response.json().action).toBe('create_draft');
+    });
+  });
+
+  Scenario('The assistant says when an action could not be carried out', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host chatting with the assistant', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+    });
+    When('an action the assistant tries cannot be carried out', async () => {
+      // Publishing a draft that has no scoring rules — the API refuses it.
+      const draft = await request(app, jar, {
+        method: 'POST',
+        url: '/drafts',
+        payload: { name: 'Bare' },
+      });
+      llm.next = {
+        text: '',
+        toolCalls: [{ name: 'publish_contest', arguments: { draftId: draft.json().id } }],
+      };
+      const proposal = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'Publish Bare' }] },
+      });
+      // Publishing is destructive, so it is confirmed before it runs.
+      const { action, args, confirmationToken } = proposal.json();
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { confirm: { action, args, confirmationToken } },
+      });
+    });
+    Then('the host is told it did not happen', () => {
+      expect(response.json().kind).toBe('failed');
+    });
+    And('the host is told why', () => {
+      expect(response.json().message).toMatch(/scoring/i);
+    });
+  });
+
   Scenario('A destructive action is not carried out until the host confirms', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
     let jar: CookieJar;
@@ -235,6 +306,41 @@ describeFeature(feature, ({ Scenario }) => {
     And('the host is asked to confirm that action instead', () => {
       expect(response.json().kind).toBe('confirm');
       expect(response.json().action).toBe('close_contest');
+    });
+  });
+
+  Scenario('A confirmed action that fails is reported as failed', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host chatting with the assistant', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+    });
+    When('they confirm a destructive action that cannot be carried out', async () => {
+      // A contest that does not exist: the API refuses to close it.
+      llm.next = {
+        text: '',
+        toolCalls: [{ name: 'close_contest', arguments: { contestId: 'no-such-contest' } }],
+      };
+      const proposal = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'Close no-such-contest' }] },
+      });
+      const { action, args, confirmationToken } = proposal.json();
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { confirm: { action, args, confirmationToken } },
+      });
+    });
+    Then('the host is told it did not happen', () => {
+      expect(response.json().kind).toBe('failed');
+      expect(response.json().message).toEqual(expect.any(String));
     });
   });
 

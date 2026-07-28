@@ -2,6 +2,17 @@ import { test, expect, request as playwrightRequest, type APIRequestContext, typ
 import AxeBuilder from '@axe-core/playwright';
 
 /**
+ * The winning dish's name. It also appears on the leaderboard below, so it needs
+ * disambiguating — anchored to the "Winner" heading it sits under rather than to
+ * a class name, since the reveal moved into `@tapas/ui` and its styles are
+ * module-scoped now. "The winner is named directly beneath the Winner heading"
+ * is the actual promise to a screen-reader user, and it survives the move.
+ */
+function winnerLine(page: Page) {
+  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+}
+
+/**
  * Implements tests/e2e/host-live-controls.feature. The host drives a live
  * contest from the host app (:5173) — watching the tally, closing, revealing —
  * while participant activity is seeded through API contexts. The final scenario
@@ -107,7 +118,7 @@ test('a host reveals, and a waiting participant sees the results appear', async 
   await expect(page.getByText(/results are out/i)).toBeVisible();
 
   // The participant's waiting screen picks up the reveal without reloading.
-  await expect(guestPage.locator('.pt-reveal-winner')).toBeVisible({ timeout: 10_000 });
+  await expect(winnerLine(guestPage)).toBeVisible({ timeout: 10_000 });
   await guest.close();
 });
 
@@ -116,6 +127,6 @@ test('the control room is keyboard-operable and has no accessibility violations'
   await page.goto(`${HOST_WEB}/contest/${contestId}`);
   await expect(page.getByRole('heading', { name: 'Balcony Cook-off' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 });

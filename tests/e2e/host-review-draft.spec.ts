@@ -32,16 +32,17 @@ async function seedDraft(request: APIRequestContext, content: object): Promise<s
   return (await created.json()).id as string;
 }
 
-test('a host reviews the rules they set on a draft', async ({ page }) => {
+test('a host opens a draft to edit its rules', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-review@sobremesa.es');
   await seedDraft(page.request, completeContent('Summer Tapas'));
 
   await page.goto('/');
   await page.getByRole('link', { name: 'Summer Tapas' }).click();
 
-  await expect(page.getByRole('heading', { name: /Review .Summer Tapas./ })).toBeVisible();
-  await expect(page.getByText('Each person is scored on their own')).toBeVisible();
-  await expect(page.getByText('Couples cannot score each other')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Edit .Summer Tapas./ })).toBeVisible();
+  // The rules the host chose are loaded into the editable form.
+  await expect(page.getByRole('radio', { name: 'Each person is scored on their own' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Couples cannot score each other' })).toBeChecked();
 });
 
 test('a host publishes a complete draft and it goes live', async ({ page }) => {
@@ -64,20 +65,23 @@ test('an incomplete draft cannot be taken live', async ({ page }) => {
   await page.getByRole('button', { name: /Publish/ }).click();
 
   await expect(page.getByRole('alert')).toContainText(/can.t go live yet/i);
-  await expect(page.getByRole('heading', { name: /Review .Half-baked./ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Edit .Half-baked./ })).toBeVisible();
 });
 
-test('a host renames a draft while reviewing it', async ({ page }) => {
-  await signInFreshHost(page.request, 'e2e-review-rename@sobremesa.es');
+test("a host edits a draft's rules and the change persists", async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-review-edit@sobremesa.es');
   const id = await seedDraft(page.request, completeContent('Summer Tapas'));
 
   await page.goto(`/review/${id}`);
-  const nameField = page.getByLabel('Contest name');
-  await nameField.fill('Summer Tapas Final');
-  await page.getByRole('button', { name: 'Rename' }).click();
+  await page.getByLabel('Contest name').fill('Summer Tapas Final');
+  await page.getByRole('button', { name: 'Remove A' }).click();
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Back to contests' }).click();
-  await expect(page.getByRole('link', { name: 'Summer Tapas Final' })).toBeVisible();
+  // Reopen the draft — the edits were persisted.
+  await page.goto(`/review/${id}`);
+  await expect(page.getByRole('heading', { name: /Edit .Summer Tapas Final./ })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: /Participant \d+ name/ })).toHaveCount(3); // was 4
 });
 
 test('the review screen is keyboard-operable and has no accessibility violations', async ({ page }) => {
@@ -85,9 +89,9 @@ test('the review screen is keyboard-operable and has no accessibility violations
   const id = await seedDraft(page.request, completeContent('Rooftop Rounds'));
 
   await page.goto(`/review/${id}`);
-  await expect(page.getByRole('heading', { name: /Review/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Edit/ })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   await page.getByRole('button', { name: /Publish/ }).focus();

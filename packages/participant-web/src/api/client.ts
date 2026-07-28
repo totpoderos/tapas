@@ -34,6 +34,18 @@ async function errorFrom(response: Response): Promise<ApiError> {
   return new ApiError(response.status, parsed?.error?.code, parsed?.error?.message);
 }
 
+/**
+ * True when the host has deleted the contest out from under this participant.
+ *
+ * The API answers `410 Gone` rather than `404` on the voter-scoped routes: a
+ * voter token proves prior association with that contest, so naming it reveals
+ * nothing they did not already know. It lets the app say "this is gone" instead
+ * of showing a generic failure or spinning forever.
+ */
+export function isContestDeleted(caught: unknown): boolean {
+  return caught instanceof ApiError && caught.status === 410;
+}
+
 /** One open place on a contest's roster: a participant a joiner can claim to be. */
 export interface Place {
   readonly participantId: string;

@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24' # node:sqlite is unflagged from Node 24
           cache: npm
@@ -38,13 +38,18 @@ jobs:
         # Blocks on any high/critical advisory not covered by a non-expired,
         # justified entry in .audit-allowlist.json; moderate/low are not gated.
         run: npm run audit:ci
+      - name: Infrastructure eval (third AI surface — static criteria)
+        # Scores the AI-generated infra: builds / tests / deploys / readable.
+        # Static mode here (no Docker on this job); the build + deploy criteria
+        # are scored locally with `npm run eval:infra -- --full`. Blocks below 85%.
+        run: npm run eval:infra
 
   # --- Hard gate: whole-system E2E + accessibility (axe-core) -----------------
   e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -81,7 +86,7 @@ jobs:
       LLM_MODEL: ${{ vars.LLM_MODEL }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm

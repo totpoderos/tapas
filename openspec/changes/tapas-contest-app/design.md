@@ -332,6 +332,10 @@ DRAFT MANAGEMENT
   get_draft                 reads the current draft (host-only)
   publish_contest           publishes the draft, runs the compiler (host-only, destructive)
   list_my_contests          lists contests the host owns (host-only)
+  find_contest              finds the host's contests by name, exact/case-insensitive (host-only)
+  get_contest_details       reads a contest's participants + categories by name (host-only)
+  add_participant           adds a participant to a draft, by name (host-only)
+  remove_participant        removes a participant from a draft, by name (host-only, destructive)
 
 PARTICIPANT MANAGEMENT
   add_participant           adds a participant to a contest (host-only)
@@ -593,6 +597,7 @@ Symmetric to the others. The AI generates Dockerfiles, the CI pipeline, and the 
 
 - **Language & monorepo.** TypeScript everywhere, in an **npm-workspaces** monorepo: `domain` (pure domain: compiler, value objects, aggregates, domain events — zero I/O), `api`, `mcp`, `host-web`, `participant-web`, `shared` (DTOs + LLMClient interface), and `ui` (shared frontend components).
 - **Frontends (two apps).** React + TypeScript, Vite, Tailwind, sharing the `ui` package. **Host/admin app**: desktop-and-mobile responsive; create/manage forms, tally, reveal control, chat panel. **Participant app**: mobile-first, PWA-installable; join, dish, score, reveal. Each calls the API with its own authorization scope.
+- **Internationalization.** **react-i18next**, English + Spanish, extensible to more languages. The single `LANGUAGES` list and the `createI18n` helper live in `ui`; each app supplies its own per-screen locale JSON (`src/i18n/locales/<lang>/<screen>.json`). Language is resolved as remembered-choice (`localStorage` `tapas.lang`) → browser → English, and the choice is surfaced by a `LanguageSelect` control on every screen (beside the theme toggle); `<html lang>` tracks the current language. Only interface chrome is translated — API/assistant/participant text stays as data. Adding a language is a new folder of locale files plus one line in `LANGUAGES`, changing no screen (capability: `internationalization`).
 - **Backend.** Node.js + TypeScript, Fastify. **MCP server.** A thin Node/TypeScript service. Calls the backend API over HTTP. Tool definitions are JSON files loaded at startup.
 - **Persistence.** **SQLite for v1** (single machine, no ops), **Postgres-ready**: SQL with migrations, and no SQLite-only SQL so Postgres is a swap. JSON columns for the materialized constraint view, the MCP tool-call audit log payload, and the chat transcript.
 - **Testing.** **Vitest everywhere** — backend, MCP, both frontends, the compiler, and the eval harnesses. One runner, one config style. **Acceptance tests are Gherkin `*.feature` files run through a Vitest-compatible runner** (e.g. `vitest-cucumber`), under each package's `tests/acceptance/` (see §11A.6). **Playwright** for the E2E slice.

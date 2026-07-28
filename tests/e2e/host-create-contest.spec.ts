@@ -61,7 +61,7 @@ test('the new-contest form is keyboard-operable and has no accessibility violati
   await page.goto('/new');
   await expect(page.getByRole('heading', { name: 'New contest' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Name and submit reached and operated by keyboard alone.

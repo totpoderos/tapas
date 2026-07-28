@@ -1,13 +1,4 @@
 {
-  "$comment": "Documented, EXPIRING exceptions for `npm run audit:ci` (the CI supply-chain gate, tasks.md 6.3/6.4). Every entry needs a reason, an advisory URL, and an `expires` date; once expired it no longer suppresses the advisory, so the gate re-blocks and forces a fresh review. Any high/critical advisory NOT listed here still blocks. Keep this list short and each entry justified.",
-  "allow": [
-    {
-      "id": "GHSA-qwww-vcr4-c8h2",
-      "package": "react-router",
-      "severity": "high",
-      "reason": "RSC/framework-mode CSRF (Action execution before a 400 response). Both frontends use react-router-dom in declarative SPA mode (BrowserRouter + <Routes>, client-side only) with no server actions and no RSC, so the vulnerable code path is not reachable in this app. The only non-vulnerable version is react-router 8.2.1+ (a major upgrade); tracked as its own slice.",
-      "url": "https://github.com/advisories/GHSA-qwww-vcr4-c8h2",
-      "expires": "2026-10-24"
-    }
-  ]
+  "$comment": "Documented, EXPIRING exceptions for `npm run audit:ci` (the CI supply-chain gate, tasks.md 6.3/6.4). Every entry needs a reason, an advisory URL, and an `expires` date; once expired it no longer suppresses the advisory, so the gate re-blocks and forces a fresh review. Any high/critical advisory NOT listed here still blocks. Keep this list short and each entry justified. Currently EMPTY: the two exceptions it once held (react-router GHSA-qwww-vcr4-c8h2, brace-expansion GHSA-mh99-v99m-4gvg) were retired by upgrading to react-router 8 and ESLint 10 rather than renewed.",
+  "allow": []
 }

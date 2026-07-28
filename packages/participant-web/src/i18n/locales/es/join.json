@@ -1,0 +1,15 @@
+{
+  "codeTitle": "Únete al concurso",
+  "codeLead": "Introduce el código que te dio el anfitrión.",
+  "codeLabel": "Código de acceso",
+  "checking": "Comprobando…",
+  "continue": "Continuar",
+  "chooseTitle": "¿Quién eres?",
+  "chooseLead": "Elige tu nombre para ocupar tu sitio.",
+  "allTaken": "Ya se han ocupado todos los sitios.",
+  "openPlaces": "Sitios libres",
+  "errorUnknownCode": "Ese código no es válido. Compruébalo e inténtalo de nuevo.",
+  "errorPlaceTaken": "Ese sitio lo acaban de ocupar. Elige otro.",
+  "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
+  "errorJoining": "Algo salió mal al unirte. Inténtalo de nuevo."
+}

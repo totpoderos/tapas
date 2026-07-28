@@ -21,7 +21,7 @@ export class ApiError extends Error {
 
 async function send(
   path: string,
-  method: 'GET' | 'POST' | 'PATCH',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   body?: unknown,
   extraHeaders?: Record<string, string>,
 ): Promise<Response> {
@@ -93,6 +93,10 @@ export interface ScoringConfig {
 export interface Participant {
   readonly id: string;
   readonly displayName: string;
+  /** The id of this participant's partner, when they are scored as a couple. */
+  readonly partnerId?: string;
+  /** Ids of participants this one may not score (anti-bias). */
+  readonly noScoreWith?: readonly string[];
 }
 
 /** The editable content of a draft. Only `name` is required; the rest is filled over time. */
@@ -134,6 +138,16 @@ export async function renameDraft(id: string, name: string): Promise<void> {
 }
 
 /**
+ * Replaces a draft's whole content — real editing, not just the name. Throws
+ * ApiError (e.g. a name is required). The draft may be incomplete; the full
+ * rules are checked at publish.
+ */
+export async function updateDraft(id: string, content: DraftContent): Promise<void> {
+  const response = await send(`/drafts/${encodeURIComponent(id)}`, 'PUT', content);
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/**
  * Publishes a draft into a live contest. On failure the thrown `ApiError` carries
  * the API's host-facing reason (e.g. the draft is incomplete), which the caller
  * surfaces to the host. Returns the new live contest's id.
@@ -161,6 +175,7 @@ export interface PendingAction {
 export type AssistantTurn =
   | { readonly kind: 'reply'; readonly text: string }
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
+  | { readonly kind: 'failed'; readonly action: string; readonly message: string }
   | ({ readonly kind: 'confirm'; readonly message: string } & PendingAction);
 
 async function assistant(body: unknown): Promise<AssistantTurn> {
@@ -237,6 +252,70 @@ export async function closeContest(id: string): Promise<void> {
 export async function revealContest(id: string): Promise<void> {
   const response = await send(`/contests/${encodeURIComponent(id)}/reveal`, 'POST', undefined, HOST_CONFIRMED);
   if (!response.ok) throw await errorFrom(response);
+}
+
+/** A dish's place on a reveal leaderboard. */
+export interface Standing {
+  readonly dishId: string;
+  readonly name: string;
+  readonly total: number;
+}
+export interface Winner {
+  readonly dishId: string;
+  readonly name: string;
+}
+
+/** The revealed results: winners and leaderboards, by dish name — the same view a participant reads. */
+export interface Reveal {
+  readonly contestName: string;
+  readonly overall: { readonly winners: readonly Winner[]; readonly standings: readonly Standing[] };
+  readonly categories: readonly {
+    readonly categoryId: string;
+    readonly name: string;
+    readonly winners: readonly Winner[];
+    readonly standings: readonly Standing[];
+  }[];
+}
+
+/**
+ * Reads the results of a contest the host owns, or `null` while it has not been
+ * revealed yet — the same 409 the participant's reading answers with, so the two
+ * screens can treat "not out yet" identically.
+ *
+ * `/winners` rather than `/reveal`: that path already belongs to the participant's
+ * GET and to the POST that triggers the reveal.
+ */
+export async function getWinners(contestId: string): Promise<Reveal | null> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/winners`, 'GET');
+  if (response.status === 409) return null; // not revealed yet
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Reveal;
+}
+
+/**
+ * Deletes a contest the host owns — a draft or a published one, same route.
+ *
+ * `confirmName` carries the typed-name confirmation. **Whether it is required is
+ * the API's call, not this app's**: once anyone has claimed a place or cast a
+ * vote it answers 428 `CONFIRMATION_REQUIRED`, and the UI escalates to asking for
+ * the name. Duplicating that rule here would give two places to keep in step, and
+ * the one in the browser is the one an assistant or MCP client never passes
+ * through.
+ */
+export async function deleteContest(id: string, confirmName?: string): Promise<void> {
+  const query = confirmName === undefined ? '' : `?confirm=${encodeURIComponent(confirmName)}`;
+  const response = await send(
+    `/contests/${encodeURIComponent(id)}${query}`,
+    'DELETE',
+    undefined,
+    HOST_CONFIRMED,
+  );
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/** True when the API is asking for the contest's name before it will delete it. */
+export function needsNameToDelete(caught: unknown): boolean {
+  return caught instanceof ApiError && caught.status === 428;
 }
 
 /** Confirms a destructive action the assistant asked about, carrying it out. */

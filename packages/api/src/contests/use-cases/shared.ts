@@ -2,8 +2,10 @@ import type { PublishErrorCode, TallyResult } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
 import type { AuditRecorder } from '../../audit/audit-recorder.js';
 import type { ContestRepository } from '../../db/contest-repository.js';
+import type { DishRepository } from '../../db/dish-repository.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { RosterRepository } from '../../db/roster-repository.js';
+import type { UnitOfWork } from '../../db/unit-of-work.js';
 import type { VoteSessionRepository } from '../../db/vote-session-repository.js';
 import type { JoinCodeGenerator } from '../join-code-generator.js';
 import type { StoredContest } from '../stored-contest.js';
@@ -84,6 +86,32 @@ export interface GetResultsDeps {
 export type GetResultsResult =
   | { readonly ok: true; readonly results: TallyResult }
   | { readonly ok: false; readonly error: GetResultsError };
+
+export type DeleteContestErrorCode = 'CONTEST_NOT_FOUND' | 'NOT_ALLOWED' | 'CONFIRMATION_REQUIRED';
+
+export interface DeleteContestError {
+  readonly code: DeleteContestErrorCode;
+  readonly message: string;
+}
+
+/**
+ * Everything a contest is spread across. None of these tables cascade, so each
+ * one is named here — a table added later that holds part of a contest has to be
+ * added here too, or its rows outlive the contest.
+ */
+export interface DeleteContestDeps {
+  readonly contests: ContestRepository;
+  readonly drafts: DraftRepository;
+  readonly roster: RosterRepository;
+  readonly dishes: DishRepository;
+  readonly voteSessions: VoteSessionRepository;
+  readonly audit: AuditRecorder;
+  readonly unitOfWork: UnitOfWork;
+}
+
+export type DeleteContestResult =
+  | { readonly ok: true; readonly name: string }
+  | { readonly ok: false; readonly error: DeleteContestError };
 
 export type GetTallyErrorCode = 'CONTEST_NOT_FOUND';
 

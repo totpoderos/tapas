@@ -1,0 +1,15 @@
+{
+  "codeTitle": "Join the contest",
+  "codeLead": "Enter the code your host gave you.",
+  "codeLabel": "Join code",
+  "checking": "Checking…",
+  "continue": "Continue",
+  "chooseTitle": "Who are you?",
+  "chooseLead": "Choose your name to take your place.",
+  "allTaken": "Every place has been taken already.",
+  "openPlaces": "Open places",
+  "errorUnknownCode": "That code isn’t recognised. Check it and try again.",
+  "errorPlaceTaken": "That place was just taken. Please choose another.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "errorJoining": "Something went wrong joining. Please try again."
+}

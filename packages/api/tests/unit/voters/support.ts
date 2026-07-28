@@ -25,6 +25,9 @@ export class FakeRosterRepository implements RosterRepository {
       (p) => p.contestId === contestId && p.claimedAt !== null,
     );
   }
+  listAll(contestId: string): RosterPlace[] {
+    return [...this.places.values()].filter((p) => p.contestId === contestId);
+  }
   find(contestId: string, participantId: string): RosterPlace | undefined {
     return this.places.get(this.key(contestId, participantId));
   }
@@ -33,5 +36,10 @@ export class FakeRosterRepository implements RosterRepository {
     if (!place || place.claimedAt !== null) return false;
     this.places.set(this.key(contestId, participantId), { ...place, claimedAt });
     return true;
+  }
+  deleteByContest(contestId: string): void {
+    for (const [key, place] of this.places) {
+      if (place.contestId === contestId) this.places.delete(key);
+    }
   }
 }

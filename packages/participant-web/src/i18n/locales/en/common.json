@@ -1,0 +1,10 @@
+{
+  "brand": "Tapas",
+  "skipToContent": "Skip to content",
+  "loading": "Loading…",
+  "language": { "label": "Language" },
+  "theme": {
+    "switchToDark": "Switch to dark theme",
+    "switchToLight": "Switch to light theme"
+  }
+}

@@ -117,7 +117,7 @@ test('scoring is keyboard-operable and has no accessibility violations', async (
   await page.getByRole('link', { name: /score the dishes/i }).click();
   await expect(page.getByRole('heading', { name: 'Score the dishes' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   await scoreEveryDish(page, '5');
