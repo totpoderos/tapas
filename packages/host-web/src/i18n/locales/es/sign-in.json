@@ -1,0 +1,15 @@
+{
+  "title": "Bienvenido de nuevo",
+  "subtitle": "Inicia sesión para gestionar tus concursos.",
+  "errorCredentials": "Ese correo y esa contraseña no coinciden. Compruébalos e inténtalo de nuevo.",
+  "errorGeneric": "Algo salió mal al iniciar sesión. Inténtalo de nuevo.",
+  "email": "Correo electrónico",
+  "password": "Contraseña",
+  "submit": "Iniciar sesión",
+  "submitting": "Iniciando sesión…",
+  "footPrompt": "¿Nuevo por aquí?",
+  "footLink": "Crea una cuenta de anfitrión",
+  "panelKicker": "Esta noche",
+  "panelContest": "Sobremesa Summer 2026",
+  "panelDetail": "16 cocineros · 3 categorías · la puntuación abre a las 20:30. La sala se va llenando."
+}

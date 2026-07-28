@@ -190,7 +190,9 @@ describeFeature(feature, ({ Scenario }) => {
       draftId = created.json().id;
     });
     When('that host discards the draft through the API', async () => {
-      const discarded = await request(app, jar, { method: 'DELETE', url: `/drafts/${draftId}` });
+      // `DELETE /contests/:id` — one route for a draft or a published contest;
+      // `DELETE /drafts/:id` was retired into it.
+      const discarded = await request(app, jar, { method: 'DELETE', url: `/contests/${draftId}` });
       expect(discarded.statusCode).toBe(204);
     });
     Then('the draft no longer appears among their drafts', async () => {

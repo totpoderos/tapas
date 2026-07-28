@@ -1,0 +1,18 @@
+{
+  "assistant": "Assistant",
+  "newContest": "New contest",
+  "signOut": "Sign out",
+  "title": "Your contests",
+  "listLabel": "Your contests",
+  "loading": "Loading your contests…",
+  "error": "Your contests couldn’t be loaded. Please try again.",
+  "emptyLead": "You don’t have any contests yet.",
+  "emptyNote": "Create your first contest to get started.",
+  "emptyCta": "Create your first contest",
+  "status": {
+    "live": "Live",
+    "draft": "Draft",
+    "closed": "Closed",
+    "revealed": "Revealed"
+  }
+}

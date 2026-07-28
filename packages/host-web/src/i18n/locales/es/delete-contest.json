@@ -1,0 +1,14 @@
+{
+  "action": "Eliminar",
+  "actionFor": "Eliminar {{name}}",
+  "title": "¿Eliminar «{{name}}»?",
+  "body": "Esto elimina el concurso y todo lo que contiene, para siempre. No se puede deshacer.",
+  "bodyTakenPart": "Ya hay gente participando. Eliminarlo destruye también sus platos, puntuaciones y votos, para siempre. Escribe el nombre del concurso para confirmar.",
+  "verifyLabel": "Nombre del concurso",
+  "verifyHint": "Escribe «{{name}}» para confirmar",
+  "confirm": "Eliminar para siempre",
+  "cancel": "Cancelar",
+  "working": "Eliminando…",
+  "error": "No se pudo eliminar el concurso. Inténtalo de nuevo.",
+  "deleted": "«{{name}}» se ha eliminado."
+}

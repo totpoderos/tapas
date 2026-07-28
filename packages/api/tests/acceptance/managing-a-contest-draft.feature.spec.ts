@@ -7,13 +7,18 @@ import {
   AuditRecorder,
   CreateDraft,
   createAuditProjection,
-  DiscardDraft,
+  DeleteContest,
   GetDraft,
   ListHostDrafts,
   RenameDraft,
   runMigrations,
   SqliteAuditLogRepository,
+  SqliteContestRepository,
+  SqliteDishRepository,
   SqliteDraftRepository,
+  SqliteRosterRepository,
+  SqliteUnitOfWork,
+  SqliteVoteSessionRepository,
   type Clock,
   type IdGenerator,
 } from '../../src/index.js';
@@ -35,7 +40,18 @@ function makeDraftWorkspace() {
   return {
     createDraft: new CreateDraft(deps),
     renameDraft: new RenameDraft(deps),
-    discardDraft: new DiscardDraft(deps),
+    // Discarding a draft IS deleting a contest: one host intent, one rule, and a
+    // draft's stored content names participants, so it is erased rather than
+    // copied into the log (which is what the old `draft.discarded` record did).
+    deleteContest: new DeleteContest({
+      contests: new SqliteContestRepository(db),
+      drafts,
+      roster: new SqliteRosterRepository(db),
+      dishes: new SqliteDishRepository(db),
+      voteSessions: new SqliteVoteSessionRepository(db, clock),
+      audit,
+      unitOfWork: new SqliteUnitOfWork(db),
+    }),
     getDraft: new GetDraft(drafts),
     listHostDrafts: new ListHostDrafts(drafts),
     auditLog,
@@ -115,14 +131,17 @@ describeFeature(feature, ({ Scenario }) => {
       if (creation.ok) draftId = creation.draft.id;
     });
     When('the host discards the draft', () => {
-      expect(workspace.discardDraft.execute(draftId, hostId).ok).toBe(true);
+      expect(workspace.deleteContest.execute(draftId, hostId).ok).toBe(true);
     });
     Then("the draft no longer appears among the host's drafts", () => {
       expect(workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
     });
-    And('the audit log records that the draft was discarded', () => {
-      const wasDiscarded = workspace.auditLog.findByContest(draftId).some((entry) => entry.type === 'draft.discarded');
-      expect(wasDiscarded).toBe(true);
+    And('nothing recorded about it remains except that it was deleted', () => {
+      const entries = workspace.auditLog.findByContest(draftId);
+      expect(entries.map((entry) => entry.type)).toEqual(['contest.deleted']);
+      // The draft's content named a participant; the tombstone must not.
+      expect(entries[0]?.before).toBeUndefined();
+      expect(entries[0]?.after).toBeUndefined();
     });
   });
 

@@ -40,6 +40,116 @@ const getContest: McpTool = {
   }),
 };
 
+/**
+ * `list_my_contests` — lists everything the host owns (drafts still being
+ * prepared and published contests alike), each with its id, name, and state, so
+ * the host has an overview by name and never needs an internal id. Read-only and
+ * host-scoped; the API returns only the host's own.
+ */
+const listMyContests: McpTool = {
+  name: 'list_my_contests',
+  description:
+    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {},
+  toRequest: () => ({ method: 'GET', path: '/contests' }),
+};
+
+/**
+ * `find_contest` — resolves one of the host's contests by name (exact, but
+ * case-insensitive), so a host can refer to a contest the way they say it rather
+ * than by id. A name is not unique — a host may run "Tapas Night" more than once —
+ * so this returns every match; the assistant asks the host which one when more
+ * than one comes back. A name that matches nothing returns an empty list.
+ * Read-only and host-scoped; the API searches only the host's own contests. The
+ * name is URL-encoded so a value can never break out of the query.
+ */
+const findContest: McpTool = {
+  name: 'find_contest',
+  description:
+    "Find one of the host's own contests by name (case-insensitive). Returns every contest with that exact name — usually one, but more if the host has reused a name — each with its id, name, and current state; an empty list means no contest has that name.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    name: z.string().min(1).describe('The exact name of the contest to find (case-insensitive).'),
+  },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests?name=${encodeURIComponent(String(args.name))}`,
+  }),
+};
+
+/**
+ * `get_contest_details` — reads what is inside one of the host's contests, found
+ * by name: who is taking part and how it is scored. Works for a draft or a
+ * published contest. Like `find_contest`, a name is not unique, so when several
+ * share a name the candidates come back for the host to choose from. Read-only
+ * and host-scoped; the name is URL-encoded so a value can never break out.
+ */
+const getContestDetails: McpTool = {
+  name: 'get_contest_details',
+  description:
+    "Read the details of one of the host's own contests by name — its status, who is taking part, and its scoring categories. Works for a draft or a published contest. When several contests share the name, returns the candidates to choose from instead.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    name: z.string().min(1).describe('The exact name of the contest whose details to read (case-insensitive).'),
+  },
+  toRequest: (args) => ({
+    method: 'GET',
+    path: `/contests/details?name=${encodeURIComponent(String(args.name))}`,
+  }),
+};
+
+/**
+ * `add_participant` — adds someone to one of the host's drafts, found by name.
+ * For drafts only (a published contest's participants are settled). Reversible,
+ * so not destructive. When several drafts share the name, the candidates come
+ * back for the host to choose from.
+ */
+const addParticipant: McpTool = {
+  name: 'add_participant',
+  description:
+    "Add a participant, by their display name, to one of the host's contest DRAFTS (found by the contest's name). Returns the draft's updated participant list, or — when several drafts share the name — the candidates to choose from.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: z.string().min(1).describe('The exact name of the draft to add to (case-insensitive).'),
+    participant: z.string().min(1).describe('The display name of the participant to add.'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: '/drafts/participants',
+    body: { contest: args.contest, participant: args.participant },
+  }),
+};
+
+/**
+ * `remove_participant` — removes someone from one of the host's drafts, found by
+ * name. Destructive (removing a person), so the assistant confirms with the host
+ * before it runs (design.md §6.1). The params ride the query so no body is needed.
+ */
+const removeParticipant: McpTool = {
+  name: 'remove_participant',
+  description:
+    "Remove a participant, by their display name, from one of the host's contest DRAFTS (found by the contest's name). Returns the draft's updated participant list.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contest: z.string().min(1).describe('The exact name of the draft to remove from (case-insensitive).'),
+    participant: z.string().min(1).describe('The display name of the participant to remove.'),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => ({
+    method: 'DELETE',
+    path: `/drafts/participants?contest=${encodeURIComponent(String(args.contest))}&participant=${encodeURIComponent(String(args.participant))}`,
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -110,7 +220,12 @@ const scoringShape = z
 
 const personShape = z
   .object({
-    id: z.string().min(1),
+    // Optional on purpose: an id is internal identity, not something a host
+    // states, so a model asked for "participants: Juan and Paco" has no id to
+    // give. The API assigns one to any participant that arrives without it (see
+    // `withParticipantIds`). Supply an existing id to keep referring to the same
+    // person — that is what pairings and `noScoreWith` point at.
+    id: z.string().min(1).optional().describe('Existing participant id; omit for a new participant.'),
     displayName: z.string().min(1),
     partnerId: z.string().min(1).optional(),
     noScoreWith: z.array(z.string().min(1)).optional(),
@@ -204,6 +319,44 @@ const triggerReveal: McpTool = {
   }),
 };
 
+/**
+ * `delete_contest` — destroys one of the host's contests and everything in it.
+ * The most destructive thing the surface offers and the only one with no undo,
+ * so it is confirmation-gated like the rest.
+ *
+ * `confirmName` is not protocol ceremony: the API refuses (428) without the exact
+ * contest name once anyone has claimed a place or cast a vote, so the assistant
+ * must know and reproduce the name of the thing it is destroying. Because the
+ * confirmation token is an HMAC over the arguments, a token issued for deleting
+ * one contest cannot validate deleting another.
+ */
+const deleteContest: McpTool = {
+  name: 'delete_contest',
+  description:
+    "Delete one of the host's own contests — a draft or a published one — together with its participants, dishes, scores and votes. Everything is destroyed and THIS CANNOT BE UNDONE. Once anyone has claimed a place or cast a vote, `confirmName` must be the contest's exact name.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contestId: z.string().min(1).describe('The id of the contest or draft to delete.'),
+    confirmName: z
+      .string()
+      .optional()
+      .describe("The contest's exact name. Required once anyone has taken part in it."),
+    confirmationToken: z
+      .string()
+      .optional()
+      .describe('The confirmation token the server issued for this exact action.'),
+  },
+  toRequest: (args) => {
+    const path = `/contests/${encodeURIComponent(String(args.contestId))}`;
+    const name = args.confirmName;
+    return {
+      method: 'DELETE',
+      path: name === undefined ? path : `${path}?confirm=${encodeURIComponent(String(name))}`,
+    };
+  },
+};
+
 /** `get_results` — reads the final results of one of the host's revealed contests. */
 const getResults: McpTool = {
   name: 'get_results',
@@ -223,6 +376,11 @@ const getResults: McpTool = {
 /** The tools the MCP server exposes. Grows one vertical slice at a time (design.md §6.1). */
 export const TOOL_CATALOG: readonly McpTool[] = [
   getContest,
+  listMyContests,
+  findContest,
+  getContestDetails,
+  addParticipant,
+  removeParticipant,
   getDraft,
   getTally,
   closeContest,
@@ -230,5 +388,32 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   updateDraft,
   publishContest,
   triggerReveal,
+  deleteContest,
   getResults,
 ];
+
+/**
+ * Validates a proposed tool call's arguments against that tool's own input
+ * schema, returning the parsed arguments.
+ *
+ * The MCP server gets this for free — it hands `inputSchema` to the SDK, which
+ * validates before the tool runs. The in-app assistant dispatches tool calls
+ * itself, so without this the model's arguments reached the API unchecked: a
+ * malformed call was stored rather than refused (that is how drafts came to hold
+ * participants with no id). Both entry points now apply the same schema.
+ *
+ * Unknown keys are stripped rather than rejected: only fields the tool declares
+ * are forwarded, so a model that volunteers an extra field is tidied up, not
+ * refused — the same "read only known fields" discipline the draft guard uses.
+ */
+export function parseToolArguments(
+  tool: McpTool,
+  args: Record<string, unknown>,
+): { readonly ok: true; readonly args: Record<string, unknown> } | { readonly ok: false; readonly message: string } {
+  const parsed = z.object(tool.inputSchema).safeParse(args);
+  if (parsed.success) return { ok: true, args: parsed.data as Record<string, unknown> };
+  const detail = parsed.error.issues
+    .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
+    .join('; ');
+  return { ok: false, message: detail };
+}

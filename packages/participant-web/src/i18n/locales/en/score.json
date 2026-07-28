@@ -1,0 +1,23 @@
+{
+  "loadingBallot": "Loading your ballot…",
+  "joinFirstTitle": "Join first",
+  "joinFirstLead": "You need to join the contest before you can score.",
+  "goToJoin": "Go to join",
+  "voteSent": "Vote sent — thank you!",
+  "resultsLater": "Results appear when the host reveals them.",
+  "seeResults": "See the results →",
+  "titleRank": "Rank the dishes",
+  "titleScore": "Score the dishes",
+  "leadRank": "Give every dish a rank in each category — each rank used once.",
+  "leadScore": "Give every dish a score in each category.",
+  "sending": "Sending…",
+  "confirmSend": "Yes, send my vote",
+  "send": "Send my vote",
+  "rankPlaceholder": "Rank…",
+  "rankFor": "Rank for {{dish}} in {{category}}",
+  "errorSave": "That couldn’t be saved. Please try again.",
+  "errorIncomplete": "Score every dish before sending your vote.",
+  "errorSend": "Your vote couldn’t be sent. Please try again.",
+  "goneTitle": "This contest is gone",
+  "goneLead": "The host deleted it, so your scores can’t be sent."
+}

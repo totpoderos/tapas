@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes } from 'react-router';
 import { Join } from './pages/join';
 import { Score } from './pages/score';
 import { Reveal } from './pages/reveal';

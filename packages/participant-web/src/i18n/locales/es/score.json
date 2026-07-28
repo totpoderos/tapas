@@ -1,0 +1,23 @@
+{
+  "loadingBallot": "Cargando tu papeleta…",
+  "joinFirstTitle": "Únete primero",
+  "joinFirstLead": "Tienes que unirte al concurso antes de poder puntuar.",
+  "goToJoin": "Ir a unirte",
+  "voteSent": "¡Voto enviado, gracias!",
+  "resultsLater": "Los resultados aparecen cuando el anfitrión los revela.",
+  "seeResults": "Ver los resultados →",
+  "titleRank": "Ordena los platos",
+  "titleScore": "Puntúa los platos",
+  "leadRank": "Dale a cada plato un puesto en cada categoría — cada puesto una sola vez.",
+  "leadScore": "Dale a cada plato una puntuación en cada categoría.",
+  "sending": "Enviando…",
+  "confirmSend": "Sí, enviar mi voto",
+  "send": "Enviar mi voto",
+  "rankPlaceholder": "Puesto…",
+  "rankFor": "Puesto de {{dish}} en {{category}}",
+  "errorSave": "No se pudo guardar. Inténtalo de nuevo.",
+  "errorIncomplete": "Puntúa todos los platos antes de enviar tu voto.",
+  "errorSend": "No se pudo enviar tu voto. Inténtalo de nuevo.",
+  "goneTitle": "Este concurso ya no existe",
+  "goneLead": "El anfitrión lo eliminó, así que no se pueden enviar tus puntuaciones."
+}

@@ -120,11 +120,46 @@ export async function saveDraftAs(app: FastifyInstance, token: string): Promise<
   return created.json().id as string;
 }
 
+/** Saves a draft with a specific name + participant display names as the given host; returns its id. */
+export async function saveNamedDraftAs(
+  app: FastifyInstance,
+  token: string,
+  name: string,
+  participantNames: readonly string[],
+): Promise<string> {
+  const created = await asBearer(app, token, 'POST', '/drafts', {
+    name,
+    participants: participantNames.map((displayName, i) => ({ id: `p${i}`, displayName })),
+  });
+  return created.json().id as string;
+}
+
 /** Publishes a live contest as the given host (by bearer token) and returns its id; reusable for several. */
 export async function publishContestAs(app: FastifyInstance, token: string): Promise<string> {
   const draftId = await saveDraftAs(app, token);
   const published = await asBearer(app, token, 'POST', `/drafts/${draftId}/publish`);
   return published.json().id as string;
+}
+
+/** Publishes a live contest with a specific name as the given host; returns its id. */
+export async function publishNamedContestAs(
+  app: FastifyInstance,
+  token: string,
+  name: string,
+): Promise<string> {
+  const created = await asBearer(app, token, 'POST', '/drafts', { ...DRAFT_CONTENT, name });
+  const published = await asBearer(app, token, 'POST', `/drafts/${created.json().id}/publish`);
+  return published.json().id as string;
+}
+
+/** Registers/logs in a host and publishes a live contest with a specific name; returns its id and token. */
+export async function hostWithNamedContest(
+  app: FastifyInstance,
+  email: string,
+  name: string,
+): Promise<{ token: string; contestId: string }> {
+  const token = await hostWithToken(app, email);
+  return { token, contestId: await publishNamedContestAs(app, token, name) };
 }
 
 /** Registers/logs in a host, saves a simple draft as them, and returns its id and token. */

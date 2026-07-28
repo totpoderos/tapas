@@ -1,0 +1,31 @@
+/*
+ * Fixed to the top-right corner, above page content, so it's reachable on every
+ * screen. 44px square meets the touch-target minimum (design.md §11C). Colours
+ * come from the tokens, so the control itself repaints when the theme flips.
+ */
+.toggle {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 60;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--brand-line);
+}

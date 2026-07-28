@@ -7,6 +7,6 @@ export {
   type DispatchResult,
   type ApiDispatcherDeps,
 } from './api-dispatcher.js';
-export { TOOL_CATALOG, type McpTool } from './tool-catalog.js';
+export { TOOL_CATALOG, parseToolArguments, type McpTool } from './tool-catalog.js';
 export { confirmationTokenFor, isValidConfirmation } from './confirmation-token.js';
 export { HostAssistant, hostAssistantTools, type HostAssistantDeps } from './host-assistant.js';

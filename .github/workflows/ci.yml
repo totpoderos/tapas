@@ -38,6 +38,11 @@ jobs:
         # Blocks on any high/critical advisory not covered by a non-expired,
         # justified entry in .audit-allowlist.json; moderate/low are not gated.
         run: npm run audit:ci
+      - name: Infrastructure eval (third AI surface — static criteria)
+        # Scores the AI-generated infra: builds / tests / deploys / readable.
+        # Static mode here (no Docker on this job); the build + deploy criteria
+        # are scored locally with `npm run eval:infra -- --full`. Blocks below 85%.
+        run: npm run eval:infra
 
   # --- Hard gate: whole-system E2E + accessibility (axe-core) -----------------
   e2e:

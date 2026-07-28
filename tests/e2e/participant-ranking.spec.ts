@@ -51,11 +51,20 @@ async function joinAsBrunoAndOpenScoring(page: Page, joinCode: string): Promise<
   await expect(page.getByRole('heading', { name: 'Rank the dishes' })).toBeVisible();
 }
 
+/**
+ * The per-dish rank controls, named "Rank for <dish> in <category>". Selected by
+ * name rather than by position among every combobox on the page: the shared
+ * language selector is a combobox too, and it rides along on every screen.
+ */
+function rankSelects(page: Page) {
+  return page.getByRole('combobox', { name: /^Rank for / });
+}
+
 test('a participant ranks every dish and sends their vote', async ({ page }) => {
   const { joinCode } = await seedRankingContest('e2e-rank-send@sobremesa.es');
   await joinAsBrunoAndOpenScoring(page, joinCode);
 
-  const selects = page.getByRole('combobox');
+  const selects = rankSelects(page);
   await selects.nth(0).selectOption('1');
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeDisabled(); // one still unranked
   await selects.nth(1).selectOption('2');
@@ -69,7 +78,7 @@ test('choosing a taken rank swaps, keeping each rank used once', async ({ page }
   const { joinCode } = await seedRankingContest('e2e-rank-swap@sobremesa.es');
   await joinAsBrunoAndOpenScoring(page, joinCode);
 
-  const selects = page.getByRole('combobox');
+  const selects = rankSelects(page);
   await selects.nth(0).selectOption('1');
   await selects.nth(1).selectOption('2');
   // Give the first dish rank 2 — the second holds it, so they swap.
@@ -84,7 +93,7 @@ test('a vote cannot be sent until every dish is ranked', async ({ page }) => {
   await joinAsBrunoAndOpenScoring(page, joinCode);
 
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeDisabled();
-  await page.getByRole('combobox').nth(0).selectOption('1');
+  await rankSelects(page).nth(0).selectOption('1');
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeDisabled(); // still one unranked
 });
 
@@ -92,10 +101,10 @@ test('ranking is keyboard-operable and has no accessibility violations', async (
   const { joinCode } = await seedRankingContest('e2e-rank-a11y@sobremesa.es');
   await joinAsBrunoAndOpenScoring(page, joinCode);
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
-  const selects = page.getByRole('combobox');
+  const selects = rankSelects(page);
   await selects.nth(0).selectOption('1');
   await selects.nth(1).selectOption('2');
   await page.getByRole('button', { name: 'Send my vote' }).click();

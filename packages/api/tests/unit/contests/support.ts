@@ -21,6 +21,9 @@ export class FakeContestRepository implements ContestRepository {
   findByHost(hostId: string): StoredContest[] {
     return [...this.store.values()].filter((contest) => contest.hostId === hostId);
   }
+  delete(id: string): void {
+    this.store.delete(id);
+  }
   updateStatus(
     id: string,
     status: StoredContest['status'],

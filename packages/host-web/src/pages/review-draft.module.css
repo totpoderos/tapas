@@ -125,3 +125,171 @@
   align-items: center;
   gap: 14px;
 }
+
+/* --- Editable form (real draft editing) ---------------------------------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: 20px 22px;
+  margin: 0;
+}
+.legend {
+  font-family: var(--serif);
+  font-size: 19px;
+  padding: 0;
+  margin-bottom: 4px;
+}
+.groupHint {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 0 0 16px;
+}
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  align-items: center;
+}
+.choice input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--brand);
+}
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.rows {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.row input {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+.numberField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.numberField label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.numberField input {
+  width: 120px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+.remove {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+.add {
+  align-self: flex-start;
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--brand);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}
+.empty {
+  color: var(--ink-2);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+
+/* Couple pairing + per-pair no-score editors. */
+.personRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+.partner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.partnerLabel {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.partner select {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 15px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--ground);
+  color: var(--ink);
+}
+.noScore {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.noScore summary {
+  cursor: pointer;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+}
+.noScoreList {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.saved {
+  color: var(--good);
+  font-weight: 600;
+  margin: 0;
+}

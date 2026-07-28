@@ -6,6 +6,8 @@ export interface DishRepository {
   upsert(dish: StoredDish): void;
   findByContest(contestId: string): StoredDish[];
   find(contestId: string, dishId: string): StoredDish | undefined;
+  /** Removes every dish entered in a contest. */
+  deleteByContest(contestId: string): void;
 }
 
 interface DishRow {
@@ -63,5 +65,9 @@ export class SqliteDishRepository implements DishRepository {
       .prepare(`SELECT * FROM dishes WHERE contest_id = ? AND dish_id = ?`)
       .get(contestId, dishId) as unknown as DishRow | undefined;
     return row ? toDish(row) : undefined;
+  }
+
+  deleteByContest(contestId: string): void {
+    this.db.prepare(`DELETE FROM dishes WHERE contest_id = ?`).run(contestId);
   }
 }

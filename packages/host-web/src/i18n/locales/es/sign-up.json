@@ -1,0 +1,17 @@
+{
+  "passwordHint": "Al menos 12 caracteres, con mayúsculas y minúsculas, un número y un símbolo.",
+  "title": "Crea tu cuenta",
+  "subtitle": "Crea y gestiona tus concursos de tapas desde aquí.",
+  "errorEmailTaken": "Ese correo ya está registrado. Prueba a iniciar sesión.",
+  "errorInvalidEmail": "Introduce una dirección de correo válida.",
+  "errorGeneric": "Algo salió mal al crear tu cuenta. Inténtalo de nuevo.",
+  "email": "Correo electrónico",
+  "password": "Contraseña",
+  "submit": "Crear cuenta",
+  "submitting": "Creando tu cuenta…",
+  "footPrompt": "¿Ya tienes cuenta?",
+  "footLink": "Iniciar sesión",
+  "panelKicker": "Tu mesa",
+  "panelContest": "Sirve las reglas.",
+  "panelDetail": "Puntuación, anti-sesgo, categorías: configura el concurso una vez y dirige la noche desde un solo lugar."
+}

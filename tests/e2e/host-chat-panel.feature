@@ -19,6 +19,26 @@ Feature: Directing a contest from the chat panel
     Then the panel shows the assistant carried the action out
     And the new draft exists
 
+  Scenario: The assistant lists the host's contests by name
+    Given a signed-in host with a contest named "Tapas Night" and the chat panel open
+    When they ask the assistant to list their contests
+    Then the panel shows "Tapas Night" among their contests
+
+  Scenario: The assistant shows a contest's participants by name
+    Given a signed-in host with a contest named "Tapas Night" that Ana and Bob are taking part in, and the chat panel open
+    When they ask the assistant who is in "Tapas Night"
+    Then the panel shows Ana and Bob taking part
+
+  Scenario: The assistant adds a participant to a draft by name
+    Given a signed-in host with a draft named "Tapas Night" that Ana and Bob are taking part in, and the chat panel open
+    When they ask the assistant to add "Carmen" to "Tapas Night"
+    Then the panel shows Ana, Bob and Carmen taking part
+
+  Scenario: The conversation is kept when leaving the panel and coming back
+    Given a signed-in host who has exchanged a message with the assistant
+    When they leave the chat panel for their contest list and return to it
+    Then the earlier conversation is still there
+
   Scenario: A destructive action is held behind a confirmation card
     Given a signed-in host with a running contest and the chat panel open
     When they ask the assistant to close that contest

@@ -3,6 +3,7 @@ import {
   TOOL_CATALOG,
   confirmationTokenFor,
   isValidConfirmation,
+  parseToolArguments,
   type ApiRequest,
   type HostAssistant,
   type McpTool,
@@ -31,6 +32,7 @@ export interface ConfirmRequest {
 export type AssistantTurn =
   | { readonly kind: 'reply'; readonly text: string }
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
+  | { readonly kind: 'failed'; readonly action: string; readonly message: string }
   | {
       readonly kind: 'confirm';
       readonly action: string;
@@ -39,11 +41,39 @@ export type AssistantTurn =
       readonly message: string;
     };
 
+/** What came back from running a tool: the API accepted it, or refused with a reason. */
+export type ToolOutcome =
+  | { readonly ok: true; readonly body: unknown }
+  | { readonly ok: false; readonly body: unknown };
+
+/**
+ * The host-facing reason a call was refused. The API already writes these for
+ * hosts ("The draft is missing its scoring rules."), so it is shown as-is rather
+ * than replaced with something vaguer — hiding the reason is what leaves someone
+ * stuck. Falls back to a plain sentence when a response carries no message.
+ */
+export function refusalMessage(body: unknown): string {
+  if (body && typeof body === 'object' && 'error' in body) {
+    const error = (body as { error: unknown }).error;
+    if (error && typeof error === 'object' && 'message' in error) {
+      const message = (error as { message: unknown }).message;
+      if (typeof message === 'string' && message.trim()) return message.trim();
+    }
+  }
+  return 'It could not be carried out.';
+}
+
 export interface TurnDeps {
   readonly assistant: HostAssistant;
   readonly confirmationSecret: string;
-  /** Runs a tool's intended API request as the signed-in host, returning the response body. */
-  readonly execute: (request: ApiRequest) => Promise<unknown>;
+  /**
+   * Runs a tool's intended API request as the signed-in host.
+   *
+   * Reports whether the API accepted it, not only what came back: a refused call
+   * used to be handed on as if it were a result, so the host was shown "done"
+   * for something that had not happened, and the reason was dropped.
+   */
+  readonly execute: (request: ApiRequest) => Promise<ToolOutcome>;
 }
 
 /** A confirmation was sent for an action that isn't a known destructive tool. */
@@ -73,10 +103,22 @@ export async function runAssistantMessage(
   const tool = TOOLS.get(call.name);
   if (!tool) return { kind: 'reply', text: completion.text || 'I’m not sure how to help with that yet.' };
 
-  if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, call.arguments);
+  // Check the model's arguments against the tool's own schema before anything
+  // acts on them. The MCP server gets this from the SDK; this path has to ask.
+  // A malformed call is reported back, never dispatched.
+  const parsed = parseToolArguments(tool, call.arguments);
+  if (!parsed.ok) {
+    return {
+      kind: 'reply',
+      text: `I couldn’t do that — the details didn’t look right (${parsed.message}). Could you rephrase?`,
+    };
+  }
 
-  const result = await deps.execute(tool.toRequest(call.arguments));
-  return { kind: 'result', action: tool.name, text: completion.text, result };
+  if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, parsed.args);
+
+  const outcome = await deps.execute(tool.toRequest(parsed.args));
+  if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
+  return { kind: 'result', action: tool.name, text: completion.text, result: outcome.body };
 }
 
 /** Carries out a destructive action once the host confirms it — only with the matching token. */
@@ -90,6 +132,14 @@ export async function runConfirmedAction(confirm: ConfirmRequest, deps: TurnDeps
     return askToConfirm(deps.confirmationSecret, tool, confirm.args);
   }
 
-  const result = await deps.execute(tool.toRequest(confirm.args));
-  return { kind: 'result', action: tool.name, text: '', result };
+  // The token proves the host approved these arguments; the schema proves they
+  // are usable. Both must hold before a destructive action runs.
+  const parsed = parseToolArguments(tool, confirm.args);
+  if (!parsed.ok) {
+    return { kind: 'reply', text: `I couldn’t do that — the details didn’t look right (${parsed.message}).` };
+  }
+
+  const outcome = await deps.execute(tool.toRequest(parsed.args));
+  if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
+  return { kind: 'result', action: tool.name, text: '', result: outcome.body };
 }

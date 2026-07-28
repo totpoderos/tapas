@@ -18,6 +18,17 @@ Feature: Chatting with the host assistant
     Then a draft called "Summer Tapas" is saved for them
     And the assistant reports that it did so
 
+  Scenario: The assistant says what it did in plain language
+    Given a signed-in host chatting with the assistant
+    When the assistant carries out a reversible action but offers no words of its own
+    Then the host is still told, in plain language, what was done
+
+  Scenario: The assistant says when an action could not be carried out
+    Given a signed-in host chatting with the assistant
+    When an action the assistant tries cannot be carried out
+    Then the host is told it did not happen
+    And the host is told why
+
   Scenario: A destructive action is not carried out until the host confirms
     Given a signed-in host with a running contest, chatting with the assistant
     When they ask the assistant to close that contest
@@ -34,6 +45,11 @@ Feature: Chatting with the host assistant
     When that confirmation is used to try to close a different contest
     Then the different contest is not closed
     And the host is asked to confirm that action instead
+
+  Scenario: A confirmed action that fails is reported as failed
+    Given a signed-in host chatting with the assistant
+    When they confirm a destructive action that cannot be carried out
+    Then the host is told it did not happen
 
   Scenario: Chatting with the assistant requires being signed in
     Given no one is signed in

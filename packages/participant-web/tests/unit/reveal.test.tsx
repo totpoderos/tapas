@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Reveal } from '../../src/pages/reveal';
@@ -54,6 +54,18 @@ describe('Reveal screen', () => {
   });
   afterEach(() => vi.clearAllMocks());
 
+  /**
+   * The winning dish's name, which also appears further down the leaderboard, so
+   * it has to be disambiguated. Anchored to the "Winner" heading it sits under
+   * rather than to a class name — the view moved into `@tapas/ui` and its styles
+   * are module-scoped now, but "the winner is named directly beneath the Winner
+   * heading" is the actual promise to a screen-reader user, and it survives.
+   */
+  const findWinnerLine = async (): Promise<HTMLElement> => {
+    const heading = await screen.findByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ });
+    return heading.nextElementSibling as HTMLElement;
+  };
+
   it('waits while the contest is not revealed yet', async () => {
     vi.mocked(api.getReveal).mockResolvedValue(null);
     renderReveal();
@@ -64,7 +76,7 @@ describe('Reveal screen', () => {
     vi.mocked(api.getReveal).mockResolvedValue(REVEAL);
     renderReveal();
 
-    expect(await screen.findByText('Tortilla', { selector: '.pt-reveal-winner' })).toBeInTheDocument();
+    expect(await findWinnerLine()).toHaveTextContent('Tortilla');
     const cats = screen.getByRole('region', { name: 'Category winners' });
     expect(within(cats).getByText('Presentation')).toBeInTheDocument();
     expect(within(cats).getByText('Gazpacho')).toBeInTheDocument();
@@ -105,7 +117,7 @@ describe('Reveal screen', () => {
   it('has no accessibility violations on the revealed screen', async () => {
     vi.mocked(api.getReveal).mockResolvedValue(REVEAL);
     const { container } = renderReveal();
-    await screen.findByText('Tortilla', { selector: '.pt-reveal-winner' });
+    await findWinnerLine();
     expect(await axe(container)).toHaveNoViolations();
   });
 });

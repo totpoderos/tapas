@@ -70,7 +70,7 @@ test('the activity log is keyboard-operable and has no accessibility violations'
   await page.goto(`/log/${id}`);
   await expect(page.getByRole('list', { name: 'Activity' })).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Operate the filter with the keyboard alone.

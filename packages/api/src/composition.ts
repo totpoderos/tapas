@@ -27,15 +27,20 @@ import { RegisterHost } from './auth/use-cases/register-host.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
-import { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
+import { AddDraftParticipant, RemoveDraftParticipant } from './drafts/use-cases/manage-draft-participants.js';
+import { UpdateDraft } from './drafts/use-cases/update-draft.js';
+import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
+import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { ListMyContests } from './contests/use-cases/list-my-contests.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
 import { CloseContest } from './contests/use-cases/close-contest.js';
 import { RevealContest } from './contests/use-cases/reveal-contest.js';
 import { GetResults } from './contests/use-cases/get-results.js';
+import { DeleteContest } from './contests/use-cases/delete-contest.js';
+import { SqliteUnitOfWork } from './db/unit-of-work.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
@@ -88,7 +93,19 @@ export function buildProductionDeps(
     signOutHost: new SignOutHost({ tokens, sessions }),
     createDraft: new CreateDraft({ drafts, audit, clock, ids }),
     renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
-    discardDraft: new DiscardDraft({ drafts, audit, clock, ids }),
+    updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+    addDraftParticipant: new AddDraftParticipant({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+      ids,
+    }),
+    removeDraftParticipant: new RemoveDraftParticipant({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+      ids,
+    }),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),
     mergeContestDraft: new MergeContestDraft({ llmClient }),
@@ -102,9 +119,25 @@ export function buildProductionDeps(
     }),
     getContest: new GetContest(contests),
     listMyContests: new ListMyContests({ drafts, contests }),
+    findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+    getContestDetails: new GetContestDetails({
+      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests })),
+      drafts,
+      contests,
+      roster,
+    }),
     closeContest: new CloseContest({ contests, clock, audit }),
     revealContest: new RevealContest({ contests, clock, audit }),
     getResults: new GetResults({ contests, voteSessions }),
+    deleteContest: new DeleteContest({
+      contests,
+      drafts,
+      roster,
+      dishes,
+      voteSessions,
+      audit,
+      unitOfWork: new SqliteUnitOfWork(db),
+    }),
     getTally: new GetTally({ contests, roster, voteSessions }),
     clock,
     drafts,

@@ -63,6 +63,128 @@ test('the assistant carries out a reversible action and shows what it did', asyn
   expect(names).toContain('Summer Tapas');
 });
 
+test("the assistant lists the host's contests by name", async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-list@sobremesa.es');
+  await liveContest(page.request, 'Tapas Night');
+  await page.goto('/chat');
+  await sendMessage(page, 'list my contests');
+
+  // The panel shows the actual contest — not a bare "done" ticket.
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('Tapas Night')).toBeVisible();
+});
+
+test("the assistant shows a contest's participants by name", async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-details@sobremesa.es');
+  // A contest whose participants are Ana and Bob (so the details are recognisable).
+  const created = await page.request.post('/drafts', {
+    data: {
+      name: 'Tapas Night',
+      attribution: 'per_person',
+      antiBias: 'none',
+      scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
+      participants: [
+        { id: 'a', displayName: 'Ana' },
+        { id: 'b', displayName: 'Bob' },
+      ],
+    },
+  });
+  await page.request.post(`/drafts/${(await created.json()).id}/publish`);
+  await page.goto('/chat');
+  await sendMessage(page, "who is in Tapas Night");
+
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('Ana, Bob')).toBeVisible();
+  await expect(log.getByText('Taste')).toBeVisible();
+});
+
+test('the assistant adds a participant to a draft by name', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-add-participant@sobremesa.es');
+  // A DRAFT (not published) named Tapas Night with Ana and Bob.
+  await page.request.post('/drafts', {
+    data: {
+      name: 'Tapas Night',
+      participants: [
+        { id: 'a', displayName: 'Ana' },
+        { id: 'b', displayName: 'Bob' },
+      ],
+    },
+  });
+  await page.goto('/chat');
+  await sendMessage(page, 'add Carmen to Tapas Night');
+
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('Ana, Bob, Carmen')).toBeVisible();
+});
+
+test('the conversation is kept when leaving the panel and coming back', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-persist@sobremesa.es');
+  await page.goto('/chat');
+  await sendMessage(page, 'hello there');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('hello there')).toBeVisible();
+
+  // Leave for the contest list, then return via the Assistant link.
+  await page.getByRole('link', { name: 'Back to contests' }).click();
+  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
+  await page.getByRole('link', { name: 'Assistant' }).click();
+
+  // The earlier message (and the assistant's reply) are still on screen.
+  await expect(page.getByRole('log', { name: 'Conversation' }).getByText('hello there')).toBeVisible();
+});
+
+test('the conversation can be cleared, and stays cleared across a reload', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-clear@sobremesa.es');
+  await page.goto('/chat');
+
+  // Nothing to clear on an untouched panel.
+  await expect(page.getByRole('button', { name: 'Clear conversation' })).toBeDisabled();
+
+  await sendMessage(page, 'hello there');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('hello there')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clear conversation' }).click();
+  await expect(log.getByText('hello there')).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Conversation cleared');
+  await expect(page.getByRole('button', { name: 'Clear conversation' })).toBeDisabled();
+
+  // It is really gone, not just wiped from the screen — the conversation is kept
+  // in sessionStorage, so a reload is what proves the stored copy went too.
+  await page.reload();
+  await expect(page.getByRole('log', { name: 'Conversation' }).getByText('hello there')).toHaveCount(0);
+
+  // And a fresh conversation starts normally.
+  await sendMessage(page, 'what can you do?');
+  await expect(page.getByText('Which contest do you mean?')).toBeVisible();
+});
+
+test('an approval waiting on the host cannot be cleared out from under itself', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-clear-pending@sobremesa.es');
+  const id = await liveContest(page.request, 'Held Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+  await expect(page.getByRole('button', { name: 'Yes, do it' })).toBeVisible();
+
+  // The confirmation card is modal (role="alertdialog", aria-modal="true", over a
+  // full-screen backdrop), so clearing is out of reach until the host settles it.
+  // The button is still on the page — it is the backdrop that makes it
+  // unclickable — so this asserts ACTIONABILITY, not visibility: a trial click
+  // runs Playwright's actionability checks without clicking, and fails because
+  // the backdrop intercepts the pointer.
+  await expect(page.getByRole('alertdialog')).toHaveAttribute('aria-modal', 'true');
+  await expect(
+    page.getByRole('button', { name: 'Clear conversation' }).click({ trial: true, timeout: 2000 }),
+  ).rejects.toThrow();
+  expect(await statusOf(page.request, id)).toBe('live');
+
+  // Dismissing the card puts clearing back within reach.
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Clear conversation' }).click();
+  await expect(page.getByRole('status')).toHaveText('Conversation cleared');
+  expect(await statusOf(page.request, id)).toBe('live'); // still never carried out
+});
+
 test('a destructive action is held behind a confirmation card', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
@@ -106,7 +228,7 @@ test('the chat panel is keyboard-operable and has no accessibility violations', 
   await sendMessage(page, `close contest ${id}`);
   await expect(page.getByRole('alertdialog')).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Focus opened on the safe default (Cancel); Tab to the confirm and press Enter.

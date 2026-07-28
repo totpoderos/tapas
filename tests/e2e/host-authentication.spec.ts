@@ -62,7 +62,7 @@ test('a signed-in host can sign out', async ({ page }) => {
 test('the sign-in screen is keyboard-operable and has no accessibility violations', async ({ page }) => {
   await page.goto('/sign-in');
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Fill and submit using only the keyboard.

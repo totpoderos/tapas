@@ -1,4 +1,6 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router';
+import { useTranslation } from 'react-i18next';
+import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
 import { Home } from './pages/home';
@@ -7,6 +9,7 @@ import { ReviewDraft } from './pages/review-draft';
 import { Chat } from './pages/chat';
 import { AuditLog } from './pages/audit-log';
 import { ContestControl } from './pages/contest-control';
+import { Results } from './pages/results';
 import { useSession } from './auth/session';
 
 /**
@@ -17,11 +20,12 @@ import { useSession } from './auth/session';
  */
 export function App() {
   const { status } = useSession();
+  const { t } = useTranslation();
 
   if (status === 'loading') {
     return (
       <main id="main" style={{ padding: 28 }}>
-        <p role="status">Loading…</p>
+        <p role="status">{t('common.loading')}</p>
       </main>
     );
   }
@@ -44,6 +48,10 @@ export function App() {
       <Route path="/chat" element={authed ? <Chat /> : <Navigate to="/sign-in" replace />} />
       <Route path="/log/:id" element={authed ? <AuditLog /> : <Navigate to="/sign-in" replace />} />
       <Route path="/contest/:id" element={authed ? <ContestControl /> : <Navigate to="/sign-in" replace />} />
+      {/* `/results/:id`, clear of the proxied prefixes (/auth, /drafts, /contests,
+          /assistant) — a browsable route under those is proxied to the API on a
+          direct load or reload. The API read still uses /contests/:id/winners. */}
+      <Route path="/results/:id" element={authed ? <Results /> : <Navigate to="/sign-in" replace />} />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
   );

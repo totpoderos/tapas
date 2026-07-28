@@ -4,6 +4,12 @@ import type { AuditEntry, SourcePath } from '@tapas/shared';
 export interface AuditLogRepository {
   append(entry: AuditEntry): void;
   findByContest(contestId: string): AuditEntry[];
+  /**
+   * Removes a contest's recorded history. The ONLY caller is deleting a contest,
+   * and it appends the tombstone straight afterwards — see `DeleteContest` for
+   * why the log is reduced there and nowhere else in the system.
+   */
+  deleteByContest(contestId: string): void;
 }
 
 interface AuditRow {
@@ -74,5 +80,9 @@ export class SqliteAuditLogRepository implements AuditLogRepository {
       .prepare(`SELECT * FROM audit_log WHERE contest_id = ? ORDER BY occurred_at, id`)
       .all(contestId) as unknown as AuditRow[];
     return rows.map(toEntry);
+  }
+
+  deleteByContest(contestId: string): void {
+    this.db.prepare(`DELETE FROM audit_log WHERE contest_id = ?`).run(contestId);
   }
 }

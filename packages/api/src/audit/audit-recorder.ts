@@ -20,4 +20,18 @@ export class AuditRecorder {
     this.repo.append(entry);
     return entry;
   }
+
+  /**
+   * Erases a contest's recorded history. The **only** caller is `DeleteContest`,
+   * which writes a `contest.deleted` tombstone immediately afterwards.
+   *
+   * This is the single exception to the log being append-only, and it goes
+   * through the recorder rather than around it so the log keeps exactly one door.
+   * It exists because the log stores participant names inside recorded draft
+   * content, so a delete that spared the log would not delete anyone's data —
+   * see `DeleteContest` for the full reasoning.
+   */
+  deleteByContest(contestId: string): void {
+    this.repo.deleteByContest(contestId);
+  }
 }

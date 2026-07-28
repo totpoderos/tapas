@@ -27,13 +27,11 @@ export { SqliteAuditLogRepository, type AuditLogRepository } from './db/audit-re
 export type { StoredDraft } from './drafts/stored-draft.js';
 export { CreateDraft } from './drafts/use-cases/create-draft.js';
 export { RenameDraft } from './drafts/use-cases/rename-draft.js';
-export { DiscardDraft } from './drafts/use-cases/discard-draft.js';
 export { GetDraft } from './drafts/use-cases/get-draft.js';
 export { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 export type {
   DraftUseCaseDeps,
   DraftWriteResult,
-  DiscardResult,
   DraftFailure,
   DraftFailureCode,
 } from './drafts/use-cases/shared.js';
@@ -88,6 +86,8 @@ export type { ContestSummary } from './contests/contest-summary.js';
 export { CloseContest } from './contests/use-cases/close-contest.js';
 export { RevealContest } from './contests/use-cases/reveal-contest.js';
 export { GetResults } from './contests/use-cases/get-results.js';
+export { DeleteContest } from './contests/use-cases/delete-contest.js';
+export { SqliteUnitOfWork, DirectUnitOfWork, type UnitOfWork } from './db/unit-of-work.js';
 export { GetTally } from './contests/use-cases/get-tally.js';
 export type {
   PublishContestDeps,
@@ -106,6 +106,10 @@ export type {
   GetResultsResult,
   GetResultsError,
   GetResultsErrorCode,
+  DeleteContestDeps,
+  DeleteContestResult,
+  DeleteContestError,
+  DeleteContestErrorCode,
   GetTallyDeps,
   GetTallyResult,
   GetTallyError,

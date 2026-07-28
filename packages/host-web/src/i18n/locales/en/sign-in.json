@@ -1,0 +1,15 @@
+{
+  "title": "Welcome back",
+  "subtitle": "Sign in to run your contests.",
+  "errorCredentials": "That email and password don’t match. Check them and try again.",
+  "errorGeneric": "Something went wrong signing you in. Please try again.",
+  "email": "Email",
+  "password": "Password",
+  "submit": "Sign in",
+  "submitting": "Signing in…",
+  "footPrompt": "New here?",
+  "footLink": "Create a host account",
+  "panelKicker": "Tonight",
+  "panelContest": "Sobremesa Summer 2026",
+  "panelDetail": "16 cooks · 3 categories · scoring opens 20:30. The room is filling up."
+}

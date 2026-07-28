@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
 import { ApiError } from '../api/client';
 import { useSession } from '../auth/session';
@@ -11,6 +12,7 @@ import styles from './auth.module.css';
  * end — the host stays on the page to try again.
  */
 export function SignIn() {
+  const { t } = useTranslation();
   const { signIn } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,8 @@ export function SignIn() {
     } catch (caught) {
       setError(
         caught instanceof ApiError && caught.status === 401
-          ? 'That email and password don’t match. Check them and try again.'
-          : 'Something went wrong signing you in. Please try again.',
+          ? t('signIn.errorCredentials')
+          : t('signIn.errorGeneric'),
       );
       setSubmitting(false);
     }
@@ -40,10 +42,10 @@ export function SignIn() {
         <form className={styles.form} onSubmit={onSubmit} noValidate>
           <div className={styles.brand}>
             <span className={styles.dot} aria-hidden="true" />
-            <b>Tapas</b>
+            <b>{t('common.brand')}</b>
           </div>
-          <h1 className={styles.title}>Welcome back</h1>
-          <p className={styles.sub}>Sign in to run your contests.</p>
+          <h1 className={styles.title}>{t('signIn.title')}</h1>
+          <p className={styles.sub}>{t('signIn.subtitle')}</p>
 
           {error ? (
             <div className={styles.alert} role="alert">
@@ -55,7 +57,7 @@ export function SignIn() {
           <div className={styles.fields}>
             <FormField
               id="email"
-              label="Email"
+              label={t('signIn.email')}
               type="email"
               autoComplete="email"
               value={email}
@@ -63,29 +65,27 @@ export function SignIn() {
             />
             <FormField
               id="password"
-              label="Password"
+              label={t('signIn.password')}
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" block disabled={submitting}>
-              {submitting ? 'Signing in…' : 'Sign in'}
+              {submitting ? t('signIn.submitting') : t('signIn.submit')}
             </Button>
             <p className={styles.foot}>
-              New here? <a href="/sign-up">Create a host account</a>
+              {t('signIn.footPrompt')} <a href="/sign-up">{t('signIn.footLink')}</a>
             </p>
           </div>
         </form>
 
-        <aside className={styles.panel} aria-label="Tonight">
+        <aside className={styles.panel} aria-label={t('signIn.panelKicker')}>
           <div className={styles.stripe} aria-hidden="true" />
           <div className={styles.content}>
-            <p className={styles.kicker}>Tonight</p>
-            <div className={styles.contest}>Sobremesa Summer 2026</div>
-            <p className={styles.detail}>
-              16 cooks · 3 categories · scoring opens 20:30. The room is filling up.
-            </p>
+            <p className={styles.kicker}>{t('signIn.panelKicker')}</p>
+            <div className={styles.contest}>{t('signIn.panelContest')}</div>
+            <p className={styles.detail}>{t('signIn.panelDetail')}</p>
           </div>
         </aside>
       </div>
