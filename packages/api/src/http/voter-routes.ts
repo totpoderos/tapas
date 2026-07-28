@@ -83,7 +83,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       const claim = deps.claimPlace.execute(request.params.joinCode, request.body.participantId);
       if (!claim.ok)
         return reply.code(CLAIM_ERROR_STATUS[claim.error.code]).send({ error: claim.error });
-      setVoterCookie(reply, claim.session);
+      setVoterCookie(reply, claim.session, deps.cookieTransport);
       return reply.code(201).send({
         participantId: claim.participantId,
         contestId: claim.contestId,

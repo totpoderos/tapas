@@ -41,6 +41,7 @@ import { RevealContest } from './contests/use-cases/reveal-contest.js';
 import { GetResults } from './contests/use-cases/get-results.js';
 import { DeleteContest } from './contests/use-cases/delete-contest.js';
 import { SqliteUnitOfWork } from './db/unit-of-work.js';
+import { cookieTransportFor } from './http/session-cookies.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
@@ -128,6 +129,7 @@ export function buildProductionDeps(
     }),
     closeContest: new CloseContest({ contests, clock, audit }),
     revealContest: new RevealContest({ contests, clock, audit }),
+    cookieTransport: cookieTransportFor(env.NODE_ENV),
     getResults: new GetResults({ contests, voteSessions }),
     deleteContest: new DeleteContest({
       contests,

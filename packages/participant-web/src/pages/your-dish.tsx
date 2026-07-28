@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
-import { getDishes, isContestDeleted, submitDish, type Dish, type Identity } from '../api/client';
+import { getDishes, isContestDeleted, isSignedOut, submitDish, type Dish, type Identity } from '../api/client';
 
 /**
  * The cook's dish, once they have joined: register (or revise) the dish they
@@ -19,6 +19,7 @@ export function YourDish({ identity }: { identity: Identity }) {
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const [gone, setGone] = useState(false);
+  const [signedOut, setSignedOut] = useState(false);
 
   const mine = dishes?.find((dish) => dish.submitterIds.includes(identity.participantId));
 
@@ -39,6 +40,7 @@ export function YourDish({ identity }: { identity: Identity }) {
         // The host deleted the contest — say so rather than showing an empty list
         // as if nobody had entered a dish yet.
         if (isContestDeleted(caught)) setGone(true);
+        else if (isSignedOut(caught)) setSignedOut(true);
         else setDishes([]);
       });
     return () => {
@@ -64,10 +66,25 @@ export function YourDish({ identity }: { identity: Identity }) {
       setSaved(true);
     } catch (caught) {
       if (isContestDeleted(caught)) setGone(true);
+      // Not signed in: retrying cannot succeed, so send them back to joining
+      // rather than showing "try again" — the shape of the Safari defect.
+      else if (isSignedOut(caught)) setSignedOut(true);
       else setNameError(t('yourDish.errorSave'));
     } finally {
       setBusy(false);
     }
+  }
+
+  if (signedOut) {
+    return (
+      <section className="pt-dish">
+        <h1 className="pt-title">{t('yourDish.signedOutTitle')}</h1>
+        <p className="pt-lead">{t('yourDish.signedOutLead')}</p>
+        <Link to="/" className="pt-note">
+          {t('yourDish.goToJoin')}
+        </Link>
+      </section>
+    );
   }
 
   if (gone) {

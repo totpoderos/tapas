@@ -169,13 +169,47 @@ remain ungated by policy. Tracked for 6.11.
   refresh **7 days**. PATs are 32 random bytes stored as SHA-256
   ([pat-hasher.ts](../packages/api/src/auth/pat-hasher.ts)) — a fast hash is fine
   for a high-entropy random token.
-- **Cookies**: all session/voter cookies are `httpOnly + Secure + SameSite=None`
-  ([session-cookies.ts:14](../packages/api/src/http/session-cookies.ts)) — no token
-  in JS (XSS-resistant); `SameSite=None` is deliberate (cross-origin frontends) and
-  always paired with `Secure`.
+- **Cookies**: all session/voter cookies are `httpOnly`, always. Their transport
+  attributes follow the environment
+  ([cookieTransportFor](../packages/api/src/http/session-cookies.ts)):
+  `Secure + SameSite=None` everywhere except an explicitly `development`
+  environment, which gets `SameSite=Lax` and no `Secure`. No token is ever in JS
+  either way (XSS-resistant), and `SameSite=None` is deliberate (cross-origin
+  frontends) and always paired with `Secure`.
+
+  **Why it is conditional, and why the condition is written the way it is.**
+  Marking the cookie `Secure` unconditionally broke Safari: it refuses to keep a
+  `Secure` cookie served over plain HTTP, and Chrome's exception for `localhost`
+  is Chrome's alone. A participant on Safari joined a contest, was shown as
+  joined (the app remembers who they are on the device, separately from the
+  session), and then had every authenticated request refused — surfacing as
+  "Your dish couldn't be saved". Development is same-origin anyway, because the
+  dev servers proxy the API under each app's own origin, so `Lax` is both
+  sufficient and correct there.
+
+  The test is `nodeEnv === 'development'`, **not** `!== 'production'`. An unset,
+  misspelt or unfamiliar environment therefore lands on the strict setting; the
+  only way to weaken the cookie is to say `development` outright, and `env.ts`
+  validates `NODE_ENV` against a closed enum at startup besides. A unit test
+  asserts the attributes actually emitted for production, test, development and
+  an unrecognised value
+  ([session-cookies.test.ts](../packages/api/tests/unit/http/session-cookies.test.ts)).
+  Do not "tidy" this back to an unconditional `true`, and do not loosen the
+  condition to `=== 'production'`.
 - **Transport**: production forces HTTP→HTTPS
   ([https-redirect.ts:8](../packages/api/src/http/https-redirect.ts)) with
   `trustProxy` so `X-Forwarded-Proto` is honored behind the TLS edge (Caddy, 6.4).
+
+- **One engine is not "the browser".** That Safari defect reached a real device
+  because the whole-system tests ran **Chromium only** — the one engine whose
+  `localhost` exception hid it. This is the same "two paths assumed equivalent"
+  shape recorded in §4, with browsers as the two paths: 87 passing end-to-end
+  tests said nothing about the engine every iPhone actually runs. WebKit now
+  covers the participant journey in the test matrix
+  ([playwright.config.ts](../playwright.config.ts)), scoped there deliberately
+  because that app is mobile-first and on iOS every browser is WebKit underneath.
+  The host app is not yet covered by a second engine, and its session cookie had
+  the identical defect.
 
 **Residual risk / gap (HIGH):** `JWT_SECRET` enforces only `min(1)` — no length
 floor (design said 64+); and `ASSISTANT_CONFIRMATION_SECRET` ships a **committed,

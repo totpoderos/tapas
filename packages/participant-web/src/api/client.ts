@@ -46,6 +46,18 @@ export function isContestDeleted(caught: unknown): boolean {
   return caught instanceof ApiError && caught.status === 410;
 }
 
+/**
+ * True when the request was refused because the participant is no longer signed
+ * in — their session expired, or the browser never kept it.
+ *
+ * Worth telling apart from any other failure: retrying cannot fix it, so
+ * offering "please try again" wastes the participant's time at the one moment
+ * they are standing in a room holding a plate. They need the way back to joining.
+ */
+export function isSignedOut(caught: unknown): boolean {
+  return caught instanceof ApiError && caught.status === 401;
+}
+
 /** One open place on a contest's roster: a participant a joiner can claim to be. */
 export interface Place {
   readonly participantId: string;

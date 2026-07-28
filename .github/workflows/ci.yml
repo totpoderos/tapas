@@ -56,7 +56,11 @@ jobs:
       - run: npm ci
       # Playwright's own config boots the API (in-memory SQLite, ASSISTANT_STUB)
       # and both frontends and drives Chromium; axe-core gates a11y in the specs.
-      - run: npx playwright install --with-deps chromium
+      # WebKit as well as Chromium: the participant journey runs on it because
+      # that app is mobile-first and every iOS browser is WebKit underneath. A
+      # Safari-only session defect reached a real device while this said
+      # `chromium` alone.
+      - run: npx playwright install --with-deps chromium webkit
       - run: npm run test:e2e
         env:
           CI: 'true'
