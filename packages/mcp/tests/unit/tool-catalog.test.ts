@@ -131,6 +131,29 @@ describe('MCP tool catalog', () => {
     });
   });
 
+  it('marks delete_contest destructive and does not forward the confirmation token', () => {
+    const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
+    expect(deleteContest?.destructive).toBe(true);
+    expect(deleteContest?.toRequest({ contestId: 'c1', confirmationToken: 'x' })).toEqual({
+      method: 'DELETE',
+      path: '/contests/c1',
+    });
+  });
+
+  it("carries the typed name through as the API's confirm parameter", () => {
+    const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
+    expect(
+      deleteContest?.toRequest({ contestId: 'c1', confirmName: 'Summer Tapas' }),
+    ).toEqual({ method: 'DELETE', path: '/contests/c1?confirm=Summer%20Tapas' });
+  });
+
+  it('encodes a contest name that would otherwise break out of the query', () => {
+    const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
+    expect(
+      deleteContest?.toRequest({ contestId: 'c 1', confirmName: 'A&B=C?D' }),
+    ).toEqual({ method: 'DELETE', path: '/contests/c%201?confirm=A%26B%3DC%3FD' });
+  });
+
   it('maps get_results to a GET on the contest results', () => {
     const getResults = TOOL_CATALOG.find((tool) => tool.name === 'get_results');
     expect(getResults?.destructive).toBe(false);

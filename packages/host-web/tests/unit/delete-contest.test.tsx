@@ -19,8 +19,8 @@ import * as api from '../../src/api/client';
 vi.mock('../../src/auth/session', () => ({ useSession: () => ({ signOut: vi.fn() }) }));
 
 const CONTESTS: ContestSummary[] = [
-  { id: 'c1', name: 'Summer Tapas', status: 'live' },
-  { id: 'd1', name: 'Winter Draft', status: 'draft' },
+  { id: 'c1', name: 'Summer Tapas', status: 'live', updatedAt: '2026-07-28T10:00:00.000Z' },
+  { id: 'd1', name: 'Winter Draft', status: 'draft', updatedAt: '2026-07-27T10:00:00.000Z' },
 ];
 
 /** The API's "someone has taken part — make them type the name". */

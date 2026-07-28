@@ -10,6 +10,7 @@ import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
 import { toRevealDto } from '../contests/reveal-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
+import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -136,7 +137,9 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
    */
   app.delete<{ Params: { id: string }; Querystring: { confirm?: string } }>(
     '/contests/:id',
-    { preHandler: requireSession },
+    // Rate-limited like the other sensitive entry points: this is the one action
+    // with no undo, and the tightest ceiling in the API is the right one for it.
+    { preHandler: requireSession, config: { rateLimit: SENSITIVE_RATE_LIMIT } },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 

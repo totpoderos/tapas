@@ -25,6 +25,7 @@ describe('createConfiguredMcpServer', () => {
       'add_participant',
       'close_contest',
       'create_draft',
+      'delete_contest',
       'find_contest',
       'get_contest',
       'get_contest_details',

@@ -28,14 +28,14 @@
 
 ## 4. Deleting through the assistant
 
-- [ ] 4.1 Add the `delete_contest` tool to the catalog, destructive and confirmation-gated, carrying the contest's name so the issued token is bound to it
-- [ ] 4.2 Add the contract tests: refused without an approval, carried out with one, a token for one contest not validating another, and another host's contest refused
-- [ ] 4.3 Check the assistant path end to end against the MCP path — the same validation, the same guard, the same recorded confirmation — since a check holding on one path and not the other is the failure shape recorded in `docs/threat-model.md` §4
-- [ ] 4.4 Rate-limit it as the destructive tools require
+- [x] 4.1 Add the `delete_contest` tool to the catalog, destructive and confirmation-gated, carrying the contest's name so the issued token is bound to it
+- [x] 4.2 Add the contract tests: refused without an approval, carried out with one, a token for one contest not validating another, and another host's contest refused
+- [x] 4.3 Check the assistant path end to end against the MCP path — asserted as a **property over the whole catalog** rather than for `delete_contest` alone: every destructive tool is never run on a first proposal, is refused a token issued for different arguments, and runs only with its own. Whatever destructive tool lands next inherits the check
+- [x] 4.4 Rate-limit it as the destructive tools require
 
 ## 5. Writing it down and verifying
 
-- [ ] 5.1 Write the audit exception into `docs/threat-model.md`: why deleting a contest reduces the log, why the tombstone is what survives, and the replayable-token limitation it inherits
-- [ ] 5.2 Add a whole-system test in which a host deletes a running contest people have joined, typing its name, and a participant scoring in another browser context is told it is gone — keyboard-operable and accessibility-clean at WCAG 2.1 AA
-- [ ] 5.3 Run the full verification: unit and acceptance tests, the whole-system tests, typecheck, lint, the supply-chain gate, and `openspec validate --strict`
-- [ ] 5.4 Smoke-test it live against the running stack: delete a draft, and delete a live contest with a claimed place, checking the tombstone is the only entry left
+- [x] 5.1 Write the audit exception into `docs/threat-model.md`: why deleting a contest reduces the log, why the tombstone is what survives, and the replayable-token limitation it inherits
+- [x] 5.2 Add a whole-system test in which a host deletes a running contest people have joined, typing its name, and a participant scoring in another browser context is told it is gone — keyboard-operable and accessibility-clean at WCAG 2.1 AA
+- [x] 5.3 Run the full verification: unit and acceptance tests, the whole-system tests, typecheck, lint, the supply-chain gate, and `openspec validate --strict`
+- [x] 5.4 Smoke-test it live against the running stack: delete a draft, and delete a live contest with a claimed place, checking the tombstone is the only entry left
