@@ -13,6 +13,8 @@ import enReviewDraft from './locales/en/review-draft.json';
 import enChat from './locales/en/chat.json';
 import enAuditLog from './locales/en/audit-log.json';
 import enContestControl from './locales/en/contest-control.json';
+import enReveal from './locales/en/reveal.json';
+import enResults from './locales/en/results.json';
 
 import esCommon from './locales/es/common.json';
 import esSignIn from './locales/es/sign-in.json';
@@ -23,6 +25,8 @@ import esReviewDraft from './locales/es/review-draft.json';
 import esChat from './locales/es/chat.json';
 import esAuditLog from './locales/es/audit-log.json';
 import esContestControl from './locales/es/contest-control.json';
+import esReveal from './locales/es/reveal.json';
+import esResults from './locales/es/results.json';
 
 const en = {
   common: enCommon,
@@ -34,6 +38,10 @@ const en = {
   chat: enChat,
   auditLog: enAuditLog,
   contestControl: enContestControl,
+  // Read by the shared RevealView in @tapas/ui, which resolves `reveal.*` against
+  // whichever app renders it — a missing key here would be announced aloud.
+  reveal: enReveal,
+  results: enResults,
 };
 
 const es = {
@@ -46,6 +54,8 @@ const es = {
   chat: esChat,
   auditLog: esAuditLog,
   contestControl: esContestControl,
+  reveal: esReveal,
+  results: esResults,
 };
 
 export const i18n = createI18n({

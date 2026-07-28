@@ -156,8 +156,15 @@ export function ContestControl() {
             {state.contest.status === 'closed' && (
               <Button onClick={() => setPending('reveal')}>{t('contestControl.revealResults')}</Button>
             )}
+            {/* Once it is out, the note becomes the way in: the host watches the
+                same reveal the participants are looking at. */}
             {state.contest.status === 'revealed' && (
-              <p className={styles.note}>{t('contestControl.revealedNote')}</p>
+              <>
+                <p className={styles.note}>{t('contestControl.revealedNote')}</p>
+                <Link to={`/results/${state.contest.id}`} className={styles.logLink}>
+                  {t('contestControl.seeResults')}
+                </Link>
+              </>
             )}
             <Link to={`/log/${state.contest.id}`} className={styles.logLink}>
               {t('contestControl.activityLog')}

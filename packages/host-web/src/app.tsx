@@ -9,6 +9,7 @@ import { ReviewDraft } from './pages/review-draft';
 import { Chat } from './pages/chat';
 import { AuditLog } from './pages/audit-log';
 import { ContestControl } from './pages/contest-control';
+import { Results } from './pages/results';
 import { useSession } from './auth/session';
 
 /**
@@ -47,6 +48,10 @@ export function App() {
       <Route path="/chat" element={authed ? <Chat /> : <Navigate to="/sign-in" replace />} />
       <Route path="/log/:id" element={authed ? <AuditLog /> : <Navigate to="/sign-in" replace />} />
       <Route path="/contest/:id" element={authed ? <ContestControl /> : <Navigate to="/sign-in" replace />} />
+      {/* `/results/:id`, clear of the proxied prefixes (/auth, /drafts, /contests,
+          /assistant) — a browsable route under those is proxied to the API on a
+          direct load or reload. The API read still uses /contests/:id/winners. */}
+      <Route path="/results/:id" element={authed ? <Results /> : <Navigate to="/sign-in" replace />} />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
   );

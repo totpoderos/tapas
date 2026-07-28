@@ -254,6 +254,44 @@ export async function revealContest(id: string): Promise<void> {
   if (!response.ok) throw await errorFrom(response);
 }
 
+/** A dish's place on a reveal leaderboard. */
+export interface Standing {
+  readonly dishId: string;
+  readonly name: string;
+  readonly total: number;
+}
+export interface Winner {
+  readonly dishId: string;
+  readonly name: string;
+}
+
+/** The revealed results: winners and leaderboards, by dish name — the same view a participant reads. */
+export interface Reveal {
+  readonly contestName: string;
+  readonly overall: { readonly winners: readonly Winner[]; readonly standings: readonly Standing[] };
+  readonly categories: readonly {
+    readonly categoryId: string;
+    readonly name: string;
+    readonly winners: readonly Winner[];
+    readonly standings: readonly Standing[];
+  }[];
+}
+
+/**
+ * Reads the results of a contest the host owns, or `null` while it has not been
+ * revealed yet — the same 409 the participant's reading answers with, so the two
+ * screens can treat "not out yet" identically.
+ *
+ * `/winners` rather than `/reveal`: that path already belongs to the participant's
+ * GET and to the POST that triggers the reveal.
+ */
+export async function getWinners(contestId: string): Promise<Reveal | null> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/winners`, 'GET');
+  if (response.status === 409) return null; // not revealed yet
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as Reveal;
+}
+
 /** Confirms a destructive action the assistant asked about, carrying it out. */
 export async function confirmAssistantAction(pending: PendingAction): Promise<AssistantTurn> {
   return assistant({ confirm: pending });
