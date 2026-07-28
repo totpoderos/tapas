@@ -116,6 +116,7 @@ AI is integrated in three distinct places, each with the same discipline (schema
 - **TDD / ATDD** — outside-in double loop: Gherkin `*.feature` acceptance specs (domain language only — the glossary as executable tests) over unit TDD. Acceptance tests run against real in-memory SQLite, faking only the LLM, clock, and notifications.
 - **Security** (the degree's curriculum anchor) — ownership-checked authorization on every endpoint, bcrypt + hand-rolled HS256 tokens in httpOnly/Secure cookies, account lockout, parameterized SQL, injection defenses, rate limiting, secrets hygiene. Mapped to the OWASP Top 10 — with the gaps named honestly — in [`docs/threat-model.md`](docs/threat-model.md).
 - **Accessibility** — WCAG 2.1 AA; the participant app is used live at a venue (one-handed, poor light, time pressure), so accessibility is core UX, not a compliance checkbox. axe (component + E2E) and a 320 px reflow test gate every PR; the pass, including what is *not* covered, is in [`docs/accessibility.md`](docs/accessibility.md).
+- **Honesty about what is missing** — what the system does is specified in `openspec/specs/` (22 capabilities); what it does *not* yet do, including one item that needs a person rather than an agent, is listed in [`docs/backlog.md`](docs/backlog.md).
 
 ## Tech stack
 
