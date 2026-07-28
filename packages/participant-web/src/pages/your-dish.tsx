@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
+import { WaysOnward } from '../ways-onward';
 import { getDishes, isContestDeleted, isSignedOut, submitDish, type Dish, type Identity } from '../api/client';
 
 /**
@@ -150,6 +151,7 @@ export function YourDish({ identity }: { identity: Identity }) {
       <Link to="/score" className="pt-score-link">
         {t('yourDish.scoreLink')}
       </Link>
+      <WaysOnward from="dish" />
     </section>
   );
 }

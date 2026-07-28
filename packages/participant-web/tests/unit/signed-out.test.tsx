@@ -118,9 +118,10 @@ describe('when the participant is no longer signed in', () => {
 
   it('stops offering to send a vote once the session is gone', async () => {
     vi.mocked(api.getBallot).mockResolvedValue(BALLOT);
-    vi.mocked(api.getMyScores).mockResolvedValue([
-      { dishId: 'D-b', categoryId: 'taste', value: 4 },
-    ]);
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-b', categoryId: 'taste', value: 4 }],
+      status: 'draft',
+    });
     vi.mocked(api.sendVote).mockRejectedValue(signedOut());
     wrap(<Score />);
 
@@ -133,9 +134,10 @@ describe('when the participant is no longer signed in', () => {
 
   it('still reports a genuine send failure as one', async () => {
     vi.mocked(api.getBallot).mockResolvedValue(BALLOT);
-    vi.mocked(api.getMyScores).mockResolvedValue([
-      { dishId: 'D-b', categoryId: 'taste', value: 4 },
-    ]);
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-b', categoryId: 'taste', value: 4 }],
+      status: 'draft',
+    });
     vi.mocked(api.sendVote).mockRejectedValue(brokeSomehow());
     wrap(<Score />);
 

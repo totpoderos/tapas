@@ -51,7 +51,7 @@ describe('Score screen', () => {
   beforeEach(() => {
     stubLocalStorage('c1');
     vi.mocked(api.getBallot).mockReset().mockResolvedValue(BALLOT);
-    vi.mocked(api.getMyScores).mockReset().mockResolvedValue([]);
+    vi.mocked(api.getMyScores).mockReset().mockResolvedValue({ scores: [], status: 'draft' });
     vi.mocked(api.saveScore).mockReset().mockResolvedValue();
     vi.mocked(api.sendVote).mockReset().mockResolvedValue();
   });
@@ -88,10 +88,13 @@ describe('Score screen', () => {
   });
 
   it('confirms before sending, then locks the vote (no re-send)', async () => {
-    vi.mocked(api.getMyScores).mockResolvedValue([
-      { dishId: 'D-C', categoryId: 'cat1', value: 2 },
-      { dishId: 'D-D', categoryId: 'cat1', value: 3 },
-    ]);
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [
+        { dishId: 'D-C', categoryId: 'cat1', value: 2 },
+        { dishId: 'D-D', categoryId: 'cat1', value: 3 },
+      ],
+      status: 'draft',
+    });
     renderScore();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Send my vote' }));
@@ -126,7 +129,7 @@ describe('Score screen — strict ranking', () => {
   beforeEach(() => {
     stubLocalStorage('c1');
     vi.mocked(api.getBallot).mockReset().mockResolvedValue(RANKING);
-    vi.mocked(api.getMyScores).mockReset().mockResolvedValue([]);
+    vi.mocked(api.getMyScores).mockReset().mockResolvedValue({ scores: [], status: 'draft' });
     vi.mocked(api.saveScore).mockReset().mockResolvedValue();
     vi.mocked(api.sendVote).mockReset().mockResolvedValue();
   });
@@ -149,10 +152,13 @@ describe('Score screen — strict ranking', () => {
 
   it('swaps when a rank held by another dish is chosen, keeping a permutation', async () => {
     // Resume with a full ranking: Tortilla 1, Gazpacho 2.
-    vi.mocked(api.getMyScores).mockResolvedValue([
-      { dishId: 'D-C', categoryId: 'cat1', value: 1 },
-      { dishId: 'D-D', categoryId: 'cat1', value: 2 },
-    ]);
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [
+        { dishId: 'D-C', categoryId: 'cat1', value: 1 },
+        { dishId: 'D-D', categoryId: 'cat1', value: 2 },
+      ],
+      status: 'draft',
+    });
     renderScore();
     await screen.findByRole('heading', { name: 'Rank the dishes' });
 

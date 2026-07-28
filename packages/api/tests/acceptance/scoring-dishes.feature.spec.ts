@@ -279,6 +279,72 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('A judge is told their vote is still a draft', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let contestId: string;
+    let anaCookie: string;
+    let response: LightMyRequestResponse;
+
+    Given('a live contest where Ana has scored Bob\'s dish 4 for "Taste"', async () => {
+      ({ app, db } = makeTestApp());
+      ({ contestId } = publishLiveContest(db, 'TAPAS1'));
+      anaCookie = claimCookie(db, 'TAPAS1', 'ana');
+      claimCookie(db, 'TAPAS1', 'bob');
+      await saveScore(app, contestId, anaCookie, { dishId: 'D-bob', categoryId: 'taste', value: 4 });
+    });
+    When('Ana looks at her scores', async () => {
+      response = await myScores(app, contestId, anaCookie);
+    });
+    Then('she is told her vote is still a draft', () => {
+      expect(response.statusCode).toBe(200);
+      expect(response.json().status).toBe('draft');
+    });
+  });
+
+  Scenario('A judge sees that their vote has been sent', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let contestId: string;
+    let anaCookie: string;
+    let response: LightMyRequestResponse;
+
+    Given(
+      'a live contest where Ana has scored every dish open to her and sent her vote',
+      async () => {
+        ({ app, db } = makeTestApp());
+        ({ contestId } = publishLiveContest(db, 'TAPAS1'));
+        anaCookie = claimCookie(db, 'TAPAS1', 'ana');
+        claimCookie(db, 'TAPAS1', 'bob');
+        await saveScore(app, contestId, anaCookie, {
+          dishId: 'D-bob',
+          categoryId: 'taste',
+          value: 4,
+        });
+        const sent = await app.inject({
+          method: 'POST',
+          url: `/contests/${contestId}/send-vote`,
+          headers: { cookie: anaCookie },
+        });
+        expect(sent.statusCode).toBe(200);
+      },
+    );
+    When('Ana looks at her scores', async () => {
+      response = await myScores(app, contestId, anaCookie);
+    });
+    Then('she is told her vote has been sent', () => {
+      expect(response.statusCode).toBe(200);
+      expect(response.json().status).toBe('sent');
+    });
+    // Sending must not hide what she gave — a read-only view still needs the scores.
+    And('she still sees the scores she gave', () => {
+      const dishScore = response
+        .json()
+        .scores.find((s: { dishId: string }) => s.dishId === 'D-bob');
+      expect(dishScore.value).toBe(4);
+    });
+  });
+
   Scenario('Scoring requires having claimed a place', ({ Given, When, Then }) => {
     let app: FastifyInstance;
     let db: DatabaseSync;

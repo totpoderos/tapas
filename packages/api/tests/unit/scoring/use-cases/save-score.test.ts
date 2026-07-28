@@ -71,9 +71,10 @@ describe('SaveScore', () => {
     saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
     saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 5 });
 
-    const scores = getMyScores.execute('contest-1', 'ana');
+    const { scores, status } = getMyScores.execute('contest-1', 'ana');
     expect(scores).toHaveLength(1);
     expect(scores[0]?.value).toBe(5);
+    expect(status).toBe('draft'); // saving a score does not send the vote
   });
 
   it('refuses a dish not open to the voter', () => {
@@ -144,16 +145,18 @@ describe('SaveScore', () => {
 });
 
 describe('GetMyScores', () => {
-  it('returns no scores before a voter has saved any', () => {
+  it('returns no scores before a voter has saved any, and calls it a draft', () => {
     const { getMyScores } = makeEnv();
-    expect(getMyScores.execute('contest-1', 'ana')).toEqual([]);
+    // No session yet is a draft with nothing in it, not an absence — the app
+    // needs an answer it can render either way.
+    expect(getMyScores.execute('contest-1', 'ana')).toEqual({ scores: [], status: 'draft' });
   });
 
   it("returns a voter's saved scores", () => {
     const { saveScore, getMyScores } = makeEnv();
     saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
 
-    const scores = getMyScores.execute('contest-1', 'ana');
+    const { scores } = getMyScores.execute('contest-1', 'ana');
 
     expect(scores).toHaveLength(1);
     expect(scores[0]?.dishId).toBe('D-bob');

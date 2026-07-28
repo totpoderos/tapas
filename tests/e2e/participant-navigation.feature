@@ -1,0 +1,32 @@
+Feature: A participant is never stranded
+  Moving around is not always forwards. A participant steps back to check what
+  they wrote, reloads when a phone wakes up, or opens an address they were sent.
+  However they arrive, there is a way on to the other steps — and a vote they
+  have already sent still reads as sent, rather than offering a ballot they
+  cannot use. Where they go is theirs to choose: going back shows them the step
+  they went back to, not the one they came from.
+
+  Scenario: Every step offers the others
+    Given a participant who has joined a contest
+    When they open the scoring screen
+    Then they can reach the dishes and the results from it
+
+  Scenario: Waiting for the results is not being stuck
+    Given a participant who has joined a contest
+    When they open the results before the host has revealed them
+    Then they can still reach the dishes and their scoring
+
+  Scenario: Going back after voting shows the vote as sent
+    Given a participant who has sent their vote
+    When they open the results and then go back
+    Then they are shown that their vote is in, and can reach the results again
+
+  Scenario: Reloading does not lose the way onward
+    Given a participant who has sent their vote
+    When they reload the scoring screen
+    Then their vote still reads as sent, and the results are still reachable
+
+  Scenario: Arriving by the address alone is no different
+    Given a participant who has joined a contest
+    When they open the scoring screen's address directly
+    Then they can reach the dishes and the results from it
