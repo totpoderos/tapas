@@ -43,6 +43,13 @@ import type { LLMClient } from '@tapas/shared';
 
 export interface SecurityConfig {
   readonly isProduction: boolean;
+  /**
+   * Explicitly a development environment. Distinct from `!isProduction` on
+   * purpose: relaxations key off this, so an unset, misspelt or unfamiliar
+   * environment (`staging`, say) stays hardened. The only way to soften anything
+   * is to say `development` outright — the same rule the session cookie follows.
+   */
+  readonly isDevelopment: boolean;
   readonly allowedOrigins: readonly string[];
 }
 

@@ -200,6 +200,22 @@ remain ungated by policy. Tracked for 6.11.
   ([https-redirect.ts:8](../packages/api/src/http/https-redirect.ts)) with
   `trustProxy` so `X-Forwarded-Proto` is honored behind the TLS edge (Caddy, 6.4).
 
+- **Helmet's defaults presume TLS, and two of them break plain-HTTP development.**
+  `Strict-Transport-Security` and the CSP's `upgrade-insecure-requests` are sent
+  in production and **withheld when the environment is explicitly `development`**
+  ([server.ts](../packages/api/src/server.ts)). Safari applies HSTS to
+  `localhost`; Chrome special-cases localhost and ignores it. One response pins
+  localhost to HTTPS for a **year, across every port**, and the pin is not cleared
+  by clearing cookies — a developer who hits it has to delete
+  `~/Library/Cookies/HSTS.plist`. `upgrade-insecure-requests` meanwhile reissues
+  http:// requests as https://, which nothing in development is listening for.
+
+  The gate is `security.isDevelopment`, deliberately **not** `!isProduction` —
+  the same fail-closed rule as the session cookie, so `staging` or an unset
+  environment stays hardened. Everything else in the policy is unchanged in both
+  environments, and a test asserts exactly that
+  ([security-headers.test.ts](../packages/api/tests/unit/http/security-headers.test.ts)).
+
 - **One engine is not "the browser".** That Safari defect reached a real device
   because the whole-system tests ran **Chromium only** — the one engine whose
   `localhost` exception hid it. This is the same "two paths assumed equivalent"
