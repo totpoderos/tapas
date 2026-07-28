@@ -40,5 +40,7 @@
   "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
   "errorCarryingOut": "Algo salió mal al realizarlo. Inténtalo de nuevo.",
   "cancelled": "Cancelado — no se ha cambiado nada.",
-  "failed": "{{action}} no se realizó — {{reason}}"
+  "failed": "{{action}} no se realizó — {{reason}}",
+  "clear": "Borrar conversación",
+  "cleared": "Conversación borrada"
 }

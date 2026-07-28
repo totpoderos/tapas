@@ -133,6 +133,58 @@ test('the conversation is kept when leaving the panel and coming back', async ({
   await expect(page.getByRole('log', { name: 'Conversation' }).getByText('hello there')).toBeVisible();
 });
 
+test('the conversation can be cleared, and stays cleared across a reload', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-clear@sobremesa.es');
+  await page.goto('/chat');
+
+  // Nothing to clear on an untouched panel.
+  await expect(page.getByRole('button', { name: 'Clear conversation' })).toBeDisabled();
+
+  await sendMessage(page, 'hello there');
+  const log = page.getByRole('log', { name: 'Conversation' });
+  await expect(log.getByText('hello there')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Clear conversation' }).click();
+  await expect(log.getByText('hello there')).toHaveCount(0);
+  await expect(page.getByRole('status')).toHaveText('Conversation cleared');
+  await expect(page.getByRole('button', { name: 'Clear conversation' })).toBeDisabled();
+
+  // It is really gone, not just wiped from the screen — the conversation is kept
+  // in sessionStorage, so a reload is what proves the stored copy went too.
+  await page.reload();
+  await expect(page.getByRole('log', { name: 'Conversation' }).getByText('hello there')).toHaveCount(0);
+
+  // And a fresh conversation starts normally.
+  await sendMessage(page, 'what can you do?');
+  await expect(page.getByText('Which contest do you mean?')).toBeVisible();
+});
+
+test('an approval waiting on the host cannot be cleared out from under itself', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-clear-pending@sobremesa.es');
+  const id = await liveContest(page.request, 'Held Cook-off');
+  await page.goto('/chat');
+  await sendMessage(page, `close contest ${id}`);
+  await expect(page.getByRole('button', { name: 'Yes, do it' })).toBeVisible();
+
+  // The confirmation card is modal (role="alertdialog", aria-modal="true", over a
+  // full-screen backdrop), so clearing is out of reach until the host settles it.
+  // The button is still on the page — it is the backdrop that makes it
+  // unclickable — so this asserts ACTIONABILITY, not visibility: a trial click
+  // runs Playwright's actionability checks without clicking, and fails because
+  // the backdrop intercepts the pointer.
+  await expect(page.getByRole('alertdialog')).toHaveAttribute('aria-modal', 'true');
+  await expect(
+    page.getByRole('button', { name: 'Clear conversation' }).click({ trial: true, timeout: 2000 }),
+  ).rejects.toThrow();
+  expect(await statusOf(page.request, id)).toBe('live');
+
+  // Dismissing the card puts clearing back within reach.
+  await page.getByRole('button', { name: 'Cancel' }).click();
+  await page.getByRole('button', { name: 'Clear conversation' }).click();
+  await expect(page.getByRole('status')).toHaveText('Conversation cleared');
+  expect(await statusOf(page.request, id)).toBe('live'); // still never carried out
+});
+
 test('a destructive action is held behind a confirmation card', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

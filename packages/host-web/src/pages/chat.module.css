@@ -252,3 +252,12 @@
   gap: 12px;
   justify-content: flex-end;
 }
+
+/* The cleared/announcement line. It sits outside the conversation log, so it is
+   always present for assistive tech and simply carries no text when there is
+   nothing to say. */
+.announcement {
+  color: var(--ink-2);
+  margin: 0 0 8px;
+  min-height: 1.25em;
+}

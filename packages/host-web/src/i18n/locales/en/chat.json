@@ -40,5 +40,7 @@
   "errorGeneric": "Something went wrong. Please try again.",
   "errorCarryingOut": "Something went wrong carrying that out. Please try again.",
   "cancelled": "Cancelled — nothing was changed.",
-  "failed": "{{action}} didn’t happen — {{reason}}"
+  "failed": "{{action}} didn’t happen — {{reason}}",
+  "clear": "Clear conversation",
+  "cleared": "Conversation cleared"
 }
