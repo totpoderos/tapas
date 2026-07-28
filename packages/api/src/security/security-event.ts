@@ -8,7 +8,13 @@ export interface SecurityEvent {
   readonly occurredAt: string;
 }
 
-export type SecurityEventType = 'sign_in.succeeded' | 'sign_in.refused' | 'pat.issued' | 'pat.used';
+export type SecurityEventType =
+  | 'sign_in.succeeded'
+  | 'sign_in.refused'
+  | 'pat.issued'
+  | 'pat.used'
+  /** Someone signed in reached for administrative work without the authority for it. */
+  | 'admin_access.refused';
 
 /** What a caller supplies; the log stamps the id and timestamp. */
 export interface SecurityEventInput {

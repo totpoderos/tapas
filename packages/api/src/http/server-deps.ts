@@ -1,7 +1,9 @@
 import type { AuthenticateHost } from '../auth/use-cases/authenticate-host.js';
 import type { IssuePat } from '../auth/use-cases/issue-pat.js';
 import type { RefreshSession } from '../auth/use-cases/refresh-session.js';
+import type { ListHostAccounts } from '../auth/use-cases/list-host-accounts.js';
 import type { RegisterHost } from '../auth/use-cases/register-host.js';
+import type { HostAccountRepository } from '../db/host-account-repository.js';
 import type { RevokePat } from '../auth/use-cases/revoke-pat.js';
 import type { SignOutHost } from '../auth/use-cases/sign-out-host.js';
 import type { SessionStore } from '../auth/session-store.js';
@@ -96,6 +98,9 @@ export interface ServerDeps {
   readonly issuePat: IssuePat;
   readonly revokePat: RevokePat;
   readonly pats: HostPatRepository;
+  readonly listHostAccounts: ListHostAccounts;
+  /** Read by the administrative check, which takes the role from the store rather than the session. */
+  readonly hostAccounts: HostAccountRepository;
   readonly securityLog: SecurityEventLog;
   readonly security: SecurityConfig;
   /** The audit log (a projection of domain events) — read for a contest's activity view. */

@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, promoteToAdministrator } from '../support/test-server.js';
 import {
   SqliteSecurityEventLog,
   SystemClock,
@@ -185,6 +185,81 @@ describeFeature(feature, ({ Scenario }) => {
     Then('no security log entry contains the full token', () => {
       const serialized = JSON.stringify(securityLog(db));
       expect(serialized).not.toContain(token);
+    });
+  });
+
+  Scenario('A host refused administrative work is recorded', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let cookie: string;
+
+    Given('a signed-in host "bob@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      await register(app, 'bob@example.com');
+      cookie = readCookie(await login(app, 'bob@example.com', STRONG_PASSWORD), 'access_token');
+    });
+    When('that host is refused administrative work', async () => {
+      const response = await app.inject({ method: 'GET', url: '/admin/hosts', headers: { cookie } });
+      expect(response.statusCode).toBe(403);
+    });
+    Then('the security log records a refused administrative attempt for that host', () => {
+      const refused = securityLog(db).find((event) => event.type === 'admin_access.refused');
+      expect(refused?.actorId).toBeTruthy();
+      expect(refused?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario('A token refused administrative work is recorded', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let token: string;
+
+    Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
+      ({ app, db } = makeTestApp());
+      await register(app, 'ana@example.com');
+      promoteToAdministrator(db, 'ana@example.com');
+      const cookie = readCookie(
+        await login(app, 'ana@example.com', STRONG_PASSWORD),
+        'access_token',
+      );
+      const issued = await app.inject({ method: 'POST', url: '/auth/pats', headers: { cookie } });
+      token = issued.json().token;
+    });
+    When('an external client using that token is refused administrative work', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/admin/hosts',
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(response.statusCode).toBe(403);
+    });
+    Then(
+      'the security log records a refused administrative attempt for that administrator',
+      () => {
+        const refused = securityLog(db).find((event) => event.type === 'admin_access.refused');
+        expect(refused?.actorId).toBeTruthy();
+      },
+    );
+  });
+
+  Scenario('Administrative work that succeeds is not noise in the log', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let cookie: string;
+
+    Given('an administrator "ana@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      await register(app, 'ana@example.com');
+      promoteToAdministrator(db, 'ana@example.com');
+      cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
+    });
+    When('that administrator does administrative work successfully', async () => {
+      const response = await app.inject({ method: 'GET', url: '/admin/hosts', headers: { cookie } });
+      expect(response.statusCode).toBe(200);
+    });
+    Then('no refused administrative attempt is recorded', () => {
+      const refused = securityLog(db).find((event) => event.type === 'admin_access.refused');
+      expect(refused).toBeUndefined();
     });
   });
 });

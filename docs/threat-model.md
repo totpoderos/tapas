@@ -421,7 +421,7 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 |---|---|---|---|
 | G1 | ~~`ASSISTANT_CONFIRMATION_SECRET` has a committed default~~ — **FIXED (6.11)** | ~~High~~ | The API now **refuses to boot in production** if this (or `JWT_SECRET`) is a committed dev default ([env.ts superRefine](../packages/api/src/config/env.ts)); dev/test keep the convenience default. |
 | G2 | ~~`JWT_SECRET` has no length floor~~ — **FIXED (6.11)** | ~~High~~ | Now `min(32, …)` ([env.ts](../packages/api/src/config/env.ts)); examples/compose bumped; `.env*.example` document 64+ random for prod. |
-| G3 | **No `admin` role / `requireRole()`** — `admin` is a type never assigned; no role middleware (design.md §11B.2) | Medium — no moderation / "see all contests" capability; not a hole in *existing* endpoints (all are ownership-checked) | Never built; the app shipped with host+voter. **Disposition (6.11): accepted for v1** — no endpoint needs it today; either build it or drop the design claim in a later slice. |
+| G3 | ~~**No `admin` role / role middleware**~~ — **ENFORCED** (`admin` role now checked; still nothing *assigns* it) | ~~Medium~~ Low | Administrative work is now a real, guarded category ([require-administrator.ts](../packages/api/src/http/require-administrator.ts)): the role is read from the account store rather than the session (a refresh carries the old role claim forward, so a demotion would otherwise never take effect), and a personal access token is refused administrative work whoever issued it. **Not fully closed:** no production path creates an administrator yet — that arrives with the enrollment bootstrap slice. |
 | G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. **Deferred.** |
 | G5 | ~~No Dependabot~~ — **FIXED (6.11)** | ~~Medium~~ | Added [.github/dependabot.yml](../.github/dependabot.yml) (weekly npm + actions, grouped); the CI `audit:ci` gate vets each bump. |
 | G6 | **Contest get/close/reveal use cases have no *internal* ownership check** — route-only ([get-contest.ts:8](../packages/api/src/contests/use-cases/get-contest.ts)) | Low today — every real caller goes through the guarded route | Deliberate split; add a defense-in-depth check or a lint note so a future caller can't bypass it. |
@@ -470,9 +470,16 @@ Worked from this threat model:
   working. `.env*.example` document 64+ random for production.
 - ✅ **G5 — DONE.** [.github/dependabot.yml](../.github/dependabot.yml) added (weekly
   npm + GitHub-Actions updates, grouped); the CI `audit:ci` gate vets each bump.
-- ⏸ **G3 — accepted for v1.** No endpoint needs `admin`; every existing route is
-  ownership-checked. Building `requireRole()`/`admin` (or dropping the design claim) is
-  a later decision, not a hole in what ships.
+- 🔓 **G3 — enforced, not yet fully closed.** The design claim is no longer empty:
+  administrative work is a guarded category, refused to an ordinary host as *not allowed*
+  (403) distinctly from *not signed in* (401), and refused to a personal access token
+  whoever issued it — so a leaked MCP token can never reach the administrative surface.
+  Two deliberate choices back it: the role comes from the account store, never from the
+  session (refreshing copies the previous token's role claim forward, so a claim-derived
+  role would survive a demotion forever), and the request carries how it authenticated
+  rather than a role that could be quietly wrong. What remains: nothing in production
+  *assigns* the role — administrators exist only in test fixtures until the enrollment
+  bootstrap slice lands.
 - ⏭ **G4, G6, G7–G9 — deferred** (source IP on destructive-action audit records; a
   defense-in-depth ownership assertion in the contest use cases; single-use nonce;
   signed audit log; explicit CSP/HSTS tuning). Each is low-risk today and tracked here.

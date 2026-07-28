@@ -4,6 +4,8 @@ import { HostAccount, type HostRole } from '@tapas/domain';
 export interface HostAccountRepository {
   insert(account: HostAccount): void;
   findByEmail(email: string): HostAccount | undefined;
+  findById(id: string): HostAccount | undefined;
+  listAll(): HostAccount[];
   update(account: HostAccount): void;
 }
 
@@ -58,5 +60,19 @@ export class SqliteHostAccountRepository implements HostAccountRepository {
       | HostAccountRow
       | undefined;
     return row ? toAccount(row) : undefined;
+  }
+
+  findById(id: string): HostAccount | undefined {
+    const row = this.db.prepare(`SELECT * FROM host_accounts WHERE id = ?`).get(id) as unknown as
+      | HostAccountRow
+      | undefined;
+    return row ? toAccount(row) : undefined;
+  }
+
+  listAll(): HostAccount[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM host_accounts ORDER BY created_at`)
+      .all() as unknown as HostAccountRow[];
+    return rows.map(toAccount);
   }
 }

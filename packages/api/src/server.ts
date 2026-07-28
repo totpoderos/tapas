@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import Fastify, { type FastifyInstance } from 'fastify';
+import { registerAdminRoutes } from './http/admin-routes.js';
 import { registerAssistantRoutes } from './http/assistant-routes.js';
 import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerContestRoutes } from './http/contest-routes.js';
@@ -65,6 +66,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   // route declared before that hook attaches would silently get no override.
   app.after(() => {
     registerAuthRoutes(app, deps);
+    registerAdminRoutes(app, deps);
     registerDraftRoutes(app, deps);
     registerContestRoutes(app, deps);
     registerVoterRoutes(app, deps);
