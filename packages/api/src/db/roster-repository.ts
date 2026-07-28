@@ -19,6 +19,8 @@ export interface RosterRepository {
   find(contestId: string, participantId: string): RosterPlace | undefined;
   /** Atomically claims an open place; false if it does not exist or is already taken. */
   claim(contestId: string, participantId: string, claimedAt: string): boolean;
+  /** Removes every place in a contest — the display names go with it. */
+  deleteByContest(contestId: string): void;
 }
 
 interface PersonRow {
@@ -86,5 +88,9 @@ export class SqliteRosterRepository implements RosterRepository {
       )
       .run(claimedAt, contestId, participantId);
     return result.changes === 1;
+  }
+
+  deleteByContest(contestId: string): void {
+    this.db.prepare(`DELETE FROM persons WHERE contest_id = ?`).run(contestId);
   }
 }

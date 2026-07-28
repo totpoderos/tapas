@@ -139,19 +139,9 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
-  app.delete<{ Params: { id: string } }>(
-    '/drafts/:id',
-    { preHandler: requireSession },
-    async (request, reply) => {
-      if (!loadOwnedDraft(request, reply)) return reply;
-      const discarded = deps.discardDraft.execute(request.params.id, request.hostSession!.id);
-      if (!discarded.ok)
-        return reply
-          .code(DRAFT_ERROR_STATUS[discarded.error.code])
-          .send({ error: discarded.error });
-      return reply.code(204).send();
-    },
-  );
+  // `DELETE /drafts/:id` was retired into `DELETE /contests/:id`, which resolves
+  // a draft or a published contest by the same id. One host intent, one route,
+  // one ownership check — see DeleteContest.
 
   app.post<{ Params: { id: string } }>(
     '/drafts/:id/publish',

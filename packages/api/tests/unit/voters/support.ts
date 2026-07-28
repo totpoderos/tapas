@@ -37,4 +37,9 @@ export class FakeRosterRepository implements RosterRepository {
     this.places.set(this.key(contestId, participantId), { ...place, claimedAt });
     return true;
   }
+  deleteByContest(contestId: string): void {
+    for (const [key, place] of this.places) {
+      if (place.contestId === contestId) this.places.delete(key);
+    }
+  }
 }

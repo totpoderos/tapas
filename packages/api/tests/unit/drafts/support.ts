@@ -35,6 +35,11 @@ export class FakeAuditLog implements AuditLogRepository {
   findByContest(contestId: string): AuditEntry[] {
     return this.entries.filter((entry) => entry.contestId === contestId);
   }
+  deleteByContest(contestId: string): void {
+    for (let i = this.entries.length - 1; i >= 0; i -= 1) {
+      if (this.entries[i]!.contestId === contestId) this.entries.splice(i, 1);
+    }
+  }
 }
 
 export function makeDraftDeps() {

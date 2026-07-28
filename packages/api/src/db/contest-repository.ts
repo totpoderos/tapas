@@ -16,6 +16,8 @@ export interface ContestRepository {
     closedAt: string | null,
     revealedAt: string | null,
   ): void;
+  /** Removes the contest for good, releasing its join code for reuse. */
+  delete(id: string): void;
 }
 
 interface ContestRow {
@@ -102,5 +104,9 @@ export class SqliteContestRepository implements ContestRepository {
     this.db
       .prepare(`UPDATE contests SET status = ?, closed_at = ?, revealed_at = ? WHERE id = ?`)
       .run(status, closedAt, revealedAt, id);
+  }
+
+  delete(id: string): void {
+    this.db.prepare(`DELETE FROM contests WHERE id = ?`).run(id);
   }
 }
