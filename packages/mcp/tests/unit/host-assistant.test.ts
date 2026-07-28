@@ -6,13 +6,19 @@ describe('hostAssistantTools', () => {
     const tools = await hostAssistantTools();
 
     expect(tools.map((tool) => tool.name).sort()).toEqual([
+      'add_participant',
       'close_contest',
       'create_draft',
+      'delete_contest',
+      'find_contest',
       'get_contest',
+      'get_contest_details',
       'get_draft',
       'get_results',
       'get_tally',
+      'list_my_contests',
       'publish_contest',
+      'remove_participant',
       'trigger_reveal',
       'update_draft',
     ]);

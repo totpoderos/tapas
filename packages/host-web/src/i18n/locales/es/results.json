@@ -1,0 +1,10 @@
+{
+  "backToControl": "Volver al concurso",
+  "loading": "Cargando los resultados…",
+  "notYetTitle": "Los resultados aún no están",
+  "notYetBody": "No hay nada decidido hasta que reveles el concurso.",
+  "goToControl": "Ir al concurso",
+  "notFoundTitle": "Concurso no encontrado",
+  "notFoundBody": "Este concurso no existe, o no es tuyo.",
+  "loadError": "No se pudieron cargar los resultados. Inténtalo de nuevo."
+}

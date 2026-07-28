@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Chat } from '../../src/pages/chat';
@@ -37,6 +37,7 @@ async function send(text: string) {
 
 describe('Chat panel', () => {
   beforeEach(() => {
+    sessionStorage.clear(); // the conversation persists there — don't leak between tests
     vi.mocked(api.sendAssistantMessage).mockReset();
     vi.mocked(api.confirmAssistantAction).mockReset();
   });
@@ -64,6 +65,177 @@ describe('Chat panel', () => {
 
     expect(await screen.findByText(/create draft — done/i)).toBeInTheDocument();
     expect(screen.getByText('Done — I saved your draft.')).toBeInTheDocument();
+  });
+
+  it('puts what happened into words even when the model says nothing', async () => {
+    // gemma4 and friends routinely call a tool and contribute no sentence.
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'create_draft',
+      text: '',
+      result: { id: 'd1' },
+    });
+    renderChat();
+    await send('start a draft called Summer Tapas');
+
+    // The ticket is there, and so is a sentence — not a bare ticket.
+    expect(await screen.findByText(/create draft — done/i)).toBeInTheDocument();
+    expect(screen.getByText(/^Done — create draft\.$/i)).toBeInTheDocument();
+  });
+
+  it('says an action did not happen, and why', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'failed',
+      action: 'publish_contest',
+      message: 'The draft is missing its scoring rules.',
+    });
+    renderChat();
+    await send('publish Bare');
+
+    // Announced, names the action, and carries the reason — never a green tick.
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/didn’t happen/i);
+    expect(alert).toHaveTextContent('The draft is missing its scoring rules.');
+    expect(screen.queryByText(/publish contest — done/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the contest list when the assistant lists contests', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'list_my_contests',
+      text: '',
+      result: [
+        { id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+        { id: 'c2', name: 'Paella Sunday', status: 'draft', updatedAt: '2026-01-01T00:00:00.000Z' },
+      ],
+    });
+    renderChat();
+    await send('list my contests');
+
+    const list = await screen.findByRole('list', { name: 'Contests' });
+    expect(within(list).getByText('Tapas Night')).toBeInTheDocument();
+    expect(within(list).getByText('Paella Sunday')).toBeInTheDocument();
+    // Not the bare "done" ticket — the data is the answer.
+    expect(screen.queryByText(/list my contests — done/i)).not.toBeInTheDocument();
+  });
+
+  it('renders the matches when the assistant finds a contest by name', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'find_contest',
+      text: '',
+      result: [{ id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    });
+    renderChat();
+    await send('find Tapas Night');
+
+    const list = await screen.findByRole('list', { name: 'Contests' });
+    expect(within(list).getByText('Tapas Night')).toBeInTheDocument();
+  });
+
+  it('says so when a find turns up nothing, rather than showing an empty result', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'find_contest',
+      text: '',
+      result: [],
+    });
+    renderChat();
+    await send('find Nonexistent');
+
+    expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
+  });
+
+  it("renders a contest's details (participants + categories) when asked", async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: {
+        details: { id: 'c1', name: 'Tapas Night', status: 'live', participants: ['Ana', 'Bob'], categories: ['Taste'] },
+      },
+    });
+    renderChat();
+    await send('who is in Tapas Night');
+
+    expect(await screen.findByText('Ana, Bob')).toBeInTheDocument();
+    expect(screen.getByText('Taste')).toBeInTheDocument();
+    expect(screen.getByText('Taking part')).toBeInTheDocument();
+  });
+
+  it('asks which one when a details request matches several contests', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: {
+        candidates: [
+          { id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'c2', name: 'Tapas Night', status: 'draft', updatedAt: '2026-01-01T00:00:00.000Z' },
+        ],
+      },
+    });
+    renderChat();
+    await send('details of Tapas Night');
+
+    expect(await screen.findByText(/which one/i)).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Contests' })).toBeInTheDocument();
+  });
+
+  it('says so when a details request matches nothing', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_contest_details',
+      text: '',
+      result: { candidates: [] },
+    });
+    renderChat();
+    await send('details of Nope');
+
+    expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
+  });
+
+  it('renders the updated participants after adding one', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_participant',
+      text: '',
+      result: { details: { id: 'd1', name: 'Tapas Night', status: 'draft', participants: ['Ana', 'Bob', 'Carmen'], categories: [] } },
+    });
+    renderChat();
+    await send('add Carmen to Tapas Night');
+
+    expect(await screen.findByText('Ana, Bob, Carmen')).toBeInTheDocument();
+  });
+
+  it('returns focus to the composer after the assistant responds', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: 'Which contest do you mean?' });
+    renderChat();
+    await send('close it');
+
+    await screen.findByText('Which contest do you mean?');
+    expect(screen.getByLabelText('Message the assistant')).toHaveFocus();
+  });
+
+  it('keeps the conversation when the panel is left and reopened', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: 'Here is my reply.' });
+    const { unmount } = renderChat();
+    await send('hello');
+    await screen.findByText('Here is my reply.');
+
+    // Navigate away (unmount) and come back (fresh mount) — the conversation is restored.
+    unmount();
+    renderChat();
+    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(screen.getByText('Here is my reply.')).toBeInTheDocument();
+  });
+
+  it('always shows a response, even when the model replies with empty text', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: '' });
+    renderChat();
+    await send('list my contests');
+
+    expect(await screen.findByText(/i didn.t catch that/i)).toBeInTheDocument();
   });
 
   it('holds a destructive action behind a confirmation card and does not act until accepted', async () => {

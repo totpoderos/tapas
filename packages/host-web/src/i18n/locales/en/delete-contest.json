@@ -1,0 +1,14 @@
+{
+  "action": "Delete",
+  "actionFor": "Delete {{name}}",
+  "title": "Delete “{{name}}”?",
+  "body": "This removes the contest and everything in it, for good. It cannot be undone.",
+  "bodyTakenPart": "People have already taken part. Deleting destroys their dishes, scores and votes as well, for good. Type the contest’s name to confirm.",
+  "verifyLabel": "Contest name",
+  "verifyHint": "Type “{{name}}” to confirm",
+  "confirm": "Delete for good",
+  "cancel": "Cancel",
+  "working": "Deleting…",
+  "error": "The contest couldn’t be deleted. Please try again.",
+  "deleted": "“{{name}}” was deleted."
+}

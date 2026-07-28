@@ -74,6 +74,31 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     return reply.code(200).send(deps.listHostDrafts.execute(request.hostSession.id));
   });
 
+  // Managing a draft's participants by name (drafts only — a published contest's
+  // roster is settled at publish). Static paths, so matched ahead of /drafts/:id.
+  app.post<{ Body: { contest: string; participant: string } }>(
+    '/drafts/participants',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const { contest, participant } = request.body;
+      return reply.code(200).send(deps.addDraftParticipant.execute(request.hostSession.id, contest, participant));
+    },
+  );
+
+  // Removing is destructive (the assistant confirms with the host first); the
+  // params go in the query so a body isn't needed on DELETE.
+  app.delete<{ Querystring: { contest?: string; participant?: string } }>(
+    '/drafts/participants',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const contest = request.query.contest ?? '';
+      const participant = request.query.participant ?? '';
+      return reply.code(200).send(deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant));
+    },
+  );
+
   app.get<{ Params: { id: string } }>(
     '/drafts/:id',
     { preHandler: requireSession },
@@ -100,19 +125,23 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
-  app.delete<{ Params: { id: string } }>(
+  // Real editing: replace the whole draft content (rules, participants, pairings),
+  // not just the name. PATCH stays rename-only; PUT is the full-content replace.
+  app.put<{ Params: { id: string }; Body: DraftContent }>(
     '/drafts/:id',
     { preHandler: requireSession },
     async (request, reply) => {
       if (!loadOwnedDraft(request, reply)) return reply;
-      const discarded = deps.discardDraft.execute(request.params.id, request.hostSession!.id);
-      if (!discarded.ok)
-        return reply
-          .code(DRAFT_ERROR_STATUS[discarded.error.code])
-          .send({ error: discarded.error });
-      return reply.code(204).send();
+      const updated = deps.updateDraft.execute(request.params.id, request.hostSession!.id, request.body);
+      if (!updated.ok)
+        return reply.code(DRAFT_ERROR_STATUS[updated.error.code]).send({ error: updated.error });
+      return reply.code(200).send(updated.draft);
     },
   );
+
+  // `DELETE /drafts/:id` was retired into `DELETE /contests/:id`, which resolves
+  // a draft or a published contest by the same id. One host intent, one route,
+  // one ownership check — see DeleteContest.
 
   app.post<{ Params: { id: string } }>(
     '/drafts/:id/publish',

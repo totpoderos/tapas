@@ -102,7 +102,7 @@ test('submitting a dish is keyboard-operable and has no accessibility violations
   const { joinCode } = await seedLiveContest('e2e-dish-a11y@sobremesa.es');
   await joinAs(page, joinCode, 'Ana');
 
-  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   await page.getByLabel('Dish name').focus();

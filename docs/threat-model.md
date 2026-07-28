@@ -97,7 +97,24 @@ as of this writing.
   ([api-dispatcher.ts:32](../packages/mcp/src/api-dispatcher.ts)); the in-app
   assistant re-enters the same routes via `app.inject`, forwarding the session
   cookie ([assistant-routes.ts:54](../packages/api/src/http/assistant-routes.ts)).
-  Both funnel through the checks above — there is no second, weaker path.
+  Both funnel through the checks above — there is no second, weaker path **for
+  authorization**. That qualifier is deliberate: see the note below on how the
+  two paths once diverged on *validation*.
+
+> **Same routes ≠ same checks — a gap this document previously papered over.**
+> "Both re-enter the same routes" was written about **authorization**, and for
+> authorization it held. It did **not** hold for **input validation**. The MCP
+> server hands each tool's `inputSchema` to the SDK, which validates arguments
+> before the tool runs; the in-app assistant dispatched `tool.toRequest(
+> call.arguments)` **directly**, so a model's malformed arguments reached the API
+> unchecked. That is not hypothetical — it is how drafts came to hold participants
+> with `id: undefined`, unaddressable for pairing and failing publish with
+> `DUPLICATE_PERSON_ID "undefined"`. **Closed** by `parseToolArguments` in the tool
+> catalog ([tool-catalog.ts](../packages/mcp/src/tool-catalog.ts)), now applied by
+> both entry points and on both the reversible and the confirm legs of the
+> assistant. The lesson generalises past this one bug: *two paths that share a
+> destination still have to be shown to share each check individually* — see the
+> recurring-asymmetry note in §4.
 
 **Residual risk / gap:** the `admin` role and a `requireRole()` middleware named
 in the design do **not** exist (see §4). And contest `get/close/reveal` use cases
@@ -181,6 +198,11 @@ highest-value quick fixes — see §4 and §5.
   (2) Semantic: the API re-validates each field itself and **reads only known
   keys**, so smuggled fields are discarded
   ([proposed-draft-guard.ts:66](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
+  Note this covers the *draft-extraction* path. The *tool-calling* path is
+  validated separately, by each tool's own `inputSchema` — enforced by the SDK on
+  the MCP side and by `parseToolArguments` on the assistant side, which likewise
+  **strips unknown keys rather than forwarding them**. Both were not always in
+  place; see the note in §3.1.
 - **Participant-name injection defense (deterministic).** A convincing name can
   fool the model into reporting a high-stakes rule as *host-stated*; so a guard
   reads the participant names **directly** (not the model's `source` tag) and drops
@@ -189,6 +211,13 @@ highest-value quick fixes — see §4 and §5.
   intact ([participant-text-injection.ts:51](../packages/api/src/drafts/extraction/participant-text-injection.ts),
   applied at [proposed-draft-guard.ts:129](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).
 - **XSS**: React auto-escapes; no `dangerouslySetInnerHTML` in the app.
+- **Internationalization is not an injection surface.** Translations (EN/ES) are
+  **static application assets** authored in-repo (`packages/*/src/i18n/locales/`),
+  never user- or model-supplied, and are rendered through React (escaped) — not as
+  HTML. Only interface *chrome* is translated; API/assistant/participant text is
+  passed through as data and never interpolated into a translation lookup key. The
+  i18next `escapeValue:false` setting is safe precisely because React, not i18next,
+  does the escaping ([i18n.ts](../packages/ui/src/i18n.ts)).
 
 **Residual risk:** no least-privilege DB user — `node:sqlite` is a single-file
 embedded DB with no user/role layer (architectural, acceptable for v1).
@@ -269,6 +298,55 @@ watches them — the design's "alert on >N failed logins" is unbuilt. Also,
 destructive-tool calls are audited as *domain* events (actor + confirmation) but
 **without source IP** and outside the security-event stream. Tracked for 6.11.
 
+#### The one place the audit log is reduced: deleting a contest
+
+The audit log is append-only everywhere except one operation, and the exception is
+deliberate. `DeleteContest`
+([delete-contest.ts](../packages/api/src/contests/use-cases/delete-contest.ts))
+**erases a contest's audit entries** and writes a single `contest.deleted`
+tombstone in their place. Anyone finding a `DELETE FROM audit_log` should read
+this before assuming it is a bug.
+
+**Why.** The log stores participant names *inside* recorded draft content —
+`draft.saved` keeps the whole `DraftContent`, and the retired `DiscardDraft`
+recorded `before: content`, so discarding a draft used to *copy* every
+participant's name into the log at the moment of discarding it. A delete that
+spared the log would therefore erase nothing that identifies anyone: the product
+would say "deleted" and be wrong. A host acting on their own contest's personal
+data is exactly the case where erasure is the point, so between a complete trail
+and a real deletion, the deletion wins here.
+
+**What survives.** Actor, timestamp, source path, and `confirmation` — that a
+destructive act happened, by whom, when, and that it was confirmed. This is the
+accountability A09 actually asks for. What does **not** survive is the payload:
+the tombstone carries no `before`/`after`, asserted by test (no participant or
+dish name appears anywhere in the row).
+
+**How narrow the exception is.** The erasure is reachable only through
+`AuditRecorder.deleteByContest`, whose only caller is `DeleteContest`, which
+requires (a) a signed-in host, (b) ownership of that contest, and (c) — once
+anyone has claimed a place or cast a vote — the contest's exact name on the
+request. It runs in one transaction with the destruction it records.
+
+**Known limitations, stated rather than discovered later:**
+
+- **The tombstone has no reader inside the product.** Deleting removes the row
+  that held `host_id`, so the audit route can no longer authorize anyone against
+  that contest — the former owner gets a 404 like everyone else. The record is an
+  operator/forensic artifact in the database, not a screen. (Participants are
+  answered `410 Gone` instead, since a voter token already proves prior
+  association with that contest — see
+  [refuse-deleted-contest.ts](../packages/api/src/http/refuse-deleted-contest.ts).)
+- **The confirmation token is replayable.** `confirmation-token.ts` documents it:
+  a deterministic HMAC over tool and arguments, with no nonce store, so a token
+  for `delete_contest(X)` always validates. The blast radius is bounded by the
+  target already being gone — a replay hits `CONTEST_NOT_FOUND` — so this
+  destructive action is not *repeatable*. True single-use remains future
+  hardening.
+- **Deletion is not itself alerted on**, sharing the gap above: it is a domain
+  event with actor and confirmation, but carries no source IP and is outside the
+  security-event stream.
+
 ### 3.10 Mishandling of Exceptional Conditions — *new in 2025*
 
 - **Fail-fast on bad config**: the process refuses to start on invalid env rather
@@ -304,6 +382,30 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 **Explicitly out of scope** (accepted risk for a thesis demo): DDoS/volumetric
 attacks, physical/host compromise, malicious insider with DB access, secrets
 management beyond env vars (no vault/KMS), and formal pentest.
+
+### The failure mode this system is actually prone to
+
+Worth naming, because it has now produced three defects rather than one:
+**two paths assumed equivalent, which agree on one concern and quietly diverge on
+another.** All three shipped with a green test suite.
+
+| # | The two paths | Agreed on | Diverged on |
+|---|---|---|---|
+| 1 | MCP server vs in-app assistant | authorization (both re-enter the same routes) | **input validation** — only the MCP side validated `inputSchema`, so malformed model arguments were stored (§3.1) |
+| 2 | Form vs assistant | the draft is stored either way | **id assignment** — the form minted a participant id per row, `CreateDraft` did not, so assistant-authored participants were unaddressable |
+| 3 | Test fixture vs real app | the component renders | **resource shape** — a flat i18n fixture resolved a key the nested app could not, so a control's accessible name was a raw key in production |
+
+The security-relevant reading: **"it goes through the same code" is a claim about a
+destination, not about a check.** Each control has to be shown to hold on each
+path individually — which is precisely why this document cites `path:line` per
+control rather than asserting that one path implies the other. Where practical the
+paths are now made to *share the implementation* (`parseToolArguments`,
+`withParticipantIds`) rather than to agree by convention, because shared code
+cannot drift the way parallel code does.
+
+It also argues for a testing rule the project now follows: **assert against the
+real production wiring, not a convenient fixture.** Defects 1 and 3 both survived
+their tests because the test constructed a world subtly unlike the running app.
 
 ---
 

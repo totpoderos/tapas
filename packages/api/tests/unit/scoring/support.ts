@@ -44,4 +44,16 @@ export class FakeVoteSessionRepository implements VoteSessionRepository {
   listSessions(contestId: string): StoredVoteSession[] {
     return [...this.sessions.values()].filter((session) => session.contestId === contestId);
   }
+  deleteByContest(contestId: string): void {
+    const doomed = new Set<string>();
+    for (const [key, session] of this.sessions) {
+      if (session.contestId !== contestId) continue;
+      doomed.add(session.id);
+      this.sessions.delete(key);
+    }
+    // Scores are keyed by session, so they go with the sessions they belonged to.
+    for (const [key, score] of this.scores) {
+      if (doomed.has(score.voteSessionId)) this.scores.delete(key);
+    }
+  }
 }

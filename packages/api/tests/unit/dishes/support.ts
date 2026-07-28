@@ -14,4 +14,7 @@ export class FakeDishRepository implements DishRepository {
   find(contestId: string, dishId: string): StoredDish | undefined {
     return this.store.get(this.key(contestId, dishId));
   }
+  deleteByContest(contestId: string): void {
+    for (const [key, dish] of this.store) if (dish.contestId === contestId) this.store.delete(key);
+  }
 }

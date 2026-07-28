@@ -13,6 +13,12 @@ Feature: Publishing a contest
     And the draft no longer appears among the host's drafts
     And the audit log records that the contest was published
 
+  Scenario: A draft whose participants were given by name alone can be published
+    Given a host with a draft whose participants were listed by name only
+    Then each participant can be told apart from the others
+    When the host publishes that draft
+    Then the contest goes live
+
   Scenario: An incomplete draft cannot be published
     Given a host with a draft named "Half-baked" that has no scoring rules yet
     When the host tries to publish the draft

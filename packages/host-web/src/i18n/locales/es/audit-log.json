@@ -1,0 +1,29 @@
+{
+  "back": "Volver a los concursos",
+  "title": "Registro de actividad",
+  "lead": "Todo lo que le ha pasado a este concurso, y cómo se activó cada acción.",
+  "loading": "Cargando el registro de actividad…",
+  "missing": "Este concurso no existe, o no es tuyo para verlo.",
+  "error": "No se pudo cargar el registro de actividad. Inténtalo de nuevo.",
+  "filterLabel": "Filtrar por origen",
+  "sourceAll": "Todos los orígenes",
+  "source": {
+    "form": "En la app",
+    "system": "Sistema",
+    "mcp": "Herramienta conectada"
+  },
+  "listLabel": "Actividad",
+  "empty": "Aún no hay actividad de este origen.",
+  "event": {
+    "draftSaved": "Borrador guardado",
+    "draftUpdated": "Borrador renombrado",
+    "draftDiscarded": "Borrador descartado",
+    "contestPublished": "Concurso publicado",
+    "contestClosed": "Concurso cerrado",
+    "contestRevealed": "Resultados revelados"
+  },
+  "confirmed": "Lo confirmaste",
+  "by": "por {{actor}}",
+  "actorSystem": "el sistema",
+  "actorYou": "ti"
+}

@@ -25,6 +25,32 @@ describe('confirmation tokens', () => {
     expect(isValidConfirmation(SECRET, 'close_contest', { contestId: 'c1', confirmationToken: minted }, minted)).toBe(true);
   });
 
+  // Deleting is the only action with no undo, so the binding matters most here:
+  // an approval authorises one deletion of one contest and nothing else.
+  it('binds a delete approval to the one contest it was issued for', () => {
+    const token = confirmationTokenFor(SECRET, 'delete_contest', { contestId: 'c1' });
+    expect(isValidConfirmation(SECRET, 'delete_contest', { contestId: 'c1' }, token)).toBe(true);
+    expect(isValidConfirmation(SECRET, 'delete_contest', { contestId: 'c2' }, token)).toBe(false);
+  });
+
+  it('binds a delete approval to the name it was approved with', () => {
+    const token = confirmationTokenFor(SECRET, 'delete_contest', {
+      contestId: 'c1',
+      confirmName: 'Summer Tapas',
+    });
+    // Approving "delete Summer Tapas" does not approve deleting it unnamed, nor
+    // under a different name — the token covers every argument.
+    expect(isValidConfirmation(SECRET, 'delete_contest', { contestId: 'c1' }, token)).toBe(false);
+    expect(
+      isValidConfirmation(
+        SECRET,
+        'delete_contest',
+        { contestId: 'c1', confirmName: 'Winter Tapas' },
+        token,
+      ),
+    ).toBe(false);
+  });
+
   it('cannot be forged without the secret', () => {
     const token = confirmationTokenFor(SECRET, 'close_contest', { contestId: 'c1' });
     expect(isValidConfirmation('wrong-secret', 'close_contest', { contestId: 'c1' }, token)).toBe(false);

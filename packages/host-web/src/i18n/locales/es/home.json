@@ -1,0 +1,18 @@
+{
+  "assistant": "Asistente",
+  "newContest": "Nuevo concurso",
+  "signOut": "Cerrar sesión",
+  "title": "Tus concursos",
+  "listLabel": "Tus concursos",
+  "loading": "Cargando tus concursos…",
+  "error": "No se pudieron cargar tus concursos. Inténtalo de nuevo.",
+  "emptyLead": "Aún no tienes ningún concurso.",
+  "emptyNote": "Crea tu primer concurso para empezar.",
+  "emptyCta": "Crea tu primer concurso",
+  "status": {
+    "live": "En curso",
+    "draft": "Borrador",
+    "closed": "Cerrado",
+    "revealed": "Revelado"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Tu plato, {{name}}",
+  "lead": "¿Qué has traído? Puedes cambiarlo hasta que empiece la puntuación.",
+  "dishName": "Nombre del plato",
+  "description": "Descripción (opcional)",
+  "saving": "Guardando…",
+  "update": "Actualizar plato",
+  "submit": "Enviar plato",
+  "errorNameRequired": "Ponle un nombre a tu plato.",
+  "errorSave": "No se pudo guardar tu plato. Inténtalo de nuevo.",
+  "dishesSoFar": "Platos hasta ahora",
+  "dishesLabel": "Platos enviados",
+  "loadingDishes": "Cargando…",
+  "noDishes": "Todavía no hay platos. Sé el primero.",
+  "yours": "El tuyo",
+  "waiting": "Cuando estén todos los platos, llega la hora de puntuar.",
+  "scoreLink": "Puntuar los platos →",
+  "goneTitle": "Este concurso ya no existe",
+  "goneLead": "El anfitrión lo eliminó. No hay nada para lo que apuntar un plato."
+}

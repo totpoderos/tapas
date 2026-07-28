@@ -14,9 +14,13 @@ export interface RosterRepository {
   listAvailable(contestId: string): RosterPlace[];
   /** The places already claimed, in roster order — for checking whether everyone who joined has sent. */
   listClaimed(contestId: string): RosterPlace[];
+  /** Every place, claimed or not, in roster order — the full set of participants the host listed. */
+  listAll(contestId: string): RosterPlace[];
   find(contestId: string, participantId: string): RosterPlace | undefined;
   /** Atomically claims an open place; false if it does not exist or is already taken. */
   claim(contestId: string, participantId: string, claimedAt: string): boolean;
+  /** Removes every place in a contest — the display names go with it. */
+  deleteByContest(contestId: string): void;
 }
 
 interface PersonRow {
@@ -63,6 +67,13 @@ export class SqliteRosterRepository implements RosterRepository {
     return rows.map(toPlace);
   }
 
+  listAll(contestId: string): RosterPlace[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM persons WHERE contest_id = ? ORDER BY participant_id`)
+      .all(contestId) as unknown as PersonRow[];
+    return rows.map(toPlace);
+  }
+
   find(contestId: string, participantId: string): RosterPlace | undefined {
     const row = this.db
       .prepare(`SELECT * FROM persons WHERE contest_id = ? AND participant_id = ?`)
@@ -77,5 +88,9 @@ export class SqliteRosterRepository implements RosterRepository {
       )
       .run(claimedAt, contestId, participantId);
     return result.changes === 1;
+  }
+
+  deleteByContest(contestId: string): void {
+    this.db.prepare(`DELETE FROM persons WHERE contest_id = ?`).run(contestId);
   }
 }

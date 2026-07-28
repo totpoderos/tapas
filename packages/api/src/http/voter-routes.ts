@@ -3,6 +3,7 @@ import type { SubmitDishErrorCode } from '../dishes/use-cases/shared.js';
 import type { SaveScoreErrorCode, SendVoteErrorCode } from '../scoring/use-cases/shared.js';
 import type { ClaimErrorCode } from '../voters/use-cases/shared.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
+import { refuseDeletedContest } from './refuse-deleted-contest.js';
 import { requireVoterSession } from './require-voter-session.js';
 import type { ServerDeps } from './server-deps.js';
 import { setVoterCookie } from './session-cookies.js';
@@ -56,6 +57,9 @@ const SEND_VOTE_ERROR_STATUS: Record<SendVoteErrorCode, number> = {
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
 
 export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): void {
+  // Every voter-scoped route: prove the token, then refuse with 410 if the host
+  // has deleted the contest it is scoped to (see refuse-deleted-contest.ts).
+  const voterSession = [requireVoterSession(deps), refuseDeletedContest(deps)];
   app.get<{ Params: { joinCode: string } }>(
     '/contests/:joinCode/places',
     async (request, reply) => {
@@ -90,7 +94,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.get<{ Params: { contestId: string } }>(
     '/contests/:contestId/me',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
@@ -106,7 +110,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.post<{ Params: { contestId: string }; Body: DishBody }>(
     '/contests/:contestId/dishes',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
@@ -129,7 +133,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.get<{ Params: { contestId: string } }>(
     '/contests/:contestId/dishes',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
       return reply
@@ -140,7 +144,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.post<{ Params: { contestId: string }; Body: ScoreBody }>(
     '/contests/:contestId/scores',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
@@ -161,7 +165,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.get<{ Params: { contestId: string } }>(
     '/contests/:contestId/scores',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
       return reply.code(200).send({
@@ -172,7 +176,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.get<{ Params: { contestId: string } }>(
     '/contests/:contestId/ballot',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
@@ -186,7 +190,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
   // reveals, which the app polls on. Distinct from the host's `/results`.
   app.get<{ Params: { contestId: string } }>(
     '/contests/:contestId/reveal',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
       const contestId = request.voterSession.contestId;
@@ -217,7 +221,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.post<{ Params: { contestId: string } }>(
     '/contests/:contestId/send-vote',
-    { preHandler: requireVoterSession(deps) },
+    { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
