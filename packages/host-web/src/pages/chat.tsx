@@ -142,6 +142,11 @@ export function Chat() {
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<PendingAction | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  // Bumped on every clear. A turn captures it before awaiting and drops its
+  // answer if it no longer matches — otherwise a reply already in flight lands
+  // in the conversation the host has just cleared.
+  const conversation = useRef(0);
   const nextId = useRef(initial.feed.reduce((max, item) => Math.max(max, item.id + 1), 0));
   const inputRef = useRef<HTMLInputElement>(null);
   const feedEndRef = useRef<HTMLDivElement>(null);
@@ -153,9 +158,13 @@ export function Chat() {
   }, [feed, pending]);
 
   // Persist the conversation so it survives navigating away and back, or a reload.
+  // An empty conversation REMOVES the key rather than storing emptiness, so a
+  // cleared panel and a never-used one are the same state — and so this effect,
+  // which runs after a clear, cannot write the conversation back.
   useEffect(() => {
     try {
-      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ feed, history }));
+      if (feed.length === 0 && history.length === 0) sessionStorage.removeItem(CHAT_STORAGE_KEY);
+      else sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify({ feed, history }));
     } catch {
       // Storage full or unavailable — the conversation just won't persist.
     }
@@ -230,6 +239,28 @@ export function Chat() {
     }
   }
 
+  /**
+   * Puts the conversation down: what is on screen, the history the assistant is
+   * given on every turn, and the copy kept for coming back to the panel.
+   *
+   * One function on purpose. Clearing the feed alone looks perfectly correct and
+   * leaves the model reading the old exchange for the rest of the session, so the
+   * three must never be reset from separate places.
+   *
+   * An action the host was midway through approving goes with it — its
+   * confirmation token is live, and approving from an emptied screen would mean
+   * approving something whose reasoning is no longer visible.
+   */
+  function clearConversation() {
+    conversation.current += 1;
+    setFeed([]);
+    setHistory([]);
+    setPending(null);
+    setInput('');
+    setAnnouncement(t('chat.cleared'));
+    inputRef.current?.focus();
+  }
+
   async function onSend(event: FormEvent) {
     event.preventDefault();
     const text = input.trim();
@@ -238,10 +269,15 @@ export function Chat() {
     const nextHistory = [...history, { role: 'user' as const, content: text }];
     setHistory(nextHistory);
     setInput('');
+    setAnnouncement('');
     setBusy(true);
+    const sentIn = conversation.current;
     try {
-      applyTurn(await sendAssistantMessage(nextHistory));
+      const turn = await sendAssistantMessage(nextHistory);
+      if (sentIn !== conversation.current) return; // cleared while this was in flight
+      applyTurn(turn);
     } catch {
+      if (sentIn !== conversation.current) return;
       add({ kind: 'note', text: t('chat.errorGeneric') });
     } finally {
       setBusy(false);
@@ -253,9 +289,13 @@ export function Chat() {
     if (!action) return;
     setPending(null);
     setBusy(true);
+    const sentIn = conversation.current;
     try {
-      applyTurn(await confirmAssistantAction(action));
+      const turn = await confirmAssistantAction(action);
+      if (sentIn !== conversation.current) return;
+      applyTurn(turn);
     } catch {
+      if (sentIn !== conversation.current) return;
       add({ kind: 'note', text: t('chat.errorCarryingOut') });
     } finally {
       setBusy(false);
@@ -277,6 +317,13 @@ export function Chat() {
           <span className={styles.dot} aria-hidden="true" />
           <b>{t('common.brand')}</b>
         </div>
+        <Button
+          variant="ghost"
+          onClick={clearConversation}
+          disabled={feed.length === 0 && !pending}
+        >
+          {t('chat.clear')}
+        </Button>
         <Link to="/" className={styles.back}>
           {t('chat.back')}
         </Link>
@@ -284,6 +331,12 @@ export function Chat() {
 
       <h1 className={styles.title}>{t('chat.title')}</h1>
       <p className={styles.lead}>{t('chat.lead')}</p>
+
+      {/* Outside the feed on purpose: emptying a live region announces nothing,
+          and a line inside the feed would contradict a cleared conversation. */}
+      <p role="status" className={styles.announcement}>
+        {announcement}
+      </p>
 
       <div className={styles.feed} role="log" aria-label={t('chat.conversationLabel')} aria-live="polite">
         {feed.map((item) =>
