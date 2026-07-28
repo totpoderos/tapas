@@ -159,6 +159,7 @@ export function buildProductionDeps(
     securityLog,
     security: {
       isProduction: env.NODE_ENV === 'production',
+      isDevelopment: env.NODE_ENV === 'development',
       allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],
     },
     auditLog,

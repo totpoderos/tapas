@@ -27,7 +27,29 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   const app = Fastify({ logger: deps.security.isProduction, trustProxy: true });
 
   app.register(cookie);
-  app.register(helmet, { xFrameOptions: { action: 'deny' } });
+  /*
+   * Helmet's defaults assume HTTPS. Two of them are actively harmful over the
+   * plain HTTP a development server speaks, and Safari is the browser that acts
+   * on them:
+   *
+   *   HSTS — Safari applies it to `localhost`; Chrome special-cases localhost and
+   *   ignores it. A single response pins localhost to HTTPS for a year, across
+   *   every port, and the pin survives clearing cookies.
+   *
+   *   upgrade-insecure-requests — reissues http:// requests as https://, which
+   *   nothing in development is listening for.
+   *
+   * Production keeps both, unchanged. Everything else in the policy is kept in
+   * either case — this drops exactly the two directives that presume TLS.
+   */
+  app.register(helmet, {
+    xFrameOptions: { action: 'deny' },
+    hsts: !deps.security.isDevelopment,
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: deps.security.isDevelopment ? { 'upgrade-insecure-requests': null } : {},
+    },
+  });
   app.register(cors, { origin: [...deps.security.allowedOrigins], credentials: true });
   // Generous global default (a safety net, not a throttle); sensitive routes
   // (login, join-by-code) override it per-route with SENSITIVE_RATE_LIMIT.
