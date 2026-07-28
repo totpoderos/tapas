@@ -1,0 +1,10 @@
+{
+  "backToControl": "Back to the contest",
+  "loading": "Loading the results…",
+  "notYetTitle": "The results aren’t out yet",
+  "notYetBody": "Nothing is decided until you reveal the contest.",
+  "goToControl": "Go to the contest",
+  "notFoundTitle": "Contest not found",
+  "notFoundBody": "This contest doesn’t exist, or isn’t yours.",
+  "loadError": "The results couldn’t be loaded. Please try again."
+}

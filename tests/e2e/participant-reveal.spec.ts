@@ -2,6 +2,17 @@ import { test, expect, request as playwrightRequest, type APIRequestContext, typ
 import AxeBuilder from '@axe-core/playwright';
 
 /**
+ * The winning dish's name. It also appears on the leaderboard below, so it needs
+ * disambiguating — anchored to the "Winner" heading it sits under rather than to
+ * a class name, since the reveal moved into `@tapas/ui` and its styles are
+ * module-scoped now. "The winner is named directly beneath the Winner heading"
+ * is the actual promise to a screen-reader user, and it survives the move.
+ */
+function winnerLine(page: Page) {
+  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+}
+
+/**
  * Implements tests/e2e/participant-reveal.feature. The browser joins as Ana
  * (getting the first-party voter cookie on :5174); Bob casts a real vote and the
  * host closes the contest via API contexts. Tests then reveal (or not) and drive
@@ -82,7 +93,7 @@ test('a participant sees the winners once the contest is revealed', async ({ pag
 
   await page.goto(`${PARTICIPANT}/reveal`);
   await expect(page.getByText('Winner')).toBeVisible();
-  await expect(page.locator('.pt-reveal-winner')).toHaveText('Ana paella');
+  await expect(winnerLine(page)).toHaveText('Ana paella');
   // The leaderboard shows all three dishes, winner first.
   await expect(page.getByRole('region', { name: 'Leaderboard' }).getByRole('listitem')).toHaveCount(3);
 });
@@ -95,7 +106,7 @@ test('the reveal appears when the host triggers it, without reloading', async ({
 
   // The host reveals while the participant waits — the poll picks it up.
   await host.post(`/contests/${contestId}/reveal`);
-  await expect(page.locator('.pt-reveal-winner')).toHaveText('Ana paella', { timeout: 10_000 });
+  await expect(winnerLine(page)).toHaveText('Ana paella', { timeout: 10_000 });
 });
 
 test('the reveal is accessible and honours reduced motion', async ({ page }) => {
@@ -106,7 +117,7 @@ test('the reveal is accessible and honours reduced motion', async ({ page }) => 
   // which is both the honoured preference and a stable frame for axe.
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`${PARTICIPANT}/reveal`);
-  await expect(page.locator('.pt-reveal-winner')).toBeVisible();
+  await expect(winnerLine(page)).toBeVisible();
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 });

@@ -7,6 +7,7 @@ import type {
 } from '../contests/use-cases/shared.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
+import { toRevealDto } from '../contests/reveal-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
@@ -188,6 +189,53 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .send({ error: results.error });
       }
       return reply.code(200).send(toResultsDto(results.results));
+    },
+  );
+
+  /**
+   * The host's own view of a revealed contest — the same display-ready shape the
+   * participants read, so both apps can render one view (design: "one reveal
+   * view, shared"). Deliberately a route of its own rather than admitting hosts
+   * to the voter one: that route takes the contest id from the voter's TOKEN and
+   * authorises by token scope, and giving one handler two credentials, two id
+   * sources and two rules is the "one destination, two paths" shape that has
+   * already produced three defects here (threat-model.md §4). This path
+   * authorises by ownership, like every other host contest operation, and is
+   * held back (409) until the reveal exactly as the participants' is.
+   *
+   * Named `/winners` rather than `/reveal`: that path is already spoken for by
+   * the voter's GET and by the host's POST that triggers the reveal, and Fastify
+   * matches on path shape, so `:id` and `:contestId` are the same route.
+   */
+  app.get<{ Params: { id: string } }>(
+    '/contests/:id/winners',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+      const contest = deps.getContest.execute(request.params.id);
+      if (!contest) {
+        return reply
+          .code(404)
+          .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
+      }
+      if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
+
+      const results = deps.getResults.execute(request.params.id);
+      if (!results.ok) {
+        return reply
+          .code(GET_RESULTS_ERROR_STATUS[results.error.code])
+          .send({ error: results.error });
+      }
+
+      const names = new Map(deps.dishes.findByContest(contest.id).map((d) => [d.dishId, d.name]));
+      return reply
+        .code(200)
+        .send(
+          toRevealDto(contest.name, contest.materialized.categories, results.results, (dishId) =>
+            names.get(dishId) ?? 'A dish',
+          ),
+        );
     },
   );
 

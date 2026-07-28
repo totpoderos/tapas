@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ApiError, getReveal, type Reveal as RevealData, type Winner } from '../api/client';
+import { RevealView } from '@tapas/ui';
+import { ApiError, getReveal, type Reveal as RevealData } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 const POLL_MS = 2000;
@@ -12,8 +13,6 @@ type State =
   | { readonly kind: 'revealed'; readonly reveal: RevealData }
   | { readonly kind: 'need-join' }
   | { readonly kind: 'error' };
-
-const names = (winners: readonly Winner[]) => winners.map((w) => w.name).join(' & ');
 
 /**
  * The reveal (design.md §11C): a deliberate beat. Until the host reveals, the
@@ -86,50 +85,8 @@ export function Reveal() {
         </p>
       )}
 
-      {state.kind === 'revealed' && <RevealMoment reveal={state.reveal} />}
+      {/* The reveal itself is the shared view — the host sees exactly this. */}
+      {state.kind === 'revealed' && <RevealView reveal={state.reveal} />}
     </main>
-  );
-}
-
-function RevealMoment({ reveal }: { reveal: RevealData }) {
-  const { t } = useTranslation();
-  return (
-    <div className="pt-reveal" aria-live="polite">
-      <p className="pt-reveal-kicker">{reveal.contestName}</p>
-      <div className="pt-trophy" aria-hidden="true">
-        🏆
-      </div>
-      <h1 className="pt-reveal-title">
-        {reveal.overall.winners.length > 1 ? t('reveal.jointWinners') : t('reveal.winner')}
-      </h1>
-      <p className="pt-reveal-winner">{names(reveal.overall.winners)}</p>
-
-      {reveal.categories.length > 1 && (
-        <section className="pt-reveal-cats" aria-label={t('reveal.categoryWinnersLabel')}>
-          <h2 className="pt-subhead">{t('reveal.bestInCategory')}</h2>
-          <ul className="pt-cat-list">
-            {reveal.categories.map((category) => (
-              <li key={category.categoryId} className="pt-cat-row">
-                <span className="pt-cat-name">{category.name}</span>
-                <span className="pt-cat-winner">{names(category.winners)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section aria-label={t('reveal.leaderboard')}>
-        <h2 className="pt-subhead">{t('reveal.leaderboard')}</h2>
-        <ol className="pt-board">
-          {reveal.overall.standings.map((standing, i) => (
-            <li key={standing.dishId} className="pt-board-row">
-              <span className="pt-board-rank">{i + 1}</span>
-              <span className="pt-board-name">{standing.name}</span>
-              <span className="pt-board-total">{standing.total}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-    </div>
   );
 }
