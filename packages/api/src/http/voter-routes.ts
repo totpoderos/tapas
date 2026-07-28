@@ -168,9 +168,11 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
-      return reply.code(200).send({
-        scores: deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id),
-      });
+      // `{ scores, status }` — the status is what lets the app tell a sent vote
+      // from a draft after a reload, instead of remembering it in the screen.
+      return reply
+        .code(200)
+        .send(deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id));
     },
   );
 

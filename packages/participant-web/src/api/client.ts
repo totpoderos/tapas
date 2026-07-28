@@ -147,10 +147,25 @@ export async function getBallot(contestId: string): Promise<Ballot> {
 }
 
 /** Reads the scores the voter has saved so far. */
-export async function getMyScores(contestId: string): Promise<Score[]> {
+/** Whether the vote holding a participant's scores is still theirs to change. */
+export type VoteStatus = 'draft' | 'sent';
+
+export interface MyScores {
+  readonly scores: readonly Score[];
+  readonly status: VoteStatus;
+}
+
+/**
+ * A participant's own scores, and whether their vote is still a draft.
+ *
+ * The status comes from the server rather than from anything the screen
+ * remembers, so it survives a reload or a step back — which is what stops
+ * someone who has already voted being shown an editable ballot they cannot use.
+ */
+export async function getMyScores(contestId: string): Promise<MyScores> {
   const response = await send(`/contests/${encodeURIComponent(contestId)}/scores`, 'GET');
   if (!response.ok) throw await errorFrom(response);
-  return ((await response.json()) as { scores: Score[] }).scores;
+  return (await response.json()) as MyScores;
 }
 
 /** Saves (or revises) one draft score; throws ApiError (e.g. out of range, or the vote is sent). */

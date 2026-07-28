@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { RevealView } from '@tapas/ui';
+import { WaysOnward } from '../ways-onward';
 import { ApiError, getReveal, isContestDeleted, type Reveal as RevealData } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
@@ -101,6 +102,10 @@ export function Reveal() {
 
       {/* The reveal itself is the shared view — the host sees exactly this. */}
       {state.kind === 'revealed' && <RevealView reveal={state.reveal} />}
+
+      {/* Including while it waits: that is where a participant spends longest,
+          and where there was otherwise nothing on the page at all. */}
+      {state.kind !== 'need-join' && state.kind !== 'gone' && <WaysOnward from="reveal" />}
     </main>
   );
 }

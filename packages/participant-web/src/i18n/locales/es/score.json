@@ -19,5 +19,7 @@
   "errorIncomplete": "Puntúa todos los platos antes de enviar tu voto.",
   "errorSend": "No se pudo enviar tu voto. Inténtalo de nuevo.",
   "goneTitle": "Este concurso ya no existe",
-  "goneLead": "El anfitrión lo eliminó, así que no se pueden enviar tus puntuaciones."
+  "goneLead": "El anfitrión lo eliminó, así que no se pueden enviar tus puntuaciones.",
+  "alreadySentTitle": "Tu voto está enviado",
+  "alreadySentLead": "Enviaste estas puntuaciones. Ya no se pueden cambiar."
 }

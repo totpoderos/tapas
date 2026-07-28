@@ -36,6 +36,17 @@ Feature: Scoring dishes
     When Ana looks at her scores
     Then her score for Bob's dish is 4
 
+  Scenario: A judge is told their vote is still a draft
+    Given a live contest where Ana has scored Bob's dish 4 for "Taste"
+    When Ana looks at her scores
+    Then she is told her vote is still a draft
+
+  Scenario: A judge sees that their vote has been sent
+    Given a live contest where Ana has scored every dish open to her and sent her vote
+    When Ana looks at her scores
+    Then she is told her vote has been sent
+    And she still sees the scores she gave
+
   Scenario: Scoring requires having claimed a place
     Given a live contest
     When a score is saved with no participant token

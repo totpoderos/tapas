@@ -2,9 +2,17 @@
   "brand": "Tapas",
   "skipToContent": "Skip to content",
   "loading": "Loading…",
-  "language": { "label": "Language" },
+  "language": {
+    "label": "Language"
+  },
   "theme": {
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme"
+  },
+  "waysOnward": {
+    "label": "Go to",
+    "dish": "The dishes",
+    "score": "Your scores",
+    "reveal": "The results"
   }
 }

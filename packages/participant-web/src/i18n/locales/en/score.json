@@ -19,5 +19,7 @@
   "errorIncomplete": "Score every dish before sending your vote.",
   "errorSend": "Your vote couldn’t be sent. Please try again.",
   "goneTitle": "This contest is gone",
-  "goneLead": "The host deleted it, so your scores can’t be sent."
+  "goneLead": "The host deleted it, so your scores can’t be sent.",
+  "alreadySentTitle": "Your vote is in",
+  "alreadySentLead": "You sent these scores. They can’t be changed now."
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
+import { WaysOnward } from '../ways-onward';
 import { ApiError, getBallot, getMyScores, isContestDeleted, isSignedOut, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
@@ -11,7 +12,8 @@ const seq = (min: number, max: number) => Array.from({ length: max - min + 1 }, 
 type State =
   | { readonly kind: 'loading' }
   | { readonly kind: 'ready'; readonly ballot: Ballot }
-  | { readonly kind: 'sent' }
+  // The ballot rides along so a sent vote can still name the dishes it scored.
+  | { readonly kind: 'sent'; readonly ballot?: Ballot }
   | { readonly kind: 'need-join' }
   | { readonly kind: 'gone' }
   | { readonly kind: 'error' };
@@ -41,11 +43,15 @@ export function Score() {
     }
     let live = true;
     Promise.all([getBallot(contestId), getMyScores(contestId)])
-      .then(([ballot, existing]) => {
+      .then(([ballot, mine]) => {
         if (!live) return;
-        setInitial(existing);
-        setScores(Object.fromEntries(existing.map((s) => [key(s.dishId, s.categoryId), s.value])));
-        setState({ kind: 'ready', ballot });
+        setInitial(mine.scores);
+        setScores(
+          Object.fromEntries(mine.scores.map((s) => [key(s.dishId, s.categoryId), s.value])),
+        );
+        // The server, not this screen's memory, decides whether the vote is in.
+        // That is what makes the answer survive a reload or a step back.
+        setState(mine.status === 'sent' ? { kind: 'sent', ballot } : { kind: 'ready', ballot });
       })
       .catch((caught) => {
         if (!live) return;
@@ -91,7 +97,7 @@ export function Score() {
     setError(undefined);
     try {
       await sendVote(contestId);
-      setState({ kind: 'sent' });
+      setState({ kind: 'sent', ballot });
     } catch (caught) {
       // Deleted mid-vote: there is nothing to retry, so leave the form behind
       // rather than offering a send that cannot succeed.
@@ -118,6 +124,10 @@ export function Score() {
   }
 
   const ballot = state.kind === 'ready' ? state.ballot : undefined;
+  // Names for the scores on a sent vote, where there is no editable ballot.
+  const sentBallot = state.kind === 'sent' ? state.ballot : undefined;
+  const dishName = (dishId: string) =>
+    sentBallot?.dishes.find((d) => d.dishId === dishId)?.name ?? dishId;
   const total = ballot ? ballot.dishes.length * ballot.categories.length : 0;
   const complete = total > 0 && Object.keys(scores).length === total;
 
@@ -163,10 +173,26 @@ export function Score() {
           </div>
           <p className="pt-you">{t('score.voteSent')}</p>
           <p className="pt-note">{t('score.resultsLater')}</p>
+          {initial.length > 0 && (
+            <ul className="pt-dishes" aria-label={t('score.alreadySentTitle')}>
+              {initial.map((entry) => (
+                <li key={key(entry.dishId, entry.categoryId)} className="pt-dish-row">
+                  <span className="pt-dish-name">{dishName(entry.dishId)}</span>
+                  <span className="pt-yours">{entry.value}</span>
+                </li>
+              ))}
+            </ul>
+          )}
           <Link to="/reveal" className="pt-score-link">
             {t('score.seeResults')}
           </Link>
         </div>
+      )}
+
+      {/* Always reachable from here, however they arrived — a link, the back
+          button, a reload, or the address typed straight in. */}
+      {state.kind !== 'need-join' && state.kind !== 'gone' && (
+        <WaysOnward from="score" />
       )}
 
       {ballot && (

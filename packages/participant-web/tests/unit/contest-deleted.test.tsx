@@ -99,9 +99,10 @@ describe('when the host deletes the contest underneath a participant', () => {
 
   it('leaves the form behind when the vote is sent into a deleted contest', async () => {
     vi.mocked(api.getBallot).mockResolvedValue(BALLOT);
-    vi.mocked(api.getMyScores).mockResolvedValue([
-      { dishId: 'D-b', categoryId: 'taste', value: 4 },
-    ]);
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-b', categoryId: 'taste', value: 4 }],
+      status: 'draft',
+    });
     vi.mocked(api.sendVote).mockRejectedValue(deleted());
     wrap(<Score />);
 
