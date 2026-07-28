@@ -62,7 +62,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
         actorId: loginOutcome.hostId,
         sourceIp: request.ip,
       });
-      setSessionCookies(reply, loginOutcome.session);
+      setSessionCookies(reply, loginOutcome.session, deps.cookieTransport);
       return reply.code(200).send({ hostId: loginOutcome.hostId, role: loginOutcome.role });
     },
   );
@@ -76,7 +76,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
         .code(401)
         .send({ error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } });
     }
-    setSessionCookies(reply, refreshOutcome.session);
+    setSessionCookies(reply, refreshOutcome.session, deps.cookieTransport);
     return reply.code(200).send({ hostId: refreshOutcome.hostId, role: refreshOutcome.role });
   });
 

@@ -11,7 +11,14 @@ const API_PORT = 3100;
 const WEB_PORT = 5173;
 
 const API_ENV = [
-  'NODE_ENV=test',
+  // `development`, not `test`, because that is genuinely what this stack is: two
+  // Vite servers and the API, all over plain HTTP on localhost. The session
+  // cookie's transport follows the environment (see `cookieTransportFor`), and
+  // marking it `Secure` here would be a lie the browser is right to act on —
+  // WebKit drops such a cookie over HTTP, which is the very defect these tests
+  // now exist to catch. Only `NODE_ENV` differs; nothing else keys off it except
+  // the HTTPS redirect, which is production-only either way.
+  'NODE_ENV=development',
   `API_PORT=${API_PORT}`,
   'DATABASE_PATH=:memory:',
   'JWT_SECRET=test-secret-that-is-at-least-32-characters',
@@ -37,7 +44,29 @@ export default defineConfig({
     baseURL: `http://localhost:${WEB_PORT}`,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  /*
+   * Two engines, deliberately. A Safari-only defect reached a real device
+   * because this matrix was Chromium alone: the session cookie was marked
+   * `Secure` unconditionally, which Safari refuses to keep over plain HTTP
+   * (Chrome makes an exception for localhost, Safari makes none), so a
+   * participant joined and could then do nothing. Chromium could never have
+   * caught it.
+   *
+   * WebKit runs the participant journey rather than the whole suite: the
+   * participant app is the mobile-first one, used at a venue on whatever phone
+   * people brought, and on iOS every browser is WebKit underneath. That is where
+   * a browser difference actually costs someone their evening. Widening this to
+   * the host app is worthwhile, but it should be a deliberate step with its own
+   * fixing of whatever it surfaces — not a silent doubling of the gate.
+   */
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'webkit-participant',
+      use: { ...devices['iPhone 13'] },
+      testMatch: /participant-.*\.spec\.ts/,
+    },
+  ],
   webServer: [
     {
       command: `${API_ENV} npm run start -w @tapas/api`,

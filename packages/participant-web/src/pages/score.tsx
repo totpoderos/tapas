@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
-import { ApiError, getBallot, getMyScores, isContestDeleted, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
+import { ApiError, getBallot, getMyScores, isContestDeleted, isSignedOut, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 const key = (dishId: string, categoryId: string) => `${dishId} ${categoryId}`;
@@ -50,7 +50,9 @@ export function Score() {
       .catch((caught) => {
         if (!live) return;
         if (isContestDeleted(caught)) return setState({ kind: 'gone' });
-        setState(caught instanceof ApiError && caught.status === 401 ? { kind: 'need-join' } : { kind: 'error' });
+        // `need-join` already says "join first" and links back, which is exactly
+        // the right answer for a session that expired or was never kept.
+        setState(isSignedOut(caught) ? { kind: 'need-join' } : { kind: 'error' });
       });
     return () => {
       live = false;
@@ -96,6 +98,12 @@ export function Score() {
       if (isContestDeleted(caught)) {
         setConfirming(false);
         setState({ kind: 'gone' });
+        return;
+      }
+      // Sending while signed out: no retry can succeed, so stop offering one.
+      if (isSignedOut(caught)) {
+        setConfirming(false);
+        setState({ kind: 'need-join' });
         return;
       }
       setError(
