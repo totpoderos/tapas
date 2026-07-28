@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
-import { getDishes, submitDish, type Dish, type Identity } from '../api/client';
+import { getDishes, isContestDeleted, submitDish, type Dish, type Identity } from '../api/client';
 
 /**
  * The cook's dish, once they have joined: register (or revise) the dish they
@@ -18,6 +18,7 @@ export function YourDish({ identity }: { identity: Identity }) {
   const [nameError, setNameError] = useState<string | undefined>();
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [gone, setGone] = useState(false);
 
   const mine = dishes?.find((dish) => dish.submitterIds.includes(identity.participantId));
 
@@ -33,7 +34,13 @@ export function YourDish({ identity }: { identity: Identity }) {
           setDescription(own.description ?? '');
         }
       })
-      .catch(() => live && setDishes([]));
+      .catch((caught: unknown) => {
+        if (!live) return;
+        // The host deleted the contest — say so rather than showing an empty list
+        // as if nobody had entered a dish yet.
+        if (isContestDeleted(caught)) setGone(true);
+        else setDishes([]);
+      });
     return () => {
       live = false;
     };
@@ -55,11 +62,21 @@ export function YourDish({ identity }: { identity: Identity }) {
       });
       setDishes(await getDishes(identity.contestId));
       setSaved(true);
-    } catch {
-      setNameError(t('yourDish.errorSave'));
+    } catch (caught) {
+      if (isContestDeleted(caught)) setGone(true);
+      else setNameError(t('yourDish.errorSave'));
     } finally {
       setBusy(false);
     }
+  }
+
+  if (gone) {
+    return (
+      <section className="pt-dish">
+        <h1 className="pt-title">{t('yourDish.goneTitle')}</h1>
+        <p className="pt-lead">{t('yourDish.goneLead')}</p>
+      </section>
+    );
   }
 
   return (

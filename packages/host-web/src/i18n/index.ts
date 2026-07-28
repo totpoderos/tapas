@@ -15,6 +15,7 @@ import enAuditLog from './locales/en/audit-log.json';
 import enContestControl from './locales/en/contest-control.json';
 import enReveal from './locales/en/reveal.json';
 import enResults from './locales/en/results.json';
+import enDeleteContest from './locales/en/delete-contest.json';
 
 import esCommon from './locales/es/common.json';
 import esSignIn from './locales/es/sign-in.json';
@@ -27,6 +28,7 @@ import esAuditLog from './locales/es/audit-log.json';
 import esContestControl from './locales/es/contest-control.json';
 import esReveal from './locales/es/reveal.json';
 import esResults from './locales/es/results.json';
+import esDeleteContest from './locales/es/delete-contest.json';
 
 const en = {
   common: enCommon,
@@ -42,6 +44,7 @@ const en = {
   // whichever app renders it — a missing key here would be announced aloud.
   reveal: enReveal,
   results: enResults,
+  deleteContest: enDeleteContest,
 };
 
 const es = {
@@ -56,6 +59,7 @@ const es = {
   contestControl: esContestControl,
   reveal: esReveal,
   results: esResults,
+  deleteContest: esDeleteContest,
 };
 
 export const i18n = createI18n({

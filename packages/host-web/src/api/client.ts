@@ -21,7 +21,7 @@ export class ApiError extends Error {
 
 async function send(
   path: string,
-  method: 'GET' | 'POST' | 'PATCH' | 'PUT',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   body?: unknown,
   extraHeaders?: Record<string, string>,
 ): Promise<Response> {
@@ -290,6 +290,32 @@ export async function getWinners(contestId: string): Promise<Reveal | null> {
   if (response.status === 409) return null; // not revealed yet
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as Reveal;
+}
+
+/**
+ * Deletes a contest the host owns — a draft or a published one, same route.
+ *
+ * `confirmName` carries the typed-name confirmation. **Whether it is required is
+ * the API's call, not this app's**: once anyone has claimed a place or cast a
+ * vote it answers 428 `CONFIRMATION_REQUIRED`, and the UI escalates to asking for
+ * the name. Duplicating that rule here would give two places to keep in step, and
+ * the one in the browser is the one an assistant or MCP client never passes
+ * through.
+ */
+export async function deleteContest(id: string, confirmName?: string): Promise<void> {
+  const query = confirmName === undefined ? '' : `?confirm=${encodeURIComponent(confirmName)}`;
+  const response = await send(
+    `/contests/${encodeURIComponent(id)}${query}`,
+    'DELETE',
+    undefined,
+    HOST_CONFIRMED,
+  );
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/** True when the API is asking for the contest's name before it will delete it. */
+export function needsNameToDelete(caught: unknown): boolean {
+  return caught instanceof ApiError && caught.status === 428;
 }
 
 /** Confirms a destructive action the assistant asked about, carrying it out. */

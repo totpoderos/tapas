@@ -9,5 +9,7 @@
   "bestInCategory": "Best in each category",
   "categoryWinnersLabel": "Category winners",
   "leaderboard": "Leaderboard",
-  "errorLoad": "The results couldn’t be loaded. Please try again."
+  "errorLoad": "The results couldn’t be loaded. Please try again.",
+  "goneTitle": "This contest is gone",
+  "goneLead": "The host deleted it. There are no results to show."
 }

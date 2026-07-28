@@ -17,5 +17,7 @@
   "rankFor": "Rank for {{dish}} in {{category}}",
   "errorSave": "That couldn’t be saved. Please try again.",
   "errorIncomplete": "Score every dish before sending your vote.",
-  "errorSend": "Your vote couldn’t be sent. Please try again."
+  "errorSend": "Your vote couldn’t be sent. Please try again.",
+  "goneTitle": "This contest is gone",
+  "goneLead": "The host deleted it, so your scores can’t be sent."
 }

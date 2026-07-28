@@ -1,5 +1,6 @@
 export { Button, type ButtonProps, type ButtonVariant } from './button';
 export { FormField, type FormFieldProps } from './form-field';
+export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog';
 export { ThemeToggle } from './theme-toggle';
 export { LanguageSelect } from './language-select';
 export {

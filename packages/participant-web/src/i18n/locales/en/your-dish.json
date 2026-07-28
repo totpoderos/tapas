@@ -14,5 +14,7 @@
   "noDishes": "No dishes yet. Be the first.",
   "yours": "Yours",
   "waiting": "When the dishes are in, it’s time to score.",
-  "scoreLink": "Score the dishes →"
+  "scoreLink": "Score the dishes →",
+  "goneTitle": "This contest is gone",
+  "goneLead": "The host deleted it. There is nothing to enter a dish for."
 }

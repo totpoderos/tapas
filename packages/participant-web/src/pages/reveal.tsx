@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { RevealView } from '@tapas/ui';
-import { ApiError, getReveal, type Reveal as RevealData } from '../api/client';
+import { ApiError, getReveal, isContestDeleted, type Reveal as RevealData } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 const POLL_MS = 2000;
@@ -12,6 +12,7 @@ type State =
   | { readonly kind: 'waiting' }
   | { readonly kind: 'revealed'; readonly reveal: RevealData }
   | { readonly kind: 'need-join' }
+  | { readonly kind: 'gone' }
   | { readonly kind: 'error' };
 
 /**
@@ -44,6 +45,9 @@ export function Reveal() {
         }
       } catch (caught) {
         if (!live) return;
+        // The host deleted it while we waited — stop polling and say so, rather
+        // than leaving them on "almost there…" for a result that will never come.
+        if (isContestDeleted(caught)) return setState({ kind: 'gone' });
         setState(caught instanceof ApiError && caught.status === 401 ? { kind: 'need-join' } : { kind: 'error' });
       }
     };
@@ -73,6 +77,16 @@ export function Reveal() {
         <>
           <h1 className="pt-title">{t('reveal.joinFirstTitle')}</h1>
           <p className="pt-lead">{t('reveal.joinFirstLead')}</p>
+          <Link to="/" className="pt-note">
+            {t('reveal.goToJoin')}
+          </Link>
+        </>
+      )}
+
+      {state.kind === 'gone' && (
+        <>
+          <h1 className="pt-title">{t('reveal.goneTitle')}</h1>
+          <p className="pt-lead">{t('reveal.goneLead')}</p>
           <Link to="/" className="pt-note">
             {t('reveal.goToJoin')}
           </Link>

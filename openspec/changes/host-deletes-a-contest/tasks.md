@@ -14,17 +14,17 @@
 
 - [x] 2.1 Answer `410` with a distinct deleted code on the voter-scoped routes when a tombstone exists for the id, and `404` otherwise — keeping the host's reading at `404`, since a deleted contest has no owner left to recognise
 - [x] 2.2 Cover the boundary in the acceptance feature: a participant cannot send a vote into a deleted contest, and no vote is recorded
-- [ ] 2.3 Handle the deleted answer in the participant app on the dish, scoring and waiting screens — say plainly that the contest is gone and stop polling
-- [ ] 2.4 Give those screens their translations in English and Spanish, and add component tests with an accessibility scan
+- [x] 2.3 Handle the deleted answer in the participant app on the dish, scoring and waiting screens — say plainly that the contest is gone and stop polling
+- [x] 2.4 Give those screens their translations in English and Spanish, and add component tests with an accessibility scan
 
 ## 3. Deleting from the host app
 
-- [ ] 3.1 Move `ConfirmDialog` out of `contest-control.tsx` into `@tapas/ui`, keeping close and reveal working through it unchanged, and confirm their existing tests still pass
-- [ ] 3.2 Add the typed-name mode to the dialog: a labelled input inside the focus trap, the action held until it matches, and the mismatch announced — sequenced so it does not collide with the component move in `host-sees-the-results`
-- [ ] 3.3 Give the dialog its translation keys via full key paths with English defaults, and add the strings to both apps in English and Spanish
-- [ ] 3.4 Add the delete action to the contest list and to the control room, choosing the plain or typed-name confirmation by whether anyone has taken part
-- [ ] 3.5 Add the client call, and on success return the host to their contest list with the deletion announced
-- [ ] 3.6 Add component tests with an accessibility scan: the plain confirmation, the typed-name confirmation, a wrong name deleting nothing, backing out, and the keyboard path through the dialog
+- [x] 3.1 Move `ConfirmDialog` out of `contest-control.tsx` into `@tapas/ui`, keeping close and reveal working through it unchanged, and confirm their existing tests still pass
+- [x] 3.2 Add the typed-name mode to the dialog: a labelled input inside the focus trap, the action held until it matches, and the mismatch announced — sequenced so it does not collide with the component move in `host-sees-the-results`
+- [x] 3.3 Give the dialog its translation keys via full key paths with English defaults, and add the strings to both apps in English and Spanish
+- [x] 3.4 Add the delete action to the contest list and to the control room, choosing the plain or typed-name confirmation by whether anyone has taken part
+- [x] 3.5 Add the client call, and on success return the host to their contest list with the deletion announced
+- [x] 3.6 Add component tests with an accessibility scan: the plain confirmation, the typed-name confirmation, a wrong name deleting nothing, backing out, and the keyboard path through the dialog — **the keyboard test found a real defect**: the focus trap treated disabled buttons as focusable, so while the typed name did not match, the disabled confirm button was the trap's last stop and Tab fell out of the dialog. Fixed by excluding disabled controls
 
 ## 4. Deleting through the assistant
 
