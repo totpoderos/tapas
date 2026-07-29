@@ -40,6 +40,7 @@
 
 - [x] 6.1 Add the catcher to `docker-compose.yml` for the demo
 - [x] 6.2 Have Playwright's `webServer` start it, so a local run and CI start it the same way and cannot drift; leave `.github/workflows/ci.yml` alone, which is the point of doing it there
+- [x] 6.2b Add `/admin`, `/invites` and `/setup` to host-web's dev proxy. **Found by CI, not by me** — the E2E reaches the API through that proxy and its allowlist had never gained the prefixes four slices of API work added, so `POST /setup/admin` came back 404. The explore notes had named this exact trap; naming it did not wire it. Every prefix there is now a page route that cannot exist, which is why the acceptance page is `/accept-invite` and the first-run screen must not be `/setup`
 - [x] 6.3 Add a helper that clears the catcher before a spec and reads the newest message, polling with a short timeout rather than sleeping
 - [x] 6.4 Write the end-to-end feature — **but not as this task described it.** The link cannot be *followed in a browser* here: the page it points at is C2's. The feature instead proves what this slice actually claims — a real message carries a real, working link — by following it over HTTP, and finishes in the browser with a sign-in, so the account it created is shown to be real. The first time this flow runs outside the API process without a seeded token hash
 - [x] 6.5 Note the new prerequisite in the README and in `tests/e2e/README.md`
