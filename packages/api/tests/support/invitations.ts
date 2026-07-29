@@ -1,4 +1,5 @@
 import { makeTestApp, promoteToAdministrator, type TestApp } from './test-server.js';
+import type { Clock } from '../../src/index.js';
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 const ADMINISTRATOR = 'ana@example.com';
@@ -13,11 +14,16 @@ export function tokenFromLink(link: string): string {
  * which is where most of the enrollment specs start. The token comes back out
  * of the sent message, the way its recipient would get it — never out of the
  * database, which only ever holds its hash.
+ *
+ * Pass a `MutableClock` to exercise the invitation's lifetime: the invitation
+ * is issued at whatever time the clock reads here, and a spec advances it
+ * afterwards rather than waiting a day.
  */
 export async function invitationSentTo(
   email: string,
+  clock?: Clock,
 ): Promise<{ test: TestApp; token: string; link: string }> {
-  const test = makeTestApp();
+  const test = makeTestApp(clock);
   await test.app.inject({
     method: 'POST',
     url: '/auth/register',

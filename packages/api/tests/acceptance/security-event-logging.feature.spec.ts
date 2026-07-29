@@ -3,7 +3,12 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp, promoteToAdministrator, type TestApp } from '../support/test-server.js';
+import {
+  makeTestApp,
+  MutableClock,
+  promoteToAdministrator,
+  type TestApp,
+} from '../support/test-server.js';
 import { invitationSentTo } from '../support/invitations.js';
 import {
   SqliteSecurityEventLog,
@@ -334,6 +339,56 @@ describeFeature(feature, ({ Scenario }) => {
       expect(refused?.sourceIp).toBeTruthy();
     });
   });
+
+  Scenario('A refusal for an expired link is recorded as an expiry', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let token: string;
+    let clock: MutableClock;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock('2026-07-29T10:00:00.000Z');
+      ({ test, token } = await invitationSentTo('nuevo@example.com', clock));
+    });
+    When('more than 24 hours pass and the invited person tries to accept', async () => {
+      clock.advance(24 * 60 * 60 * 1000 + 1000);
+      const response = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(response.statusCode).toBe(404);
+    });
+    Then('the security log records a refused acceptance noting the link had expired', () => {
+      const refused = securityLog(test.db).find((event) => event.type === 'invitation.refused');
+      expect(refused?.reason).toBe('expired');
+    });
+  });
+
+  Scenario(
+    'A refusal for an unknown link is not recorded as an expiry',
+    ({ Given, When, Then }) => {
+      let app: FastifyInstance;
+      let db: DatabaseSync;
+
+      Given('an administrator "ana@example.com"', async () => {
+        ({ app, db } = makeTestApp());
+        await register(app, 'ana@example.com');
+        promoteToAdministrator(db, 'ana@example.com');
+      });
+      When('someone tries to accept with a link that no invitation ever had', async () => {
+        await app.inject({
+          method: 'POST',
+          url: '/invites/a-token-nobody-ever-issued/accept',
+          payload: { password: STRONG_PASSWORD },
+        });
+      });
+      Then('the security log does not describe that refusal as an expiry', () => {
+        const refused = securityLog(db).find((event) => event.type === 'invitation.refused');
+        expect(refused).toBeTruthy();
+        expect(refused?.reason).not.toBe('expired');
+      });
+    },
+  );
 
   Scenario("The security log never stores the link", ({ Given, When, Then }) => {
     let test: TestApp;

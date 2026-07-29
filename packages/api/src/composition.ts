@@ -178,7 +178,7 @@ export function buildProductionDeps(
       clock,
       linkBase: invitationLinkBase,
     }),
-    openInvitation: new OpenInvitation({ invitations }),
+    openInvitation: new OpenInvitation({ invitations, clock }),
     acceptInvitation: new AcceptInvitation({ invitations, registerHost, clock }),
     mailer,
     hostAccounts: accounts,

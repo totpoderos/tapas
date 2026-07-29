@@ -71,6 +71,16 @@ Feature: Security-event logging
     When someone tries to accept with a link that no invitation ever had
     Then the security log records a refused acceptance
 
+  Scenario: A refusal for an expired link is recorded as an expiry
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass and the invited person tries to accept
+    Then the security log records a refused acceptance noting the link had expired
+
+  Scenario: A refusal for an unknown link is not recorded as an expiry
+    Given an administrator "ana@example.com"
+    When someone tries to accept with a link that no invitation ever had
+    Then the security log does not describe that refusal as an expiry
+
   Scenario: The security log never stores the link
     Given an administrator "ana@example.com"
     When that administrator invites "nuevo@example.com"
