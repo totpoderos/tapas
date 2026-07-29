@@ -39,11 +39,13 @@ export function registerInvitationRoutes(app: FastifyInstance, deps: ServerDeps)
       if (!accepted.ok) {
         if (accepted.error.code === 'INVITATION_UNUSABLE') {
           // The caller is told nothing, so the log is the only place someone
-          // guessing at links can be seen.
+          // guessing at links can be seen — and the only place a person who
+          // simply arrived too late can be told apart from one.
           deps.securityLog.record({
             type: 'invitation.refused',
             actorId: null,
             sourceIp: request.ip,
+            reason: accepted.reason ?? null,
           });
         }
         return reply.code(ACCEPT_ERROR_STATUS[accepted.error.code] ?? 400).send({

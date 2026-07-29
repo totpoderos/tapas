@@ -40,6 +40,10 @@ export { checkPasswordStrength, MIN_PASSWORD_LENGTH } from './auth/password-poli
 export type { PasswordWeakness } from './auth/password-policy.js';
 export { HostAccount, MAX_FAILED_ATTEMPTS, LOCK_DURATION_MINUTES } from './auth/host-account.js';
 export type { HostRole } from './auth/host-account.js';
+export {
+  invitationHasExpired,
+  INVITATION_LIFETIME_HOURS,
+} from './auth/invitation-lifetime.js';
 
 export { checkScore } from './scoring/score-check.js';
 export type {

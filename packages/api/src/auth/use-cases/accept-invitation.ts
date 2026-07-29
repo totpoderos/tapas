@@ -1,7 +1,7 @@
 import type { Clock } from '../../audit/audit-projection.js';
 import type { HostInvitationRepository } from '../../db/host-invitation-repository.js';
 import { hashSecretToken } from '../random-token.js';
-import { INVITATION_UNUSABLE } from './invitation-shared.js';
+import { INVITATION_UNUSABLE, usabilityOf, type UnusableReason } from './invitation-shared.js';
 import type { RegisterHost } from './register-host.js';
 import type { RegisterErrorCode } from './shared.js';
 
@@ -12,6 +12,8 @@ export type AcceptInvitationResult =
       readonly error:
         | typeof INVITATION_UNUSABLE
         | { readonly code: RegisterErrorCode; readonly message: string };
+      /** Why the link did not work — for the log only; never part of the refusal. */
+      readonly reason?: UnusableReason;
     };
 
 export interface AcceptInvitationDeps {
@@ -34,10 +36,12 @@ export class AcceptInvitation {
   constructor(private readonly deps: AcceptInvitationDeps) {}
 
   async execute(rawToken: string, rawPassword: string): Promise<AcceptInvitationResult> {
-    const invitation = this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
-    if (!invitation || invitation.status !== 'pending')
-      return { ok: false, error: INVITATION_UNUSABLE };
+    const found = this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
+    const usability = usabilityOf(found, this.deps.clock.now());
+    if (!usability.usable)
+      return { ok: false, error: INVITATION_UNUSABLE, reason: usability.reason };
 
+    const invitation = usability.invitation;
     const registration = await this.deps.registerHost.execute(invitation.email, rawPassword);
     if (!registration.ok) return { ok: false, error: registration.error };
 

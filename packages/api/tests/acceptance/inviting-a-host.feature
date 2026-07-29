@@ -89,6 +89,38 @@ Feature: Inviting a host
     And they try to accept with the same link again
     Then the refusal names no email address
 
+  Scenario: A link still works within the window
+    Given an invitation was sent to "nuevo@example.com"
+    When nearly 24 hours pass
+    And the invited person accepts with a strong password
+    Then a host account exists for "nuevo@example.com"
+
+  Scenario: A link no longer accepts once the window has passed
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the invited person tries to accept with a strong password
+    Then accepting is refused because the link cannot be used
+    And no host account exists for "nuevo@example.com"
+
+  Scenario: A link no longer opens once the window has passed
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the invited person opens their link
+    Then opening is refused because the link cannot be used
+
+  Scenario: An expired link is refused the same way as one that never existed
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the invited person tries to accept with a strong password
+    Then the refusal is the same as for a link that never existed
+    And the refusal names no email address
+
+  Scenario: An expired invitation stays expired
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the invited person opens their link and then tries to accept
+    Then accepting is still refused because the link cannot be used
+
   Scenario: A weak password is refused
     Given an invitation was sent to "nuevo@example.com"
     When the invited person tries to accept with the weak password "short"

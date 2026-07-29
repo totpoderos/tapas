@@ -3,8 +3,11 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp, promoteToAdministrator, type TestApp } from '../support/test-server.js';
+import { makeTestApp, MutableClock, promoteToAdministrator, type TestApp } from '../support/test-server.js';
 import { invitationSentTo, tokenFromLink } from '../support/invitations.js';
+
+const ISSUED_AT = '2026-07-29T10:00:00.000Z';
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 const feature = await loadFeature(
   fileURLToPath(new URL('./inviting-a-host.feature', import.meta.url)),
@@ -454,6 +457,150 @@ describeFeature(feature, ({ Scenario }) => {
     Then('the refusal names no email address', () => {
       expect(response.body).not.toContain(INVITED);
       expect(response.body).not.toContain('@');
+    });
+  });
+
+  Scenario('A link still works within the window', ({ Given, When, And, Then }) => {
+    let test: TestApp;
+    let token: string;
+    let clock: MutableClock;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      ({ test, token } = await invitationSentTo(INVITED, clock));
+    });
+    When('nearly 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS - 1000);
+    });
+    And('the invited person accepts with a strong password', async () => {
+      const response = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(response.statusCode).toBe(201);
+    });
+    Then('a host account exists for "nuevo@example.com"', () => {
+      const row = test.db
+        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+        .get(INVITED) as { email: string } | undefined;
+      expect(row?.email).toBe(INVITED);
+    });
+  });
+
+  Scenario('A link no longer accepts once the window has passed', ({ Given, When, And, Then }) => {
+    let test: TestApp;
+    let token: string;
+    let clock: MutableClock;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      ({ test, token } = await invitationSentTo(INVITED, clock));
+    });
+    When('more than 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS + 1000);
+    });
+    And('the invited person tries to accept with a strong password', async () => {
+      response = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+    });
+    Then('accepting is refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+    And('no host account exists for "nuevo@example.com"', () => {
+      const row = test.db.prepare('SELECT email FROM host_accounts WHERE email = ?').get(INVITED);
+      expect(row).toBeUndefined();
+    });
+  });
+
+  Scenario('A link no longer opens once the window has passed', ({ Given, When, And, Then }) => {
+    let test: TestApp;
+    let token: string;
+    let clock: MutableClock;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      ({ test, token } = await invitationSentTo(INVITED, clock));
+    });
+    When('more than 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS + 1000);
+    });
+    And('the invited person opens their link', async () => {
+      response = await test.app.inject({ method: 'GET', url: `/invites/${token}` });
+    });
+    Then('opening is refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+  });
+
+  Scenario(
+    'An expired link is refused the same way as one that never existed',
+    ({ Given, When, And, Then }) => {
+      let test: TestApp;
+      let token: string;
+      let clock: MutableClock;
+      let response: LightMyRequestResponse;
+
+      Given('an invitation was sent to "nuevo@example.com"', async () => {
+        clock = new MutableClock(ISSUED_AT);
+        ({ test, token } = await invitationSentTo(INVITED, clock));
+      });
+      When('more than 24 hours pass', () => {
+        clock.advance(ONE_DAY_MS + 1000);
+      });
+      And('the invited person tries to accept with a strong password', async () => {
+        response = await test.app.inject({
+          method: 'POST',
+          url: `/invites/${token}/accept`,
+          payload: { password: STRONG_PASSWORD },
+        });
+      });
+      Then('the refusal is the same as for a link that never existed', async () => {
+        const unknown = await test.app.inject({
+          method: 'POST',
+          url: '/invites/a-token-nobody-ever-issued/accept',
+          payload: { password: STRONG_PASSWORD },
+        });
+        expect(response.statusCode).toBe(unknown.statusCode);
+        expect(response.body).toBe(unknown.body);
+      });
+      And('the refusal names no email address', () => {
+        expect(response.body).not.toContain('@');
+      });
+    },
+  );
+
+  Scenario('An expired invitation stays expired', ({ Given, When, And, Then }) => {
+    let test: TestApp;
+    let token: string;
+    let clock: MutableClock;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      ({ test, token } = await invitationSentTo(INVITED, clock));
+    });
+    When('more than 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS + 1000);
+    });
+    And('the invited person opens their link and then tries to accept', async () => {
+      await test.app.inject({ method: 'GET', url: `/invites/${token}` });
+      response = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+    });
+    Then('accepting is still refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
     });
   });
 

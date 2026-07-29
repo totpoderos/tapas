@@ -58,7 +58,7 @@ describe('AcceptInvitation', () => {
     });
   });
 
-  it('refuses a link that was already accepted, the same way as an unknown one', async () => {
+  it('shows the same refusal for a link already accepted and one that never existed', async () => {
     const { useCase } = makeUseCase();
     await useCase.execute(TOKEN, STRONG_PASSWORD);
 
@@ -66,7 +66,31 @@ describe('AcceptInvitation', () => {
     const unknown = await useCase.execute('a-token-nobody-ever-issued', STRONG_PASSWORD);
 
     expect(again.ok).toBe(false);
-    expect(again).toEqual(unknown);
+    expect(unknown.ok).toBe(false);
+    // The refusal is identical; only the reason kept back for the log differs.
+    expect(!again.ok && again.error).toEqual(!unknown.ok && unknown.error);
+    expect(again).toMatchObject({ reason: 'already_accepted' });
+    expect(unknown).toMatchObject({ reason: 'unknown' });
+  });
+
+  it('refuses a link whose window has closed, and creates no account', async () => {
+    const { invitations, accounts } = makeUseCase();
+    const registerHost = new RegisterHost({
+      accounts,
+      hasher: new FakePasswordHasher(),
+      ids: new SequentialIds(),
+    });
+    const tooLate = new AcceptInvitation({
+      invitations,
+      registerHost,
+      clock: { now: () => '2026-07-30T10:00:00.000Z' }, // exactly 24h after issuing
+    });
+
+    const accepted = await tooLate.execute(TOKEN, STRONG_PASSWORD);
+
+    expect(accepted.ok).toBe(false);
+    expect(accepted).toMatchObject({ reason: 'expired' });
+    expect(accounts.findByEmail('nuevo@example.com')).toBeUndefined();
   });
 
   it('refuses a password that fails the policy', async () => {
