@@ -12,6 +12,12 @@ export class FakeHostAccountRepository implements HostAccountRepository {
   findByEmail(email: string): HostAccount | undefined {
     return this.byEmail.get(email);
   }
+  findById(id: string): HostAccount | undefined {
+    return [...this.byEmail.values()].find((account) => account.id === id);
+  }
+  listAll(): HostAccount[] {
+    return [...this.byEmail.values()];
+  }
 }
 
 /** A fast, deterministic stand-in for bcrypt: `hashed:<raw>`. */

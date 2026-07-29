@@ -23,8 +23,13 @@ import { HmacJwtTokenIssuer } from './auth/token-issuer.js';
 import { AuthenticateHost } from './auth/use-cases/authenticate-host.js';
 import { IssuePat } from './auth/use-cases/issue-pat.js';
 import { RefreshSession } from './auth/use-cases/refresh-session.js';
+import { AcceptInvitation } from './auth/use-cases/accept-invitation.js';
+import { InviteHost } from './auth/use-cases/invite-host.js';
 import { ListHostAccounts } from './auth/use-cases/list-host-accounts.js';
+import { OpenInvitation } from './auth/use-cases/open-invitation.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
+import { SqliteHostInvitationRepository } from './db/host-invitation-repository.js';
+import { InMemoryMailer } from './mail/mailer.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
@@ -86,10 +91,17 @@ export function buildProductionDeps(
 
   const tokens = new HmacJwtTokenIssuer(env.JWT_SECRET, clock);
 
+  const invitations = new SqliteHostInvitationRepository(db);
+  const mailer = new InMemoryMailer();
+  const registerHost = new RegisterHost({ accounts, hasher, ids });
+  // The acceptance page is a host-app route, not an API one — the link points at
+  // the frontend, which reads the token and calls back here.
+  const invitationLinkBase = `${env.HOST_WEB_ORIGIN}/accept-invite`;
+
   return {
     tokens,
     sessions,
-    registerHost: new RegisterHost({ accounts, hasher, ids }),
+    registerHost,
     authenticateHost: new AuthenticateHost({ accounts, hasher, tokens, sessions, clock }),
     refreshSession: new RefreshSession({ tokens, sessions, clock }),
     signOutHost: new SignOutHost({ tokens, sessions }),
@@ -158,6 +170,17 @@ export function buildProductionDeps(
     revokePat: new RevokePat({ pats }),
     pats,
     listHostAccounts: new ListHostAccounts({ hostAccounts: accounts }),
+    inviteHost: new InviteHost({
+      invitations,
+      accounts,
+      mailer,
+      ids,
+      clock,
+      linkBase: invitationLinkBase,
+    }),
+    openInvitation: new OpenInvitation({ invitations }),
+    acceptInvitation: new AcceptInvitation({ invitations, registerHost, clock }),
+    mailer,
     hostAccounts: accounts,
     securityLog,
     security: {
