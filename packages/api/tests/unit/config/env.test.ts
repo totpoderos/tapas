@@ -24,6 +24,15 @@ describe('loadEnv', () => {
     expect(() => loadEnv({} as NodeJS.ProcessEnv)).toThrow(EnvValidationError);
   });
 
+  it('refuses to boot when the administrator address is not an address', () => {
+    expect(() =>
+      loadEnv({
+        JWT_SECRET: STRONG_SECRET,
+        ADMIN_BOOTSTRAP_EMAIL: 'not-an-address',
+      } as NodeJS.ProcessEnv),
+    ).toThrow(EnvValidationError);
+  });
+
   // Threat-model G2: a short signing key is brute-forceable.
   it('rejects a JWT_SECRET shorter than 32 characters', () => {
     expect(() => loadEnv({ JWT_SECRET: 'too-short' } as NodeJS.ProcessEnv)).toThrow(EnvValidationError);
@@ -36,6 +45,7 @@ describe('loadEnv', () => {
       JWT_SECRET: STRONG_SECRET,
       HOST_WEB_ORIGIN: 'https://host.example.com',
       PARTICIPANT_WEB_ORIGIN: 'https://app.example.com',
+      ADMIN_BOOTSTRAP_EMAIL: 'operator@example.com',
     } as unknown as NodeJS.ProcessEnv;
 
     it('refuses to boot when ASSISTANT_CONFIRMATION_SECRET is still the committed dev default', () => {
@@ -62,6 +72,26 @@ describe('loadEnv', () => {
         ASSISTANT_CONFIRMATION_SECRET: 'a-real-production-assistant-secret-value',
       } as NodeJS.ProcessEnv);
       expect(env.NODE_ENV).toBe('production');
+    });
+
+    // The address that may claim the deployment. Not a secret, but leaving the
+    // committed one in place would hand the deployment to whoever holds that inbox.
+    it('refuses to boot when ADMIN_BOOTSTRAP_EMAIL is still the committed dev default', () => {
+      const { ADMIN_BOOTSTRAP_EMAIL: _omitted, ...withoutIt } = base as Record<string, string>;
+      expect(() =>
+        loadEnv({
+          ...withoutIt,
+          ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+        } as unknown as NodeJS.ProcessEnv),
+      ).toThrow(EnvValidationError);
+    });
+
+    it('boots when the administrator address is a real one', () => {
+      const env = loadEnv({
+        ...base,
+        ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+      } as NodeJS.ProcessEnv);
+      expect(env.ADMIN_BOOTSTRAP_EMAIL).toBe('operator@example.com');
     });
 
     it('still allows the dev default outside production', () => {

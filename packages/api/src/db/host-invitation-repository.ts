@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import type { HostRole } from '@tapas/domain';
 
 /**
  * How an invitation stands, as stored. Expiry is deliberately absent: it is a
@@ -17,6 +18,8 @@ export interface StoredInvitation {
   readonly issuedAt: string;
   readonly acceptedAt: string | null;
   readonly revokedAt: string | null;
+  /** The role this invitation creates when accepted. Only a claim on an unclaimed deployment sets 'admin'. */
+  readonly invitedRole: HostRole;
   /** The invitation that replaced this one, when it was superseded by a resend. */
   readonly supersededBy: string | null;
 }
@@ -41,6 +44,7 @@ interface InvitationRow {
   accepted_at: string | null;
   revoked_at: string | null;
   superseded_by: string | null;
+  invited_role: string;
 }
 
 function toInvitation(row: InvitationRow): StoredInvitation {
@@ -54,6 +58,7 @@ function toInvitation(row: InvitationRow): StoredInvitation {
     acceptedAt: row.accepted_at,
     revokedAt: row.revoked_at,
     supersededBy: row.superseded_by,
+    invitedRole: row.invited_role as HostRole,
   };
 }
 
@@ -63,8 +68,8 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
   insert(invitation: StoredInvitation): void {
     this.db
       .prepare(
-        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by, invited_role)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         invitation.id,
@@ -76,6 +81,7 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
         invitation.acceptedAt,
         invitation.revokedAt,
         invitation.supersededBy,
+        invitation.invitedRole,
       );
   }
 

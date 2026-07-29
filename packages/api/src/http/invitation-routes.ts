@@ -58,6 +58,14 @@ export function registerInvitationRoutes(app: FastifyInstance, deps: ServerDeps)
         actorId: accepted.hostId,
         sourceIp: request.ip,
       });
+      if (accepted.createdRole === 'admin') {
+        // The deployment has just acquired the administrator it had none of.
+        deps.securityLog.record({
+          type: 'admin_bootstrap.completed',
+          actorId: accepted.hostId,
+          sourceIp: request.ip,
+        });
+      }
       // No session: the caller signs in afterwards through the one path that
       // issues cookies, so every session still has a sign-in behind it.
       return reply.code(201).send({ hostId: accepted.hostId });

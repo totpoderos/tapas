@@ -4,6 +4,13 @@ import { z } from 'zod';
 // but they are public (in this repo), so the app REFUSES to boot in production
 // if any of them is still in use — threat-model gaps G1/G2 (docs/threat-model.md).
 const ASSISTANT_CONFIRMATION_DEV_DEFAULT = 'dev-assistant-confirmation-secret-change-me';
+/**
+ * The committed development address of whoever administers a deployment. Not a
+ * secret — an email address never is — but leaving it in place in production
+ * would mean the deployment could be claimed by whoever holds *this* inbox, so
+ * it is rejected there exactly as the dev secrets are.
+ */
+const ADMIN_BOOTSTRAP_DEV_DEFAULT = 'admin@example.com';
 // Committed dev/example values for the two secrets this schema owns; rejected in
 // production below. (The JWT one is <32 chars, so the length floor also catches
 // it — it is listed for an explicit, readable failure message.)
@@ -40,6 +47,14 @@ const EnvSchema = z
     // Test-only: when 1, the assistant runs on a deterministic keyword stub instead
     // of a real model, so a headless E2E can drive it. Never set in production.
     ASSISTANT_STUB: z.coerce.number().int().default(0),
+    // Names who may claim an unclaimed deployment and become its one
+    // administrator. Pinning it here is what makes claiming safe: the
+    // invitation link only proves its recipient holds the inbox they typed,
+    // which at first run would be their own.
+    ADMIN_BOOTSTRAP_EMAIL: z
+      .string()
+      .email('ADMIN_BOOTSTRAP_EMAIL must be an email address')
+      .default(ADMIN_BOOTSTRAP_DEV_DEFAULT),
   })
   // In production, no secret may still be a publicly-known committed default.
   .superRefine((env, ctx) => {
@@ -52,6 +67,16 @@ const EnvSchema = z
           message: `${key} must be overridden in production (the committed dev default is not allowed)`,
         });
       }
+    }
+    // Not a secret, but leaving it in place would hand the deployment to
+    // whoever holds the committed example inbox.
+    if (env.ADMIN_BOOTSTRAP_EMAIL === ADMIN_BOOTSTRAP_DEV_DEFAULT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ADMIN_BOOTSTRAP_EMAIL'],
+        message:
+          'ADMIN_BOOTSTRAP_EMAIL must be overridden in production (the committed dev default is not allowed)',
+      });
     }
   });
 

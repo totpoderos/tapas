@@ -1,3 +1,4 @@
+import type { HostRole } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
 import type { HostInvitationRepository } from '../../db/host-invitation-repository.js';
 import { hashSecretToken } from '../random-token.js';
@@ -6,7 +7,7 @@ import type { RegisterHost } from './register-host.js';
 import type { RegisterErrorCode } from './shared.js';
 
 export type AcceptInvitationResult =
-  | { readonly ok: true; readonly hostId: string }
+  | { readonly ok: true; readonly hostId: string; readonly createdRole: HostRole }
   | {
       readonly ok: false;
       readonly error:
@@ -42,10 +43,14 @@ export class AcceptInvitation {
       return { ok: false, error: INVITATION_UNUSABLE, reason: usability.reason };
 
     const invitation = usability.invitation;
-    const registration = await this.deps.registerHost.execute(invitation.email, rawPassword);
+    const registration = await this.deps.registerHost.execute(
+      invitation.email,
+      rawPassword,
+      invitation.invitedRole,
+    );
     if (!registration.ok) return { ok: false, error: registration.error };
 
     this.deps.invitations.markAccepted(invitation.id, this.deps.clock.now());
-    return { ok: true, hostId: registration.hostId };
+    return { ok: true, hostId: registration.hostId, createdRole: invitation.invitedRole };
   }
 }

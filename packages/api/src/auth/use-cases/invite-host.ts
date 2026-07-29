@@ -1,4 +1,4 @@
-import { Email } from '@tapas/domain';
+import { Email, type HostRole } from '@tapas/domain';
 import type { Clock, IdGenerator } from '../../audit/audit-projection.js';
 import type { HostAccountRepository } from '../../db/host-account-repository.js';
 import type { HostInvitationRepository } from '../../db/host-invitation-repository.js';
@@ -36,7 +36,11 @@ export interface InviteHostDeps {
 export class InviteHost {
   constructor(private readonly deps: InviteHostDeps) {}
 
-  async execute(rawEmail: string, invitedBy: string): Promise<InviteHostResult> {
+  async execute(
+    rawEmail: string,
+    invitedBy: string,
+    invitedRole: HostRole = 'host',
+  ): Promise<InviteHostResult> {
     const emailResult = Email.create(rawEmail);
     if (!emailResult.ok)
       return { ok: false, error: { code: 'INVALID_EMAIL', message: emailResult.error.message } };
@@ -59,6 +63,7 @@ export class InviteHost {
       acceptedAt: null,
       revokedAt: null,
       supersededBy: null,
+      invitedRole,
     };
     this.deps.invitations.insert(invitation);
 

@@ -31,6 +31,7 @@ const BASE_ENV: Env = {
   LLM_MODEL: 'llama3.1',
   ASSISTANT_CONFIRMATION_SECRET: 'test-assistant-confirmation-secret-32chars',
   ASSISTANT_STUB: 0,
+  ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
 };
 
 const FIXED_CLOCK: Clock = { now: () => '2026-07-19T10:00:00.000Z' };

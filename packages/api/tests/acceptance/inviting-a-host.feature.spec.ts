@@ -330,7 +330,32 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
-  Scenario('Accepting never produces an administrator', ({ Given, When, Then }) => {
+  Scenario('A resent invitation still produces an ordinary host', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator resends it', async () => {
+      const resent = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+      expect(resent.statusCode).toBe(201);
+    });
+    And('the invited person accepts with the new link', async () => {
+      const accepted = await acceptWith(sent.test, newestToken(sent.test));
+      expect(accepted.statusCode).toBe(201);
+    });
+    Then('the account created is not an administrator', () => {
+      const row = sent.test.db
+        .prepare('SELECT role FROM host_accounts WHERE email = ?')
+        .get(INVITED) as { role: string } | undefined;
+      expect(row?.role).toBe('host');
+    });
+  });
+
+  Scenario('An invitation from an administrator never produces another administrator', ({ Given, When, Then }) => {
     let test: TestApp;
     let token: string;
 
