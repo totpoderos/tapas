@@ -76,6 +76,31 @@ Feature: Security-event logging
     When more than 24 hours pass and the invited person tries to accept
     Then the security log records a refused acceptance noting the link had expired
 
+  Scenario: Revoking an invitation is recorded
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    Then the security log records that invitation revoked by that administrator
+
+  Scenario: Resending an invitation is recorded
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    Then the security log records that invitation resent by that administrator
+
+  Scenario: Neither record contains a link
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    Then no security log entry contains either invitation's link
+
+  Scenario: A refusal for a revoked link is recorded as a revocation
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it and the invited person tries to accept
+    Then the security log records a refused acceptance noting the link had been revoked
+
+  Scenario: A refusal for a superseded link is recorded as such
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it and the invited person tries the original link
+    Then the security log records a refused acceptance noting the link had been superseded
+
   Scenario: A refusal for an unknown link is not recorded as an expiry
     Given an administrator "ana@example.com"
     When someone tries to accept with a link that no invitation ever had

@@ -26,7 +26,10 @@ import { RefreshSession } from './auth/use-cases/refresh-session.js';
 import { AcceptInvitation } from './auth/use-cases/accept-invitation.js';
 import { InviteHost } from './auth/use-cases/invite-host.js';
 import { ListHostAccounts } from './auth/use-cases/list-host-accounts.js';
+import { ListInvitations } from './auth/use-cases/list-invitations.js';
 import { OpenInvitation } from './auth/use-cases/open-invitation.js';
+import { ResendInvitation } from './auth/use-cases/resend-invitation.js';
+import { RevokeInvitation } from './auth/use-cases/revoke-invitation.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
 import { SqliteHostInvitationRepository } from './db/host-invitation-repository.js';
 import { InMemoryMailer } from './mail/mailer.js';
@@ -97,6 +100,14 @@ export function buildProductionDeps(
   // The acceptance page is a host-app route, not an API one — the link points at
   // the frontend, which reads the token and calls back here.
   const invitationLinkBase = `${env.HOST_WEB_ORIGIN}/accept-invite`;
+  const inviteHost = new InviteHost({
+    invitations,
+    accounts,
+    mailer,
+    ids,
+    clock,
+    linkBase: invitationLinkBase,
+  });
 
   return {
     tokens,
@@ -170,16 +181,12 @@ export function buildProductionDeps(
     revokePat: new RevokePat({ pats }),
     pats,
     listHostAccounts: new ListHostAccounts({ hostAccounts: accounts }),
-    inviteHost: new InviteHost({
-      invitations,
-      accounts,
-      mailer,
-      ids,
-      clock,
-      linkBase: invitationLinkBase,
-    }),
+    inviteHost,
     openInvitation: new OpenInvitation({ invitations, clock }),
     acceptInvitation: new AcceptInvitation({ invitations, registerHost, clock }),
+    listInvitations: new ListInvitations({ invitations, clock }),
+    revokeInvitation: new RevokeInvitation({ invitations, clock }),
+    resendInvitation: new ResendInvitation({ invitations, inviteHost }),
     mailer,
     hostAccounts: accounts,
     securityLog,

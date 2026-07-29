@@ -364,6 +364,119 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('Revoking an invitation is recorded', ({ Given, When, Then }) => {
+    let sent: Awaited<ReturnType<typeof invitationSentTo>>;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo('nuevo@example.com');
+    });
+    When('the administrator revokes it', async () => {
+      const revoked = await sent.test.app.inject({
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/revoke`,
+        headers: { cookie: sent.adminCookie },
+      });
+      expect(revoked.statusCode).toBe(200);
+    });
+    Then('the security log records that invitation revoked by that administrator', () => {
+      const event = securityLog(sent.test.db).find((e) => e.type === 'invitation.revoked');
+      expect(event?.actorId).toBeTruthy();
+      expect(event?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario('Resending an invitation is recorded', ({ Given, When, Then }) => {
+    let sent: Awaited<ReturnType<typeof invitationSentTo>>;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo('nuevo@example.com');
+    });
+    When('the administrator resends it', async () => {
+      const resent = await sent.test.app.inject({
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+        headers: { cookie: sent.adminCookie },
+      });
+      expect(resent.statusCode).toBe(201);
+    });
+    Then('the security log records that invitation resent by that administrator', () => {
+      const event = securityLog(sent.test.db).find((e) => e.type === 'invitation.resent');
+      expect(event?.actorId).toBeTruthy();
+    });
+  });
+
+  Scenario('Neither record contains a link', ({ Given, When, Then }) => {
+    let sent: Awaited<ReturnType<typeof invitationSentTo>>;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo('nuevo@example.com');
+    });
+    When('the administrator resends it', async () => {
+      await sent.test.app.inject({
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+        headers: { cookie: sent.adminCookie },
+      });
+    });
+    Then("no security log entry contains either invitation's link", () => {
+      const serialized = JSON.stringify(securityLog(sent.test.db));
+      for (const message of sent.test.mailer.sent) {
+        const token = message.link.slice(message.link.lastIndexOf('/') + 1);
+        expect(serialized).not.toContain(token);
+      }
+    });
+  });
+
+  Scenario('A refusal for a revoked link is recorded as a revocation', ({ Given, When, Then }) => {
+    let sent: Awaited<ReturnType<typeof invitationSentTo>>;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo('nuevo@example.com');
+    });
+    When('the administrator revokes it and the invited person tries to accept', async () => {
+      await sent.test.app.inject({
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/revoke`,
+        headers: { cookie: sent.adminCookie },
+      });
+      const refused = await sent.test.app.inject({
+        method: 'POST',
+        url: `/invites/${sent.token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(refused.statusCode).toBe(404);
+    });
+    Then('the security log records a refused acceptance noting the link had been revoked', () => {
+      const event = securityLog(sent.test.db).find((e) => e.type === 'invitation.refused');
+      expect(event?.reason).toBe('revoked');
+    });
+  });
+
+  Scenario('A refusal for a superseded link is recorded as such', ({ Given, When, Then }) => {
+    let sent: Awaited<ReturnType<typeof invitationSentTo>>;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo('nuevo@example.com');
+    });
+    When('the administrator resends it and the invited person tries the original link', async () => {
+      await sent.test.app.inject({
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+        headers: { cookie: sent.adminCookie },
+      });
+      const refused = await sent.test.app.inject({
+        method: 'POST',
+        url: `/invites/${sent.token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(refused.statusCode).toBe(404);
+    });
+    Then('the security log records a refused acceptance noting the link had been superseded', () => {
+      const event = securityLog(sent.test.db).find((e) => e.type === 'invitation.refused');
+      expect(event?.reason).toBe('superseded');
+    });
+  });
+
   Scenario(
     'A refusal for an unknown link is not recorded as an expiry',
     ({ Given, When, Then }) => {

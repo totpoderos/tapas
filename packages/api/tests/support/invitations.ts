@@ -10,6 +10,24 @@ export function tokenFromLink(link: string): string {
 }
 
 /**
+ * Signs the seeded administrator in and hands back their cookie.
+ *
+ * A spec that advances the clock past an access token's fifteen minutes needs
+ * this before acting as an administrator again — the session really has
+ * expired, exactly as it would for a person coming back the next day. A
+ * personal access token would not help: it carries host powers only.
+ */
+export async function signInAdministrator(test: TestApp): Promise<string> {
+  const signedIn = await test.app.inject({
+    method: 'POST',
+    url: '/auth/login',
+    payload: { email: ADMINISTRATOR, password: STRONG_PASSWORD },
+  });
+  const access = signedIn.cookies.find((cookie) => cookie.name === 'access_token');
+  return `access_token=${access?.value ?? ''}`;
+}
+
+/**
  * Puts a fresh app in the state "an administrator has invited this address",
  * which is where most of the enrollment specs start. The token comes back out
  * of the sent message, the way its recipient would get it — never out of the
@@ -22,7 +40,7 @@ export function tokenFromLink(link: string): string {
 export async function invitationSentTo(
   email: string,
   clock?: Clock,
-): Promise<{ test: TestApp; token: string; link: string }> {
+): Promise<{ test: TestApp; token: string; link: string; id: string; adminCookie: string }> {
   const test = makeTestApp(clock);
   await test.app.inject({
     method: 'POST',
@@ -31,20 +49,16 @@ export async function invitationSentTo(
   });
   promoteToAdministrator(test.db, ADMINISTRATOR);
 
-  const signedIn = await test.app.inject({
-    method: 'POST',
-    url: '/auth/login',
-    payload: { email: ADMINISTRATOR, password: STRONG_PASSWORD },
-  });
-  const access = signedIn.cookies.find((cookie) => cookie.name === 'access_token');
+  const adminCookie = await signInAdministrator(test);
 
-  await test.app.inject({
+  const invited = await test.app.inject({
     method: 'POST',
     url: '/admin/invites',
-    headers: { cookie: `access_token=${access?.value ?? ''}` },
+    headers: { cookie: adminCookie },
     payload: { email },
   });
 
   const link = test.mailer.sent.at(-1)!.link;
-  return { test, token: tokenFromLink(link), link };
+  // The id is how an administrator names an invitation — they never see a token.
+  return { test, token: tokenFromLink(link), link, id: invited.json().invitationId, adminCookie };
 }

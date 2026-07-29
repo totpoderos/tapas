@@ -3,22 +3,19 @@ import { AcceptInvitation } from '../../../../src/auth/use-cases/accept-invitati
 import { RegisterHost } from '../../../../src/auth/use-cases/register-host.js';
 import { hashSecretToken } from '../../../../src/auth/random-token.js';
 import { FakeHostAccountRepository, FakePasswordHasher } from '../support.js';
-import { FakeInvitationRepository, FIXED_CLOCK, SequentialIds } from './invitation-support.js';
+import {
+  FakeInvitationRepository,
+  FIXED_CLOCK,
+  pendingInvitation,
+  SequentialIds,
+} from './invitation-support.js';
 
 const TOKEN = 'a-token-that-was-issued';
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 
 function makeUseCase() {
   const invitations = new FakeInvitationRepository();
-  invitations.insert({
-    id: 'inv-1',
-    email: 'nuevo@example.com',
-    tokenHash: hashSecretToken(TOKEN),
-    status: 'pending',
-    issuedBy: 'admin-1',
-    issuedAt: '2026-07-29T10:00:00.000Z',
-    acceptedAt: null,
-  });
+  invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN) }));
   const accounts = new FakeHostAccountRepository();
   const registerHost = new RegisterHost({
     accounts,

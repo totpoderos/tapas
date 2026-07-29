@@ -18,7 +18,10 @@ export type SecurityEventType =
   /** An invitation's life: issued by an administrator, accepted, or refused for an unusable link. */
   | 'invitation.issued'
   | 'invitation.accepted'
-  | 'invitation.refused';
+  | 'invitation.refused'
+  /** Endings an administrator caused: taken back, or replaced by a fresh invitation. */
+  | 'invitation.revoked'
+  | 'invitation.resent';
 
 /** What a caller supplies; the log stamps the id and timestamp. */
 export interface SecurityEventInput {

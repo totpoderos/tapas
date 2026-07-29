@@ -4,7 +4,7 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
 import { makeTestApp, MutableClock, promoteToAdministrator, type TestApp } from '../support/test-server.js';
-import { invitationSentTo, tokenFromLink } from '../support/invitations.js';
+import { invitationSentTo, signInAdministrator, tokenFromLink } from '../support/invitations.js';
 
 const ISSUED_AT = '2026-07-29T10:00:00.000Z';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -83,6 +83,29 @@ async function signInAsAdministrator(
 
 function invitationRows(db: DatabaseSync, email: string): unknown[] {
   return db.prepare('SELECT * FROM host_invitations WHERE email = ?').all(email);
+}
+
+type Invited = Awaited<ReturnType<typeof invitationSentTo>>;
+
+/** An administrative request on an invitation, named by id — never by token. */
+function asAdministrator(
+  sent: Invited,
+  options: { method: 'GET' | 'POST'; url: string; payload?: Record<string, unknown> },
+): Promise<LightMyRequestResponse> {
+  return sent.test.app.inject({ ...options, headers: { cookie: sent.adminCookie } });
+}
+
+function acceptWith(test: TestApp, token: string): Promise<LightMyRequestResponse> {
+  return test.app.inject({
+    method: 'POST',
+    url: `/invites/${token}/accept`,
+    payload: { password: STRONG_PASSWORD },
+  });
+}
+
+/** The token from the most recent message — how a resent invitation's recipient gets theirs. */
+function newestToken(test: TestApp): string {
+  return tokenFromLink(test.mailer.sent.at(-1)!.link);
 }
 
 describeFeature(feature, ({ Scenario }) => {
@@ -601,6 +624,389 @@ describeFeature(feature, ({ Scenario }) => {
     Then('accepting is still refused because the link cannot be used', () => {
       expect(response.statusCode).toBe(404);
       expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+  });
+
+  Scenario('An administrator sees the invitations and how they stand', ({ Given, When, Then, And }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator asks to see the invitations', async () => {
+      response = await asAdministrator(sent, { method: 'GET', url: '/admin/invites' });
+    });
+    Then('that invitation is listed with the address it was sent to', () => {
+      expect(response.statusCode).toBe(200);
+      const listed = response.json().invitations;
+      expect(listed).toHaveLength(1);
+      expect(listed[0].email).toBe(INVITED);
+    });
+    And('it is shown as pending', () => {
+      expect(response.json().invitations[0].status).toBe('pending');
+    });
+  });
+
+  Scenario('An invitation whose time has run out is shown as expired', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let clock: MutableClock;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      sent = await invitationSentTo(INVITED, clock);
+    });
+    When('more than 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS + 1000);
+    });
+    And('the administrator asks to see the invitations', async () => {
+      sent.adminCookie = await signInAdministrator(sent.test); // the day-old session has expired
+      response = await asAdministrator(sent, { method: 'GET', url: '/admin/invites' });
+    });
+    Then('that invitation is shown as expired', () => {
+      expect(response.json().invitations[0].status).toBe('expired');
+    });
+  });
+
+  Scenario('The listing reveals no link', ({ Given, When, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator asks to see the invitations', async () => {
+      response = await asAdministrator(sent, { method: 'GET', url: '/admin/invites' });
+    });
+    Then("no invitation's link appears in the listing", () => {
+      expect(response.body).not.toContain(sent.token);
+    });
+  });
+
+  Scenario('An ordinary host cannot see the invitations', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host "bob@example.com"', async () => {
+      test = makeTestApp();
+      jar = new CookieJar();
+      await registerAndLogin(test.app, jar, 'bob@example.com');
+    });
+    When('that host asks to see the invitations', async () => {
+      response = await request(test.app, jar, { method: 'GET', url: '/admin/invites' });
+    });
+    Then('access is refused as not allowed', () => {
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error.code).toBe('NOT_ALLOWED');
+    });
+  });
+
+  Scenario('A revoked link stops working', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator revokes it', async () => {
+      const revoked = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/revoke`,
+      });
+      expect(revoked.statusCode).toBe(200);
+    });
+    And('the invited person tries to accept with a strong password', async () => {
+      response = await acceptWith(sent.test, sent.token);
+    });
+    Then('accepting is refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+    And('no host account exists for "nuevo@example.com"', () => {
+      const row = sent.test.db
+        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+        .get(INVITED);
+      expect(row).toBeUndefined();
+    });
+  });
+
+  Scenario('A revoked link no longer opens either', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator revokes it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/revoke` });
+    });
+    And('the invited person opens their link', async () => {
+      response = await sent.test.app.inject({ method: 'GET', url: `/invites/${sent.token}` });
+    });
+    Then('opening is refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+  });
+
+  Scenario('An accepted invitation cannot be revoked', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the invited person accepts with a strong password', async () => {
+      expect((await acceptWith(sent.test, sent.token)).statusCode).toBe(201);
+    });
+    And('the administrator tries to revoke it', async () => {
+      response = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/revoke`,
+      });
+    });
+    Then('revoking is refused because there is nothing to revoke', () => {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('NOTHING_TO_REVOKE');
+    });
+  });
+
+  Scenario('An invitation cannot be revoked twice', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator revokes it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/revoke` });
+    });
+    And('the administrator tries to revoke it again', async () => {
+      response = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/revoke`,
+      });
+    });
+    Then('revoking is refused because there is nothing to revoke', () => {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('NOTHING_TO_REVOKE');
+    });
+  });
+
+  Scenario('Resending sends a new link to the same address', ({ Given, When, Then, And }) => {
+    let sent: Invited;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator resends it', async () => {
+      const resent = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+      expect(resent.statusCode).toBe(201);
+    });
+    Then('a message is sent to "nuevo@example.com"', () => {
+      expect(sent.test.mailer.sent).toHaveLength(2);
+      expect(sent.test.mailer.sent[1]!.to).toBe(INVITED);
+    });
+    And('it carries a different link from the first', () => {
+      expect(sent.test.mailer.sent[1]!.link).not.toBe(sent.test.mailer.sent[0]!.link);
+    });
+  });
+
+  Scenario('The new link works and the old one dies', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator resends it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/resend` });
+    });
+    And('the invited person tries to accept with the original link', async () => {
+      response = await acceptWith(sent.test, sent.token);
+    });
+    Then('accepting is refused because the link cannot be used', () => {
+      expect(response.statusCode).toBe(404);
+      expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
+    });
+    And('accepting with the new link creates the host account', async () => {
+      const withNewLink = await acceptWith(sent.test, newestToken(sent.test));
+      expect(withNewLink.statusCode).toBe(201);
+    });
+  });
+
+  Scenario('The new invitation gets its own full window', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let clock: MutableClock;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      sent = await invitationSentTo(INVITED, clock);
+    });
+    When('nearly 24 hours pass and the administrator resends it', async () => {
+      clock.advance(ONE_DAY_MS - 1000);
+      sent.adminCookie = await signInAdministrator(sent.test); // the day-old session has expired
+      const resent = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+      expect(resent.statusCode).toBe(201);
+    });
+    And('nearly another 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS - 1000);
+    });
+    And('the invited person accepts with the new link', async () => {
+      const accepted = await acceptWith(sent.test, newestToken(sent.test));
+      expect(accepted.statusCode).toBe(201);
+    });
+    Then('a host account exists for "nuevo@example.com"', () => {
+      const row = sent.test.db
+        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+        .get(INVITED) as { email: string } | undefined;
+      expect(row?.email).toBe(INVITED);
+    });
+  });
+
+  Scenario('An expired invitation can be resent', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let clock: MutableClock;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      clock = new MutableClock(ISSUED_AT);
+      sent = await invitationSentTo(INVITED, clock);
+    });
+    When('more than 24 hours pass', () => {
+      clock.advance(ONE_DAY_MS + 1000);
+    });
+    And('the administrator resends it', async () => {
+      sent.adminCookie = await signInAdministrator(sent.test); // the day-old session has expired
+      const resent = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+      expect(resent.statusCode).toBe(201);
+    });
+    Then('the invited person can accept with the new link', async () => {
+      const accepted = await acceptWith(sent.test, newestToken(sent.test));
+      expect(accepted.statusCode).toBe(201);
+    });
+  });
+
+  Scenario('A revoked invitation cannot be resent', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator revokes it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/revoke` });
+    });
+    And('the administrator tries to resend it', async () => {
+      response = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+    });
+    Then('resending is refused because that invitation is finished', () => {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('INVITATION_FINISHED');
+    });
+  });
+
+  Scenario('An accepted invitation cannot be resent', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the invited person accepts with a strong password', async () => {
+      expect((await acceptWith(sent.test, sent.token)).statusCode).toBe(201);
+    });
+    And('the administrator tries to resend it', async () => {
+      response = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+    });
+    Then('resending is refused because that invitation is finished', () => {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('INVITATION_FINISHED');
+    });
+  });
+
+  Scenario('A superseded invitation cannot be resent again', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator resends it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/resend` });
+    });
+    And('the administrator tries to resend the original invitation again', async () => {
+      response = await asAdministrator(sent, {
+        method: 'POST',
+        url: `/admin/invites/${sent.id}/resend`,
+      });
+    });
+    Then('resending is refused because that invitation is finished', () => {
+      expect(response.statusCode).toBe(409);
+      expect(response.json().error.code).toBe('INVITATION_FINISHED');
+    });
+  });
+
+  Scenario('A revoked link is refused exactly like one that never existed', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator revokes it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/revoke` });
+    });
+    And('the invited person tries to accept with a strong password', async () => {
+      response = await acceptWith(sent.test, sent.token);
+    });
+    Then('the refusal is the same as for a link that never existed', async () => {
+      const unknown = await acceptWith(sent.test, 'a-token-nobody-ever-issued');
+      expect(response.statusCode).toBe(unknown.statusCode);
+      expect(response.body).toBe(unknown.body);
+    });
+    And('the refusal names no email address', () => {
+      expect(response.body).not.toContain('@');
+    });
+  });
+
+  // Not a scenario in the feature: the feature says each refusal matches the
+  // unknown one, which is what a spec reader cares about. This pins the
+  // consequence — all five are identical to each other, so no future route can
+  // helpfully leak which one applied.
+  Scenario('A superseded link is refused exactly like one that never existed', ({ Given, When, And, Then }) => {
+    let sent: Invited;
+    let response: LightMyRequestResponse;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      sent = await invitationSentTo(INVITED);
+    });
+    When('the administrator resends it', async () => {
+      await asAdministrator(sent, { method: 'POST', url: `/admin/invites/${sent.id}/resend` });
+    });
+    And('the invited person tries to accept with the original link', async () => {
+      response = await acceptWith(sent.test, sent.token);
+    });
+    Then('the refusal is the same as for a link that never existed', async () => {
+      const unknown = await acceptWith(sent.test, 'a-token-nobody-ever-issued');
+      expect(response.statusCode).toBe(unknown.statusCode);
+      expect(response.body).toBe(unknown.body);
     });
   });
 
