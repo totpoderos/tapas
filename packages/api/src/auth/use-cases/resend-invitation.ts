@@ -8,7 +8,12 @@ export type ResendInvitationErrorCode =
   | 'RESEND_FAILED';
 
 export type ResendInvitationResult =
-  | { readonly ok: true; readonly invitationId: string }
+  | {
+      readonly ok: true;
+      readonly invitationId: string;
+      readonly messageSent: boolean;
+      readonly link?: string;
+    }
   | {
       readonly ok: false;
       readonly error: { readonly code: ResendInvitationErrorCode; readonly message: string };
@@ -58,6 +63,7 @@ export class ResendInvitation {
       };
 
     this.deps.invitations.markSuperseded(invitation.id, issued.invitationId);
-    return { ok: true, invitationId: issued.invitationId };
+    // The outcome is the issuing path's to report; nothing is re-decided here.
+    return { ok: true, invitationId: issued.invitationId, messageSent: issued.messageSent, link: issued.link };
   }
 }

@@ -56,3 +56,10 @@ Feature: Claiming a deployment
     When "operator@example.com" claims it and accepts with a strong password
     And "operator@example.com" tries to claim it again
     Then claiming is refused because the deployment is already claimed
+
+  Scenario: A claim whose message cannot be sent still stands
+    Given a deployment configured for "operator@example.com" whose mail server will take nothing
+    When "operator@example.com" claims it
+    Then claiming is not refused
+    And the link is offered in that answer
+    And accepting with that link makes the administrator

@@ -20,6 +20,12 @@ export interface StoredInvitation {
   readonly revokedAt: string | null;
   /** The role this invitation creates when accepted. Only a claim on an unclaimed deployment sets 'admin'. */
   readonly invitedRole: HostRole;
+  /**
+   * Whether this invitation's message was handed off to a mail server — not
+   * whether it was delivered, which nothing here can observe. `null` for
+   * invitations issued before anything could fail to send.
+   */
+  readonly messageSent: boolean | null;
   /** The invitation that replaced this one, when it was superseded by a resend. */
   readonly supersededBy: string | null;
 }
@@ -32,6 +38,7 @@ export interface HostInvitationRepository {
   markAccepted(id: string, acceptedAt: string): void;
   markRevoked(id: string, revokedAt: string): void;
   markSuperseded(id: string, supersededBy: string): void;
+  recordHandoff(id: string, messageSent: boolean): void;
 }
 
 interface InvitationRow {
@@ -45,6 +52,7 @@ interface InvitationRow {
   revoked_at: string | null;
   superseded_by: string | null;
   invited_role: string;
+  message_sent: number | null;
 }
 
 function toInvitation(row: InvitationRow): StoredInvitation {
@@ -59,6 +67,7 @@ function toInvitation(row: InvitationRow): StoredInvitation {
     revokedAt: row.revoked_at,
     supersededBy: row.superseded_by,
     invitedRole: row.invited_role as HostRole,
+    messageSent: row.message_sent === null ? null : row.message_sent === 1,
   };
 }
 
@@ -68,8 +77,8 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
   insert(invitation: StoredInvitation): void {
     this.db
       .prepare(
-        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by, invited_role)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by, invited_role, message_sent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         invitation.id,
@@ -82,6 +91,7 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
         invitation.revokedAt,
         invitation.supersededBy,
         invitation.invitedRole,
+        invitation.messageSent === null ? null : Number(invitation.messageSent),
       );
   }
 
@@ -122,5 +132,11 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
     this.db
       .prepare(`UPDATE host_invitations SET status = 'superseded', superseded_by = ? WHERE id = ?`)
       .run(supersededBy, id);
+  }
+
+  recordHandoff(id: string, messageSent: boolean): void {
+    this.db
+      .prepare(`UPDATE host_invitations SET message_sent = ? WHERE id = ?`)
+      .run(Number(messageSent), id);
   }
 }

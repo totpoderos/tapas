@@ -5,7 +5,12 @@ import type { InviteHost } from './invite-host.js';
 export type ClaimDeploymentErrorCode = 'SETUP_COMPLETE' | 'CLAIM_REFUSED';
 
 export type ClaimDeploymentResult =
-  | { readonly ok: true; readonly invitationId: string }
+  | {
+      readonly ok: true;
+      readonly invitationId: string;
+      readonly messageSent: boolean;
+      readonly link?: string;
+    }
   | {
       readonly ok: false;
       readonly error: { readonly code: ClaimDeploymentErrorCode; readonly message: string };
@@ -71,6 +76,8 @@ export class ClaimDeployment {
     for (const previous of outstanding)
       this.deps.invitations.markSuperseded(previous.id, issued.invitationId);
 
-    return { ok: true, invitationId: issued.invitationId };
+    // A first-run deployment has no administrator to resend for it, so the link
+    // in this answer is the only remedy when no mail server would take the message.
+    return { ok: true, invitationId: issued.invitationId, messageSent: issued.messageSent, link: issued.link };
   }
 }

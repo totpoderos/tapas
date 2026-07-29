@@ -22,6 +22,8 @@ export type SecurityEventType =
   /** Endings an administrator caused: taken back, or replaced by a fresh invitation. */
   | 'invitation.revoked'
   | 'invitation.resent'
+  /** No mail server would take an invitation's message; somebody holds a live link they never got. */
+  | 'invitation.not_sent'
   /** A deployment being claimed, claimed successfully, or somebody trying to claim one that is not theirs. */
   | 'admin_bootstrap.claimed'
   | 'admin_bootstrap.completed'

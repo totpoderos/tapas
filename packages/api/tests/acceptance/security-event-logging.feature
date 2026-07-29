@@ -117,6 +117,17 @@ Feature: Security-event logging
     Then the security log records a refused claim
     And no security log entry reveals "operator@example.com"
 
+  Scenario: A message that could not be sent is recorded
+    Given an administrator "ana@example.com" whose mail server will take nothing
+    When that administrator invites "nuevo@example.com"
+    Then the security log records that the message did not go out
+    And no security log entry contains that invitation's link
+
+  Scenario: A message that was sent is not noise in the log
+    Given an administrator "ana@example.com"
+    When that administrator invites "nuevo@example.com"
+    Then no failed-message entry is recorded
+
   Scenario: A refusal for an unknown link is not recorded as an expiry
     Given an administrator "ana@example.com"
     When someone tries to accept with a link that no invitation ever had

@@ -85,6 +85,21 @@ function invitationRows(db: DatabaseSync, email: string): unknown[] {
   return db.prepare('SELECT * FROM host_invitations WHERE email = ?').all(email);
 }
 
+/** An administrator on an app whose mailer refuses everything, as a dead mail server would. */
+async function administratorWithNoMailServer(): Promise<{ test: TestApp; jar: CookieJar }> {
+  const test = makeTestApp();
+  const jar = new CookieJar();
+  await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+  test.mailer.failEverySend();
+  return { test, jar };
+}
+
+function storedInvitation(db: DatabaseSync, email: string) {
+  return db.prepare('SELECT * FROM host_invitations WHERE email = ?').get(email) as
+    | { message_sent: number | null }
+    | undefined;
+}
+
 type Invited = Awaited<ReturnType<typeof invitationSentTo>>;
 
 /** An administrative request on an invitation, named by id — never by token. */
@@ -1032,6 +1047,140 @@ describeFeature(feature, ({ Scenario }) => {
       const unknown = await acceptWith(sent.test, 'a-token-nobody-ever-issued');
       expect(response.statusCode).toBe(unknown.statusCode);
       expect(response.body).toBe(unknown.body);
+    });
+  });
+
+  Scenario('The invitation survives a message that could not be sent', ({ Given, When, Then, And }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
+      ({ test, jar } = await administratorWithNoMailServer());
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      response = await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('inviting is not refused', () => {
+      expect(response.statusCode).toBe(201);
+    });
+    And('an invitation for "nuevo@example.com" is pending', () => {
+      expect(invitationRows(test.db, INVITED)).toHaveLength(1);
+    });
+    And('the administrator is told the message did not go out', () => {
+      expect(response.json().messageSent).toBe(false);
+    });
+  });
+
+  Scenario('A failed handoff offers the link, once', ({ Given, When, Then, And }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
+      ({ test, jar } = await administratorWithNoMailServer());
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      response = await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('the link is offered to that administrator', () => {
+      expect(response.json().link).toMatch(/^https?:\/\/.+\/.+$/);
+    });
+    And('the invited person can accept with it and become a host', async () => {
+      const accepted = await acceptWith(test, tokenFromLink(response.json().link));
+      expect(accepted.statusCode).toBe(201);
+    });
+  });
+
+  Scenario('A successful handoff offers no link', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com"', async () => {
+      test = makeTestApp();
+      jar = new CookieJar();
+      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      response = await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('no link is offered to that administrator', () => {
+      expect(response.json().messageSent).toBe(true);
+      expect(response.json().link).toBeUndefined();
+    });
+  });
+
+  Scenario('The link is still absent from the stored invitation when sending failed', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
+      ({ test, jar } = await administratorWithNoMailServer());
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      response = await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('the stored invitation does not contain the link', () => {
+      const token = tokenFromLink(response.json().link);
+      expect(JSON.stringify(invitationRows(test.db, INVITED))).not.toContain(token);
+    });
+  });
+
+  Scenario('A handed-off message is recorded as such', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+
+    Given('an administrator "ana@example.com"', async () => {
+      test = makeTestApp();
+      jar = new CookieJar();
+      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('the invitation records that its message went out', () => {
+      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(1);
+    });
+  });
+
+  Scenario('A message that could not be handed off is recorded as such', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let jar: CookieJar;
+
+    Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
+      ({ test, jar } = await administratorWithNoMailServer());
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('the invitation records that its message did not go out', () => {
+      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(0);
     });
   });
 

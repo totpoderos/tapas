@@ -9,6 +9,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 const API_PORT = 3100;
 const WEB_PORT = 5173;
+// The mail catcher. Started here rather than by a CI `services:` block so a
+// local run and CI start it the same way — this slice exists partly because an
+// untested path was allowed to diverge from a shipped one, and a CI-only
+// service is that shape again.
+const MAIL_SMTP_PORT = 1125;
+const MAIL_API_PORT = 8125;
 
 const API_ENV = [
   // `development`, not `test`, because that is genuinely what this stack is: two
@@ -32,7 +38,17 @@ const API_ENV = [
   // Drive the assistant with a deterministic keyword stub — no live model needed
   // headless. The chat-panel E2E steers it by what it types (see the stub client).
   'ASSISTANT_STUB=1',
+  // Real SMTP to a real catcher: the E2E exercises the transport that ships,
+  // and reads the message the way its recipient would rather than reaching into
+  // the database for a token hash.
+  'MAIL_HOST=localhost',
+  `MAIL_PORT=${MAIL_SMTP_PORT}`,
+  'MAIL_FROM=no-reply@tapas.example',
+  'ADMIN_BOOTSTRAP_EMAIL=e2e-operator@sobremesa.es',
 ].join(' ');
+
+/** Where a spec reads what was sent. Exported so the mail helper agrees with the runner. */
+export const MAILPIT_API = `http://localhost:${MAIL_API_PORT}`;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -68,6 +84,13 @@ export default defineConfig({
     },
   ],
   webServer: [
+    {
+      // Docker is a prerequisite for the E2E loop; see tests/e2e/README.md.
+      command: `docker run --rm -p ${MAIL_SMTP_PORT}:1025 -p ${MAIL_API_PORT}:8025 axllent/mailpit:latest`,
+      url: `${MAILPIT_API}/api/v1/info`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
     {
       command: `${API_ENV} npm run start -w @tapas/api`,
       url: `http://localhost:${API_PORT}/health`,

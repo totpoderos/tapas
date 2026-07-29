@@ -34,6 +34,10 @@ export class FakeInvitationRepository implements HostInvitationRepository {
     this.patch(id, { status: 'superseded', supersededBy });
   }
 
+  recordHandoff(id: string, messageSent: boolean): void {
+    this.patch(id, { messageSent });
+  }
+
   private patch(id: string, fields: Partial<StoredInvitation>): void {
     const index = this.stored.findIndex((invitation) => invitation.id === id);
     if (index >= 0) this.stored[index] = { ...this.stored[index]!, ...fields };
@@ -53,6 +57,7 @@ export function pendingInvitation(overrides: Partial<StoredInvitation> = {}): St
     revokedAt: null,
     supersededBy: null,
     invitedRole: 'host',
+    messageSent: true,
     ...overrides,
   };
 }

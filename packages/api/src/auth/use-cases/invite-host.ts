@@ -8,7 +8,19 @@ import { generateSecretToken, hashSecretToken } from '../random-token.js';
 export type InviteHostErrorCode = 'INVALID_EMAIL' | 'EMAIL_TAKEN';
 
 export type InviteHostResult =
-  | { readonly ok: true; readonly invitationId: string }
+  | {
+      readonly ok: true;
+      readonly invitationId: string;
+      /** Whether a mail server took the message. Never a claim that anyone received it. */
+      readonly messageSent: boolean;
+      /**
+       * The link, present only when no mail server would take the message.
+       * Offered once, in this answer, and never stored — the raw token lives
+       * only here, and keeping it would make the stored invitation enough to
+       * accept with.
+       */
+      readonly link?: string;
+    }
   | {
       readonly ok: false;
       readonly error: { readonly code: InviteHostErrorCode; readonly message: string };
@@ -64,13 +76,32 @@ export class InviteHost {
       revokedAt: null,
       supersededBy: null,
       invitedRole,
+      messageSent: false,
     };
+    const link = `${this.deps.linkBase}/${token}`;
+
+    // Stored first, then sent, so that a send which fails leaves an invitation
+    // that exists rather than one that was lost — and the send is guarded, so
+    // that it actually does. An unguarded await made this comment a promise the
+    // code did not keep: a transport that threw turned a stored, live
+    // invitation into a failed request carrying neither the link nor the id
+    // needed to resend it.
     this.deps.invitations.insert(invitation);
 
-    // Stored first, then sent: a send that fails leaves an invitation that
-    // exists rather than one that was lost.
-    await this.deps.mailer.send({ to: email, link: `${this.deps.linkBase}/${token}` });
+    let messageSent = true;
+    try {
+      await this.deps.mailer.send({ to: email, link });
+    } catch {
+      // Deliberately swallowed. Why it failed is the mail server's business;
+      // what matters here is that it did, which the caller is told and the
+      // invitation records. There is no retry: one attempt, an honest answer,
+      // and resending is the remedy.
+      messageSent = false;
+    }
+    this.deps.invitations.recordHandoff(invitation.id, messageSent);
 
-    return { ok: true, invitationId: invitation.id };
+    return messageSent
+      ? { ok: true, invitationId: invitation.id, messageSent: true }
+      : { ok: true, invitationId: invitation.id, messageSent: false, link };
   }
 }

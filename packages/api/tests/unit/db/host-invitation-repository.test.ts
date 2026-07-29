@@ -17,6 +17,7 @@ const INVITATION: StoredInvitation = {
   revokedAt: null,
   supersededBy: null,
   invitedRole: 'host',
+  messageSent: null,
 };
 
 describe('SqliteHostInvitationRepository', () => {
@@ -50,6 +51,25 @@ describe('SqliteHostInvitationRepository', () => {
       status: 'accepted',
       acceptedAt: '2026-07-29T11:00:00.000Z',
     });
+  });
+
+  it('records a handoff that succeeded and one that did not', () => {
+    invitations.insert(INVITATION);
+
+    invitations.recordHandoff('inv-1', true);
+    expect(invitations.findById('inv-1')?.messageSent).toBe(true);
+
+    invitations.recordHandoff('inv-1', false);
+    expect(invitations.findById('inv-1')?.messageSent).toBe(false);
+  });
+
+  it('leaves an invitation from before anything could fail to send unrecorded', () => {
+    // Null is not "did not send" — it is "nothing was ever observed". Existing
+    // rows were sent by a mailer that could not fail; giving them an outcome
+    // would be inventing history.
+    invitations.insert(INVITATION);
+
+    expect(invitations.findById('inv-1')?.messageSent).toBeNull();
   });
 
   it('refuses to store two invitations with the same token hash', () => {

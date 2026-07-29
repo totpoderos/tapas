@@ -32,6 +32,12 @@ const BASE_ENV: Env = {
   ASSISTANT_CONFIRMATION_SECRET: 'test-assistant-confirmation-secret-32chars',
   ASSISTANT_STUB: 0,
   ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
+  MAIL_HOST: 'localhost',
+  MAIL_PORT: 1025,
+  MAIL_SECURE: false,
+  MAIL_USER: '',
+  MAIL_PASSWORD: '',
+  MAIL_FROM: 'no-reply@tapas.example',
 };
 
 const FIXED_CLOCK: Clock = { now: () => '2026-07-19T10:00:00.000Z' };

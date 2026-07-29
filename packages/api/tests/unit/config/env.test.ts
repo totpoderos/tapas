@@ -33,6 +33,24 @@ describe('loadEnv', () => {
     ).toThrow(EnvValidationError);
   });
 
+  // z.coerce.boolean() reads any non-empty string as true, so MAIL_SECURE=false
+  // would have switched implicit TLS on — an env var meaning its own opposite.
+  it('reads MAIL_SECURE=false as false', () => {
+    const env = loadEnv({
+      JWT_SECRET: STRONG_SECRET,
+      MAIL_SECURE: 'false',
+    } as unknown as NodeJS.ProcessEnv);
+    expect(env.MAIL_SECURE).toBe(false);
+  });
+
+  it('reads MAIL_SECURE=true as true', () => {
+    const env = loadEnv({
+      JWT_SECRET: STRONG_SECRET,
+      MAIL_SECURE: 'true',
+    } as unknown as NodeJS.ProcessEnv);
+    expect(env.MAIL_SECURE).toBe(true);
+  });
+
   // Threat-model G2: a short signing key is brute-forceable.
   it('rejects a JWT_SECRET shorter than 32 characters', () => {
     expect(() => loadEnv({ JWT_SECRET: 'too-short' } as NodeJS.ProcessEnv)).toThrow(EnvValidationError);
@@ -46,6 +64,8 @@ describe('loadEnv', () => {
       HOST_WEB_ORIGIN: 'https://host.example.com',
       PARTICIPANT_WEB_ORIGIN: 'https://app.example.com',
       ADMIN_BOOTSTRAP_EMAIL: 'operator@example.com',
+      MAIL_HOST: 'smtp.example.com',
+      MAIL_FROM: 'no-reply@sobremesa.es',
     } as unknown as NodeJS.ProcessEnv;
 
     it('refuses to boot when ASSISTANT_CONFIRMATION_SECRET is still the committed dev default', () => {
@@ -92,6 +112,29 @@ describe('loadEnv', () => {
         ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
       } as NodeJS.ProcessEnv);
       expect(env.ADMIN_BOOTSTRAP_EMAIL).toBe('operator@example.com');
+    });
+
+    // Mail is the only route to a host account, so a production deployment that
+    // cannot send is one where nobody can ever be invited — and it would only
+    // say so on the first invite, weeks after deploy.
+    it('refuses to boot in production while mail still points at a local catcher', () => {
+      const { MAIL_HOST: _omitted, ...withoutIt } = base as Record<string, string>;
+      expect(() =>
+        loadEnv({
+          ...withoutIt,
+          ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+        } as unknown as NodeJS.ProcessEnv),
+      ).toThrow(EnvValidationError);
+    });
+
+    it('refuses to boot in production with the committed sender address', () => {
+      const { MAIL_FROM: _omitted, ...withoutIt } = base as Record<string, string>;
+      expect(() =>
+        loadEnv({
+          ...withoutIt,
+          ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+        } as unknown as NodeJS.ProcessEnv),
+      ).toThrow(EnvValidationError);
     });
 
     it('still allows the dev default outside production', () => {

@@ -9,6 +9,26 @@ const INVITE_ERROR_STATUS: Record<InviteHostErrorCode, number> = {
   EMAIL_TAKEN: 409,
 };
 
+/**
+ * What an administrator is told about an invitation they just issued. The link
+ * appears only when no mail server would take the message, and only here — it
+ * is never stored, so this answer is the one chance to copy it.
+ */
+function invitationAnswer(issued: {
+  invitationId: string;
+  messageSent: boolean;
+  link?: string;
+}): Record<string, unknown> {
+  return issued.messageSent
+    ? { invitationId: issued.invitationId, messageSent: true }
+    : { invitationId: issued.invitationId, messageSent: false, link: issued.link };
+}
+
+/** Mail failing quietly is how an enrollment path stops working with nobody told. */
+function recordUnsentMessage(deps: ServerDeps, actorId: string | null, sourceIp: string): void {
+  deps.securityLog.record({ type: 'invitation.not_sent', actorId, sourceIp });
+}
+
 /** An administrator is trusted with the invitations, so these say plainly what went wrong. */
 const INVITATION_ACTION_STATUS: Record<string, number> = {
   INVITATION_NOT_FOUND: 404,
@@ -44,7 +64,8 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
         actorId: invitedBy,
         sourceIp: request.ip,
       });
-      return reply.code(201).send({ invitationId: invited.invitationId });
+      if (!invited.messageSent) recordUnsentMessage(deps, invitedBy, request.ip);
+      return reply.code(201).send(invitationAnswer(invited));
     },
   );
 
@@ -88,7 +109,8 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
         actorId: resentBy,
         sourceIp: request.ip,
       });
-      return reply.code(201).send({ invitationId: resent.invitationId });
+      if (!resent.messageSent) recordUnsentMessage(deps, resentBy, request.ip);
+      return reply.code(201).send(invitationAnswer(resent));
     },
   );
 }
