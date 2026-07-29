@@ -34,6 +34,13 @@ services:
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-in-production}
       ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:-dev-assistant-confirmation-secret-change-me}
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@example.com}
+      # Points at the catcher below. With nothing listening, every invitation's
+      # handoff fails and the link comes back in the response instead — the same
+      # path an administrator takes when a real mail server is down, so there is
+      # no development-only branch to keep working.
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@tapas.example}
       # CORS allowlist = the two app origins the browser loads.
       HOST_WEB_ORIGIN: http://localhost:4173
       PARTICIPANT_WEB_ORIGIN: http://localhost:4174
@@ -121,6 +128,16 @@ services:
   # started by a plain `docker compose up`. Bring it up with:
   #   docker compose --profile mcp run --rm mcp
   # and supply a real host personal-access token in MCP_HOST_TOKEN.
+  # Catches mail so the demo can show a real invitation arriving. It speaks
+  # SMTP, so the demo exercises the same transport production does — pointed at
+  # a local inbox instead of a relay. Web UI on 8025, SMTP on 1025.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '8025:8025'
+      - '1025:1025'
+
   mcp:
     build:
       context: .

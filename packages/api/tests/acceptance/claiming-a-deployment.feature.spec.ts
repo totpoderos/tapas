@@ -53,6 +53,38 @@ async function claimAndAccept(test: TestApp): Promise<{ cookie: string; accepted
 }
 
 describeFeature(feature, ({ Scenario }) => {
+  Scenario('A claim whose message cannot be sent still stands', ({ Given, When, Then, And }) => {
+    let test: TestApp;
+    let response: LightMyRequestResponse;
+
+    Given(
+      'a deployment configured for "operator@example.com" whose mail server will take nothing',
+      () => {
+        test = unclaimedDeployment();
+        test.mailer.failEverySend();
+      },
+    );
+    When('"operator@example.com" claims it', async () => {
+      response = await claim(test, OPERATOR);
+    });
+    Then('claiming is not refused', () => {
+      expect(response.statusCode).toBe(201);
+      expect(response.json().messageSent).toBe(false);
+    });
+    And('the link is offered in that answer', () => {
+      expect(response.json().link).toMatch(/^https?:\/\/.+\/.+$/);
+    });
+    And('accepting with that link makes the administrator', async () => {
+      const link: string = response.json().link;
+      const accepted = await accept(test, link.slice(link.lastIndexOf('/') + 1));
+      expect(accepted.statusCode).toBe(201);
+      const row = test.db
+        .prepare('SELECT role FROM host_accounts WHERE email = ?')
+        .get(OPERATOR) as { role: string } | undefined;
+      expect(row?.role).toBe('admin');
+    });
+  });
+
   Scenario('An unclaimed deployment says so', ({ Given, When, Then }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;

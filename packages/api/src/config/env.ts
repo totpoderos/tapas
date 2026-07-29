@@ -11,6 +11,15 @@ const ASSISTANT_CONFIRMATION_DEV_DEFAULT = 'dev-assistant-confirmation-secret-ch
  * it is rejected there exactly as the dev secrets are.
  */
 const ADMIN_BOOTSTRAP_DEV_DEFAULT = 'admin@example.com';
+/**
+ * Development points at a local mail catcher. Nothing needs to be running for
+ * the app to work: with no catcher up, every invitation's handoff fails and the
+ * link comes back in the response — which is the same path an administrator
+ * takes when production's mail server is down, so the fallback is the feature
+ * rather than a development-only branch.
+ */
+const MAIL_DEV_HOST = 'localhost';
+const MAIL_DEV_FROM = 'no-reply@tapas.example';
 // Committed dev/example values for the two secrets this schema owns; rejected in
 // production below. (The JWT one is <32 chars, so the length floor also catches
 // it — it is listed for an explicit, readable failure message.)
@@ -55,6 +64,20 @@ const EnvSchema = z
       .string()
       .email('ADMIN_BOOTSTRAP_EMAIL must be an email address')
       .default(ADMIN_BOOTSTRAP_DEV_DEFAULT),
+    // Mail is the only route to a host account, so a deployment that cannot
+    // send is one where nobody can ever be invited. The defaults point at a
+    // local catcher; production must name a real server (enforced below).
+    MAIL_HOST: z.string().min(1).default(MAIL_DEV_HOST),
+    MAIL_PORT: z.coerce.number().int().positive().default(1025),
+    // Not `z.coerce.boolean()`: that reads the string "false" as true, so
+    // MAIL_SECURE=false would turn implicit TLS on.
+    MAIL_SECURE: z
+      .union([z.boolean(), z.string()])
+      .default(false)
+      .transform((value) => value === true || value === 'true'),
+    MAIL_USER: z.string().default(''),
+    MAIL_PASSWORD: z.string().default(''),
+    MAIL_FROM: z.string().email('MAIL_FROM must be an email address').default(MAIL_DEV_FROM),
   })
   // In production, no secret may still be a publicly-known committed default.
   .superRefine((env, ctx) => {
@@ -70,6 +93,22 @@ const EnvSchema = z
     }
     // Not a secret, but leaving it in place would hand the deployment to
     // whoever holds the committed example inbox.
+    // A production deployment pointed at a local catcher can never invite
+    // anyone, and would only say so on the first invite, weeks later.
+    if (env.MAIL_HOST === MAIL_DEV_HOST) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MAIL_HOST'],
+        message: 'MAIL_HOST must name a real mail server in production (mail is the only way to invite anyone)',
+      });
+    }
+    if (env.MAIL_FROM === MAIL_DEV_FROM) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['MAIL_FROM'],
+        message: 'MAIL_FROM must be overridden in production (the committed dev default is not allowed)',
+      });
+    }
     if (env.ADMIN_BOOTSTRAP_EMAIL === ADMIN_BOOTSTRAP_DEV_DEFAULT) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

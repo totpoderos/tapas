@@ -47,7 +47,18 @@ export function registerSetupRoutes(app: FastifyInstance, deps: ServerDeps): voi
         actorId: null,
         sourceIp: request.ip,
       });
-      return reply.code(201).send({ invitationId: claimed.invitationId });
+      if (!claimed.messageSent) {
+        deps.securityLog.record({
+          type: 'invitation.not_sent',
+          actorId: null,
+          sourceIp: request.ip,
+        });
+      }
+      return reply.code(201).send(
+        claimed.messageSent
+          ? { invitationId: claimed.invitationId, messageSent: true }
+          : { invitationId: claimed.invitationId, messageSent: false, link: claimed.link },
+      );
     },
   );
 }

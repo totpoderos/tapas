@@ -33,7 +33,8 @@ import { ResendInvitation } from './auth/use-cases/resend-invitation.js';
 import { RevokeInvitation } from './auth/use-cases/revoke-invitation.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
 import { SqliteHostInvitationRepository } from './db/host-invitation-repository.js';
-import { InMemoryMailer } from './mail/mailer.js';
+import type { Mailer } from './mail/mailer.js';
+import { SmtpMailer } from './mail/smtp-mailer.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
 import { CreateDraft } from './drafts/use-cases/create-draft.js';
@@ -78,6 +79,17 @@ export function buildProductionDeps(
         apiKey: env.LLM_API_KEY,
         model: env.LLM_MODEL,
       }),
+  // SMTP everywhere the API process is not itself the test. Tests that run
+  // inside the process pass the in-memory one and read what it was asked to
+  // send; nothing else ever uses a second transport.
+  mailer: Mailer = new SmtpMailer({
+    host: env.MAIL_HOST,
+    port: env.MAIL_PORT,
+    secure: env.MAIL_SECURE,
+    user: env.MAIL_USER,
+    password: env.MAIL_PASSWORD,
+    from: env.MAIL_FROM,
+  }),
 ): ServerDeps {
   const ids = new UuidIdGenerator();
 
@@ -96,7 +108,6 @@ export function buildProductionDeps(
   const tokens = new HmacJwtTokenIssuer(env.JWT_SECRET, clock);
 
   const invitations = new SqliteHostInvitationRepository(db);
-  const mailer = new InMemoryMailer();
   const registerHost = new RegisterHost({ accounts, hasher, ids });
   // The acceptance page is a host-app route, not an API one — the link points at
   // the frontend, which reads the token and calls back here.

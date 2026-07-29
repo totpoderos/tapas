@@ -23,8 +23,20 @@ export interface Mailer {
  */
 export class InMemoryMailer implements Mailer {
   readonly sent: InvitationMessage[] = [];
+  private failing = false;
+
+  /**
+   * Makes every subsequent send throw, the way a transport does when no mail
+   * server will take the message. The specs that drive the failed-handoff path
+   * only ever see this implementation — they run inside the API process — so
+   * the failure has to be something they can ask for.
+   */
+  failEverySend(): void {
+    this.failing = true;
+  }
 
   async send(message: InvitationMessage): Promise<void> {
+    if (this.failing) throw new Error('no mail server would take this message');
     this.sent.push(message);
   }
 }

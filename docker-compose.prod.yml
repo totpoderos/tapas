@@ -54,6 +54,14 @@ services:
       # secret, but the API refuses to boot in production while it is still the
       # committed example — otherwise whoever holds that inbox could claim it.
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:?set ADMIN_BOOTSTRAP_EMAIL}
+      # Mail is the only route to a host account, so the API refuses to boot in
+      # production while these still point at a local catcher.
+      MAIL_HOST: ${MAIL_HOST:?set MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_SECURE: ${MAIL_SECURE:-false}
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM}
       # CORS allowlist = the public app origins.
       HOST_WEB_ORIGIN: https://${HOST_DOMAIN:?set HOST_DOMAIN}
       PARTICIPANT_WEB_ORIGIN: https://${PARTICIPANT_DOMAIN:?set PARTICIPANT_DOMAIN}

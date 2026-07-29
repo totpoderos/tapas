@@ -543,6 +543,68 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('A message that could not be sent is recorded', ({ Given, When, Then, And }) => {
+    let test: TestApp;
+    let cookie: string;
+    let link: string;
+
+    Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
+      test = makeTestApp();
+      await register(test.app, 'ana@example.com');
+      promoteToAdministrator(test.db, 'ana@example.com');
+      cookie = readCookie(
+        await login(test.app, 'ana@example.com', STRONG_PASSWORD),
+        'access_token',
+      );
+      test.mailer.failEverySend();
+    });
+    When('that administrator invites "nuevo@example.com"', async () => {
+      const invited = await test.app.inject({
+        method: 'POST',
+        url: '/admin/invites',
+        headers: { cookie },
+        payload: { email: 'nuevo@example.com' },
+      });
+      expect(invited.statusCode).toBe(201);
+      link = invited.json().link;
+    });
+    Then('the security log records that the message did not go out', () => {
+      const event = securityLog(test.db).find((e) => e.type === 'invitation.not_sent');
+      expect(event?.actorId).toBeTruthy();
+      expect(event?.sourceIp).toBeTruthy();
+    });
+    And("no security log entry contains that invitation's link", () => {
+      const token = link.slice(link.lastIndexOf('/') + 1);
+      expect(JSON.stringify(securityLog(test.db))).not.toContain(token);
+    });
+  });
+
+  Scenario('A message that was sent is not noise in the log', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let cookie: string;
+
+    Given('an administrator "ana@example.com"', async () => {
+      test = makeTestApp();
+      await register(test.app, 'ana@example.com');
+      promoteToAdministrator(test.db, 'ana@example.com');
+      cookie = readCookie(
+        await login(test.app, 'ana@example.com', STRONG_PASSWORD),
+        'access_token',
+      );
+    });
+    When('that administrator invites "nuevo@example.com"', async () => {
+      await test.app.inject({
+        method: 'POST',
+        url: '/admin/invites',
+        headers: { cookie },
+        payload: { email: 'nuevo@example.com' },
+      });
+    });
+    Then('no failed-message entry is recorded', () => {
+      expect(securityLog(test.db).find((e) => e.type === 'invitation.not_sent')).toBeUndefined();
+    });
+  });
+
   Scenario(
     'A refusal for an unknown link is not recorded as an expiry',
     ({ Given, When, Then }) => {

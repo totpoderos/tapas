@@ -1,0 +1,12 @@
+-- 0016_invitation_handoff.sql
+-- Slice C1: whether an invitation's message was handed off to a mail server.
+--
+-- Handed off, not delivered. A mail server accepting a message is the last
+-- thing this system observes; whether it reached anyone is decided afterwards
+-- by parties it never hears from, and nothing here consumes bounces. A column
+-- named for delivery would make the admin panel claim what it cannot know.
+--
+-- Nullable, and existing rows keep NULL rather than being backfilled as sent:
+-- they were sent by a mailer that could not fail, so there is no observation to
+-- record. Claiming one would be inventing history.
+ALTER TABLE host_invitations ADD COLUMN message_sent INTEGER;

@@ -47,7 +47,8 @@ Open the **host app**, sign up, create a contest (form or chat), publish it, and
 
 ```bash
 npm test          # 1126 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
-npm run test:e2e  # 76 whole-system E2E (Playwright: real API + both apps + SQLite), axe-gated
+npm run test:e2e  # whole-system E2E (Playwright: real API + both apps + SQLite + a mail catcher), axe-gated
+                  # needs the Docker daemon running — Playwright starts Mailpit itself
 npm run typecheck
 npm run lint
 npm run audit:ci  # supply-chain gate: blocks on high/critical advisories

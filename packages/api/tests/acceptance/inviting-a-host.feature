@@ -231,6 +231,39 @@ Feature: Inviting a host
     And the invited person tries to accept with the original link
     Then the refusal is the same as for a link that never existed
 
+  Scenario: The invitation survives a message that could not be sent
+    Given an administrator "ana@example.com" whose mail server will take nothing
+    When the administrator invites "nuevo@example.com"
+    Then inviting is not refused
+    And an invitation for "nuevo@example.com" is pending
+    And the administrator is told the message did not go out
+
+  Scenario: A failed handoff offers the link, once
+    Given an administrator "ana@example.com" whose mail server will take nothing
+    When the administrator invites "nuevo@example.com"
+    Then the link is offered to that administrator
+    And the invited person can accept with it and become a host
+
+  Scenario: A successful handoff offers no link
+    Given an administrator "ana@example.com"
+    When the administrator invites "nuevo@example.com"
+    Then no link is offered to that administrator
+
+  Scenario: The link is still absent from the stored invitation when sending failed
+    Given an administrator "ana@example.com" whose mail server will take nothing
+    When the administrator invites "nuevo@example.com"
+    Then the stored invitation does not contain the link
+
+  Scenario: A handed-off message is recorded as such
+    Given an administrator "ana@example.com"
+    When the administrator invites "nuevo@example.com"
+    Then the invitation records that its message went out
+
+  Scenario: A message that could not be handed off is recorded as such
+    Given an administrator "ana@example.com" whose mail server will take nothing
+    When the administrator invites "nuevo@example.com"
+    Then the invitation records that its message did not go out
+
   Scenario: A weak password is refused
     Given an invitation was sent to "nuevo@example.com"
     When the invited person tries to accept with the weak password "short"

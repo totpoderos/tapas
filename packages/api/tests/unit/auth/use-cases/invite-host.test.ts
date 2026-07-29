@@ -76,6 +76,62 @@ describe('InviteHost', () => {
     expect(mailer.sent).toHaveLength(0);
   });
 
+  it('keeps the invitation when no mail server will take the message', async () => {
+    const { useCase, invitations, mailer } = makeUseCase();
+    mailer.failEverySend();
+
+    const invited = await useCase.execute('nuevo@example.com', 'admin-1');
+
+    // The comment in this use case promised exactly this and the code did not
+    // do it: an unguarded await turned a stored, live invitation into a thrown
+    // request carrying neither the link nor the id needed to resend it.
+    expect(invited.ok).toBe(true);
+    expect(invitations.stored).toHaveLength(1);
+    expect(invitations.stored[0]!.status).toBe('pending');
+  });
+
+  it('says the message did not go out, and hands back the link', async () => {
+    const { useCase, invitations, mailer } = makeUseCase();
+    mailer.failEverySend();
+
+    const invited = await useCase.execute('nuevo@example.com', 'admin-1');
+
+    expect(invited).toMatchObject({ ok: true, messageSent: false });
+    const link = invited.ok ? invited.link : undefined;
+    expect(link).toContain(LINK_BASE);
+    // The link is the one the stored hash matches — the same invitation, not a new one.
+    expect(invitations.stored[0]!.tokenHash).toBe(hashSecretToken(link!.slice(LINK_BASE.length + 1)));
+  });
+
+  it('records that the message did not go out', async () => {
+    const { useCase, invitations, mailer } = makeUseCase();
+    mailer.failEverySend();
+
+    await useCase.execute('nuevo@example.com', 'admin-1');
+
+    expect(invitations.stored[0]!.messageSent).toBe(false);
+  });
+
+  it('says the message went out, and hands back no link, when it did', async () => {
+    const { useCase, invitations } = makeUseCase();
+
+    const invited = await useCase.execute('nuevo@example.com', 'admin-1');
+
+    expect(invited).toMatchObject({ ok: true, messageSent: true });
+    expect(invited.ok && invited.link).toBeUndefined();
+    expect(invitations.stored[0]!.messageSent).toBe(true);
+  });
+
+  it('never stores the link, even when it had to hand it back', async () => {
+    const { useCase, invitations, mailer } = makeUseCase();
+    mailer.failEverySend();
+
+    const invited = await useCase.execute('nuevo@example.com', 'admin-1');
+    const token = (invited.ok ? invited.link! : '').slice(LINK_BASE.length + 1);
+
+    expect(JSON.stringify(invitations.stored)).not.toContain(token);
+  });
+
   it('refuses an address that is not an email', async () => {
     const { useCase, invitations, mailer } = makeUseCase();
 
