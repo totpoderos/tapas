@@ -1,5 +1,6 @@
 import { test as setup, expect, request as playwrightRequest } from '@playwright/test';
 import { clearMail, invitationLinkSentTo } from './support/mail.js';
+import { ADMINISTRATOR } from './support/administrator.js';
 
 /**
  * Claims the deployment, once, before every other project runs.
@@ -9,11 +10,6 @@ import { clearMail, invitationLinkSentTo } from './support/mail.js';
  * here rather than in a specification that would have to depend on running
  * first.
  */
-export const ADMINISTRATOR = {
-  email: 'e2e-operator@sobremesa.es',
-  password: 'Str0ng!Passw0rd',
-};
-
 setup('an unclaimed deployment offers itself, without taking sign-in away', async ({ page }) => {
   await page.goto('/sign-in');
 

@@ -1,5 +1,5 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
-import { ADMINISTRATOR } from './claim-the-deployment.setup.js';
+import { ADMINISTRATOR } from './support/administrator.js';
 import { clearMail, invitationLinkSentTo } from './support/mail.js';
 
 /**

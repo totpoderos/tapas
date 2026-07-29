@@ -1,7 +1,7 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { MAILPIT_API } from '../../playwright.config.js';
 import { clearMail, invitationLinkSentTo } from './support/mail.js';
-import { ADMINISTRATOR } from './claim-the-deployment.setup.js';
+import { ADMINISTRATOR } from './support/administrator.js';
 
 /**
  * Implements tests/e2e/host-invitation-arrives.feature against a real API, a

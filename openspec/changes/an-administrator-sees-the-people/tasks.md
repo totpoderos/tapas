@@ -42,7 +42,7 @@
 
 ## 7. The browser suite grows up
 
-- [x] 7.1 Add a Playwright setup project that claims the deployment once, and make the other projects depend on it
+- [x] 7.1 Add a Playwright setup project that claims the deployment once, and make the other projects depend on it. **Keep anything shared out of the setup file itself** — Playwright refuses to let one test file import another, since it would be collected twice, and the setup file is a test file. CI caught this; `npx playwright test --list` catches it locally in seconds, with no browser and no catcher, and is worth running before every push that touches the config
 - [x] 7.2 Move the enrollment file's `beforeAll` claim into it, leaving that file to be about enrollment rather than about setup
 - [x] 7.3 Keep the unclaimed-deployment journey working — it moved **into the setup project's own assertions**, which is the only place that can see the unclaimed state, since it stops existing the moment that project claims. `claiming-a-deployment.feature` describes it and the setup file says why it lives there
 - [x] 7.4 Write the panel's E2E: an administrator invites from the screen, sees the person appear, resends, and revokes
