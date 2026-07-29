@@ -14,6 +14,11 @@ that every account in a deployment can be traced to somebody who allowed it.
 - **WHEN** someone opens the host app with no account
 - **THEN** they are offered a way to sign in, and no way to create an account
 
+## RENAMED Requirements
+
+- FROM: `### Requirement: A host registers and can log in`
+- TO: `### Requirement: A host has an account and can log in`
+
 ## MODIFIED Requirements
 
 ### Requirement: A host has an account and can log in

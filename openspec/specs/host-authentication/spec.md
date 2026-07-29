@@ -3,19 +3,6 @@
 ## Purpose
 TBD - created by archiving change tapas-contest-app. Update Purpose after archive.
 ## Requirements
-### Requirement: A host registers and can log in
-A host SHALL be able to register with an email and a strong password, and subsequently log in with that email and password to receive a session. The password SHALL never be stored in the clear.
-
-#### Scenario: A host registers and can log in
-- **WHEN** a host registers with email "ana@example.com" and a strong password
-- **THEN** the host account is created
-- **AND** the host can log in with that email and password
-- **AND** a session is issued
-
-#### Scenario: The password is never stored in the clear
-- **WHEN** a host with email "ana@example.com" is registered
-- **THEN** the stored credentials do not reveal the password
-
 ### Requirement: A login failure is refused generically, without revealing which part was wrong
 A wrong password and an unknown email SHALL be refused with the same generic error, so no one can distinguish which one it was (no user enumeration — OWASP A07/A04).
 
@@ -26,17 +13,6 @@ A wrong password and an unknown email SHALL be refused with the same generic err
 #### Scenario: Logging in with an unknown email is refused the same way
 - **WHEN** someone tries to log in with the unregistered email "nobody@example.com"
 - **THEN** logging in is refused as invalid credentials
-
-### Requirement: Registration is refused for a taken email or a weak password
-Registration SHALL be rejected if the email is already registered, or if the password does not meet the strength policy.
-
-#### Scenario: Registering a taken email is refused
-- **WHEN** a host registers with email "ana@example.com" and a strong password, and a second registration is attempted with the same email
-- **THEN** registering is refused because the email is already taken
-
-#### Scenario: A weak password is refused
-- **WHEN** a host registers with email "ana@example.com" and the weak password "short"
-- **THEN** registering is refused because the password is too weak
 
 ### Requirement: The account locks after repeated failed logins
 An account SHALL lock after 5 failed login attempts, refusing even the correct password until the lock expires.
@@ -85,4 +61,31 @@ Signing out SHALL end the session outright — not merely until the access token
 #### Scenario: Signing out ends the session
 - **WHEN** a signed-in host "ana@example.com" signs out through the API
 - **THEN** the former session no longer allows protected work
+
+### Requirement: A host has an account and can log in
+A host SHALL be able to log in with the email and password of their account to
+receive a session. The password SHALL never be stored in the clear, however
+that account came to exist.
+
+#### Scenario: A host with an account can log in
+- **WHEN** a host with an account for "ana@example.com" logs in with that email and password
+- **THEN** a session is issued
+
+#### Scenario: The password is never stored in the clear
+- **WHEN** a host has an account for "ana@example.com"
+- **THEN** the stored credentials do not reveal the password
+
+### Requirement: There is no way to create an account without an invitation
+The system SHALL offer no way for anybody to create a host account for
+themselves. An account SHALL come into existence only by accepting an
+invitation, and the first one only by claiming an unclaimed deployment — so
+that every account in a deployment can be traced to somebody who allowed it.
+
+#### Scenario: Nobody can register
+- **WHEN** someone tries to create a host account for themselves, however they ask
+- **THEN** there is no such thing to reach
+
+#### Scenario: The host app offers no way to sign up
+- **WHEN** someone opens the host app with no account
+- **THEN** they are offered a way to sign in, and no way to create an account
 
