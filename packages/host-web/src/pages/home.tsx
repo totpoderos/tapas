@@ -27,7 +27,7 @@ const STATUS_MARK: Record<ContestSummary['status'], string> = {
  */
 export function Home() {
   const { t } = useTranslation();
-  const { signOut } = useSession();
+  const { signOut, isAdministrator } = useSession();
   const [state, setState] = useState<ListState>({ kind: 'loading' });
   const [announcement, setAnnouncement] = useState<string | undefined>();
 
@@ -57,6 +57,11 @@ export function Home() {
           <span className={styles.dot} aria-hidden="true" />
           <b>{t('common.brand')}</b>
         </div>
+        {isAdministrator ? (
+          <Link to="/people" className={styles.assistantLink}>
+            {t('home.people')}
+          </Link>
+        ) : null}
         <Link to="/chat" className={styles.assistantLink}>
           {t('home.assistant')}
         </Link>

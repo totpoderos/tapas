@@ -1,17 +1,14 @@
 Feature: An invitation arrives and is accepted
-  The enrollment path end to end, as the people in it experience it. A fresh
-  deployment sends anyone anonymous to the screen for claiming it. Once claimed,
-  an administrator invites someone; a message reaches that address carrying a
+  The enrollment path end to end, as the people in it experience it. An
+  administrator invites someone; a message reaches that address carrying a
   link; opening that link in a browser and choosing a password makes a host who
   lands on their own contests.
 
+  The administrator doing the inviting exists because the deployment was claimed
+  before any of this ran — see claiming-a-deployment.feature.
+
   The link is read from the message that was actually sent, never from the
   database, which holds only a hash of it.
-
-  Scenario: A deployment nobody has claimed offers itself
-    Given a deployment with no administrator
-    When anyone opens it
-    Then they are shown the screen for claiming it
 
   Scenario: An invited person opens their link and becomes a host
     Given an administrator has invited a new address

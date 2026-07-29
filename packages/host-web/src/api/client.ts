@@ -89,10 +89,78 @@ export async function signOut(): Promise<void> {
   await send('/auth/logout', 'POST');
 }
 
-/** Whether there is a valid host session right now — probed via an authenticated read. */
-export async function hasSession(): Promise<boolean> {
-  const response = await send('/drafts', 'GET');
-  return response.ok;
+/**
+ * Who is signed in, and what they are — or `null` if nobody is.
+ *
+ * One read answers both. It replaced a probe that fetched a list of drafts only
+ * to discard it, and which could not have reported the role at all.
+ *
+ * The role is for deciding what to draw. Nothing is authorized by it: the API
+ * reads the account store when it matters, because a refresh carries the
+ * previous token's claim forward and a claim-derived role would outlive a
+ * demotion.
+ *
+ * Deliberately not discovered by requesting something administrative and
+ * reading the refusal — that would record a refused administrative attempt for
+ * every ordinary host on every page load.
+ */
+export async function whoAmI(): Promise<{ hostId: string; role: string } | null> {
+  const response = await send('/auth/me', 'GET');
+  if (!response.ok) return null;
+  return (await response.json()) as { hostId: string; role: string };
+}
+
+/** Every host account, for an administrator. */
+export async function listHostAccounts(): Promise<
+  { email: string; isAdministrator: boolean }[]
+> {
+  const response = await send('/admin/hosts', 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { hosts: { email: string; isAdministrator: boolean }[] })
+    .hosts;
+}
+
+/** Every invitation, for an administrator. Never carries a link — nothing stores one. */
+export async function listInvitations(): Promise<
+  { id: string; email: string; status: string; issuedAt: string }[]
+> {
+  const response = await send('/admin/invites', 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (
+    (await response.json()) as {
+      invitations: { id: string; email: string; status: string; issuedAt: string }[];
+    }
+  ).invitations;
+}
+
+/** Invites an address. The link comes back only when no mail server would take the message. */
+export async function inviteHost(
+  email: string,
+): Promise<{ invitationId: string; messageSent: boolean; link?: string }> {
+  const response = await send('/admin/invites', 'POST', { email });
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as {
+    invitationId: string;
+    messageSent: boolean;
+    link?: string;
+  };
+}
+
+export async function revokeInvitation(id: string): Promise<void> {
+  const response = await send(`/admin/invites/${encodeURIComponent(id)}/revoke`, 'POST');
+  if (!response.ok) throw await errorFrom(response);
+}
+
+export async function resendInvitation(
+  id: string,
+): Promise<{ invitationId: string; messageSent: boolean; link?: string }> {
+  const response = await send(`/admin/invites/${encodeURIComponent(id)}/resend`, 'POST');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as {
+    invitationId: string;
+    messageSent: boolean;
+    link?: string;
+  };
 }
 
 /** A one-line view of a host's contest, whatever state it is in — the contest list's rows. */

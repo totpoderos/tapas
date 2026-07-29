@@ -1,18 +1,17 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { MAILPIT_API } from '../../playwright.config.js';
 import { clearMail, invitationLinkSentTo } from './support/mail.js';
+import { ADMINISTRATOR } from './claim-the-deployment.setup.js';
 
 /**
  * Implements tests/e2e/host-invitation-arrives.feature against a real API, a
  * real SMTP catcher and the host app in a real browser.
  *
- * Everything about enrollment lives in this one file on purpose. The suite runs
- * a single in-memory API, and claiming a deployment happens once ever — so a
- * second spec file that also claimed would race this one for the 201, and which
- * won would depend on file ordering. Keeping the whole journey here makes the
- * order explicit: unclaimed first, then claimed, then invited.
+ * The administrator this file needs is created by the setup project, which
+ * claims the deployment once before anything runs — so this file is about
+ * enrollment rather than about setting the world up, and any other file may
+ * assume an administrator too.
  */
-const ADMINISTRATOR = { email: 'e2e-operator@sobremesa.es', password: 'Str0ng!Passw0rd' };
 const INVITED = 'e2e-invited@sobremesa.es';
 const INVITED_PASSWORD = 'An0ther!Str0ngPass';
 
@@ -20,37 +19,7 @@ function tokenFrom(link: string): string {
   return link.slice(link.lastIndexOf('/') + 1);
 }
 
-/** Runs first, while nobody has claimed the deployment — the only moment this state exists. */
-test('a deployment nobody has claimed offers itself, without taking sign-in away', async ({
-  page,
-}) => {
-  await page.goto('/sign-in');
-
-  // Sign-in still works. An earlier version redirected here, which locked out
-  // every host on a deployment that has accounts but no administrator.
-  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
-  await expect(page.getByLabel('Password')).toBeVisible();
-
-  await page.getByRole('link', { name: 'Set it up' }).click();
-  await expect(page.getByRole('heading', { name: 'Set up this deployment' })).toBeVisible();
-});
-
 test.describe('once the deployment has an administrator', () => {
-  test.beforeAll(async ({ baseURL }) => {
-    const api = await playwrightRequest.newContext({ baseURL });
-    await clearMail();
-    const claimed = await api.post('/setup/admin', { data: { email: ADMINISTRATOR.email } });
-    expect(claimed.status()).toBe(201);
-    expect((await claimed.json()).messageSent).toBe(true);
-
-    const link = await invitationLinkSentTo(ADMINISTRATOR.email);
-    const accepted = await api.post(`/invites/${tokenFrom(link)}/accept`, {
-      data: { password: ADMINISTRATOR.password },
-    });
-    expect(accepted.status()).toBe(201);
-    await api.dispose();
-  });
-
   async function signedInAdministrator(baseURL: string) {
     const api = await playwrightRequest.newContext({ baseURL });
     await api.post('/auth/login', { data: ADMINISTRATOR });

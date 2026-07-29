@@ -15,7 +15,7 @@ vi.mock('../../src/api/client', async () => {
   );
   return {
     ...actual,
-    hasSession: vi.fn(),
+    whoAmI: vi.fn(),
     signIn: vi.fn(),
     signOut: vi.fn(),
     listContests: vi.fn(),
@@ -40,7 +40,7 @@ function renderAt(path: string) {
 
 describe('Accepting an invitation', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(false);
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(false);
     vi.mocked(api.listContests).mockResolvedValue([]);
     vi.mocked(api.readInvitation).mockReset();

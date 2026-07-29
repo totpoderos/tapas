@@ -76,11 +76,30 @@ export default defineConfig({
    * fixing of whatever it surfaces — not a silent doubling of the gate.
    */
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    /*
+     * Claims the deployment once, before anything else runs.
+     *
+     * A deployment can be claimed exactly once, and the suite runs a single
+     * in-memory API — so without this, every specification needing an
+     * administrator had to crowd into the one file that did the claiming, and
+     * a second file that also claimed would race it. Now any file may assume an
+     * administrator exists and can live where its subject lives.
+     *
+     * It also owns the assertions about the *unclaimed* state, because that
+     * state exists only until it claims. Nowhere else can see it.
+     */
+    { name: 'setup', testMatch: /claim-the-deployment\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+      testIgnore: /\.setup\.ts/,
+    },
     {
       name: 'webkit-participant',
       use: { ...devices['iPhone 13'] },
       testMatch: /participant-.*\.spec\.ts/,
+      dependencies: ['setup'],
     },
   ],
   webServer: [

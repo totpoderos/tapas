@@ -37,3 +37,25 @@ Feature: Administrative access
     Given an administrator "ana@example.com" who has issued a personal access token
     When an external client uses that token to create a draft
     Then the draft is created for that administrator
+
+  Scenario: An administrator's own app is told they are one
+    Given an administrator "ana@example.com"
+    When their app asks who it is talking to
+    Then it is told they are signed in
+    And it is told they are an administrator
+
+  Scenario: A host's own app is told they are not
+    Given a signed-in host "bob@example.com"
+    When their app asks who it is talking to
+    Then it is told they are signed in
+    And it is told they are not an administrator
+
+  Scenario: An app with nobody signed in is told so
+    Given no one is signed in
+    When an app asks who it is talking to
+    Then it is told nobody is signed in
+
+  Scenario: Asking records no refused administrative attempt
+    Given a signed-in host "bob@example.com"
+    When their app asks who it is talking to
+    Then the security log records no refused administrative attempt

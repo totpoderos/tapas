@@ -10,7 +10,7 @@ expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, hasSession: vi.fn(), signOut: vi.fn(), listContests: vi.fn() };
+  return { ...actual, whoAmI: vi.fn(), signOut: vi.fn(), listContests: vi.fn() };
 });
 import * as api from '../../src/api/client';
 
@@ -31,7 +31,7 @@ function renderApp() {
 
 describe('Host contest list', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(true); // a signed-in host
+    vi.mocked(api.whoAmI).mockResolvedValue({ hostId: 'h1', role: 'host' }); // a signed-in host
   });
   afterEach(() => vi.clearAllMocks());
 
