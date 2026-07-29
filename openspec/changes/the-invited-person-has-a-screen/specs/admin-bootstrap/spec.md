@@ -2,12 +2,22 @@
 
 ### Requirement: An unclaimed deployment offers itself to be claimed
 A deployment with no administrator SHALL offer a screen on which the configured
-address can claim it, and anyone arriving anonymously SHALL be brought there
-rather than to a sign-in screen no account can be used on.
+address can claim it, and the sign-in screen SHALL offer the way to it. Sign-in
+SHALL remain usable: a deployment can hold host accounts while having no
+administrator, and taking those hosts to a screen they cannot use would lock
+them out of one they can.
 
-#### Scenario: Someone arriving anonymously is brought to the claim screen
-- **WHEN** someone opens an unclaimed deployment
-- **THEN** they are shown the screen for claiming it
+#### Scenario: Sign-in offers the way to set the deployment up
+- **WHEN** someone opens the sign-in screen of an unclaimed deployment
+- **THEN** they are offered the way to set it up
+
+#### Scenario: A host can still sign in to an unclaimed deployment
+- **WHEN** a host with an account opens the sign-in screen of an unclaimed deployment
+- **THEN** they can sign in
+
+#### Scenario: A claimed deployment offers nothing to set up
+- **WHEN** someone opens the sign-in screen of a deployment that has an administrator
+- **THEN** they are not offered a way to set it up
 
 #### Scenario: Claiming from the screen sends the message
 - **WHEN** the configured address is offered on the claim screen of an unclaimed deployment

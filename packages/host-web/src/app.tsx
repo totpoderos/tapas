@@ -21,7 +21,7 @@ import { useSession } from './auth/session';
  * on home. A signed-in host visiting /sign-in is bounced home.
  */
 export function App() {
-  const { status, deploymentUnclaimed } = useSession();
+  const { status } = useSession();
   const { t } = useTranslation();
 
   if (status === 'loading') {
@@ -36,23 +36,12 @@ export function App() {
 
   return (
     <Routes>
-      {/* The app's one conditional redirect. Everything unrouted already funnels
-          through /sign-in, so making this route aware covers the whole app — and
-          /claim deliberately redirects nobody back, because two conditions
-          reading server state at different moments disagree exactly while
-          somebody is claiming, which a browser resolves by looping. */}
-      <Route
-        path="/sign-in"
-        element={
-          authed ? (
-            <Navigate to="/" replace />
-          ) : deploymentUnclaimed ? (
-            <Navigate to="/claim" replace />
-          ) : (
-            <SignIn />
-          )
-        }
-      />
+      {/* Sign-in is never redirected away from, even on a deployment nobody has
+          claimed. It carries a way through to /claim instead. An earlier version
+          did redirect, and it locked out every host on a deployment that has
+          accounts but no administrator — which is every deployment until open
+          registration is removed, and is exactly what the browser suite found. */}
+      <Route path="/sign-in" element={authed ? <Navigate to="/" replace /> : <SignIn />} />
       {/* `/accept-invite/:token` and `/claim`, clear of the proxied prefixes
           (/auth, /drafts, /contests, /assistant, /admin, /invites, /setup) — a
           browsable route under those is proxied to the API on a direct load or

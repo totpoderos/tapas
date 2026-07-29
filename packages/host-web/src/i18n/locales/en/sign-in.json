@@ -11,5 +11,7 @@
   "footLink": "Create a host account",
   "panelKicker": "Tonight",
   "panelContest": "Sobremesa Summer 2026",
-  "panelDetail": "16 cooks · 3 categories · scoring opens 20:30. The room is filling up."
+  "panelDetail": "16 cooks · 3 categories · scoring opens 20:30. The room is filling up.",
+  "unclaimedNotice": "This deployment has not been set up yet.",
+  "unclaimedLink": "Set it up"
 }

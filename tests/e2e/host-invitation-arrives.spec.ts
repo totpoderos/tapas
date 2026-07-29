@@ -21,11 +21,18 @@ function tokenFrom(link: string): string {
 }
 
 /** Runs first, while nobody has claimed the deployment — the only moment this state exists. */
-test('a deployment nobody has claimed offers itself', async ({ page }) => {
-  await page.goto('/');
+test('a deployment nobody has claimed offers itself, without taking sign-in away', async ({
+  page,
+}) => {
+  await page.goto('/sign-in');
 
+  // Sign-in still works. An earlier version redirected here, which locked out
+  // every host on a deployment that has accounts but no administrator.
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
+  await expect(page.getByLabel('Password')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Set it up' }).click();
   await expect(page.getByRole('heading', { name: 'Set up this deployment' })).toBeVisible();
-  await expect(page).toHaveURL(/\/claim$/);
 });
 
 test.describe('once the deployment has an administrator', () => {

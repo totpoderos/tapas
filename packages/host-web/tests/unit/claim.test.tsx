@@ -122,39 +122,33 @@ describe('Claiming a deployment', () => {
   });
 });
 
-describe('Where an anonymous visitor lands', () => {
+describe('Sign-in on a deployment nobody has claimed', () => {
   beforeEach(() => {
     vi.mocked(api.listContests).mockResolvedValue([]);
     vi.mocked(api.isDeploymentUnclaimed).mockReset();
   });
   afterEach(() => vi.clearAllMocks());
 
-  it('is the claim screen when the deployment is unclaimed', async () => {
+  it('still lets a host sign in, and offers the way to set it up', async () => {
+    // An earlier version redirected here, which locked out every host on a
+    // deployment that has accounts but no administrator — the state every
+    // deployment is in until open registration is removed.
     vi.mocked(api.hasSession).mockResolvedValue(false);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(true);
     renderAt('/sign-in');
 
-    expect(
-      await screen.findByRole('heading', { name: 'Set up this deployment' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Set it up' })).toBeInTheDocument();
   });
 
-  it('is the sign-in screen when it is claimed', async () => {
+  it('says nothing about setting up when the deployment is claimed', async () => {
     vi.mocked(api.hasSession).mockResolvedValue(false);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(false);
     renderAt('/sign-in');
 
-    expect(await screen.findByRole('heading', { name: 'Welcome back' })).toBeInTheDocument();
-  });
-
-  it('is reached from any unrouted path, through sign-in', async () => {
-    vi.mocked(api.hasSession).mockResolvedValue(false);
-    vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(true);
-    renderAt('/somewhere-that-does-not-exist');
-
-    expect(
-      await screen.findByRole('heading', { name: 'Set up this deployment' }),
-    ).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    expect(screen.queryByRole('link', { name: 'Set it up' })).not.toBeInTheDocument();
   });
 
   it('costs a signed-in host nothing to find out', async () => {

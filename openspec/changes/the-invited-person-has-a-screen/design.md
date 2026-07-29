@@ -30,7 +30,8 @@ Three things in the existing code decide most of the shape:
   work.
 - A first run that can be completed in a browser, including when mail is not
   working yet.
-- One conditional redirect, not two.
+- Sign-in that stays usable on a deployment nobody has claimed, while still
+  offering the way to claim it.
 - Screens that are honest about what they were not told.
 
 **Non-Goals:**
@@ -43,23 +44,30 @@ Three things in the existing code decide most of the shape:
 
 ## Decisions
 
-### One conditional redirect, and the claim screen stays reachable
+### No conditional redirect at all — sign-in offers the way instead
 
-`/sign-in` sends an anonymous visitor to `/claim` when the deployment has no
-administrator. `/claim` sends nobody anywhere.
+**This reverses the decision this slice was proposed with, and the browser suite
+is what reversed it.**
 
-The tidier-looking alternative — hide `/claim` once claimed by redirecting it
-back to `/sign-in` — puts two conditions in opposition, each reading server
-state at a different moment. They disagree exactly while somebody is claiming
-the deployment, which is the one minute this route exists for, and a browser
-resolves that disagreement by bouncing between them. One redirect cannot loop.
+The design said `/sign-in` should redirect an anonymous visitor to `/claim` on an
+unclaimed deployment, so that nobody meets a dead end. That reasoning holds only
+if "unclaimed" implies "nobody has an account" — and it does not. Until open
+registration is removed, a deployment can hold any number of hosts and still have
+no administrator, and the redirect locked every one of them out of the only
+screen they could have used.
 
-Keeping it reachable also gives an operator who bookmarked it an explanation
-instead of a silent bounce, and costs nothing: `GET /setup/admin` is already
-anonymous and already answers the same question to anyone who asks.
+The existing browser specs found it immediately, and the shape of the failure was
+its own diagnosis: filling `Email` succeeded and filling `Password` timed out,
+because the claim screen has the first field and not the second.
 
-The catch-all needs no change. It already funnels every unrouted path to
-`/sign-in`, so making that one route aware covers the app.
+So sign-in is never redirected away from. It carries a notice and a link through
+to `/claim` when the deployment is unclaimed, and says nothing when it is not.
+The operator gets one extra click; the hosts keep their sign-in.
+
+This also removes the loop hazard the original decision was built around. There
+are now no conditional redirects to disagree with each other, and `/claim`
+staying reachable when claimed is simply what it always does — render what the
+API tells it.
 
 ### The claim screen has no session guard at all
 
@@ -137,7 +145,7 @@ where the page knows more than either request alone does, and it has to say so.
 
 None. No schema, no API, no stored state — the slice renders answers the
 backend already gives. Existing routes are untouched apart from `/sign-in`
-gaining a condition, and rollback is deleting two pages and that condition.
+gaining a notice, and rollback is deleting two pages and that notice.
 
 ## Open Questions
 

@@ -13,7 +13,7 @@ import styles from './auth.module.css';
  */
 export function SignIn() {
   const { t } = useTranslation();
-  const { signIn } = useSession();
+  const { signIn, deploymentUnclaimed } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | undefined>();
@@ -46,6 +46,12 @@ export function SignIn() {
           </div>
           <h1 className={styles.title}>{t('signIn.title')}</h1>
           <p className={styles.sub}>{t('signIn.subtitle')}</p>
+
+          {deploymentUnclaimed ? (
+            <p className={styles.sub}>
+              {t('signIn.unclaimedNotice')} <a href="/claim">{t('signIn.unclaimedLink')}</a>
+            </p>
+          ) : null}
 
           {error ? (
             <div className={styles.alert} role="alert">
