@@ -1,0 +1,27 @@
+{
+  "title": "People",
+  "subtitle": "Everyone with access to this deployment, and everyone invited to it.",
+  "email": "Email",
+  "invite": "Send invitation",
+  "inviting": "Sending…",
+  "errorEmailTaken": "That address is already registered.",
+  "errorInvalidEmail": "Enter a valid email address.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "notSentBody": "The message could not be sent, so here is the link. It works once, and only for 24 hours — copy it now, it is not shown again.",
+  "tableCaption": "People in this deployment",
+  "columnPerson": "Person",
+  "columnStanding": "Standing",
+  "columnActions": "Actions",
+  "revoke": "Revoke",
+  "resend": "Resend",
+  "standing": {
+    "administrator": "Administrator",
+    "host": "Host",
+    "pending": "Invited",
+    "expired": "Invitation expired",
+    "revoked": "Invitation revoked",
+    "superseded": "Invitation replaced"
+  },
+  "notAllowedTitle": "This screen is not for you",
+  "notAllowedBody": "Only an administrator can see the people in this deployment."
+}

@@ -14,7 +14,7 @@ vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
   return {
     ...actual,
-    hasSession: vi.fn(),
+    whoAmI: vi.fn(),
     signIn: vi.fn(),
     signOut: vi.fn(),
     listContests: vi.fn(),
@@ -34,7 +34,7 @@ function renderApp() {
 
 describe('Host sign-in', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(false); // start anonymous
+    vi.mocked(api.whoAmI).mockResolvedValue(null); // start anonymous
     vi.mocked(api.signIn).mockReset();
     vi.mocked(api.listContests).mockResolvedValue([]);
   });
@@ -73,7 +73,7 @@ describe('Host sign-in', () => {
   });
 
   it('remembers a signed-in host across a reload (a valid cookie means home)', async () => {
-    vi.mocked(api.hasSession).mockResolvedValue(true);
+    vi.mocked(api.whoAmI).mockResolvedValue({ hostId: 'h1', role: 'host' });
     renderApp();
     expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();
   });

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   acceptInvitation as apiAcceptInvitation,
-  hasSession,
   isDeploymentUnclaimed,
+  whoAmI,
   register as apiRegister,
   signIn as apiSignIn,
   signOut as apiSignOut,
@@ -12,6 +12,14 @@ export type SessionStatus = 'loading' | 'authenticated' | 'anonymous';
 
 export interface Session {
   readonly status: SessionStatus;
+  /**
+   * Whether the signed-in person is an administrator. For deciding what to
+   * draw, and nothing else — the server reads the account store when it
+   * matters, because a refresh carries the previous token's claim forward and a
+   * claim-derived role would outlive a demotion. A screen may therefore be
+   * briefly wrong after one; the authority never is.
+   */
+  readonly isAdministrator: boolean;
   /**
    * Whether this deployment still has no administrator. Asked only when nobody
    * is signed in — it changes where an anonymous visitor goes and nothing else,
@@ -47,13 +55,15 @@ const SessionContext = createContext<Session | undefined>(undefined);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<SessionStatus>('loading');
   const [deploymentUnclaimed, setDeploymentUnclaimed] = useState(false);
+  const [isAdministrator, setIsAdministrator] = useState(false);
 
   useEffect(() => {
     let live = true;
-    hasSession()
-      .then(async (ok) => {
+    whoAmI()
+      .then(async (me) => {
         if (!live) return;
-        if (ok) {
+        if (me) {
+          setIsAdministrator(me.role === 'admin');
           setStatus('authenticated');
           return;
         }
@@ -73,6 +83,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     await apiSignIn(email, password);
+    setIsAdministrator((await whoAmI())?.role === 'admin');
     setStatus('authenticated');
   }, []);
 
@@ -107,11 +118,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await apiSignOut();
+    setIsAdministrator(false);
     setStatus('anonymous');
   }, []);
 
   return (
-    <SessionContext.Provider value={{ status, deploymentUnclaimed, signIn, signUp, acceptInvitation, signOut }}>
+    <SessionContext.Provider value={{ status, deploymentUnclaimed, isAdministrator, signIn, signUp, acceptInvitation, signOut }}>
       {children}
     </SessionContext.Provider>
   );

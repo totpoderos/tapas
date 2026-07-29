@@ -5,6 +5,7 @@ import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
 import { AcceptInvite } from './pages/accept-invite';
 import { Claim } from './pages/claim';
+import { People } from './pages/people';
 import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
 import { ReviewDraft } from './pages/review-draft';
@@ -62,6 +63,12 @@ export function App() {
         path="/review/:id"
         element={authed ? <ReviewDraft /> : <Navigate to="/sign-in" replace />}
       />
+      {/* `/people`, not `/admin`: that prefix forwards to the API, as `/invites`
+          and `/setup` do, so a browsable route there would be proxied away on a
+          direct load or reload. There is no role guard here on purpose — the
+          server decides, and the screen renders what it is told, including
+          being told no. */}
+      <Route path="/people" element={authed ? <People /> : <Navigate to="/sign-in" replace />} />
       <Route path="/chat" element={authed ? <Chat /> : <Navigate to="/sign-in" replace />} />
       <Route path="/log/:id" element={authed ? <AuditLog /> : <Navigate to="/sign-in" replace />} />
       <Route path="/contest/:id" element={authed ? <ContestControl /> : <Navigate to="/sign-in" replace />} />

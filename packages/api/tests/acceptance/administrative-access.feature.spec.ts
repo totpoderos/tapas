@@ -4,6 +4,7 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
 import { makeTestApp, promoteToAdministrator } from '../support/test-server.js';
+import { SqliteSecurityEventLog, SystemClock, UuidIdGenerator } from '../../src/index.js';
 
 const feature = await loadFeature(
   fileURLToPath(new URL('./administrative-access.feature', import.meta.url)),
@@ -223,6 +224,93 @@ describeFeature(feature, ({ Scenario }) => {
     Then('the draft is created for that administrator', () => {
       expect(response.statusCode).toBe(201);
       expect(response.json().content.name).toBe('Tapas Night');
+    });
+  });
+
+  Scenario("An administrator's own app is told they are one", ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      jar = new CookieJar();
+      await signInAsAdministrator(app, db, jar, 'ana@example.com');
+    });
+    When('their app asks who it is talking to', async () => {
+      response = await request(app, jar, { method: 'GET', url: '/auth/me' });
+    });
+    Then('it is told they are signed in', () => {
+      expect(response.statusCode).toBe(200);
+      expect(response.json().hostId).toBeTruthy();
+    });
+    And('it is told they are an administrator', () => {
+      expect(response.json().role).toBe('admin');
+    });
+  });
+
+  Scenario("A host's own app is told they are not", ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host "bob@example.com"', async () => {
+      ({ app } = makeTestApp());
+      jar = new CookieJar();
+      await registerAndLogin(app, jar, 'bob@example.com');
+    });
+    When('their app asks who it is talking to', async () => {
+      response = await request(app, jar, { method: 'GET', url: '/auth/me' });
+    });
+    Then('it is told they are signed in', () => {
+      expect(response.statusCode).toBe(200);
+      expect(response.json().hostId).toBeTruthy();
+    });
+    And('it is told they are not an administrator', () => {
+      expect(response.json().role).toBe('host');
+    });
+  });
+
+  Scenario('An app with nobody signed in is told so', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let response: LightMyRequestResponse;
+
+    Given('no one is signed in', () => {
+      ({ app } = makeTestApp());
+    });
+    When('an app asks who it is talking to', async () => {
+      response = await request(app, new CookieJar(), { method: 'GET', url: '/auth/me' });
+    });
+    Then('it is told nobody is signed in', () => {
+      expect(response.statusCode).toBe(401);
+      expect(response.json().error.code).toBe('NOT_SIGNED_IN');
+    });
+  });
+
+  Scenario('Asking records no refused administrative attempt', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let jar: CookieJar;
+
+    Given('a signed-in host "bob@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      jar = new CookieJar();
+      await registerAndLogin(app, jar, 'bob@example.com');
+    });
+    When('their app asks who it is talking to', async () => {
+      const response = await request(app, jar, { method: 'GET', url: '/auth/me' });
+      expect(response.statusCode).toBe(200);
+    });
+    Then('the security log records no refused administrative attempt', () => {
+      // The whole reason this endpoint exists rather than probing /admin/* and
+      // reading a 403: that would fire this record for every ordinary host on
+      // every page load, and bury the one line that means somebody reached for
+      // something they should not have.
+      const refused = new SqliteSecurityEventLog(db, new SystemClock(), new UuidIdGenerator())
+        .list()
+        .find((event) => event.type === 'admin_access.refused');
+      expect(refused).toBeUndefined();
     });
   });
 });

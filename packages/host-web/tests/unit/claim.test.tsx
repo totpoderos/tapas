@@ -15,7 +15,7 @@ vi.mock('../../src/api/client', async () => {
   );
   return {
     ...actual,
-    hasSession: vi.fn(),
+    whoAmI: vi.fn(),
     signIn: vi.fn(),
     signOut: vi.fn(),
     listContests: vi.fn(),
@@ -39,7 +39,7 @@ function renderAt(path: string) {
 
 describe('Claiming a deployment', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(false);
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.listContests).mockResolvedValue([]);
     vi.mocked(api.isDeploymentUnclaimed).mockReset();
     vi.mocked(api.claimDeployment).mockReset();
@@ -133,7 +133,7 @@ describe('Sign-in on a deployment nobody has claimed', () => {
     // An earlier version redirected here, which locked out every host on a
     // deployment that has accounts but no administrator — the state every
     // deployment is in until open registration is removed.
-    vi.mocked(api.hasSession).mockResolvedValue(false);
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(true);
     renderAt('/sign-in');
 
@@ -143,7 +143,7 @@ describe('Sign-in on a deployment nobody has claimed', () => {
   });
 
   it('says nothing about setting up when the deployment is claimed', async () => {
-    vi.mocked(api.hasSession).mockResolvedValue(false);
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(false);
     renderAt('/sign-in');
 
@@ -154,7 +154,7 @@ describe('Sign-in on a deployment nobody has claimed', () => {
   it('costs a signed-in host nothing to find out', async () => {
     // The question only changes where an anonymous visitor goes, so only they
     // should pay for the answer.
-    vi.mocked(api.hasSession).mockResolvedValue(true);
+    vi.mocked(api.whoAmI).mockResolvedValue({ hostId: 'h1', role: 'host' });
     renderAt('/');
 
     await screen.findByRole('heading', { name: 'Your contests' });

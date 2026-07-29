@@ -89,6 +89,29 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
 
   const requireSession = requireHostSession(deps);
 
+  /**
+   * Who the caller is, and what. The app needs the role to decide what to draw —
+   * whether to offer an administrator the way to the people — and there is no
+   * other way to learn it after a reload, when there was no sign-in to carry it.
+   *
+   * Deliberately its own read rather than letting the app discover its role by
+   * requesting something administrative and reading the refusal: that would
+   * record `admin_access.refused` for every ordinary host on every page load,
+   * and bury the one entry that means somebody reached for something.
+   *
+   * The role reported here is for rendering only. Nothing on the server trusts
+   * it — `requireAdministrator` reads the account store, because a refresh
+   * carries the previous token's claim forward and a claim-derived role would
+   * outlive a demotion.
+   */
+  app.get('/auth/me', { preHandler: requireSession }, async (request, reply) => {
+    if (!request.hostSession) return reply.code(401).send(notSignedIn);
+
+    const account = deps.hostAccounts.findById(request.hostSession.id);
+    if (!account) return reply.code(401).send(notSignedIn);
+    return reply.code(200).send({ hostId: account.id, role: account.role });
+  });
+
   app.post('/auth/pats', { preHandler: requireSession }, async (request, reply) => {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
 

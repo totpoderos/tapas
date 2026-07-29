@@ -13,7 +13,7 @@ vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
   return {
     ...actual,
-    hasSession: vi.fn(),
+    whoAmI: vi.fn(),
     register: vi.fn(),
     signIn: vi.fn(),
     signOut: vi.fn(),
@@ -34,7 +34,7 @@ function renderAt(path: string) {
 
 describe('Host sign-up', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(false);
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.register).mockReset();
     vi.mocked(api.signIn).mockReset();
     vi.mocked(api.listContests).mockResolvedValue([]);

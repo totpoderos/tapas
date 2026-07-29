@@ -1,0 +1,57 @@
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-6, 1.5rem);
+}
+
+.invite {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3, 0.75rem);
+  flex-wrap: wrap;
+  margin: var(--space-6, 1.5rem) 0;
+}
+
+.alert,
+.notice {
+  flex-basis: 100%;
+  display: flex;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-3, 0.75rem);
+  border-radius: var(--radius-2, 0.5rem);
+}
+
+.alert {
+  background: var(--color-danger-surface, #fdecec);
+  color: var(--color-danger-text, #7a1c1c);
+}
+
+.notice {
+  flex-direction: column;
+  background: var(--color-surface-2, #f4f1ec);
+  color: var(--color-text, #241f1a);
+  overflow-wrap: anywhere;
+}
+
+/* The widest thing in this app: it scrolls inside itself rather than pushing
+   the page sideways at 200% zoom or on a narrow screen. */
+.table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.caption {
+  text-align: left;
+  padding-bottom: var(--space-2, 0.5rem);
+  color: var(--color-text-muted, #6b6259);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-3, 0.75rem);
+  border-bottom: 1px solid var(--color-border, #e2dbd2);
+  white-space: nowrap;
+}

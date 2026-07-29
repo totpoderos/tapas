@@ -7,7 +7,7 @@ import { i18n } from '../../src/i18n';
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, hasSession: vi.fn(), listContests: vi.fn() };
+  return { ...actual, whoAmI: vi.fn(), listContests: vi.fn() };
 });
 import * as api from '../../src/api/client';
 
@@ -23,7 +23,7 @@ function renderApp() {
 
 describe('Host app translation', () => {
   beforeEach(() => {
-    vi.mocked(api.hasSession).mockResolvedValue(false); // anonymous → sign-in screen
+    vi.mocked(api.whoAmI).mockResolvedValue(null); // anonymous → sign-in screen
     vi.mocked(api.listContests).mockResolvedValue([]);
   });
   afterEach(async () => {

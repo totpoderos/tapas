@@ -1,0 +1,27 @@
+{
+  "title": "Personas",
+  "subtitle": "Todo el mundo con acceso a esta instalación, y todo el mundo invitado a ella.",
+  "email": "Correo electrónico",
+  "invite": "Enviar invitación",
+  "inviting": "Enviando…",
+  "errorEmailTaken": "Esa dirección ya está registrada.",
+  "errorInvalidEmail": "Escribe una dirección de correo válida.",
+  "errorGeneric": "Algo ha fallado. Inténtalo de nuevo.",
+  "notSentBody": "No se ha podido enviar el mensaje, así que aquí tienes el enlace. Sirve una sola vez, y solo durante 24 horas — cópialo ahora, no se vuelve a mostrar.",
+  "tableCaption": "Personas de esta instalación",
+  "columnPerson": "Persona",
+  "columnStanding": "Situación",
+  "columnActions": "Acciones",
+  "revoke": "Revocar",
+  "resend": "Reenviar",
+  "standing": {
+    "administrator": "Administradora",
+    "host": "Anfitriona",
+    "pending": "Invitada",
+    "expired": "Invitación caducada",
+    "revoked": "Invitación revocada",
+    "superseded": "Invitación sustituida"
+  },
+  "notAllowedTitle": "Esta pantalla no es para ti",
+  "notAllowedBody": "Solo una administradora puede ver las personas de esta instalación."
+}
