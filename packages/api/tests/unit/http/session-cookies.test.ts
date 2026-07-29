@@ -1,7 +1,7 @@
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describe, expect, it } from 'vitest';
 import type { DraftContent } from '@tapas/domain';
-import { makeTestApp } from '../../support/test-server.js';
+import { makeTestApp, seedHost } from '../../support/test-server.js';
 import type { Env } from '../../../src/index.js';
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
@@ -62,7 +62,7 @@ const asHttps = { 'x-forwarded-proto': 'https' };
 /** Signs a host in, returning the response that carries their session cookies. */
 async function login(app: FastifyInstance): Promise<LightMyRequestResponse> {
   const payload = { email: 'h@x.es', password: STRONG_PASSWORD };
-  await app.inject({ method: 'POST', url: '/auth/register', payload, headers: asHttps });
+  await seedHost(app, payload.email, payload.password);
   return app.inject({ method: 'POST', url: '/auth/login', payload, headers: asHttps });
 }
 

@@ -3,12 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import {
-  makeTestApp,
-  MutableClock,
-  promoteToAdministrator,
-  type TestApp,
-} from '../support/test-server.js';
+import { MutableClock, makeTestApp, promoteToAdministrator, seedHost, type TestApp } from '../support/test-server.js';
 import { invitationSentTo } from '../support/invitations.js';
 import {
   SqliteSecurityEventLog,
@@ -31,11 +26,7 @@ function securityLog(db: DatabaseSync): SecurityEvent[] {
 }
 
 async function register(app: FastifyInstance, email: string): Promise<void> {
-  await app.inject({
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
 }
 
 async function login(

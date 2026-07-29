@@ -6,7 +6,6 @@ import { createI18n } from '@tapas/ui';
 // spec: "Adding a language does not change the screens").
 import enCommon from './locales/en/common.json';
 import enSignIn from './locales/en/sign-in.json';
-import enSignUp from './locales/en/sign-up.json';
 import enAcceptInvite from './locales/en/accept-invite.json';
 import enClaim from './locales/en/claim.json';
 import enPeople from './locales/en/people.json';
@@ -22,7 +21,6 @@ import enDeleteContest from './locales/en/delete-contest.json';
 
 import esCommon from './locales/es/common.json';
 import esSignIn from './locales/es/sign-in.json';
-import esSignUp from './locales/es/sign-up.json';
 import esAcceptInvite from './locales/es/accept-invite.json';
 import esClaim from './locales/es/claim.json';
 import esPeople from './locales/es/people.json';
@@ -39,7 +37,6 @@ import esDeleteContest from './locales/es/delete-contest.json';
 const en = {
   common: enCommon,
   signIn: enSignIn,
-  signUp: enSignUp,
   acceptInvite: enAcceptInvite,
   claim: enClaim,
   people: enPeople,
@@ -59,7 +56,6 @@ const en = {
 const es = {
   common: esCommon,
   signIn: esSignIn,
-  signUp: esSignUp,
   acceptInvite: esAcceptInvite,
   claim: esClaim,
   people: esPeople,

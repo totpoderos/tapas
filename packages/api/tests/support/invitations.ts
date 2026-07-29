@@ -1,4 +1,4 @@
-import { makeTestApp, promoteToAdministrator, type TestApp } from './test-server.js';
+import { makeTestApp, promoteToAdministrator, seedHost, type TestApp } from './test-server.js';
 import type { Clock } from '../../src/index.js';
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
@@ -42,11 +42,7 @@ export async function invitationSentTo(
   clock?: Clock,
 ): Promise<{ test: TestApp; token: string; link: string; id: string; adminCookie: string }> {
   const test = makeTestApp(clock);
-  await test.app.inject({
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email: ADMINISTRATOR, password: STRONG_PASSWORD },
-  });
+  await seedHost(test.app, ADMINISTRATOR, STRONG_PASSWORD);
   promoteToAdministrator(test.db, ADMINISTRATOR);
 
   const adminCookie = await signInAdministrator(test);

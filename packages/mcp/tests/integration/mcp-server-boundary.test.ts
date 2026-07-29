@@ -37,7 +37,7 @@ describe('MCP server boundary', () => {
 
   it('rejects a tool call whose arguments break the tool schema', async () => {
     api = await startApi();
-    const client = await connect(await hostWithToken(api.app, 'ana@example.com'));
+    const client = await connect(await hostWithToken(api.app, api.db, 'ana@example.com'));
 
     // get_contest requires a string contestId; a number is the wrong type. The SDK
     // validates against the tool schema, so the call is rejected — surfaced either
@@ -57,7 +57,7 @@ describe('MCP server boundary', () => {
 
   it('records an audit entry for an action taken through the server', async () => {
     api = await startApi();
-    const client = await connect(await hostWithToken(api.app, 'ana@example.com'));
+    const client = await connect(await hostWithToken(api.app, api.db, 'ana@example.com'));
 
     const result = (await client.callTool({
       name: 'create_draft',

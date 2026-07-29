@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/host-sees-the-results.feature. The host reaches their own
@@ -78,7 +79,7 @@ async function publishContest(
   page: Page,
   email: string,
 ): Promise<{ contestId: string; joinCode: string }> {
-  await page.request.post(`${HOST_WEB}/auth/register`, { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await page.request.post(`${HOST_WEB}/auth/login`, { data: { email, password: PASSWORD } });
   const created = await page.request.post(`${HOST_WEB}/drafts`, {
     data: content('Balcony Cook-off'),

@@ -3,7 +3,6 @@ import {
   acceptInvitation as apiAcceptInvitation,
   isDeploymentUnclaimed,
   whoAmI,
-  register as apiRegister,
   signIn as apiSignIn,
   signOut as apiSignOut,
 } from '../api/client';
@@ -28,8 +27,6 @@ export interface Session {
   readonly deploymentUnclaimed: boolean;
   /** Signs in; throws ApiError on bad credentials, leaving the session anonymous. */
   signIn(email: string, password: string): Promise<void>;
-  /** Creates an account and signs in; throws ApiError (e.g. email taken, weak password). */
-  signUp(email: string, password: string): Promise<void>;
   /**
    * Turns an invitation into an account and signs in. Throws ApiError if
    * accepting is refused; returns `'account-ready'` when the account was made
@@ -87,13 +84,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setStatus('authenticated');
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    await apiRegister(email, password);
-    // Registration does not open a session, so sign in straight after.
-    await apiSignIn(email, password);
-    setStatus('authenticated');
-  }, []);
-
   const acceptInvitation = useCallback(
     // The address comes from the caller because the screen already read it to
     // render itself — asking again would be a second chance to fail for no gain.
@@ -123,7 +113,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <SessionContext.Provider value={{ status, deploymentUnclaimed, isAdministrator, signIn, signUp, acceptInvitation, signOut }}>
+    <SessionContext.Provider value={{ status, deploymentUnclaimed, isAdministrator, signIn, acceptInvitation, signOut }}>
       {children}
     </SessionContext.Provider>
   );

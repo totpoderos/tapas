@@ -3,7 +3,7 @@ import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 
 const feature = await loadFeature(
   fileURLToPath(new URL('./listing-my-contests.feature', import.meta.url)),
@@ -53,11 +53,7 @@ async function request(
 
 async function signedInHost(app: FastifyInstance, email: string): Promise<CookieJar> {
   const jar = new CookieJar();
-  await request(app, jar, {
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',

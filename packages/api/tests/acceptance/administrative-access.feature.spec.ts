@@ -3,7 +3,7 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp, promoteToAdministrator } from '../support/test-server.js';
+import { makeTestApp, promoteToAdministrator, seedHost } from '../support/test-server.js';
 import { SqliteSecurityEventLog, SystemClock, UuidIdGenerator } from '../../src/index.js';
 
 const feature = await loadFeature(
@@ -55,11 +55,7 @@ async function registerAndLogin(
   jar: CookieJar,
   email: string,
 ): Promise<void> {
-  await request(app, jar, {
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',
@@ -74,11 +70,7 @@ async function signInAsAdministrator(
   jar: CookieJar,
   email: string,
 ): Promise<void> {
-  await request(app, jar, {
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
   promoteToAdministrator(db, email);
   await request(app, jar, {
     method: 'POST',

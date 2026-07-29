@@ -2,7 +2,6 @@ import { Navigate, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
-import { SignUp } from './pages/sign-up';
 import { AcceptInvite } from './pages/accept-invite';
 import { Claim } from './pages/claim';
 import { People } from './pages/people';
@@ -53,7 +52,6 @@ export function App() {
           not who the visitor is. On a deployment nobody has claimed there is
           nobody to be. */}
       <Route path="/claim" element={<Claim />} />
-      <Route path="/sign-up" element={authed ? <Navigate to="/" replace /> : <SignUp />} />
       <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
       <Route path="/new" element={authed ? <NewContest /> : <Navigate to="/sign-in" replace />} />
       {/* `/review/:id`, not `/drafts/:id`: the dev/preview proxy forwards

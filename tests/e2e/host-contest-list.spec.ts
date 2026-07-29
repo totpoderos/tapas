@@ -1,5 +1,6 @@
 import { test, expect, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/host-contest-list.feature against a real API + the host
@@ -23,7 +24,7 @@ function completeContent(name: string) {
 
 /** Registers and signs in a fresh host, leaving the session cookie in the browser context. */
 async function signInFreshHost(request: APIRequestContext, email: string): Promise<void> {
-  await request.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await request.post('/auth/login', { data: { email, password: PASSWORD } });
 }
 

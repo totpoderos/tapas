@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp, MutableClock } from '../support/test-server.js';
+import { MutableClock, makeTestApp, seedHost } from '../support/test-server.js';
 import { ACCESS_TTL_SECONDS } from '../../src/index.js';
 
 const feature = await loadFeature(
@@ -53,11 +53,7 @@ async function registerAndLogin(
   jar: CookieJar,
   email: string,
 ): Promise<void> {
-  await request(app, jar, {
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',
@@ -76,11 +72,7 @@ describeFeature(feature, ({ Scenario }) => {
       jar = new CookieJar();
     });
     When('a host registers and signs in through the API as "ana@example.com"', async () => {
-      await request(app, jar, {
-        method: 'POST',
-        url: '/auth/register',
-        payload: { email: 'ana@example.com', password: STRONG_PASSWORD },
-      });
+      await seedHost(app, 'ana@example.com', STRONG_PASSWORD);
       response = await request(app, jar, {
         method: 'POST',
         url: '/auth/login',

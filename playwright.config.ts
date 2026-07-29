@@ -50,6 +50,9 @@ const API_ENV = [
 /** Where a spec reads what was sent. Exported so the mail helper agrees with the runner. */
 export const MAILPIT_API = `http://localhost:${MAIL_API_PORT}`;
 
+/** Where the host app is served. Exported so support helpers agree with the runner. */
+export const HOST_APP = `http://localhost:${WEB_PORT}`;
+
 export default defineConfig({
   testDir: 'tests/e2e',
   testMatch: '**/*.spec.ts',

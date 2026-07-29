@@ -1,6 +1,7 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import { ADMINISTRATOR } from './support/administrator.js';
 import { clearMail, invitationLinkSentTo } from './support/mail.js';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/host-people-panel.feature.
@@ -58,7 +59,7 @@ test('an administrator resends and revokes from the row', async ({ page }) => {
 test('a host is told the screen is not for them', async ({ page, baseURL }) => {
   // Registered directly: open registration is still there until the last slice.
   const api = await playwrightRequest.newContext({ baseURL });
-  await api.post('/auth/register', { data: HOST });
+  await hostInvitedBy(HOST.email, HOST.password);
   await api.dispose();
 
   await signIn(page, HOST);

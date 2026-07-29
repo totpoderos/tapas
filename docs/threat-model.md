@@ -423,7 +423,7 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 | G1 | ~~`ASSISTANT_CONFIRMATION_SECRET` has a committed default~~ — **FIXED (6.11)** | ~~High~~ | The API now **refuses to boot in production** if this (or `JWT_SECRET`) is a committed dev default ([env.ts superRefine](../packages/api/src/config/env.ts)); dev/test keep the convenience default. |
 | G2 | ~~`JWT_SECRET` has no length floor~~ — **FIXED (6.11)** | ~~High~~ | Now `min(32, …)` ([env.ts](../packages/api/src/config/env.ts)); examples/compose bumped; `.env*.example` document 64+ random for prod. |
 | G3 | ~~**No `admin` role / role middleware**~~ — **CLOSED** | ~~Medium~~ | Administrative work is a guarded category ([require-administrator.ts](../packages/api/src/http/require-administrator.ts)): the role is read from the account store rather than the session (a refresh carries the old role claim forward, so a demotion would otherwise never take effect), and a personal access token is refused administrative work whoever issued it. The role is now *assigned* by a real path too — a deployment names its administrator in `ADMIN_BOOTSTRAP_EMAIL` and only that address can claim it, with a unique index capping administrators at one. |
-| G10 | **A lost sole administrator has no recovery path** | Low today — single operator, one deployment | Deliberate consequence of closing G3: the setup route will not reopen once an administrator exists, and nothing transfers or replaces the role. If those credentials are lost, the only remedy is database access. **Accepted for v1** — recorded here so it is known rather than discovered. |
+| G10 | **A lost sole administrator locks the deployment** | Low today — single operator, one deployment | Deliberate consequence of closing G3, and **sharper since open registration was removed**: until then `POST /auth/register` still made *an* account — not an administrator, but a way in. Now every account comes from an invitation and the first from claiming, so a deployment whose administrator is lost is reachable only through its database. The setup route does not reopen, and nothing transfers the role. **Accepted for v1** — recorded so it is known rather than discovered. A transfer path is the natural follow-up. |
 | G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. **Deferred.** |
 | G5 | ~~No Dependabot~~ — **FIXED (6.11)** | ~~Medium~~ | Added [.github/dependabot.yml](../.github/dependabot.yml) (weekly npm + actions, grouped); the CI `audit:ci` gate vets each bump. |
 | G6 | **Contest get/close/reveal use cases have no *internal* ownership check** — route-only ([get-contest.ts:8](../packages/api/src/contests/use-cases/get-contest.ts)) | Low today — every real caller goes through the guarded route | Deliberate split; add a defense-in-depth check or a lint note so a future caller can't bypass it. |
@@ -486,10 +486,14 @@ Worked from this threat model:
   round-trip is not what secures this: it proves only that the claimant holds
   the inbox they typed. The pin is the security; the round-trip is the
   convenience. See also **G10**.
-- ⏸ **G10 — accepted for v1.** Closing G3 means there is exactly one
-  administrator and no way to replace them. Lost credentials need database
-  access to recover. A transfer path is the natural follow-up if this ever runs
-  for anybody but its operator.
+- ⏸ **G10 — accepted for v1, and worse than it was.** Closing G3 means there is
+  exactly one administrator and no way to replace them. While open registration
+  existed this was softer than it sounded: anyone could still create a host
+  account and have *a* way in. Removing it leaves one path to any account at
+  all — the configured address, the claim screen, and a link that is mailed or
+  shown — so lost administrator credentials now need database access to recover.
+  A transfer path is the natural follow-up if this ever runs for anybody but its
+  operator.
 
 - ⏭ **G4, G6, G7–G9 — deferred** (source IP on destructive-action audit records; a
   defense-in-depth ownership assertion in the contest use cases; single-use nonce;

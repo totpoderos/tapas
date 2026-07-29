@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/host-authentication.feature against a real API + the host
@@ -10,16 +11,17 @@ const HOST = { email: 'e2e-host@sobremesa.es', password: 'Str0ng!Passw0rd' };
 
 test.beforeAll(async ({ baseURL }) => {
   const api = await playwrightRequest.newContext({ baseURL });
-  await api.post('/auth/register', { data: HOST });
+  await hostInvitedBy(HOST.email, HOST.password);
   await api.dispose();
 });
 
-test('a new host creates an account and lands signed in', async ({ page }) => {
+test('the sign-up address leads nowhere', async ({ page }) => {
+  // Somebody will have it bookmarked. Nothing creates an account for itself any
+  // more; the only ways in are an invitation and claiming the deployment.
   await page.goto('/sign-up');
-  await page.getByLabel('Email').fill('brand-new@sobremesa.es');
-  await page.getByLabel('Password').fill('An0ther!Str0ngPass');
-  await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
+
+  await expect(page.getByRole('button', { name: 'Create account' })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 });
 
 test('a returning host signs in and lands on home', async ({ page }) => {

@@ -6,6 +6,7 @@ import {
   type Page,
 } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/host-deletes-a-contest.feature. Deleting is the only
@@ -38,7 +39,7 @@ function content(name: string) {
 }
 
 async function publish(page: Page, email: string, name: string) {
-  await page.request.post(`${HOST_WEB}/auth/register`, { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await page.request.post(`${HOST_WEB}/auth/login`, { data: { email, password: PASSWORD } });
   const created = await page.request.post(`${HOST_WEB}/drafts`, { data: content(name) });
   const published = await page.request.post(

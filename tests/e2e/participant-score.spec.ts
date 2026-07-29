@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/participant-score.feature. A repeats-allowed contest is
@@ -32,7 +33,7 @@ function repeatsAllowed(name: string) {
  */
 async function seedScorableContest(email: string): Promise<{ joinCode: string; contestId: string }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', { data: repeatsAllowed('Balcony Cook-off') });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);

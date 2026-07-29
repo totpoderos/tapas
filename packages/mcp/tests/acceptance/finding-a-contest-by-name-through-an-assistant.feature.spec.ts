@@ -57,7 +57,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a contest named "Tapas Night"', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithNamedContest(api.app, 'ana@example.com', 'Tapas Night');
+      const host = await hostWithNamedContest(api.app, api.db, 'ana@example.com', 'Tapas Night');
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to find the contest named "Tapas Night" with the host\'s token', async () => {
@@ -77,7 +77,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and two contests both named "Tapas Night"', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
       await publishNamedContestAs(api.app, token, 'Tapas Night');
       await publishNamedContestAs(api.app, token, 'Tapas Night');
       client = await connectAssistant(api.baseUrl, token);
@@ -101,8 +101,8 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token, and a contest named "Tapas Night" owned by a different host',
       async () => {
         const api = await startTrackedApi();
-        await hostWithNamedContest(api.app, 'other@example.com', 'Tapas Night');
-        const anaToken = await hostWithToken(api.app, 'ana@example.com');
+        await hostWithNamedContest(api.app, api.db, 'other@example.com', 'Tapas Night');
+        const anaToken = await hostWithToken(api.app, api.db, 'ana@example.com');
         client = await connectAssistant(api.baseUrl, anaToken);
       },
     );
