@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/participant-language.feature against the participant app
@@ -16,7 +17,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 /** A live contest with Spanish-written dishes, leaving Bruno's place open. */
 async function seedContest(email: string, dishes: readonly string[]) {
   const host: APIRequestContext = await playwrightRequest.newContext({ baseURL: API });
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', {
     data: {

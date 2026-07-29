@@ -5,7 +5,7 @@ import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
 import type { DatabaseSync } from 'node:sqlite';
 import { SqliteAuditLogRepository } from '../../src/index.js';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 
 const feature = await loadFeature(
   fileURLToPath(new URL('./editing-a-contest-draft.feature', import.meta.url)),
@@ -51,7 +51,7 @@ async function req(app: FastifyInstance, jar: CookieJar, o: { method: 'GET' | 'P
 
 async function signedInHost(app: FastifyInstance, email: string): Promise<CookieJar> {
   const jar = new CookieJar();
-  await req(app, jar, { method: 'POST', url: '/auth/register', payload: { email, password: STRONG_PASSWORD } });
+  await seedHost(app, email, STRONG_PASSWORD);
   await req(app, jar, { method: 'POST', url: '/auth/login', payload: { email, password: STRONG_PASSWORD } });
   return jar;
 }

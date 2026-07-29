@@ -5,6 +5,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/participant-navigation.feature.
@@ -40,7 +41,7 @@ function contestContent(name: string) {
 /** A live contest with Ana's and Carmen's dishes in, leaving Bruno for the browser. */
 async function seedContest(email: string): Promise<{ joinCode: string; contestId: string }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', { data: contestContent('Balcony Cook-off') });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);

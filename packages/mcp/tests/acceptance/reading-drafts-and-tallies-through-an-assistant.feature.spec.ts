@@ -59,7 +59,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a saved draft', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithDraft(api.app, 'ana@example.com');
+      const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
       draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
@@ -79,7 +79,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a running contest', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithPublishedContest(api.app, 'ana@example.com');
+      const host = await hostWithPublishedContest(api.app, api.db, 'ana@example.com');
       contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
@@ -100,9 +100,9 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token, and a draft owned by a different host', async () => {
       const api = await startTrackedApi();
-      const other = await hostWithDraft(api.app, 'other@example.com');
+      const other = await hostWithDraft(api.app, api.db, 'other@example.com');
       othersDraftId = other.draftId;
-      const intruderToken = await hostWithToken(api.app, 'ana@example.com');
+      const intruderToken = await hostWithToken(api.app, api.db, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, intruderToken);
     });
     When("the assistant is asked to read the other host's draft with the first host's token", async () => {

@@ -13,9 +13,9 @@ type Screen =
   | { kind: 'accountReady' };
 
 /**
- * Where an invitation link lands. It is the sign-up screen with its email field
- * replaced by the address the API reports — and sign-up is removed in a later
- * slice, leaving this the only screen of its shape.
+ * Where an invitation link lands, and the only way anybody gets an account:
+ * open registration was removed once this existed. It began as the sign-up
+ * screen with its email field replaced by the address the API reports.
  *
  * Two states from the read on mount, and no third. A link that cannot be used
  * gets one message: the API answers identically whether it never existed, was

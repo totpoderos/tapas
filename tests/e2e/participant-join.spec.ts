@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/participant-join.feature against a real API + the
@@ -29,7 +30,7 @@ function completeContent(name: string) {
 /** Seeds a live contest via a fresh host and returns its join code (+ an API context to act as others). */
 async function seedLiveContest(email: string): Promise<{ joinCode: string; host: APIRequestContext }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', { data: completeContent('Balcony Cook-off') });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);

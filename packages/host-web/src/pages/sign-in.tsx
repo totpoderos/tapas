@@ -80,9 +80,6 @@ export function SignIn() {
             <Button type="submit" block disabled={submitting}>
               {submitting ? t('signIn.submitting') : t('signIn.submit')}
             </Button>
-            <p className={styles.foot}>
-              {t('signIn.footPrompt')} <a href="/sign-up">{t('signIn.footLink')}</a>
-            </p>
           </div>
         </form>
 

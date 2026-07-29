@@ -53,7 +53,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token', async () => {
       const api = await startTrackedApi();
-      client = await connectAssistant(api.baseUrl, await hostWithToken(api.app, 'ana@example.com'));
+      client = await connectAssistant(api.baseUrl, await hostWithToken(api.app, api.db, 'ana@example.com'));
     });
     When('the assistant is asked to create a draft named "Summer Tapas"', async () => {
       result = await callTool(client, 'create_draft', { name: 'Summer Tapas' });
@@ -74,7 +74,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a saved draft', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithDraft(api.app, 'ana@example.com');
+      const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
       draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
@@ -94,7 +94,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a complete, publishable draft', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithDraft(api.app, 'ana@example.com');
+      const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
       draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
@@ -118,7 +118,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a complete, publishable draft and the confirmation to publish it', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithDraft(api.app, 'ana@example.com');
+      const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
       draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
       confirmationToken = body(await callTool(client, 'publish_contest', { draftId }))

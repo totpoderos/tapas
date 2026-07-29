@@ -1,5 +1,4 @@
 import type { FastifyInstance } from 'fastify';
-import type { RegisterErrorCode } from '../auth/use-cases/shared.js';
 import type { RevokePatErrorCode } from '../auth/use-cases/pat-shared.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { requireHostSession } from './require-host-session.js';
@@ -16,12 +15,6 @@ interface Credentials {
   readonly password: string;
 }
 
-const REGISTER_ERROR_STATUS: Record<RegisterErrorCode, number> = {
-  INVALID_EMAIL: 400,
-  WEAK_PASSWORD: 400,
-  EMAIL_TAKEN: 409,
-};
-
 const REVOKE_PAT_ERROR_STATUS: Record<RevokePatErrorCode, number> = {
   PAT_NOT_FOUND: 404,
   NOT_ALLOWED: 403,
@@ -30,17 +23,6 @@ const REVOKE_PAT_ERROR_STATUS: Record<RevokePatErrorCode, number> = {
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
 
 export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void {
-  app.post<{ Body: Credentials }>('/auth/register', async (request, reply) => {
-    const { email, password } = request.body;
-    const registration = await deps.registerHost.execute(email, password);
-    if (!registration.ok) {
-      return reply
-        .code(REGISTER_ERROR_STATUS[registration.error.code])
-        .send({ error: registration.error });
-    }
-    return reply.code(201).send({ hostId: registration.hostId });
-  });
-
   app.post<{ Body: Credentials }>(
     '/auth/login',
     { config: { rateLimit: SENSITIVE_RATE_LIMIT } },

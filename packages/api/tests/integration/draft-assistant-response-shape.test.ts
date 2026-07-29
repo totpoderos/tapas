@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '../../src/index.js';
 
 /**
@@ -35,7 +35,8 @@ const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 async function signedInCookie(app: FastifyInstance): Promise<string> {
   const jar = new Map<string, string>();
   const header = () => [...jar.entries()].map(([n, v]) => `${n}=${v}`).join('; ');
-  for (const url of ['/auth/register', '/auth/login']) {
+  await seedHost(app, 'shape@example.com', STRONG_PASSWORD);
+  for (const url of ['/auth/login']) {
     const response = await app.inject({
       method: 'POST',
       url,

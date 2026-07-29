@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { seedHostIn } from '../../../api/tests/support/test-server.js';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import {
   BcryptPasswordHasher,
@@ -112,10 +113,14 @@ function asBearer(app: FastifyInstance, token: string, method: 'GET' | 'POST', u
   return app.inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
 }
 
-/** Registers and logs in a host, then issues a personal access token. Returns the token. */
-export async function hostWithToken(app: FastifyInstance, email: string): Promise<string> {
+/** Gives a host an account and logs them in, then issues a personal access token. */
+export async function hostWithToken(
+  app: FastifyInstance,
+  db: DatabaseSync,
+  email: string,
+): Promise<string> {
   const jar = new CookieJar();
-  await asHost(app, jar, 'POST', '/auth/register', { email, password: STRONG_PASSWORD });
+  await seedHostIn(db, email, STRONG_PASSWORD);
   await asHost(app, jar, 'POST', '/auth/login', { email, password: STRONG_PASSWORD });
   const issued = await asHost(app, jar, 'POST', '/auth/pats');
   return issued.json().token as string;
@@ -159,51 +164,56 @@ export async function publishNamedContestAs(
   return published.json().id as string;
 }
 
-/** Registers/logs in a host and publishes a live contest with a specific name; returns its id and token. */
+/** Gives a host an account and publishes a live contest with a specific name; returns its id and token. */
 export async function hostWithNamedContest(
   app: FastifyInstance,
+  db: DatabaseSync,
   email: string,
   name: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, email);
+  const token = await hostWithToken(app, db, email);
   return { token, contestId: await publishNamedContestAs(app, token, name) };
 }
 
-/** Registers/logs in a host, saves a simple draft as them, and returns its id and token. */
+/** Gives a host an account, saves a simple draft as them, and returns its id and token. */
 export async function hostWithDraft(
   app: FastifyInstance,
+  db: DatabaseSync,
   email: string,
 ): Promise<{ token: string; draftId: string }> {
-  const token = await hostWithToken(app, email);
+  const token = await hostWithToken(app, db, email);
   return { token, draftId: await saveDraftAs(app, token) };
 }
 
-/** Registers/logs in a host, publishes a simple live contest as them, and returns its id and token. */
+/** Gives a host an account, publishes a simple live contest as them, and returns its id and token. */
 export async function hostWithPublishedContest(
   app: FastifyInstance,
+  db: DatabaseSync,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, email);
+  const token = await hostWithToken(app, db, email);
   return { token, contestId: await publishContestAs(app, token) };
 }
 
-/** Registers/logs in a host and publishes then closes a contest — the state a reveal needs. */
+/** Gives a host an account and publishes then closes a contest — the state a reveal needs. */
 export async function hostWithClosedContest(
   app: FastifyInstance,
+  db: DatabaseSync,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, email);
+  const token = await hostWithToken(app, db, email);
   const contestId = await publishContestAs(app, token);
   await asBearer(app, token, 'POST', `/contests/${contestId}/close`);
   return { token, contestId };
 }
 
-/** Registers/logs in a host and takes a contest all the way to revealed. */
+/** Gives a host an account and takes a contest all the way to revealed. */
 export async function hostWithRevealedContest(
   app: FastifyInstance,
+  db: DatabaseSync,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const { token, contestId } = await hostWithClosedContest(app, email);
+  const { token, contestId } = await hostWithClosedContest(app, db, email);
   await asBearer(app, token, 'POST', `/contests/${contestId}/reveal`);
   return { token, contestId };
 }

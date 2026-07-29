@@ -58,7 +58,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a running contest', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
       contestId = await publishContestAs(api.app, token);
       client = await connectAssistant(api.baseUrl, token);
     });
@@ -81,7 +81,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host who has been told how to confirm closing their running contest', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
       contestId = await publishContestAs(api.app, token);
       client = await connectAssistant(api.baseUrl, token);
       // The first, unconfirmed call hands back the confirmation to send.
@@ -105,7 +105,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with two running contests and a confirmation to close the first', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
       const firstContestId = await publishContestAs(api.app, token);
       secondContestId = await publishContestAs(api.app, token);
       client = await connectAssistant(api.baseUrl, token);

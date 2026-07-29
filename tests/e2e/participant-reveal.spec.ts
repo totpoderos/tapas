@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * The winning dish's name. It also appears on the leaderboard below, so it needs
@@ -47,7 +48,7 @@ async function apiCtx(): Promise<APIRequestContext> {
  */
 async function seedVotedAndClosed(page: Page, email: string): Promise<{ contestId: string; host: APIRequestContext }> {
   const host = await apiCtx();
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', { data: content('Balcony Cook-off') });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '../../src/index.js';
 
 const feature = await loadFeature(
@@ -33,13 +33,7 @@ async function signedInHost(app: FastifyInstance): Promise<string> {
   };
   const header = () => [...jar.entries()].map(([name, value]) => `${name}=${value}`).join('; ');
 
-  capture(
-    await app.inject({
-      method: 'POST',
-      url: '/auth/register',
-      payload: { email: 'ana@example.com', password: STRONG_PASSWORD },
-    }),
-  );
+  await seedHost(app, 'ana@example.com', STRONG_PASSWORD);
   capture(
     await app.inject({
       method: 'POST',

@@ -3,7 +3,7 @@ import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 
 const feature = await loadFeature(fileURLToPath(new URL('./seeing-the-results.feature', import.meta.url)));
 
@@ -60,7 +60,7 @@ async function claim(app: FastifyInstance, joinCode: string, participantId: stri
  */
 async function playContest(app: FastifyInstance, opts: { close: boolean; reveal: boolean }) {
   const host = new CookieJar();
-  await request(app, host, { method: 'POST', url: '/auth/register', payload: { email: 'h@x.es', password: STRONG_PASSWORD } });
+  await seedHost(app, 'h@x.es', STRONG_PASSWORD);
   await request(app, host, { method: 'POST', url: '/auth/login', payload: { email: 'h@x.es', password: STRONG_PASSWORD } });
   const created = await request(app, host, { method: 'POST', url: '/drafts', payload: content() });
   const published = await request(app, host, { method: 'POST', url: `/drafts/${created.json().id}/publish` });

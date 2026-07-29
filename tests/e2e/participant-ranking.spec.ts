@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * Implements tests/e2e/participant-ranking.feature. A strict-ranking contest
@@ -28,7 +29,7 @@ function ranking(name: string) {
 /** Seeds a live strict-ranking contest; Ana and Carmen submit dishes, leaving Bruno's place open. */
 async function seedRankingContest(email: string): Promise<{ joinCode: string }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
-  await host.post('/auth/register', { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await host.post('/drafts', { data: ranking('Ranked Cook-off') });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);

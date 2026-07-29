@@ -33,6 +33,15 @@ function renderApp() {
 }
 
 describe('Host sign-in', () => {
+  it('offers a way to sign in and no way to create an account', async () => {
+    vi.mocked(api.whoAmI).mockResolvedValue(null);
+    renderApp();
+
+    await screen.findByRole('heading', { name: 'Welcome back' });
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /create|sign up/i })).not.toBeInTheDocument();
+  });
+
   beforeEach(() => {
     vi.mocked(api.whoAmI).mockResolvedValue(null); // start anonymous
     vi.mocked(api.signIn).mockReset();

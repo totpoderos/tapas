@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 
 const feature = await loadFeature(
   fileURLToPath(new URL('./host-personal-access-tokens.feature', import.meta.url)),
@@ -53,11 +53,7 @@ async function registerAndLogin(
   jar: CookieJar,
   email: string,
 ): Promise<void> {
-  await request(app, jar, {
-    method: 'POST',
-    url: '/auth/register',
-    payload: { email, password: STRONG_PASSWORD },
-  });
+  await seedHost(app, email, STRONG_PASSWORD);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',

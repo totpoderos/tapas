@@ -71,12 +71,23 @@ Both pass.
 
 Run against the real stack (Chromium headless, `--only-categories=accessibility`):
 
-| Screen | Score | Failing audits |
-|---|---|---|
-| Host app — sign-in | **100 / 100** | none |
-| Host app — sign-up | **100 / 100** | none |
-| Participant app — join | **100 / 100** | none |
-| Participant app — join via `/j/:code` deep link | **100 / 100** | none |
+Two kinds of evidence, kept apart on purpose: **axe** runs inside the Playwright
+E2E and hard-gates every build, so a screen listed as passing there is checked on
+every commit. **Lighthouse** is run by hand against a real browser, so a screen
+can be gated by axe and still not have a score — that is a gap worth seeing
+rather than an empty cell.
+
+| Screen | axe (CI gate) | Lighthouse | Failing audits |
+|---|---|---|---|
+| Host app — sign-in | passing | **100 / 100** | none |
+| Host app — accept an invitation | passing | not yet scored | — |
+| Host app — claim the deployment | passing | not yet scored | — |
+| Host app — people | passing | not yet scored | — |
+| Participant app — join | passing | **100 / 100** | none |
+| Participant app — join via `/j/:code` deep link | passing | **100 / 100** | none |
+
+The sign-up screen was removed with open registration; the three screens without
+scores arrived with the enrollment redesign and need a browser to measure.
 
 Reproduce:
 

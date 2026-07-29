@@ -57,7 +57,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a contest they own', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithPublishedContest(api.app, 'ana@example.com');
+      const host = await hostWithPublishedContest(api.app, api.db, 'ana@example.com');
       contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
@@ -77,9 +77,9 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token, and a contest owned by a different host', async () => {
       const api = await startTrackedApi();
-      const other = await hostWithPublishedContest(api.app, 'other@example.com');
+      const other = await hostWithPublishedContest(api.app, api.db, 'other@example.com');
       othersContestId = other.contestId;
-      const intruderToken = await hostWithToken(api.app, 'ana@example.com');
+      const intruderToken = await hostWithToken(api.app, api.db, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, intruderToken);
     });
     When("the assistant is asked to read the other host's contest with the first host's token", async () => {
@@ -98,7 +98,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a contest and no valid personal access token', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithPublishedContest(api.app, 'ana@example.com');
+      const host = await hostWithPublishedContest(api.app, api.db, 'ana@example.com');
       contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, 'not-a-real-token');
     });

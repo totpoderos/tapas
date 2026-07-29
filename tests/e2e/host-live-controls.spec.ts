@@ -1,5 +1,6 @@
 import { test, expect, request as playwrightRequest, type APIRequestContext, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * The winning dish's name. It also appears on the leaderboard below, so it needs
@@ -42,7 +43,7 @@ function content(name: string) {
 
 /** Signs the host in through the app (:5173, first-party cookie) and returns their id + join code, live. */
 async function hostWithLiveContest(page: Page, email: string): Promise<{ contestId: string; joinCode: string }> {
-  await page.request.post(`${HOST_WEB}/auth/register`, { data: { email, password: PASSWORD } });
+  await hostInvitedBy(email, PASSWORD);
   await page.request.post(`${HOST_WEB}/auth/login`, { data: { email, password: PASSWORD } });
   const created = await page.request.post(`${HOST_WEB}/drafts`, { data: content('Balcony Cook-off') });
   const published = await page.request.post(`${HOST_WEB}/drafts/${(await created.json()).id}/publish`);

@@ -3,7 +3,7 @@ import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp } from '../support/test-server.js';
+import { makeTestApp, seedHost } from '../support/test-server.js';
 
 const feature = await loadFeature(fileURLToPath(new URL('./reading-my-ballot.feature', import.meta.url)));
 
@@ -47,7 +47,7 @@ async function request(
 /** Publishes a live contest as a fresh host and returns its join code. */
 async function liveContest(app: FastifyInstance): Promise<string> {
   const jar = new CookieJar();
-  await request(app, jar, { method: 'POST', url: '/auth/register', payload: { email: 'host@example.com', password: STRONG_PASSWORD } });
+  await seedHost(app, 'host@example.com', STRONG_PASSWORD);
   await request(app, jar, { method: 'POST', url: '/auth/login', payload: { email: 'host@example.com', password: STRONG_PASSWORD } });
   const created = await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Summer Tapas') });
   const published = await request(app, jar, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
