@@ -1,0 +1,14 @@
+{
+  "title": "Termina de crear tu cuenta",
+  "subtitle": "Estás creando la cuenta de {{email}}.",
+  "password": "Contraseña",
+  "passwordHint": "Al menos 12 caracteres, con mayúsculas y minúsculas, un número y un símbolo.",
+  "submit": "Guardar contraseña",
+  "submitting": "Creando tu cuenta…",
+  "errorGeneric": "Algo ha fallado al crear tu cuenta. Inténtalo de nuevo.",
+  "unusableTitle": "Este enlace ya no sirve",
+  "unusableBody": "Puede haber caducado, o haberse usado ya. Pide uno nuevo a quien te invitó.",
+  "readyTitle": "Tu cuenta está lista",
+  "readyBody": "No hemos podido iniciar tu sesión ahora mismo, pero tu cuenta se ha creado.",
+  "signIn": "Iniciar sesión"
+}

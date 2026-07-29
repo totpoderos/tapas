@@ -1,0 +1,14 @@
+{
+  "title": "Finish setting up your account",
+  "subtitle": "Setting up the account for {{email}}.",
+  "password": "Password",
+  "passwordHint": "At least 12 characters, with upper- and lower-case, a number, and a symbol.",
+  "submit": "Set password",
+  "submitting": "Setting up your account…",
+  "errorGeneric": "Something went wrong setting up your account. Please try again.",
+  "unusableTitle": "This link cannot be used",
+  "unusableBody": "It may have expired, or already been used. Ask whoever invited you to send a new one.",
+  "readyTitle": "Your account is ready",
+  "readyBody": "We could not sign you in just now, but your account was created.",
+  "signIn": "Sign in"
+}

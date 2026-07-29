@@ -1,0 +1,16 @@
+{
+  "title": "Configura esta instalación",
+  "subtitle": "Solo la dirección configurada para esta instalación puede reclamarla.",
+  "email": "Correo electrónico",
+  "submit": "Reclamar",
+  "submitting": "Reclamando…",
+  "errorRefused": "Se ha rechazado la solicitud.",
+  "errorGeneric": "Algo ha fallado. Inténtalo de nuevo.",
+  "sentTitle": "Mira tu correo",
+  "sentBody": "Hemos enviado un enlace para terminar la configuración. Sirve una sola vez, y solo durante 24 horas.",
+  "notSentTitle": "No se ha podido enviar el mensaje",
+  "notSentBody": "El correo aún no funciona en esta instalación, así que aquí tienes el enlace. Sirve una sola vez, y solo durante 24 horas — cópialo ahora, no se vuelve a mostrar.",
+  "claimedTitle": "Esta instalación ya tiene administrador",
+  "claimedBody": "Aquí no hay nada que configurar.",
+  "signIn": "Iniciar sesión"
+}

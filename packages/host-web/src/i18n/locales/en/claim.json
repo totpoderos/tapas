@@ -1,0 +1,16 @@
+{
+  "title": "Set up this deployment",
+  "subtitle": "Only the address configured for this deployment can claim it.",
+  "email": "Email",
+  "submit": "Claim it",
+  "submitting": "Claiming…",
+  "errorRefused": "That claim was refused.",
+  "errorGeneric": "Something went wrong. Please try again.",
+  "sentTitle": "Check your inbox",
+  "sentBody": "We sent a link for finishing the setup. It works once, and only for 24 hours.",
+  "notSentTitle": "The message could not be sent",
+  "notSentBody": "Mail is not working on this deployment yet, so here is the link. It works once, and only for 24 hours — copy it now, it is not shown again.",
+  "claimedTitle": "This deployment already has an administrator",
+  "claimedBody": "There is nothing to set up here.",
+  "signIn": "Sign in"
+}

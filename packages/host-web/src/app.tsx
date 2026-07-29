@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
+import { AcceptInvite } from './pages/accept-invite';
+import { Claim } from './pages/claim';
 import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
 import { ReviewDraft } from './pages/review-draft';
@@ -19,7 +21,7 @@ import { useSession } from './auth/session';
  * on home. A signed-in host visiting /sign-in is bounced home.
  */
 export function App() {
-  const { status } = useSession();
+  const { status, deploymentUnclaimed } = useSession();
   const { t } = useTranslation();
 
   if (status === 'loading') {
@@ -34,7 +36,33 @@ export function App() {
 
   return (
     <Routes>
-      <Route path="/sign-in" element={authed ? <Navigate to="/" replace /> : <SignIn />} />
+      {/* The app's one conditional redirect. Everything unrouted already funnels
+          through /sign-in, so making this route aware covers the whole app — and
+          /claim deliberately redirects nobody back, because two conditions
+          reading server state at different moments disagree exactly while
+          somebody is claiming, which a browser resolves by looping. */}
+      <Route
+        path="/sign-in"
+        element={
+          authed ? (
+            <Navigate to="/" replace />
+          ) : deploymentUnclaimed ? (
+            <Navigate to="/claim" replace />
+          ) : (
+            <SignIn />
+          )
+        }
+      />
+      {/* `/accept-invite/:token` and `/claim`, clear of the proxied prefixes
+          (/auth, /drafts, /contests, /assistant, /admin, /invites, /setup) — a
+          browsable route under those is proxied to the API on a direct load or
+          reload, which is exactly how an invitation link arrives. The API reads
+          still use /invites/:token and /setup/admin. */}
+      <Route path="/accept-invite/:token" element={<AcceptInvite />} />
+      {/* No session guard, on purpose: this screen asks what the deployment is,
+          not who the visitor is. On a deployment nobody has claimed there is
+          nobody to be. */}
+      <Route path="/claim" element={<Claim />} />
       <Route path="/sign-up" element={authed ? <Navigate to="/" replace /> : <SignUp />} />
       <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
       <Route path="/new" element={authed ? <NewContest /> : <Navigate to="/sign-in" replace />} />
