@@ -52,6 +52,39 @@ export async function signIn(email: string, password: string): Promise<void> {
   if (!response.ok) throw await errorFrom(response);
 }
 
+/** Who an invitation was sent to. Refuses identically for every reason a link cannot be used. */
+export async function readInvitation(token: string): Promise<{ email: string }> {
+  const response = await send(`/invites/${encodeURIComponent(token)}`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as { email: string };
+}
+
+/** Turns an invitation into an account. Grants no session — the caller signs in afterwards. */
+export async function acceptInvitation(token: string, password: string): Promise<void> {
+  const response = await send(`/invites/${encodeURIComponent(token)}/accept`, 'POST', { password });
+  if (!response.ok) throw await errorFrom(response);
+}
+
+/** Whether this deployment still has no administrator. Anonymous — the first-run screen must know. */
+export async function isDeploymentUnclaimed(): Promise<boolean> {
+  const response = await send('/setup/admin', 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return ((await response.json()) as { unclaimed: boolean }).unclaimed;
+}
+
+/**
+ * Claims an unclaimed deployment for the configured address. Reports whether the
+ * message went out, and hands back the link when it did not — the only copy
+ * there is, since nothing stores it.
+ */
+export async function claimDeployment(
+  email: string,
+): Promise<{ messageSent: boolean; link?: string }> {
+  const response = await send('/setup/admin', 'POST', { email });
+  if (!response.ok) throw await errorFrom(response);
+  return (await response.json()) as { messageSent: boolean; link?: string };
+}
+
 export async function signOut(): Promise<void> {
   await send('/auth/logout', 'POST');
 }

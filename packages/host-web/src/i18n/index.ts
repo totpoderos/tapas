@@ -7,6 +7,8 @@ import { createI18n } from '@tapas/ui';
 import enCommon from './locales/en/common.json';
 import enSignIn from './locales/en/sign-in.json';
 import enSignUp from './locales/en/sign-up.json';
+import enAcceptInvite from './locales/en/accept-invite.json';
+import enClaim from './locales/en/claim.json';
 import enHome from './locales/en/home.json';
 import enNewContest from './locales/en/new-contest.json';
 import enReviewDraft from './locales/en/review-draft.json';
@@ -20,6 +22,8 @@ import enDeleteContest from './locales/en/delete-contest.json';
 import esCommon from './locales/es/common.json';
 import esSignIn from './locales/es/sign-in.json';
 import esSignUp from './locales/es/sign-up.json';
+import esAcceptInvite from './locales/es/accept-invite.json';
+import esClaim from './locales/es/claim.json';
 import esHome from './locales/es/home.json';
 import esNewContest from './locales/es/new-contest.json';
 import esReviewDraft from './locales/es/review-draft.json';
@@ -34,6 +38,8 @@ const en = {
   common: enCommon,
   signIn: enSignIn,
   signUp: enSignUp,
+  acceptInvite: enAcceptInvite,
+  claim: enClaim,
   home: enHome,
   newContest: enNewContest,
   reviewDraft: enReviewDraft,
@@ -51,6 +57,8 @@ const es = {
   common: esCommon,
   signIn: esSignIn,
   signUp: esSignUp,
+  acceptInvite: esAcceptInvite,
+  claim: esClaim,
   home: esHome,
   newContest: esNewContest,
   reviewDraft: esReviewDraft,

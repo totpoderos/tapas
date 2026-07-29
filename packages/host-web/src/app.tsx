@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
 import { SignUp } from './pages/sign-up';
+import { AcceptInvite } from './pages/accept-invite';
+import { Claim } from './pages/claim';
 import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
 import { ReviewDraft } from './pages/review-draft';
@@ -34,7 +36,22 @@ export function App() {
 
   return (
     <Routes>
+      {/* Sign-in is never redirected away from, even on a deployment nobody has
+          claimed. It carries a way through to /claim instead. An earlier version
+          did redirect, and it locked out every host on a deployment that has
+          accounts but no administrator — which is every deployment until open
+          registration is removed, and is exactly what the browser suite found. */}
       <Route path="/sign-in" element={authed ? <Navigate to="/" replace /> : <SignIn />} />
+      {/* `/accept-invite/:token` and `/claim`, clear of the proxied prefixes
+          (/auth, /drafts, /contests, /assistant, /admin, /invites, /setup) — a
+          browsable route under those is proxied to the API on a direct load or
+          reload, which is exactly how an invitation link arrives. The API reads
+          still use /invites/:token and /setup/admin. */}
+      <Route path="/accept-invite/:token" element={<AcceptInvite />} />
+      {/* No session guard, on purpose: this screen asks what the deployment is,
+          not who the visitor is. On a deployment nobody has claimed there is
+          nobody to be. */}
+      <Route path="/claim" element={<Claim />} />
       <Route path="/sign-up" element={authed ? <Navigate to="/" replace /> : <SignUp />} />
       <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
       <Route path="/new" element={authed ? <NewContest /> : <Navigate to="/sign-in" replace />} />
