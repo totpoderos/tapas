@@ -16,6 +16,7 @@ const INVITATION: StoredInvitation = {
   acceptedAt: null,
   revokedAt: null,
   supersededBy: null,
+  invitedRole: 'host',
 };
 
 describe('SqliteHostInvitationRepository', () => {

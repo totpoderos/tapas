@@ -20,8 +20,13 @@ export class HostAccount {
     readonly lockedUntil: string | null,
   ) {}
 
-  static register(id: string, email: string, passwordHash: string): HostAccount {
-    return new HostAccount(id, email, passwordHash, 'host', 0, null);
+  static register(
+    id: string,
+    email: string,
+    passwordHash: string,
+    role: HostRole = 'host',
+  ): HostAccount {
+    return new HostAccount(id, email, passwordHash, role, 0, null);
   }
 
   static rehydrate(

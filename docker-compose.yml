@@ -33,6 +33,7 @@ services:
       # Required (fail-fast). Dev fallback keeps the stack bootable; override in prod.
       JWT_SECRET: ${JWT_SECRET:-dev-only-jwt-secret-change-me-in-production}
       ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:-dev-assistant-confirmation-secret-change-me}
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:-admin@example.com}
       # CORS allowlist = the two app origins the browser loads.
       HOST_WEB_ORIGIN: http://localhost:4173
       PARTICIPANT_WEB_ORIGIN: http://localhost:4174

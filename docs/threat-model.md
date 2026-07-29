@@ -44,8 +44,9 @@ client ↔ API (PAT bearer); (3) the API ↔ the LLM and participant-authored te
 (**both untrusted** — the model can be induced, names can carry injection); (4)
 the process ↔ its configuration/secrets (env).
 
-**Principals:** `host` (owns their contests), `voter` (scoped to one contest).
-Note an `admin` role is named in the domain type but never assigned — see §Gaps.
+**Principals:** `admin` (one per deployment, named in configuration before first
+boot and claimed once), `host` (owns their contests), `voter` (scoped to one
+contest).
 
 ---
 
@@ -53,7 +54,7 @@ Note an `admin` role is named in the domain type but never assigned — see §Ga
 
 | # | OWASP 2025 (2021 code) | Principal defenses in Tapas | Verdict |
 |---|---|---|---|
-| 1 | Broken Access Control (A01) | Backend authz on every request; **ownership** checks; MCP has no authz of its own | Strong; `admin`/`requireRole` gap |
+| 1 | Broken Access Control (A01) | Backend authz on every request; **ownership** checks; administrative work role-gated, and never reachable by PAT; MCP has no authz of its own | Strong |
 | 2 | Security Misconfiguration (A05) | Helmet; CORS allowlist (never `*`); generic prod errors; env fail-fast | Strong; CSP/HSTS via Helmet defaults |
 | 3 | Software Supply Chain Failures (2025) | `npm audit` CI gate w/ expiring allowlist; committed lockfile; `npm ci` | Strong; **no Dependabot** |
 | 4 | Cryptographic Failures (A02) | bcrypt 12; HS256 via `node:crypto` + timing-safe compare; httpOnly+Secure cookies | Strong; **weak secret enforcement** |
@@ -421,7 +422,8 @@ the code does not yet keep — prioritized for the 6.11 security pass.
 |---|---|---|---|
 | G1 | ~~`ASSISTANT_CONFIRMATION_SECRET` has a committed default~~ — **FIXED (6.11)** | ~~High~~ | The API now **refuses to boot in production** if this (or `JWT_SECRET`) is a committed dev default ([env.ts superRefine](../packages/api/src/config/env.ts)); dev/test keep the convenience default. |
 | G2 | ~~`JWT_SECRET` has no length floor~~ — **FIXED (6.11)** | ~~High~~ | Now `min(32, …)` ([env.ts](../packages/api/src/config/env.ts)); examples/compose bumped; `.env*.example` document 64+ random for prod. |
-| G3 | ~~**No `admin` role / role middleware**~~ — **ENFORCED** (`admin` role now checked; still nothing *assigns* it) | ~~Medium~~ Low | Administrative work is now a real, guarded category ([require-administrator.ts](../packages/api/src/http/require-administrator.ts)): the role is read from the account store rather than the session (a refresh carries the old role claim forward, so a demotion would otherwise never take effect), and a personal access token is refused administrative work whoever issued it. **Not fully closed:** no production path creates an administrator yet — that arrives with the enrollment bootstrap slice. |
+| G3 | ~~**No `admin` role / role middleware**~~ — **CLOSED** | ~~Medium~~ | Administrative work is a guarded category ([require-administrator.ts](../packages/api/src/http/require-administrator.ts)): the role is read from the account store rather than the session (a refresh carries the old role claim forward, so a demotion would otherwise never take effect), and a personal access token is refused administrative work whoever issued it. The role is now *assigned* by a real path too — a deployment names its administrator in `ADMIN_BOOTSTRAP_EMAIL` and only that address can claim it, with a unique index capping administrators at one. |
+| G10 | **A lost sole administrator has no recovery path** | Low today — single operator, one deployment | Deliberate consequence of closing G3: the setup route will not reopen once an administrator exists, and nothing transfers or replaces the role. If those credentials are lost, the only remedy is database access. **Accepted for v1** — recorded here so it is known rather than discovered. |
 | G4 | **No anomaly alerting** on failed logins / security events | Medium — brute-force is *slowed* (lockout + rate limit) and *logged*, but nothing pages a human | Alerting infra out of scope for v1; events are captured so alerting can be added later. **Deferred.** |
 | G5 | ~~No Dependabot~~ — **FIXED (6.11)** | ~~Medium~~ | Added [.github/dependabot.yml](../.github/dependabot.yml) (weekly npm + actions, grouped); the CI `audit:ci` gate vets each bump. |
 | G6 | **Contest get/close/reveal use cases have no *internal* ownership check** — route-only ([get-contest.ts:8](../packages/api/src/contests/use-cases/get-contest.ts)) | Low today — every real caller goes through the guarded route | Deliberate split; add a defense-in-depth check or a lint note so a future caller can't bypass it. |
@@ -470,16 +472,25 @@ Worked from this threat model:
   working. `.env*.example` document 64+ random for production.
 - ✅ **G5 — DONE.** [.github/dependabot.yml](../.github/dependabot.yml) added (weekly
   npm + GitHub-Actions updates, grouped); the CI `audit:ci` gate vets each bump.
-- 🔓 **G3 — enforced, not yet fully closed.** The design claim is no longer empty:
-  administrative work is a guarded category, refused to an ordinary host as *not allowed*
-  (403) distinctly from *not signed in* (401), and refused to a personal access token
-  whoever issued it — so a leaked MCP token can never reach the administrative surface.
-  Two deliberate choices back it: the role comes from the account store, never from the
-  session (refreshing copies the previous token's role claim forward, so a claim-derived
-  role would survive a demotion forever), and the request carries how it authenticated
-  rather than a role that could be quietly wrong. What remains: nothing in production
-  *assigns* the role — administrators exist only in test fixtures until the enrollment
-  bootstrap slice lands.
+- ✅ **G3 — CLOSED.** A deployment names its administrator in
+  `ADMIN_BOOTSTRAP_EMAIL` before it starts, and refuses to boot in production
+  while that is still the committed example. Only that address can claim an
+  unclaimed deployment; the door shuts once it has an administrator, and a
+  unique partial index caps them at one, so two simultaneous claims produce one
+  administrator rather than two. What this protects against is the
+  unclaimed-instance land-grab: between `docker compose up` and the operator's
+  first page load the deployment already resolves and serves TLS, and without a
+  pinned address whoever reached it first would become administrator. What it
+  does *not* protect against is someone who knows the configured address — but
+  the invitation still lands in that inbox, not theirs. Note the email
+  round-trip is not what secures this: it proves only that the claimant holds
+  the inbox they typed. The pin is the security; the round-trip is the
+  convenience. See also **G10**.
+- ⏸ **G10 — accepted for v1.** Closing G3 means there is exactly one
+  administrator and no way to replace them. Lost credentials need database
+  access to recover. A transfer path is the natural follow-up if this ever runs
+  for anybody but its operator.
+
 - ⏭ **G4, G6, G7–G9 — deferred** (source IP on destructive-action audit records; a
   defense-in-depth ownership assertion in the contest use cases; single-use nonce;
   signed audit log; explicit CSP/HSTS tuning). Each is low-risk today and tracked here.

@@ -2,6 +2,7 @@ import type { AuthenticateHost } from '../auth/use-cases/authenticate-host.js';
 import type { IssuePat } from '../auth/use-cases/issue-pat.js';
 import type { RefreshSession } from '../auth/use-cases/refresh-session.js';
 import type { AcceptInvitation } from '../auth/use-cases/accept-invitation.js';
+import type { ClaimDeployment } from '../auth/use-cases/claim-deployment.js';
 import type { InviteHost } from '../auth/use-cases/invite-host.js';
 import type { ListHostAccounts } from '../auth/use-cases/list-host-accounts.js';
 import type { ListInvitations } from '../auth/use-cases/list-invitations.js';
@@ -109,6 +110,7 @@ export interface ServerDeps {
   readonly inviteHost: InviteHost;
   readonly openInvitation: OpenInvitation;
   readonly acceptInvitation: AcceptInvitation;
+  readonly claimDeployment: ClaimDeployment;
   readonly listInvitations: ListInvitations;
   readonly revokeInvitation: RevokeInvitation;
   readonly resendInvitation: ResendInvitation;

@@ -52,6 +52,7 @@ export function pendingInvitation(overrides: Partial<StoredInvitation> = {}): St
     acceptedAt: null,
     revokedAt: null,
     supersededBy: null,
+    invitedRole: 'host',
     ...overrides,
   };
 }

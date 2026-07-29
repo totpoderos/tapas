@@ -56,9 +56,15 @@ Feature: Inviting a host
     Then a host account exists for "nuevo@example.com"
     And that person can sign in with that address and password
 
-  Scenario: Accepting never produces an administrator
+  Scenario: An invitation from an administrator never produces another administrator
     Given an invitation was sent to "nuevo@example.com"
     When the invited person accepts with a strong password
+    Then the account created is not an administrator
+
+  Scenario: A resent invitation still produces an ordinary host
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    And the invited person accepts with the new link
     Then the account created is not an administrator
 
   Scenario: Accepting does not by itself sign the person in

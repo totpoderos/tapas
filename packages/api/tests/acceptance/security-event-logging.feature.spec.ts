@@ -23,6 +23,7 @@ const feature = await loadFeature(
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 const WRONG_PASSWORD = 'Wr0ng!Passw0rd';
+const OPERATOR = 'operator@example.com';
 
 /** Reads the security log straight from the app's own database. */
 function securityLog(db: DatabaseSync): SecurityEvent[] {
@@ -474,6 +475,71 @@ describeFeature(feature, ({ Scenario }) => {
     Then('the security log records a refused acceptance noting the link had been superseded', () => {
       const event = securityLog(sent.test.db).find((e) => e.type === 'invitation.refused');
       expect(event?.reason).toBe('superseded');
+    });
+  });
+
+  Scenario('Claiming an unclaimed deployment is recorded', ({ Given, When, Then }) => {
+    let test: TestApp;
+
+    Given('a deployment configured for "operator@example.com" with no administrator', () => {
+      test = makeTestApp(undefined, { ADMIN_BOOTSTRAP_EMAIL: OPERATOR });
+    });
+    When('"operator@example.com" claims it', async () => {
+      const claimed = await test.app.inject({
+        method: 'POST',
+        url: '/setup/admin',
+        payload: { email: OPERATOR },
+      });
+      expect(claimed.statusCode).toBe(201);
+    });
+    Then('the security log records that the deployment was claimed', () => {
+      const event = securityLog(test.db).find((e) => e.type === 'admin_bootstrap.claimed');
+      expect(event?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario('Becoming the administrator is recorded', ({ Given, When, Then }) => {
+    let test: TestApp;
+
+    Given('a deployment configured for "operator@example.com" with no administrator', () => {
+      test = makeTestApp(undefined, { ADMIN_BOOTSTRAP_EMAIL: OPERATOR });
+    });
+    When('"operator@example.com" claims it and accepts with a strong password', async () => {
+      await test.app.inject({ method: 'POST', url: '/setup/admin', payload: { email: OPERATOR } });
+      const link = test.mailer.sent.at(-1)!.link;
+      const accepted = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${link.slice(link.lastIndexOf('/') + 1)}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(accepted.statusCode).toBe(201);
+    });
+    Then("the security log records that the deployment's administrator was created", () => {
+      const event = securityLog(test.db).find((e) => e.type === 'admin_bootstrap.completed');
+      expect(event?.actorId).toBeTruthy();
+    });
+  });
+
+  Scenario('A claim from the wrong address is recorded', ({ Given, When, Then, And }) => {
+    let test: TestApp;
+
+    Given('a deployment configured for "operator@example.com" with no administrator', () => {
+      test = makeTestApp(undefined, { ADMIN_BOOTSTRAP_EMAIL: OPERATOR });
+    });
+    When('"someone-else@example.com" tries to claim it', async () => {
+      const refused = await test.app.inject({
+        method: 'POST',
+        url: '/setup/admin',
+        payload: { email: 'someone-else@example.com' },
+      });
+      expect(refused.statusCode).toBe(403);
+    });
+    Then('the security log records a refused claim', () => {
+      const event = securityLog(test.db).find((e) => e.type === 'admin_bootstrap.refused');
+      expect(event?.sourceIp).toBeTruthy();
+    });
+    And('no security log entry reveals "operator@example.com"', () => {
+      expect(JSON.stringify(securityLog(test.db))).not.toContain(OPERATOR);
     });
   });
 

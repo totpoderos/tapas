@@ -50,6 +50,10 @@ services:
       # Real secrets — no dev fallback; the API fail-fasts if missing.
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       ASSISTANT_CONFIRMATION_SECRET: ${ASSISTANT_CONFIRMATION_SECRET:?set ASSISTANT_CONFIRMATION_SECRET}
+      # Who may claim this deployment and become its one administrator. Not a
+      # secret, but the API refuses to boot in production while it is still the
+      # committed example — otherwise whoever holds that inbox could claim it.
+      ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:?set ADMIN_BOOTSTRAP_EMAIL}
       # CORS allowlist = the public app origins.
       HOST_WEB_ORIGIN: https://${HOST_DOMAIN:?set HOST_DOMAIN}
       PARTICIPANT_WEB_ORIGIN: https://${PARTICIPANT_DOMAIN:?set PARTICIPANT_DOMAIN}

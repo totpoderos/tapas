@@ -24,6 +24,7 @@ import { AuthenticateHost } from './auth/use-cases/authenticate-host.js';
 import { IssuePat } from './auth/use-cases/issue-pat.js';
 import { RefreshSession } from './auth/use-cases/refresh-session.js';
 import { AcceptInvitation } from './auth/use-cases/accept-invitation.js';
+import { ClaimDeployment } from './auth/use-cases/claim-deployment.js';
 import { InviteHost } from './auth/use-cases/invite-host.js';
 import { ListHostAccounts } from './auth/use-cases/list-host-accounts.js';
 import { ListInvitations } from './auth/use-cases/list-invitations.js';
@@ -184,6 +185,12 @@ export function buildProductionDeps(
     inviteHost,
     openInvitation: new OpenInvitation({ invitations, clock }),
     acceptInvitation: new AcceptInvitation({ invitations, registerHost, clock }),
+    claimDeployment: new ClaimDeployment({
+      accounts,
+      invitations,
+      inviteHost,
+      configuredEmail: env.ADMIN_BOOTSTRAP_EMAIL,
+    }),
     listInvitations: new ListInvitations({ invitations, clock }),
     revokeInvitation: new RevokeInvitation({ invitations, clock }),
     resendInvitation: new ResendInvitation({ invitations, inviteHost }),

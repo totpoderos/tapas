@@ -21,7 +21,11 @@ export type SecurityEventType =
   | 'invitation.refused'
   /** Endings an administrator caused: taken back, or replaced by a fresh invitation. */
   | 'invitation.revoked'
-  | 'invitation.resent';
+  | 'invitation.resent'
+  /** A deployment being claimed, claimed successfully, or somebody trying to claim one that is not theirs. */
+  | 'admin_bootstrap.claimed'
+  | 'admin_bootstrap.completed'
+  | 'admin_bootstrap.refused';
 
 /** What a caller supplies; the log stamps the id and timestamp. */
 export interface SecurityEventInput {

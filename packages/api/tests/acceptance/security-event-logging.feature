@@ -101,6 +101,22 @@ Feature: Security-event logging
     When the administrator resends it and the invited person tries the original link
     Then the security log records a refused acceptance noting the link had been superseded
 
+  Scenario: Claiming an unclaimed deployment is recorded
+    Given a deployment configured for "operator@example.com" with no administrator
+    When "operator@example.com" claims it
+    Then the security log records that the deployment was claimed
+
+  Scenario: Becoming the administrator is recorded
+    Given a deployment configured for "operator@example.com" with no administrator
+    When "operator@example.com" claims it and accepts with a strong password
+    Then the security log records that the deployment's administrator was created
+
+  Scenario: A claim from the wrong address is recorded
+    Given a deployment configured for "operator@example.com" with no administrator
+    When "someone-else@example.com" tries to claim it
+    Then the security log records a refused claim
+    And no security log entry reveals "operator@example.com"
+
   Scenario: A refusal for an unknown link is not recorded as an expiry
     Given an administrator "ana@example.com"
     When someone tries to accept with a link that no invitation ever had

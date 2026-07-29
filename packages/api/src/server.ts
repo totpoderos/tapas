@@ -9,6 +9,7 @@ import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerContestRoutes } from './http/contest-routes.js';
 import { registerDraftRoutes } from './http/draft-routes.js';
 import { registerInvitationRoutes } from './http/invitation-routes.js';
+import { registerSetupRoutes } from './http/setup-routes.js';
 import { registerErrorHandling } from './http/error-handling.js';
 import { registerHttpsRedirect } from './http/https-redirect.js';
 import { registerVoterRoutes } from './http/voter-routes.js';
@@ -69,6 +70,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     registerAuthRoutes(app, deps);
     registerAdminRoutes(app, deps);
     registerInvitationRoutes(app, deps);
+    registerSetupRoutes(app, deps);
     registerDraftRoutes(app, deps);
     registerContestRoutes(app, deps);
     registerVoterRoutes(app, deps);
