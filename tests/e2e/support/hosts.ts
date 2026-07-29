@@ -15,6 +15,12 @@ import { invitationLinkSentTo } from './mail.js';
  *
  * The link is read from the message, never from the database, which holds only
  * a hash of it.
+ *
+ * Idempotent, and it has to be: the chromium project runs every spec file,
+ * including the participant ones that `webkit-participant` also runs, against
+ * one API and one database. The second run finds the address already has an
+ * account. Registration answered that with a 409 nobody looked at; this looks,
+ * and treats it as "already exists" rather than a failure.
  */
 export async function hostInvitedBy(email: string, password: string): Promise<void> {
   const api = await playwrightRequest.newContext({ baseURL: HOST_APP });
@@ -22,6 +28,7 @@ export async function hostInvitedBy(email: string, password: string): Promise<vo
     await api.post('/auth/login', { data: ADMINISTRATOR });
 
     const invited = await api.post('/admin/invites', { data: { email } });
+    if (invited.status() === 409) return; // already has an account
     expect(invited.status(), `inviting ${email}`).toBe(201);
 
     const link = await invitationLinkSentTo(email);

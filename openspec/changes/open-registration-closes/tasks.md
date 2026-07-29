@@ -38,7 +38,7 @@
 ## 6. Close the loop
 
 - [x] 6.1 Run every suite green
-- [x] 6.2 Search the tree for `auth/register`, `signUp` and `sign-up` and confirm what remains is deliberate
+- [x] 6.2 Search the tree for `auth/register`, `signUp` and `sign-up` and confirm what remains is deliberate. **The grep missed one**: `host-language.spec.ts` navigated through the sign-up link to prove a chosen language survives navigation and a reload, and its strings are Spanish — "Crea una cuenta de anfitrión" matches none of those terms. CI found it. It now navigates to the claim screen, which is the only anonymous page left
 - [x] 6.3 Read the diff for tests that were migrated but no longer make sense — a spec whose only interesting step was registering is a spec to delete, not to port
 
 ## 7. Verification

@@ -46,11 +46,17 @@ test.describe('choosing and remembering a language', () => {
     await page.getByLabel('Language').selectOption('es');
     await expect(page.getByRole('heading', { name: 'Bienvenido de nuevo' })).toBeVisible();
 
-    // Navigate to sign-up (its link is now in Spanish), then reload.
-    await page.getByRole('link', { name: 'Crea una cuenta de anfitrión' }).click();
-    await expect(page.getByRole('heading', { name: 'Crea tu cuenta' })).toBeVisible();
+    // Navigate to the other anonymous screen, then reload. This used to go
+    // through the sign-up link; sign-up went with open registration, and the
+    // claim screen is what is left that anybody can reach without an account.
+    await page.goto('/claim');
+    await expect(
+      page.getByRole('heading', { name: 'Esta instalación ya tiene administrador' }),
+    ).toBeVisible();
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Crea tu cuenta' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Esta instalación ya tiene administrador' }),
+    ).toBeVisible();
   });
 
   test('the language selector is labelled and the screen is accessible', async ({ page }) => {
