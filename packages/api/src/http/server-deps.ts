@@ -1,9 +1,13 @@
 import type { AuthenticateHost } from '../auth/use-cases/authenticate-host.js';
 import type { IssuePat } from '../auth/use-cases/issue-pat.js';
 import type { RefreshSession } from '../auth/use-cases/refresh-session.js';
+import type { AcceptInvitation } from '../auth/use-cases/accept-invitation.js';
+import type { InviteHost } from '../auth/use-cases/invite-host.js';
 import type { ListHostAccounts } from '../auth/use-cases/list-host-accounts.js';
+import type { OpenInvitation } from '../auth/use-cases/open-invitation.js';
 import type { RegisterHost } from '../auth/use-cases/register-host.js';
 import type { HostAccountRepository } from '../db/host-account-repository.js';
+import type { Mailer } from '../mail/mailer.js';
 import type { RevokePat } from '../auth/use-cases/revoke-pat.js';
 import type { SignOutHost } from '../auth/use-cases/sign-out-host.js';
 import type { SessionStore } from '../auth/session-store.js';
@@ -99,6 +103,11 @@ export interface ServerDeps {
   readonly revokePat: RevokePat;
   readonly pats: HostPatRepository;
   readonly listHostAccounts: ListHostAccounts;
+  readonly inviteHost: InviteHost;
+  readonly openInvitation: OpenInvitation;
+  readonly acceptInvitation: AcceptInvitation;
+  /** The system's one outbound side effect; in-memory until a real transport arrives. */
+  readonly mailer: Mailer;
   /** Read by the administrative check, which takes the role from the store rather than the session. */
   readonly hostAccounts: HostAccountRepository;
   readonly securityLog: SecurityEventLog;

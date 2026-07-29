@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { buildProductionDeps } from '../../src/composition.js';
 import { runMigrations } from '../../src/db/migrate.js';
 import { buildServer } from '../../src/server.js';
+import { InMemoryMailer } from '../../src/mail/mailer.js';
 import { BcryptPasswordHasher, StubLLMClient, type Clock, type Env, type LLMClient } from '../../src/index.js';
 
 const TEST_BCRYPT_COST = 4; // keeps HTTP-level tests fast; production uses 12
@@ -25,6 +26,8 @@ export interface TestApp {
   readonly app: FastifyInstance;
   /** The in-memory database behind the app — lets a spec seed state (e.g. a live contest) directly. */
   readonly db: DatabaseSync;
+  /** What the app has "sent" — how a spec gets an invitation link the way its recipient would. */
+  readonly mailer: InMemoryMailer;
 }
 
 /** A fully-wired server over a fresh in-memory SQLite database, for HTTP-level acceptance tests. */
@@ -42,7 +45,7 @@ export function makeTestApp(
     new BcryptPasswordHasher(TEST_BCRYPT_COST),
     llmClient,
   );
-  return { app: buildServer(deps), db };
+  return { app: buildServer(deps), db, mailer: deps.mailer as InMemoryMailer };
 }
 
 /**

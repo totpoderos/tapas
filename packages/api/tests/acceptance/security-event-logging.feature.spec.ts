@@ -3,7 +3,8 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { makeTestApp, promoteToAdministrator } from '../support/test-server.js';
+import { makeTestApp, promoteToAdministrator, type TestApp } from '../support/test-server.js';
+import { invitationSentTo } from '../support/invitations.js';
 import {
   SqliteSecurityEventLog,
   SystemClock,
@@ -260,6 +261,105 @@ describeFeature(feature, ({ Scenario }) => {
     Then('no refused administrative attempt is recorded', () => {
       const refused = securityLog(db).find((event) => event.type === 'admin_access.refused');
       expect(refused).toBeUndefined();
+    });
+  });
+
+  Scenario('Issuing an invitation is recorded', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let cookie: string;
+
+    Given('an administrator "ana@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      await register(app, 'ana@example.com');
+      promoteToAdministrator(db, 'ana@example.com');
+      cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
+    });
+    When('that administrator invites "nuevo@example.com"', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/admin/invites',
+        headers: { cookie },
+        payload: { email: 'nuevo@example.com' },
+      });
+      expect(response.statusCode).toBe(201);
+    });
+    Then('the security log records an invitation issued by that administrator', () => {
+      const issued = securityLog(db).find((event) => event.type === 'invitation.issued');
+      expect(issued?.actorId).toBeTruthy();
+      expect(issued?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario('Accepting an invitation is recorded', ({ Given, When, Then }) => {
+    let test: TestApp;
+    let token: string;
+
+    Given('an invitation was sent to "nuevo@example.com"', async () => {
+      ({ test, token } = await invitationSentTo('nuevo@example.com'));
+    });
+    When('the invited person accepts with a strong password', async () => {
+      const response = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${token}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(response.statusCode).toBe(201);
+    });
+    Then('the security log records the invitation accepted', () => {
+      const accepted = securityLog(test.db).find((event) => event.type === 'invitation.accepted');
+      expect(accepted?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario('A refused acceptance is recorded', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+
+    Given('an administrator "ana@example.com"', async () => {
+      ({ app, db } = makeTestApp());
+      await register(app, 'ana@example.com');
+      promoteToAdministrator(db, 'ana@example.com');
+    });
+    When('someone tries to accept with a link that no invitation ever had', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/invites/a-token-nobody-ever-issued/accept',
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(response.statusCode).toBe(404);
+    });
+    Then('the security log records a refused acceptance', () => {
+      const refused = securityLog(db).find((event) => event.type === 'invitation.refused');
+      expect(refused?.sourceIp).toBeTruthy();
+    });
+  });
+
+  Scenario("The security log never stores the link", ({ Given, When, Then }) => {
+    let test: TestApp;
+    let link: string;
+
+    Given('an administrator "ana@example.com"', async () => {
+      test = makeTestApp();
+      await register(test.app, 'ana@example.com');
+      promoteToAdministrator(test.db, 'ana@example.com');
+    });
+    When('that administrator invites "nuevo@example.com"', async () => {
+      const cookie = readCookie(
+        await login(test.app, 'ana@example.com', STRONG_PASSWORD),
+        'access_token',
+      );
+      await test.app.inject({
+        method: 'POST',
+        url: '/admin/invites',
+        headers: { cookie },
+        payload: { email: 'nuevo@example.com' },
+      });
+      link = test.mailer.sent.at(-1)!.link;
+    });
+    Then("no security log entry contains that invitation's link", () => {
+      const serialized = JSON.stringify(securityLog(test.db));
+      expect(serialized).not.toContain(link.slice(link.lastIndexOf('/') + 1));
     });
   });
 });

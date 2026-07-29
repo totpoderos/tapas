@@ -55,3 +55,23 @@ Feature: Security-event logging
     Given an administrator "ana@example.com"
     When that administrator does administrative work successfully
     Then no refused administrative attempt is recorded
+
+  Scenario: Issuing an invitation is recorded
+    Given an administrator "ana@example.com"
+    When that administrator invites "nuevo@example.com"
+    Then the security log records an invitation issued by that administrator
+
+  Scenario: Accepting an invitation is recorded
+    Given an invitation was sent to "nuevo@example.com"
+    When the invited person accepts with a strong password
+    Then the security log records the invitation accepted
+
+  Scenario: A refused acceptance is recorded
+    Given an administrator "ana@example.com"
+    When someone tries to accept with a link that no invitation ever had
+    Then the security log records a refused acceptance
+
+  Scenario: The security log never stores the link
+    Given an administrator "ana@example.com"
+    When that administrator invites "nuevo@example.com"
+    Then no security log entry contains that invitation's link

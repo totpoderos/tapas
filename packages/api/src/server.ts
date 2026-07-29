@@ -8,6 +8,7 @@ import { registerAssistantRoutes } from './http/assistant-routes.js';
 import { registerAuthRoutes } from './http/auth-routes.js';
 import { registerContestRoutes } from './http/contest-routes.js';
 import { registerDraftRoutes } from './http/draft-routes.js';
+import { registerInvitationRoutes } from './http/invitation-routes.js';
 import { registerErrorHandling } from './http/error-handling.js';
 import { registerHttpsRedirect } from './http/https-redirect.js';
 import { registerVoterRoutes } from './http/voter-routes.js';
@@ -67,6 +68,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   app.after(() => {
     registerAuthRoutes(app, deps);
     registerAdminRoutes(app, deps);
+    registerInvitationRoutes(app, deps);
     registerDraftRoutes(app, deps);
     registerContestRoutes(app, deps);
     registerVoterRoutes(app, deps);

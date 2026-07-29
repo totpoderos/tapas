@@ -14,7 +14,11 @@ export type SecurityEventType =
   | 'pat.issued'
   | 'pat.used'
   /** Someone signed in reached for administrative work without the authority for it. */
-  | 'admin_access.refused';
+  | 'admin_access.refused'
+  /** An invitation's life: issued by an administrator, accepted, or refused for an unusable link. */
+  | 'invitation.issued'
+  | 'invitation.accepted'
+  | 'invitation.refused';
 
 /** What a caller supplies; the log stamps the id and timestamp. */
 export interface SecurityEventInput {
