@@ -1,6 +1,12 @@
 import type { DatabaseSync } from 'node:sqlite';
 
-export type InvitationStatus = 'pending' | 'accepted';
+/**
+ * How an invitation stands, as stored. Expiry is deliberately absent: it is a
+ * question about the clock that anyone can answer at any time, whereas these
+ * are events that happened. See `usabilityOf`, which is the only place the two
+ * kinds are brought together.
+ */
+export type InvitationStatus = 'pending' | 'accepted' | 'revoked' | 'superseded';
 
 export interface StoredInvitation {
   readonly id: string;
@@ -10,12 +16,19 @@ export interface StoredInvitation {
   readonly issuedBy: string;
   readonly issuedAt: string;
   readonly acceptedAt: string | null;
+  readonly revokedAt: string | null;
+  /** The invitation that replaced this one, when it was superseded by a resend. */
+  readonly supersededBy: string | null;
 }
 
 export interface HostInvitationRepository {
   insert(invitation: StoredInvitation): void;
   findByTokenHash(tokenHash: string): StoredInvitation | undefined;
+  findById(id: string): StoredInvitation | undefined;
+  listAll(): StoredInvitation[];
   markAccepted(id: string, acceptedAt: string): void;
+  markRevoked(id: string, revokedAt: string): void;
+  markSuperseded(id: string, supersededBy: string): void;
 }
 
 interface InvitationRow {
@@ -26,6 +39,8 @@ interface InvitationRow {
   issued_by: string;
   issued_at: string;
   accepted_at: string | null;
+  revoked_at: string | null;
+  superseded_by: string | null;
 }
 
 function toInvitation(row: InvitationRow): StoredInvitation {
@@ -37,6 +52,8 @@ function toInvitation(row: InvitationRow): StoredInvitation {
     issuedBy: row.issued_by,
     issuedAt: row.issued_at,
     acceptedAt: row.accepted_at,
+    revokedAt: row.revoked_at,
+    supersededBy: row.superseded_by,
   };
 }
 
@@ -46,8 +63,8 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
   insert(invitation: StoredInvitation): void {
     this.db
       .prepare(
-        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         invitation.id,
@@ -57,6 +74,8 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
         invitation.issuedBy,
         invitation.issuedAt,
         invitation.acceptedAt,
+        invitation.revokedAt,
+        invitation.supersededBy,
       );
   }
 
@@ -67,9 +86,35 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
     return row ? toInvitation(row) : undefined;
   }
 
+  findById(id: string): StoredInvitation | undefined {
+    const row = this.db.prepare(`SELECT * FROM host_invitations WHERE id = ?`).get(id) as unknown as
+      | InvitationRow
+      | undefined;
+    return row ? toInvitation(row) : undefined;
+  }
+
+  listAll(): StoredInvitation[] {
+    const rows = this.db
+      .prepare(`SELECT * FROM host_invitations ORDER BY issued_at`)
+      .all() as unknown as InvitationRow[];
+    return rows.map(toInvitation);
+  }
+
   markAccepted(id: string, acceptedAt: string): void {
     this.db
       .prepare(`UPDATE host_invitations SET status = 'accepted', accepted_at = ? WHERE id = ?`)
       .run(acceptedAt, id);
+  }
+
+  markRevoked(id: string, revokedAt: string): void {
+    this.db
+      .prepare(`UPDATE host_invitations SET status = 'revoked', revoked_at = ? WHERE id = ?`)
+      .run(revokedAt, id);
+  }
+
+  markSuperseded(id: string, supersededBy: string): void {
+    this.db
+      .prepare(`UPDATE host_invitations SET status = 'superseded', superseded_by = ? WHERE id = ?`)
+      .run(supersededBy, id);
   }
 }

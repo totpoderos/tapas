@@ -57,6 +57,8 @@ export class InviteHost {
       issuedBy: invitedBy,
       issuedAt: this.deps.clock.now(),
       acceptedAt: null,
+      revokedAt: null,
+      supersededBy: null,
     };
     this.deps.invitations.insert(invitation);
 

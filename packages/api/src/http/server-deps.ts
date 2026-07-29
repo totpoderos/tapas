@@ -4,7 +4,10 @@ import type { RefreshSession } from '../auth/use-cases/refresh-session.js';
 import type { AcceptInvitation } from '../auth/use-cases/accept-invitation.js';
 import type { InviteHost } from '../auth/use-cases/invite-host.js';
 import type { ListHostAccounts } from '../auth/use-cases/list-host-accounts.js';
+import type { ListInvitations } from '../auth/use-cases/list-invitations.js';
 import type { OpenInvitation } from '../auth/use-cases/open-invitation.js';
+import type { ResendInvitation } from '../auth/use-cases/resend-invitation.js';
+import type { RevokeInvitation } from '../auth/use-cases/revoke-invitation.js';
 import type { RegisterHost } from '../auth/use-cases/register-host.js';
 import type { HostAccountRepository } from '../db/host-account-repository.js';
 import type { Mailer } from '../mail/mailer.js';
@@ -106,6 +109,9 @@ export interface ServerDeps {
   readonly inviteHost: InviteHost;
   readonly openInvitation: OpenInvitation;
   readonly acceptInvitation: AcceptInvitation;
+  readonly listInvitations: ListInvitations;
+  readonly revokeInvitation: RevokeInvitation;
+  readonly resendInvitation: ResendInvitation;
   /** The system's one outbound side effect; in-memory until a real transport arrives. */
   readonly mailer: Mailer;
   /** Read by the administrative check, which takes the role from the store rather than the session. */

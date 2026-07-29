@@ -121,6 +121,110 @@ Feature: Inviting a host
     And the invited person opens their link and then tries to accept
     Then accepting is still refused because the link cannot be used
 
+  Scenario: An administrator sees the invitations and how they stand
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator asks to see the invitations
+    Then that invitation is listed with the address it was sent to
+    And it is shown as pending
+
+  Scenario: An invitation whose time has run out is shown as expired
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the administrator asks to see the invitations
+    Then that invitation is shown as expired
+
+  Scenario: The listing reveals no link
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator asks to see the invitations
+    Then no invitation's link appears in the listing
+
+  Scenario: An ordinary host cannot see the invitations
+    Given a signed-in host "bob@example.com"
+    When that host asks to see the invitations
+    Then access is refused as not allowed
+
+  Scenario: A revoked link stops working
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    And the invited person tries to accept with a strong password
+    Then accepting is refused because the link cannot be used
+    And no host account exists for "nuevo@example.com"
+
+  Scenario: A revoked link no longer opens either
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    And the invited person opens their link
+    Then opening is refused because the link cannot be used
+
+  Scenario: An accepted invitation cannot be revoked
+    Given an invitation was sent to "nuevo@example.com"
+    When the invited person accepts with a strong password
+    And the administrator tries to revoke it
+    Then revoking is refused because there is nothing to revoke
+
+  Scenario: An invitation cannot be revoked twice
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    And the administrator tries to revoke it again
+    Then revoking is refused because there is nothing to revoke
+
+  Scenario: Resending sends a new link to the same address
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    Then a message is sent to "nuevo@example.com"
+    And it carries a different link from the first
+
+  Scenario: The new link works and the old one dies
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    And the invited person tries to accept with the original link
+    Then accepting is refused because the link cannot be used
+    And accepting with the new link creates the host account
+
+  Scenario: The new invitation gets its own full window
+    Given an invitation was sent to "nuevo@example.com"
+    When nearly 24 hours pass and the administrator resends it
+    And nearly another 24 hours pass
+    And the invited person accepts with the new link
+    Then a host account exists for "nuevo@example.com"
+
+  Scenario: An expired invitation can be resent
+    Given an invitation was sent to "nuevo@example.com"
+    When more than 24 hours pass
+    And the administrator resends it
+    Then the invited person can accept with the new link
+
+  Scenario: A revoked invitation cannot be resent
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    And the administrator tries to resend it
+    Then resending is refused because that invitation is finished
+
+  Scenario: An accepted invitation cannot be resent
+    Given an invitation was sent to "nuevo@example.com"
+    When the invited person accepts with a strong password
+    And the administrator tries to resend it
+    Then resending is refused because that invitation is finished
+
+  Scenario: A superseded invitation cannot be resent again
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    And the administrator tries to resend the original invitation again
+    Then resending is refused because that invitation is finished
+
+  Scenario: A revoked link is refused exactly like one that never existed
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator revokes it
+    And the invited person tries to accept with a strong password
+    Then the refusal is the same as for a link that never existed
+    And the refusal names no email address
+
+  Scenario: A superseded link is refused exactly like one that never existed
+    Given an invitation was sent to "nuevo@example.com"
+    When the administrator resends it
+    And the invited person tries to accept with the original link
+    Then the refusal is the same as for a link that never existed
+
   Scenario: A weak password is refused
     Given an invitation was sent to "nuevo@example.com"
     When the invited person tries to accept with the weak password "short"

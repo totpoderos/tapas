@@ -9,6 +9,14 @@ const INVITE_ERROR_STATUS: Record<InviteHostErrorCode, number> = {
   EMAIL_TAKEN: 409,
 };
 
+/** An administrator is trusted with the invitations, so these say plainly what went wrong. */
+const INVITATION_ACTION_STATUS: Record<string, number> = {
+  INVITATION_NOT_FOUND: 404,
+  NOTHING_TO_REVOKE: 409,
+  INVITATION_FINISHED: 409,
+  RESEND_FAILED: 409,
+};
+
 /**
  * Work reserved to an administrator. Every route here composes both steps:
  * `requireHostSession` answers "not signed in", `requireAdministrator` answers
@@ -37,6 +45,50 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
         sourceIp: request.ip,
       });
       return reply.code(201).send({ invitationId: invited.invitationId });
+    },
+  );
+
+  app.get('/admin/invites', { preHandler }, async (_request, reply) => {
+    return reply.code(200).send({ invitations: deps.listInvitations.execute() });
+  });
+
+  app.post<{ Params: { id: string } }>(
+    '/admin/invites/:id/revoke',
+    { preHandler },
+    async (request, reply) => {
+      const revoked = deps.revokeInvitation.execute(request.params.id);
+      if (!revoked.ok)
+        return reply
+          .code(INVITATION_ACTION_STATUS[revoked.error.code] ?? 400)
+          .send({ error: revoked.error });
+
+      deps.securityLog.record({
+        type: 'invitation.revoked',
+        actorId: request.hostSession!.id,
+        sourceIp: request.ip,
+      });
+      return reply.code(200).send({});
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/admin/invites/:id/resend',
+    { preHandler },
+    async (request, reply) => {
+      const resentBy = request.hostSession!.id;
+      const resent = await deps.resendInvitation.execute(request.params.id, resentBy);
+      if (!resent.ok)
+        return reply
+          .code(INVITATION_ACTION_STATUS[resent.error.code] ?? 400)
+          .send({ error: resent.error });
+
+      // Records the resend; the invitation it issued records itself as issued.
+      deps.securityLog.record({
+        type: 'invitation.resent',
+        actorId: resentBy,
+        sourceIp: request.ip,
+      });
+      return reply.code(201).send({ invitationId: resent.invitationId });
     },
   );
 }

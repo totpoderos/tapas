@@ -13,7 +13,24 @@ export const INVITATION_UNUSABLE = {
 } as const;
 
 /** Why a link did not work. Never shown to the caller; recorded for an auditor. */
-export type UnusableReason = 'unknown' | 'already_accepted' | 'expired';
+export type UnusableReason =
+  | 'unknown'
+  | 'already_accepted'
+  | 'expired'
+  | 'revoked'
+  | 'superseded';
+
+/**
+ * The endings somebody chose, as opposed to expiry, which merely happened.
+ * Resending is refused for these: reaching past a decision by resending would
+ * quietly undo it.
+ */
+const DECIDED_ENDINGS = new Set(['accepted', 'revoked', 'superseded']);
+
+/** Whether this invitation reached an ending somebody chose, rather than simply running out of time. */
+export function wasEndedByDecision(invitation: StoredInvitation): boolean {
+  return DECIDED_ENDINGS.has(invitation.status);
+}
 
 export type Usability =
   | { readonly usable: true; readonly invitation: StoredInvitation }
@@ -34,7 +51,9 @@ export function usabilityOf(
   nowIso: string,
 ): Usability {
   if (!invitation) return { usable: false, reason: 'unknown' };
-  if (invitation.status !== 'pending') return { usable: false, reason: 'already_accepted' };
+  if (invitation.status === 'accepted') return { usable: false, reason: 'already_accepted' };
+  if (invitation.status === 'revoked') return { usable: false, reason: 'revoked' };
+  if (invitation.status === 'superseded') return { usable: false, reason: 'superseded' };
   if (invitationHasExpired(invitation.issuedAt, nowIso))
     return { usable: false, reason: 'expired' };
   return { usable: true, invitation };

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { OpenInvitation } from '../../../../src/auth/use-cases/open-invitation.js';
 import { hashSecretToken } from '../../../../src/auth/random-token.js';
-import { FakeInvitationRepository } from './invitation-support.js';
+import { FakeInvitationRepository, pendingInvitation } from './invitation-support.js';
 
 const TOKEN = 'a-token-that-was-issued';
 const ISSUED_AT = '2026-07-29T10:00:00.000Z';
@@ -13,15 +13,7 @@ function laterBy(millis: number): string {
 
 function pending() {
   const invitations = new FakeInvitationRepository();
-  invitations.insert({
-    id: 'inv-1',
-    email: 'nuevo@example.com',
-    tokenHash: hashSecretToken(TOKEN),
-    status: 'pending',
-    issuedBy: 'admin-1',
-    issuedAt: ISSUED_AT,
-    acceptedAt: null,
-  });
+  invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN), issuedAt: ISSUED_AT }));
   return invitations;
 }
 
