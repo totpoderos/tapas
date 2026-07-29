@@ -23,6 +23,7 @@ import { HmacJwtTokenIssuer } from './auth/token-issuer.js';
 import { AuthenticateHost } from './auth/use-cases/authenticate-host.js';
 import { IssuePat } from './auth/use-cases/issue-pat.js';
 import { RefreshSession } from './auth/use-cases/refresh-session.js';
+import { ListHostAccounts } from './auth/use-cases/list-host-accounts.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
@@ -156,6 +157,8 @@ export function buildProductionDeps(
     issuePat: new IssuePat({ pats, ids, clock }),
     revokePat: new RevokePat({ pats }),
     pats,
+    listHostAccounts: new ListHostAccounts({ hostAccounts: accounts }),
+    hostAccounts: accounts,
     securityLog,
     security: {
       isProduction: env.NODE_ENV === 'production',

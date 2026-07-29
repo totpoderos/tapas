@@ -1,8 +1,10 @@
 Feature: Security-event logging
   The API keeps a security log of authentication activity — who signed in, who
   was refused and why, and every personal access token issued, used, or
-  revoked. Each entry records what happened, when, and where it came from. The
-  log is a forensic record, so it never stores a password or a full token.
+  revoked. It also records anyone turned away from administrative work, which
+  is the only place a reach for privilege would show. Each entry records what
+  happened, when, and where it came from. The log is a forensic record, so it
+  never stores a password or a full token.
 
   Scenario: A successful sign-in is recorded
     Given a registered host "ana@example.com"
@@ -38,3 +40,18 @@ Feature: Security-event logging
     Given a signed-in host "ana@example.com"
     When that host issues a personal access token
     Then no security log entry contains the full token
+
+  Scenario: A host refused administrative work is recorded
+    Given a signed-in host "bob@example.com"
+    When that host is refused administrative work
+    Then the security log records a refused administrative attempt for that host
+
+  Scenario: A token refused administrative work is recorded
+    Given an administrator "ana@example.com" who has issued a personal access token
+    When an external client using that token is refused administrative work
+    Then the security log records a refused administrative attempt for that administrator
+
+  Scenario: Administrative work that succeeds is not noise in the log
+    Given an administrator "ana@example.com"
+    When that administrator does administrative work successfully
+    Then no refused administrative attempt is recorded

@@ -8,7 +8,19 @@ import { ACCESS_COOKIE } from './session-cookies.js';
 
 export interface HostSession {
   readonly id: string;
-  readonly role: string;
+  /**
+   * How this request proved who it is. Administrative work requires
+   * `'session'`: a personal access token carries the powers of a host and
+   * never those of an administrator, so a leaked token can never reach the
+   * administrative surface (openspec/specs/administrative-access).
+   *
+   * The caller's role is deliberately absent. Role is read from the account
+   * store at the point of the check, never from the token — refreshing a
+   * session carries the previous token's role claim forward rather than
+   * re-reading the account, so a role taken from a claim would survive a
+   * demotion forever.
+   */
+  readonly authenticatedBy: 'session' | 'personal-access-token';
 }
 
 declare module 'fastify' {
@@ -30,9 +42,13 @@ const BEARER_PREFIX = 'Bearer ';
 /**
  * Fastify preHandler: lets the request through with either a live, non-revoked
  * access session cookie, or an `Authorization: Bearer <personal-access-token>`
- * header — both resolve to the same host identity and authorization checks
- * (design.md §11B: the in-app session and an external MCP client are
- * indistinguishable to everything downstream of this check).
+ * header — both resolve to the same host identity, and to the same ownership
+ * checks downstream (design.md §11B: the in-app session and an external MCP
+ * client are indistinguishable for a host's own work).
+ *
+ * They are NOT indistinguishable for administrative work: the two branches
+ * differ in `authenticatedBy`, and `requireAdministrator` refuses anything that
+ * did not arrive on a cookie session.
  */
 export function requireHostSession(deps: RequireHostSessionDeps) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
@@ -40,7 +56,7 @@ export function requireHostSession(deps: RequireHostSessionDeps) {
     if (bearer?.startsWith(BEARER_PREFIX)) {
       const pat = deps.pats.findByTokenHash(hashPatToken(bearer.slice(BEARER_PREFIX.length)));
       if (pat && !pat.revokedAt) {
-        request.hostSession = { id: pat.hostId, role: 'host' };
+        request.hostSession = { id: pat.hostId, authenticatedBy: 'personal-access-token' };
         deps.securityLog.record({ type: 'pat.used', actorId: pat.hostId, sourceIp: request.ip });
         return;
       }
@@ -54,6 +70,6 @@ export function requireHostSession(deps: RequireHostSessionDeps) {
       await reply.code(401).send(notSignedIn);
       return;
     }
-    request.hostSession = { id: claims.sub, role: claims.role };
+    request.hostSession = { id: claims.sub, authenticatedBy: 'session' };
   };
 }

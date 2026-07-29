@@ -45,6 +45,20 @@ export function makeTestApp(
   return { app: buildServer(deps), db };
 }
 
+/**
+ * Promotes an already-registered host to administrator, directly in the database.
+ *
+ * Nothing in the application assigns the `admin` role yet — creating an
+ * administrator arrives with the enrollment bootstrap slice — so a spec that
+ * needs one seeds it here. Promoting a real registration rather than inserting
+ * a synthetic row keeps the password hash real, so the seeded administrator can
+ * actually sign in. Test support only: there is deliberately no production path.
+ */
+export function promoteToAdministrator(db: DatabaseSync, email: string): void {
+  const result = db.prepare(`UPDATE host_accounts SET role = 'admin' WHERE email = ?`).run(email);
+  if (result.changes !== 1) throw new Error(`No host account to promote for "${email}"`);
+}
+
 /** A clock whose time can be advanced mid-test, to exercise token expiry without waiting for real time. */
 export class MutableClock implements Clock {
   private current: number;
