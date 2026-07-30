@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
 import './i18n'; // initialise i18next (sets the global instance used by useTranslation)
 import { SignIn } from './pages/sign-in';
 import { AcceptInvite } from './pages/accept-invite';
@@ -13,6 +14,8 @@ import { AuditLog } from './pages/audit-log';
 import { ContestControl } from './pages/contest-control';
 import { Results } from './pages/results';
 import { useSession } from './auth/session';
+import { ContestsProvider } from './contests/contests-provider';
+import { PanelShell } from './shell/panel-shell';
 
 /**
  * Host app routing, gated on the session. While the session is being checked we
@@ -21,7 +24,7 @@ import { useSession } from './auth/session';
  * on home. A signed-in host visiting /sign-in is bounced home.
  */
 export function App() {
-  const { status } = useSession();
+  const { status, isAdministrator } = useSession();
   const { t } = useTranslation();
 
   if (status === 'loading') {
@@ -33,6 +36,32 @@ export function App() {
   }
 
   const authed = status === 'authenticated';
+
+  /**
+   * A signed-in screen, inside the panel. The contest list is provided for a
+   * host's navigation, which counts and names their contests, and withheld from an
+   * administrator's, which draws none — so their panel never asks for a list it
+   * would not show.
+   */
+  const panel = (surface: ReactNode) => {
+    if (!authed) return <Navigate to="/sign-in" replace />;
+    if (isAdministrator) return <PanelShell>{surface}</PanelShell>;
+    return (
+      <ContestsProvider>
+        <PanelShell>{surface}</PanelShell>
+      </ContestsProvider>
+    );
+  };
+
+  /**
+   * A host surface. The two kinds of work do not mix, so this is not somewhere an
+   * administrator can be: they are sent to the people instead. That is a decision
+   * about where work is done in the panel, not about what an account may do — the
+   * API still decides on every request, and an administrator keeps a host's powers
+   * there.
+   */
+  const host = (surface: ReactNode) =>
+    authed && isAdministrator ? <Navigate to="/people" replace /> : panel(surface);
 
   return (
     <Routes>
@@ -52,28 +81,28 @@ export function App() {
           not who the visitor is. On a deployment nobody has claimed there is
           nobody to be. */}
       <Route path="/claim" element={<Claim />} />
-      <Route path="/" element={authed ? <Home /> : <Navigate to="/sign-in" replace />} />
-      <Route path="/new" element={authed ? <NewContest /> : <Navigate to="/sign-in" replace />} />
+      {/* `/` is the contest list for a host and the people for an administrator:
+          the panel's front door is whichever workspace theirs is. */}
+      <Route path="/" element={host(<Home />)} />
+      <Route path="/new" element={host(<NewContest />)} />
       {/* `/review/:id`, not `/drafts/:id`: the dev/preview proxy forwards
           `/drafts/*` to the API, so a browsable route there would be proxied
           away on a direct load or reload. The API reads still use `/drafts`. */}
-      <Route
-        path="/review/:id"
-        element={authed ? <ReviewDraft /> : <Navigate to="/sign-in" replace />}
-      />
+      <Route path="/review/:id" element={host(<ReviewDraft />)} />
       {/* `/people`, not `/admin`: that prefix forwards to the API, as `/invites`
           and `/setup` do, so a browsable route there would be proxied away on a
-          direct load or reload. There is no role guard here on purpose — the
-          server decides, and the screen renders what it is told, including
-          being told no. */}
-      <Route path="/people" element={authed ? <People /> : <Navigate to="/sign-in" replace />} />
-      <Route path="/chat" element={authed ? <Chat /> : <Navigate to="/sign-in" replace />} />
-      <Route path="/log/:id" element={authed ? <AuditLog /> : <Navigate to="/sign-in" replace />} />
-      <Route path="/contest/:id" element={authed ? <ContestControl /> : <Navigate to="/sign-in" replace />} />
+          direct load or reload. No role guard here on purpose — the server
+          decides, and the screen renders what it is told, including being told
+          no, so a host who arrives is told plainly rather than moved. They keep
+          their own navigation while they are told: being here is not a role. */}
+      <Route path="/people" element={panel(<People />)} />
+      <Route path="/chat" element={host(<Chat />)} />
+      <Route path="/log/:id" element={host(<AuditLog />)} />
+      <Route path="/contest/:id" element={host(<ContestControl />)} />
       {/* `/results/:id`, clear of the proxied prefixes (/auth, /drafts, /contests,
           /assistant) — a browsable route under those is proxied to the API on a
           direct load or reload. The API read still uses /contests/:id/winners. */}
-      <Route path="/results/:id" element={authed ? <Results /> : <Navigate to="/sign-in" replace />} />
+      <Route path="/results/:id" element={host(<Results />)} />
       <Route path="*" element={<Navigate to={authed ? '/' : '/sign-in'} replace />} />
     </Routes>
   );

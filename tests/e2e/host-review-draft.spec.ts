@@ -54,7 +54,7 @@ test('a host publishes a complete draft and it goes live', async ({ page }) => {
   await page.getByRole('button', { name: /Publish/ }).click();
 
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  const row = page.getByRole('listitem').filter({ hasText: 'Balcony Cook-off' });
+  const row = page.getByRole('row').filter({ hasText: 'Balcony Cook-off' });
   await expect(row).toContainText('Live');
 });
 
@@ -98,5 +98,5 @@ test('the review screen is keyboard-operable and has no accessibility violations
   await page.getByRole('button', { name: /Publish/ }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Rooftop Rounds' })).toContainText('Live');
+  await expect(page.getByRole('row').filter({ hasText: 'Rooftop Rounds' })).toContainText('Live');
 });

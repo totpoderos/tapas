@@ -1,100 +1,80 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Button } from '@tapas/ui';
-import { listContests, type ContestSummary } from '../api/client';
+import { Button, Callout, DataTable, EmptyState, StatePill } from '@tapas/ui';
+import type { ContestSummary } from '../api/client';
 import { useDeleteContest } from '../contests/use-delete-contest';
-import { useSession } from '../auth/session';
+import { useContests } from '../contests/contests-provider';
+import { STATE_MARK, STATE_TONE, matchesFilter } from '../contests/contest-state';
+import { whenLastChanged } from '../contests/when';
+import { usePanelNav } from '../shell/use-panel-nav';
 import styles from './home.module.css';
 
-type ListState =
-  | { readonly kind: 'loading' }
-  | { readonly kind: 'ready'; readonly contests: readonly ContestSummary[] }
-  | { readonly kind: 'error' };
-
-/** How each state reads to a host — a shape per status, never colour alone (design.md §11C); the word is translated. */
-const STATUS_MARK: Record<ContestSummary['status'], string> = {
-  live: '●',
-  draft: '◇',
-  closed: '◆',
-  revealed: '✓',
-};
-
 /**
- * The host's landing: their contest list. Every contest they own, each with a
- * clear status, plus a way to start a new one. A host with none yet is invited
- * to create their first.
+ * The host's landing: their contests as one table. Every contest they own with a
+ * state they can read by word and shape, what to do with it next, and a way to
+ * start another. A host with none yet is invited to create their first.
+ *
+ * The list itself comes from the panel, not from here — the sidebar counts the
+ * same contests, and two reads of one answer could disagree.
  */
 export function Home() {
   const { t } = useTranslation();
-  const { signOut, isAdministrator } = useSession();
-  const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const nav = usePanelNav();
+  const { state, refresh } = useContests();
   const [announcement, setAnnouncement] = useState<string | undefined>();
 
+  // The list is re-read by the hook itself; this only says so out loud.
   const { ask, dialog, error: deleteError } = useDeleteContest((deleted) => {
-    setState((s) =>
-      s.kind === 'ready'
-        ? { kind: 'ready', contests: s.contests.filter((c) => c.id !== deleted.id) }
-        : s,
-    );
     setAnnouncement(t('deleteContest.deleted', { name: deleted.name }));
   });
 
-  useEffect(() => {
-    let live = true;
-    listContests()
-      .then((contests) => live && setState({ kind: 'ready', contests }))
-      .catch(() => live && setState({ kind: 'error' }));
-    return () => {
-      live = false;
-    };
-  }, []);
+  const filter = nav.kind === 'deployment' ? nav.filter : undefined;
+  const all = state.kind === 'ready' ? state.contests : [];
+  const shown = filter ? all.filter((c) => matchesFilter(c.status, filter)) : all;
 
   return (
-    <main id="main" className={styles.page}>
-      <div className={styles.bar}>
-        <div className={styles.brand}>
-          <span className={styles.dot} aria-hidden="true" />
-          <b>{t('common.brand')}</b>
-        </div>
-        {isAdministrator ? (
-          <Link to="/people" className={styles.assistantLink}>
-            {t('home.people')}
-          </Link>
-        ) : null}
-        <Link to="/chat" className={styles.assistantLink}>
-          {t('home.assistant')}
-        </Link>
-        <Link to="/new" className={styles.newButton}>
-          {t('home.newContest')}
-        </Link>
-        <Button variant="ghost" onClick={() => void signOut()}>
-          {t('home.signOut')}
-        </Button>
+    <main id="main">
+      <div className={styles.heading}>
+        <h1 className={styles.title}>{t('home.title')}</h1>
+        {state.kind === 'ready' && (
+          <p className={styles.count}>
+            {t('home.summary', {
+              count: all.length,
+              live: all.filter((c) => c.status === 'live').length,
+            })}
+          </p>
+        )}
       </div>
 
-      <h1 className={styles.title}>{t('home.title')}</h1>
-
       {state.kind === 'loading' && (
-        <p role="status" className={styles.note}>
-          {t('home.loading')}
-        </p>
+        <div className={styles.skeleton}>
+          <p role="status" className={styles.note}>
+            {t('home.loading')}
+          </p>
+          <span className={styles.bone} />
+          <span className={styles.bone} />
+          <span className={styles.bone} />
+        </div>
       )}
 
       {state.kind === 'error' && (
-        <p role="alert" className={styles.note}>
-          {t('home.error')}
-        </p>
+        <div className={styles.failure}>
+          <Callout tone="danger" role="alert" title={t('home.errorTitle')}>
+            <p>{t('home.errorNote')}</p>
+            <Button variant="ghost" onClick={refresh}>
+              {t('home.retry')}
+            </Button>
+          </Callout>
+        </div>
       )}
 
-      {state.kind === 'ready' && state.contests.length === 0 && (
-        <div className={styles.empty}>
-          <p className={styles.emptyLead}>{t('home.emptyLead')}</p>
-          <p className={styles.note}>{t('home.emptyNote')}</p>
+      {state.kind === 'ready' && all.length === 0 && (
+        <EmptyState lead={t('home.emptyLead')} note={t('home.emptyNote')}>
           <Link to="/new" className={styles.newButton}>
             {t('home.emptyCta')}
           </Link>
-        </div>
+        </EmptyState>
       )}
 
       {/* The list changes underneath the host, so the outcome is announced. */}
@@ -107,40 +87,73 @@ export function Home() {
         </p>
       )}
 
-      {state.kind === 'ready' && state.contests.length > 0 && (
-        <ul className={styles.list} aria-label={t('home.listLabel')}>
-          {state.contests.map((contest) => (
-            <li key={contest.id} className={styles.row}>
-              {/* A draft opens for review + publishing; a published contest opens
-                  its control room (tally + close/reveal, and a link to its log). */}
-              <Link
-                to={contest.status === 'draft' ? `/review/${contest.id}` : `/contest/${contest.id}`}
-                className={styles.name}
-              >
-                {contest.name}
-              </Link>
-              <StatusPill status={contest.status} />
-              <Button
-                variant="ghost"
-                aria-label={t('deleteContest.actionFor', { name: contest.name })}
-                onClick={() => ask({ id: contest.id, name: contest.name })}
-              >
-                {t('deleteContest.action')}
-              </Button>
-            </li>
-          ))}
-        </ul>
+      {state.kind === 'ready' && all.length > 0 && shown.length === 0 && (
+        <p className={styles.note}>{t('home.noneInState')}</p>
+      )}
+
+      {state.kind === 'ready' && shown.length > 0 && (
+        <DataTable label={t('home.listLabel')}>
+          <thead>
+            <tr>
+              <th scope="col">{t('home.columns.contest')}</th>
+              <th scope="col">{t('home.columns.status')}</th>
+              <th scope="col">{t('home.columns.updated')}</th>
+              <th scope="col">
+                <span className={styles.srOnly}>{t('home.columns.actions')}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((contest) => (
+              <Row key={contest.id} contest={contest} onDelete={ask} />
+            ))}
+          </tbody>
+        </DataTable>
       )}
       {dialog}
     </main>
   );
 }
 
-function StatusPill({ status }: { status: ContestSummary['status'] }) {
-  const { t } = useTranslation();
+function Row({
+  contest,
+  onDelete,
+}: {
+  contest: ContestSummary;
+  onDelete: (c: { id: string; name: string }) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  // A draft opens for review + publishing; a published contest opens its control
+  // room (tally + close/reveal, and the way to its log).
+  const to = contest.status === 'draft' ? `/review/${contest.id}` : `/contest/${contest.id}`;
+
   return (
-    <span className={`${styles.pill} ${styles[status]}`}>
-      <span aria-hidden="true">{STATUS_MARK[status]}</span> {t(`home.status.${status}`)}
-    </span>
+    <tr>
+      <td>
+        <Link to={to} className={styles.name}>
+          {contest.name}
+        </Link>
+      </td>
+      <td>
+        <StatePill tone={STATE_TONE[contest.status]} mark={STATE_MARK[contest.status]}>
+          {t(`common.contestState.${contest.status}`)}
+        </StatePill>
+      </td>
+      <td className={styles.when}>{whenLastChanged(contest.updatedAt, i18n.language)}</td>
+      <td>
+        <div className={styles.rowActions}>
+          <Link to={to} className={styles.open}>
+            {contest.status === 'draft' ? t('home.review') : t('home.open')}
+          </Link>
+          <Button
+            variant="ghost"
+            aria-label={t('deleteContest.actionFor', { name: contest.name })}
+            onClick={() => onDelete({ id: contest.id, name: contest.name })}
+          >
+            {t('deleteContest.action')}
+          </Button>
+        </div>
+      </td>
+    </tr>
   );
 }

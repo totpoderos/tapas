@@ -35,6 +35,9 @@ describe('Host contest list', () => {
   });
   afterEach(() => vi.clearAllMocks());
 
+  // The list is a table now: these are rows of related fields under column
+  // headings, so assistive technology should be able to say which column a cell
+  // is in. The words a host reads are unchanged.
   it('lists each contest with its status as a readable word', async () => {
     vi.mocked(api.listContests).mockResolvedValue([
       summary({ id: 'a', name: 'Balcony Cook-off', status: 'live' }),
@@ -45,8 +48,8 @@ describe('Host contest list', () => {
 
     renderApp();
 
-    const list = await screen.findByRole('list', { name: 'Your contests' });
-    const [live, draft, revealed, closed] = within(list).getAllByRole('listitem');
+    const list = await screen.findByRole('table', { name: 'Your contests' });
+    const [, live, draft, revealed, closed] = within(list).getAllByRole('row'); // [0] is the header
     expect(within(live!).getByText('Balcony Cook-off')).toBeInTheDocument();
     expect(within(live!).getByText('Live')).toBeInTheDocument();
     expect(within(draft!).getByText('Draft')).toBeInTheDocument();
@@ -97,7 +100,7 @@ describe('Host contest list', () => {
     ]);
     const { container } = renderApp();
 
-    await screen.findByRole('list', { name: 'Your contests' });
+    await screen.findByRole('table', { name: 'Your contests' });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

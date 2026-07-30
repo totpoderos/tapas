@@ -1,0 +1,39 @@
+{
+  "navigation": "Panel navigation",
+  "kind": {
+    "host": "Host",
+    "admin": "Admin"
+  },
+  "groups": {
+    "contests": "Contests",
+    "workspace": "Workspace",
+    "administration": "Administration",
+    "thisContest": "This contest",
+    "thisDraft": "This draft"
+  },
+  "contests": {
+    "all": "All contests",
+    "live": "Live",
+    "drafts": "Drafts",
+    "finished": "Closed & revealed",
+    "none": "None yet — start with your first."
+  },
+  "assistant": "Assistant",
+  "assistantBadge": "AI",
+  "people": "People & access",
+  "controlRoom": "Control room",
+  "activityLog": "Activity log",
+  "results": "Results",
+  "resultsAfterReveal": "— after reveal",
+  "reviewDraft": "Rules & participants",
+  "switchContest": "switch contest",
+  "notPublished": "Draft · not published",
+  "thisContest": "This contest",
+  "thisDraft": "This draft",
+  "newContest": "New contest",
+  "signOut": "Sign out",
+  "role": {
+    "host": "Host",
+    "admin": "Administrator"
+  }
+}

@@ -12,20 +12,25 @@ import { hostInvitedBy } from './support/hosts.js';
  */
 const HOST = { email: 'e2e-panel-host@sobremesa.es', password: 'Str0ng!Passw0rd' };
 
+/**
+ * Signs in and waits for wherever that person's panel starts.
+ *
+ * The two kinds of work do not mix: an administrator's panel is administration,
+ * so signing in as one lands on the people, while a host lands on their contests.
+ * There is no shared first screen to wait for.
+ */
 async function signIn(page: import('@playwright/test').Page, who: typeof ADMINISTRATOR) {
   await page.goto('/sign-in');
   await page.getByLabel('Email').fill(who.email);
   await page.getByLabel('Password').fill(who.password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
+  const landing = who.email === ADMINISTRATOR.email ? 'People' : 'Your contests';
+  await expect(page.getByRole('heading', { name: landing })).toBeVisible();
 }
 
 test('an administrator invites somebody and sees them appear', async ({ page }) => {
   await clearMail();
-  await signIn(page, ADMINISTRATOR);
-
-  await page.getByRole('link', { name: 'People' }).click();
-  await expect(page.getByRole('heading', { name: 'People' })).toBeVisible();
+  await signIn(page, ADMINISTRATOR); // already on the people
 
   await page.getByLabel('Email').fill('e2e-panel-invited@sobremesa.es');
   await page.getByRole('button', { name: 'Send invitation' }).click();
@@ -63,6 +68,8 @@ test('a host is told the screen is not for them', async ({ page, baseURL }) => {
   await api.dispose();
 
   await signIn(page, HOST);
+  // Not in the panel's navigation, under either name it could go by.
+  await expect(page.getByRole('link', { name: 'People & access' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'People' })).toHaveCount(0);
 
   await page.goto('/people');

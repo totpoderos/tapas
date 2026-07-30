@@ -1,0 +1,39 @@
+{
+  "navigation": "Navegación del panel",
+  "kind": {
+    "host": "Anfitriona",
+    "admin": "Admin"
+  },
+  "groups": {
+    "contests": "Concursos",
+    "workspace": "Espacio de trabajo",
+    "administration": "Administración",
+    "thisContest": "Este concurso",
+    "thisDraft": "Este borrador"
+  },
+  "contests": {
+    "all": "Todos los concursos",
+    "live": "En curso",
+    "drafts": "Borradores",
+    "finished": "Cerrados y revelados",
+    "none": "Ninguno todavía — empieza por el primero."
+  },
+  "assistant": "Asistente",
+  "assistantBadge": "IA",
+  "people": "Personas y acceso",
+  "controlRoom": "Sala de control",
+  "activityLog": "Registro de actividad",
+  "results": "Resultados",
+  "resultsAfterReveal": "— tras la revelación",
+  "reviewDraft": "Reglas y participantes",
+  "switchContest": "cambiar de concurso",
+  "notPublished": "Borrador · sin publicar",
+  "thisContest": "Este concurso",
+  "thisDraft": "Este borrador",
+  "newContest": "Nuevo concurso",
+  "signOut": "Cerrar sesión",
+  "role": {
+    "host": "Anfitriona",
+    "admin": "Administradora"
+  }
+}

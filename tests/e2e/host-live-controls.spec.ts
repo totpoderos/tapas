@@ -93,7 +93,9 @@ test('closing is confirmed first — cancelling leaves it live', async ({ page }
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
-  await expect(page.getByText('Live')).toBeVisible();
+  // Scoped to the surface: the panel says the state too — in the header and beside
+  // the contest in the navigation — so an unscoped "Live" now matches three things.
+  await expect(page.getByRole('main').getByText('Live')).toBeVisible();
 });
 
 test('a host reveals, and a waiting participant sees the results appear', async ({ page, browser }) => {

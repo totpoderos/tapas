@@ -4,16 +4,23 @@
   "signOut": "Cerrar sesión",
   "title": "Tus concursos",
   "listLabel": "Tus concursos",
+  "summary": "{{count}} en total · {{live}} en curso ahora",
   "loading": "Cargando tus concursos…",
   "error": "No se pudieron cargar tus concursos. Inténtalo de nuevo.",
+  "errorTitle": "No se pudieron cargar tus concursos.",
+  "errorNote": "Inténtalo de nuevo.",
+  "retry": "Inténtalo de nuevo",
   "emptyLead": "Aún no tienes ningún concurso.",
   "emptyNote": "Crea tu primer concurso para empezar.",
   "emptyCta": "Crea tu primer concurso",
-  "status": {
-    "live": "En curso",
-    "draft": "Borrador",
-    "closed": "Cerrado",
-    "revealed": "Revelado"
+  "noneInState": "Ninguno de tus concursos está en este estado.",
+  "columns": {
+    "contest": "Concurso",
+    "status": "Estado",
+    "updated": "Actualizado",
+    "actions": "Acciones"
   },
+  "open": "Abrir",
+  "review": "Revisar",
   "people": "Personas"
 }
