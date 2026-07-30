@@ -17,4 +17,13 @@
 
 ## 3. What this change does not do
 
-- [ ] 3.1 Record provenance for the **MCP server transport**. It does not pass through the assistant's dispatch, and the API deliberately cannot tell a PAT-authenticated session from an in-app one, so its actions keep being recorded as the app's. Stated in the proposal, the design and the code rather than left to be discovered; it wants its own change.
+Recorded as prose, not as an unchecked task. A non-goal written as a checkbox is
+one that can never be ticked: it makes a finished change read as unfinished and
+stops it being archived. The limitation itself is stated where it belongs — in
+the proposal, in design.md's Non-Goals, and in the code comment it replaced.
+
+**Provenance for the MCP server transport is out of scope.** It does not pass
+through the assistant's dispatch, and the API deliberately cannot tell a
+PAT-authenticated session from an in-app one, so its actions keep being recorded
+as the app's and stay accountable through the security event log. It wants its
+own change.
