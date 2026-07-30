@@ -1,0 +1,86 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: stretch;
+  background: var(--ground);
+}
+
+.nav {
+  width: 248px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  /* Stays put while the surface scrolls. */
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100vh;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.surface {
+  flex: 1;
+  min-width: 0;
+  padding: 26px 24px 64px;
+}
+/* The surface's own <main> no longer needs to centre or pad itself. */
+.surface > :global(main) {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* The disclosure only exists on a narrow screen. */
+.disclosure {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .shell {
+    flex-direction: column;
+  }
+  .disclosure {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    margin: 12px;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font: 600 15px var(--sans);
+    cursor: pointer;
+  }
+  .nav {
+    width: auto;
+    height: auto;
+    position: static;
+    align-self: stretch;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    /*
+     * Collapsed with `display: none` rather than hidden visually, so its ways in
+     * are out of the tab order while they are out of sight — a focus stop nobody
+     * can see is worse than no focus stop. `aria-expanded` on the disclosure is
+     * what says whether it is showing.
+     */
+    display: none;
+  }
+  .navOpen {
+    display: flex;
+  }
+  .surface {
+    padding: 16px 12px 48px;
+  }
+}

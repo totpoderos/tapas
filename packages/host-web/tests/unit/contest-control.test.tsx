@@ -4,13 +4,22 @@ import { MemoryRouter, Routes, Route } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContestControl } from '../../src/pages/contest-control';
+import { ContestsProvider } from '../../src/contests/contests-provider';
 import type { ContestDetail, Tally } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, getContest: vi.fn(), getTally: vi.fn(), closeContest: vi.fn(), revealContest: vi.fn() };
+  return {
+    ...actual,
+    getContest: vi.fn(),
+    getTally: vi.fn(),
+    closeContest: vi.fn(),
+    revealContest: vi.fn(),
+    // Deleting re-reads the panel's list, so the provider is in play here too.
+    listContests: vi.fn(),
+  };
 });
 import * as api from '../../src/api/client';
 
@@ -20,16 +29,19 @@ const TALLY: Tally = { claimedCount: 4, draftCount: 1, sentCount: 3 };
 function renderControl() {
   return render(
     <MemoryRouter initialEntries={['/contest/c1']}>
-      <Routes>
-        <Route path="/contest/:id" element={<ContestControl />} />
-        <Route path="/log/:id" element={<h1>Activity</h1>} />
-      </Routes>
+      <ContestsProvider>
+        <Routes>
+          <Route path="/contest/:id" element={<ContestControl />} />
+          <Route path="/log/:id" element={<h1>Activity</h1>} />
+        </Routes>
+      </ContestsProvider>
     </MemoryRouter>,
   );
 }
 
 describe('Contest control room', () => {
   beforeEach(() => {
+    vi.mocked(api.listContests).mockReset().mockResolvedValue([]);
     vi.mocked(api.getContest).mockReset().mockResolvedValue(LIVE);
     vi.mocked(api.getTally).mockReset().mockResolvedValue(TALLY);
     vi.mocked(api.closeContest).mockReset().mockResolvedValue();

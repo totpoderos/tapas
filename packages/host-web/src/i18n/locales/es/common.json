@@ -2,6 +2,12 @@
   "brand": "Tapas",
   "skipToContent": "Saltar al contenido",
   "loading": "Cargando…",
+  "contestState": {
+    "live": "En curso",
+    "draft": "Borrador",
+    "closed": "Cerrado",
+    "revealed": "Revelado"
+  },
   "language": {
     "label": "Idioma"
   },

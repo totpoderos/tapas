@@ -1,0 +1,200 @@
+/* The brand row, level with the top bar so the two read as one header. */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 68px;
+  flex: none;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--brand);
+  flex: none;
+}
+.wordmark {
+  font: 700 17px var(--sans);
+  letter-spacing: -0.01em;
+}
+/* Which panel this is — Host or Admin. */
+.kind {
+  margin-left: auto;
+  font: 600 11px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.groups {
+  padding: 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.groupLabel {
+  margin: 0;
+  padding: 0 10px 8px;
+  font: 600 11px var(--sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.divider {
+  height: 1px;
+  border: 0;
+  background: var(--line);
+  margin: 16px 10px;
+}
+
+/* One way in. 44px tall: a real target, not a text line (design.md §11C). */
+.way {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font: 400 15px var(--sans);
+  text-decoration: none;
+}
+.way:hover {
+  background: var(--surface-2);
+  text-decoration: none;
+}
+.currentWay {
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+.wayLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The state marks beside the ways in that narrow the list. */
+.mark {
+  font-size: 10px;
+  line-height: 1;
+  flex: none;
+}
+.live {
+  color: var(--good);
+}
+.draft {
+  color: var(--line-strong);
+}
+.closed {
+  color: var(--saffron);
+}
+.revealed {
+  color: var(--saffron);
+}
+
+.count {
+  margin-left: auto;
+  font: 600 13px var(--sans);
+  color: var(--ink-2);
+}
+.badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--saffron-soft);
+  color: var(--pending);
+  font: 600 11px var(--sans);
+}
+
+.none {
+  margin: 4px 10px 0;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+
+/* A way in that is not available yet: shown, said to be unavailable, inert. */
+.unavailable {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  font: 400 15px var(--sans);
+  color: var(--ink-2);
+}
+.unavailableNote {
+  font-size: 12px;
+}
+
+/* The contest or draft the host is inside. */
+.scopeCard,
+.scopeCardStatic {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border: 1px solid var(--brand-line);
+  border-radius: var(--radius-control);
+  background: var(--brand-soft);
+  text-decoration: none;
+}
+.scopeCardStatic {
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+.scopeCard:hover {
+  text-decoration: none;
+  border-color: var(--brand);
+}
+.scopeName {
+  font: 600 15px var(--sans);
+  color: var(--brand);
+  overflow-wrap: anywhere;
+}
+.scopeCardStatic .scopeName {
+  color: var(--ink);
+}
+.scopeNote {
+  font: 400 12px var(--sans);
+  color: var(--ink-2);
+}
+
+/* Who is signed in, and the way out. Pinned to the bottom of the sidebar. */
+.footer {
+  margin-top: auto;
+  flex: none;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.role {
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+.signOut {
+  margin-left: auto;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--brand);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+  border-radius: var(--radius-control);
+}
+.signOut:hover {
+  background: var(--surface-2);
+}

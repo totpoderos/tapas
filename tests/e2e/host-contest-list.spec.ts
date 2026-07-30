@@ -55,10 +55,13 @@ test('a host sees their contests with a clear status on each', async ({ page }) 
   await seedRevealed(page.request, 'Winter Feast');
 
   await page.goto('/');
-  const list = page.getByRole('list', { name: 'Your contests' });
-  await expect(list.getByRole('listitem')).toHaveCount(3);
+  // A table now, not a list: rows of related fields under column headings, so
+  // assistive technology can say which column a cell belongs to. The header row
+  // is one of the rows, hence four.
+  const list = page.getByRole('table', { name: 'Your contests' });
+  await expect(list.getByRole('row')).toHaveCount(4);
 
-  const rowFor = (name: string) => list.getByRole('listitem').filter({ hasText: name });
+  const rowFor = (name: string) => list.getByRole('row').filter({ hasText: name });
   await expect(rowFor('Summer Tapas')).toContainText('Draft');
   await expect(rowFor('Balcony Cook-off')).toContainText('Live');
   await expect(rowFor('Winter Feast')).toContainText('Revealed');
@@ -91,7 +94,7 @@ test('the contest list is keyboard-operable and has no accessibility violations'
   await seedRevealed(page.request, 'Winter Feast');
 
   await page.goto('/');
-  await expect(page.getByRole('list', { name: 'Your contests' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Your contests' })).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);

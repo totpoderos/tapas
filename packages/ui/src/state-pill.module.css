@@ -1,0 +1,40 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  font: 600 13px var(--sans);
+  white-space: nowrap;
+  width: fit-content;
+}
+.mark {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.good {
+  background: var(--good-soft);
+  color: var(--good);
+}
+.neutral {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.pending {
+  background: var(--pending-soft);
+  color: var(--pending);
+}
+.saffron {
+  background: var(--saffron-soft);
+  color: var(--on-saffron);
+}
+.brand {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

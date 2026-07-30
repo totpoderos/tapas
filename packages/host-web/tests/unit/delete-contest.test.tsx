@@ -4,6 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Home } from '../../src/pages/home';
+import { ContestsProvider } from '../../src/contests/contests-provider';
 import { ApiError, type ContestSummary } from '../../src/api/client';
 import '../../src/i18n';
 
@@ -27,12 +28,18 @@ const CONTESTS: ContestSummary[] = [
 const needsName = () =>
   new ApiError(428, 'CONFIRMATION_REQUIRED', 'Type the contest’s name to confirm deleting it.');
 
+/**
+ * The contest list belongs to the panel now, so the screen is rendered inside the
+ * provider that holds it — the same arrangement the app uses.
+ */
 function renderHome() {
   return render(
     <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-      </Routes>
+      <ContestsProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
+        </Routes>
+      </ContestsProvider>
     </MemoryRouter>,
   );
 }
@@ -48,8 +55,23 @@ const openDeleteFor = async (name: string) => {
  */
 describe('deleting a contest from the host app', () => {
   beforeEach(() => {
-    vi.mocked(api.listContests).mockReset().mockResolvedValue(CONTESTS);
-    vi.mocked(api.deleteContest).mockReset().mockResolvedValue();
+    /*
+     * A deleted contest is gone from the server, and the panel re-reads the list
+     * rather than striking the row out locally — the sidebar counts the same
+     * contests, and a local edit would leave them disagreeing with the table. So
+     * the fixture has to delete for real: a static list would hand the row back
+     * on the very next read and the screen would look like nothing happened.
+     */
+    let remaining = [...CONTESTS];
+    vi.mocked(api.listContests)
+      .mockReset()
+      .mockImplementation(() => Promise.resolve(remaining));
+    vi.mocked(api.deleteContest)
+      .mockReset()
+      .mockImplementation((id) => {
+        remaining = remaining.filter((contest) => contest.id !== id);
+        return Promise.resolve();
+      });
   });
   afterEach(() => vi.clearAllMocks());
 

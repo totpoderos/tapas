@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '@tapas/ui';
 import { deleteContest, needsNameToDelete } from '../api/client';
+import { useContests } from './contests-provider';
 
 interface Target {
   readonly id: string;
@@ -23,9 +24,15 @@ type Stage = 'confirm' | 'verify';
  * type it" — turns the dialog into the typed-name one. So the rule for when the
  * name is needed lives in exactly one place, which is the place every entry point
  * passes through.
+ *
+ * A successful delete re-reads the panel's contest list here, rather than leaving
+ * each caller to remember to. The control room forgot, and a host who deleted a
+ * contest from it landed back on a list that still showed the contest — the panel
+ * holds one list now, and whoever changes it owes it the truth.
  */
 export function useDeleteContest(onDeleted: (target: Target) => void) {
   const { t } = useTranslation();
+  const { refresh } = useContests();
   const [target, setTarget] = useState<Target | null>(null);
   const [stage, setStage] = useState<Stage>('confirm');
   const [busy, setBusy] = useState(false);
@@ -50,6 +57,7 @@ export function useDeleteContest(onDeleted: (target: Target) => void) {
       await deleteContest(target.id, stage === 'verify' ? target.name : undefined);
       setTarget(null);
       setStage('confirm');
+      refresh();
       onDeleted(target);
     } catch (caught) {
       if (needsNameToDelete(caught)) {

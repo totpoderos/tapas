@@ -1,0 +1,51 @@
+.callout {
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+}
+.title {
+  margin: 0 0 4px;
+  font: 600 14px var(--sans);
+}
+.body {
+  font: 400 13px/1.55 var(--sans);
+  color: var(--ink-2);
+}
+.body :last-child {
+  margin-bottom: 0;
+}
+.body :first-child {
+  margin-top: 0;
+}
+
+.saffron {
+  background: var(--saffron-soft);
+  border-color: var(--pending-soft);
+}
+.saffron .title {
+  color: var(--pending);
+}
+
+.danger {
+  background: var(--danger-soft);
+  border-color: var(--danger-soft);
+}
+.danger .title {
+  color: var(--danger);
+}
+
+.neutral {
+  background: var(--surface-2);
+  border-color: var(--line);
+}
+.neutral .title {
+  color: var(--ink);
+}
+
+.brand {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+}
+.brand .title {
+  color: var(--brand);
+}

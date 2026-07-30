@@ -202,12 +202,18 @@ describe('Who is offered the way in', () => {
   });
   afterEach(() => vi.clearAllMocks());
 
-  it('offers an administrator the way to the people', async () => {
+  // The two kinds of work do not mix in the panel: an administrator's is
+  // administration, a host's is their contests, and neither is offered the
+  // other's. The API is unaffected — it still decides on every request, and an
+  // administrator keeps a host's powers there.
+  it('puts an administrator on the people, with nothing of a host’s offered', async () => {
     vi.mocked(api.whoAmI).mockResolvedValue(ADMINISTRATOR);
     renderAt('/');
 
-    await screen.findByRole('heading', { name: 'Your contests' });
-    expect(screen.getByRole('link', { name: 'People' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'People' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'All contests' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Assistant' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'New contest' })).not.toBeInTheDocument();
   });
 
   it('offers a host nothing of the kind', async () => {
@@ -215,6 +221,7 @@ describe('Who is offered the way in', () => {
     renderAt('/');
 
     await screen.findByRole('heading', { name: 'Your contests' });
+    expect(screen.queryByRole('link', { name: 'People & access' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'People' })).not.toBeInTheDocument();
   });
 

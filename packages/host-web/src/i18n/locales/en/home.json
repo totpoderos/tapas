@@ -4,16 +4,23 @@
   "signOut": "Sign out",
   "title": "Your contests",
   "listLabel": "Your contests",
+  "summary": "{{count}} total · {{live}} live now",
   "loading": "Loading your contests…",
   "error": "Your contests couldn’t be loaded. Please try again.",
+  "errorTitle": "Your contests couldn’t be loaded.",
+  "errorNote": "Please try again.",
+  "retry": "Try again",
   "emptyLead": "You don’t have any contests yet.",
   "emptyNote": "Create your first contest to get started.",
   "emptyCta": "Create your first contest",
-  "status": {
-    "live": "Live",
-    "draft": "Draft",
-    "closed": "Closed",
-    "revealed": "Revealed"
+  "noneInState": "None of your contests are in this state.",
+  "columns": {
+    "contest": "Contest",
+    "status": "Status",
+    "updated": "Updated",
+    "actions": "Actions"
   },
+  "open": "Open",
+  "review": "Review",
   "people": "People"
 }

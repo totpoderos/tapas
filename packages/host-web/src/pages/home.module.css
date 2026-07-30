@@ -1,57 +1,69 @@
-.page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 24px 28px 96px;
-}
-.bar {
+.heading {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
-}
-.bar .brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
-}
-.bar .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-.bar b {
-  font-family: var(--serif);
-  font-size: 21px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
 }
 .title {
-  font-size: 32px;
-  margin: 0 0 24px;
+  font: 400 30px/1.2 var(--serif);
+  margin: 0;
 }
+.count {
+  margin: 0 0 6px;
+  font: 400 14px var(--sans);
+  color: var(--ink-2);
+}
+
 .note {
   color: var(--ink-2);
   margin: 0;
 }
+.note:empty {
+  display: none;
+}
 
-/* Secondary nav link (Assistant): a plain, 44px-tall text link. */
-.assistantLink {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  padding: 0 12px;
+/* A contest's name, which is also the way into it. */
+.name {
+  font: 600 16px var(--sans);
   color: var(--brand);
-  font-weight: 600;
   text-decoration: none;
 }
-.assistantLink:hover {
+.name:hover {
   text-decoration: underline;
 }
 
-/* "New contest" — a link that reads as the primary action (design: brand button). */
+.when {
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+/* "Open" / "Review": a link that reads as a secondary button. */
+.open {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font: 600 14px var(--sans);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.open:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* The first contest, offered from the empty state. */
 .newButton {
   display: inline-flex;
   align-items: center;
@@ -65,77 +77,50 @@
   text-decoration: none;
 }
 .newButton:hover {
-  filter: brightness(1.05);
+  filter: brightness(0.94);
+  color: var(--on-brand);
+  text-decoration: none;
 }
 
-/* Empty state: an invitation, not a dead end. */
-.empty {
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-panel);
+/* Waiting: the shape of the answer, so the page does not jump when it lands. */
+.skeleton {
+  max-width: 520px;
+  padding: 24px 26px;
   background: var(--surface);
-  padding: 40px 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-}
-.emptyLead {
-  font-family: var(--serif);
-  font-size: 20px;
-  margin: 0;
-  color: var(--ink);
-}
-.empty .newButton {
-  margin-top: 8px;
-}
-
-/* The list of contests. */
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+.skeleton .note {
+  margin-bottom: 6px;
+  font-size: 14px;
 }
-.name {
-  font-family: var(--serif);
-  font-size: 18px;
-  margin-right: auto;
+.bone {
+  height: 56px;
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+}
+.bone:nth-of-type(2) {
+  opacity: 0.7;
+}
+.bone:nth-of-type(3) {
+  opacity: 0.45;
 }
 
-/* Status pill: word + shape + hue, so it never depends on colour alone. */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font: 600 13px var(--sans);
+.failure {
+  max-width: 520px;
+}
+
+/* A column header that is there for assistive technology, not for the eye. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
-}
-.live {
-  background: var(--good-soft);
-  color: var(--good);
-}
-.draft {
-  background: var(--surface-2);
-  color: var(--ink-2);
-}
-.closed {
-  background: var(--pending-soft);
-  color: var(--pending);
-}
-.revealed {
-  background: var(--saffron-soft);
-  color: var(--on-saffron);
 }

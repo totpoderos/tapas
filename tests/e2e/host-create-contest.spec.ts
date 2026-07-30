@@ -32,7 +32,7 @@ test('a host fills in a new contest and saves it as a draft', async ({ page }) =
 
   // Lands back on the contest list, with the new contest shown as a draft.
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  const row = page.getByRole('listitem').filter({ hasText: 'Summer Tapas' });
+  const row = page.getByRole('row').filter({ hasText: 'Summer Tapas' });
   await expect(row).toContainText('Draft');
 });
 
@@ -72,5 +72,5 @@ test('the new-contest form is keyboard-operable and has no accessibility violati
   await page.keyboard.press('Enter');
 
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Keyboard Tapas' })).toContainText('Draft');
+  await expect(page.getByRole('row').filter({ hasText: 'Keyboard Tapas' })).toContainText('Draft');
 });

@@ -1,0 +1,103 @@
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+  flex: none;
+  flex-wrap: wrap;
+  /*
+   * The language pill and the theme toggle are fixed to the top-right of every
+   * screen — sign-in included, which has no shell — so they stay put and the bar
+   * keeps clear of them. The reservation has to be the bar's own right padding:
+   * the actions sit at the right end, so padding on the crumbs would move the
+   * crumbs and leave the actions underneath the controls.
+   */
+  padding: 0 200px 0 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Where the host is. */
+.crumbs {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 68px;
+}
+
+.actions {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crumbLink {
+  font: 400 14px var(--sans);
+  color: var(--ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.crumbLink:hover {
+  color: var(--brand);
+  text-decoration: underline;
+}
+.slash {
+  color: var(--line-strong);
+  font-size: 14px;
+}
+.crumbName,
+.here {
+  font: 600 14px var(--sans);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.crumbNote {
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.newContest {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  background: var(--brand);
+  color: var(--on-brand);
+  font: 600 15px var(--sans);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.newContest:hover {
+  filter: brightness(0.94);
+  color: var(--on-brand);
+  text-decoration: none;
+}
+
+@media (max-width: 900px) {
+  /* The actions drop onto their own row, which is below the fixed corner
+     controls and can have the full width — so the reservation moves onto the
+     crumbs, which are now the row that shares space with them. */
+  .bar {
+    padding: 0 12px 10px;
+  }
+  .crumbs {
+    flex-basis: 100%;
+    padding-right: 180px;
+  }
+  .actions {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+  .newContest {
+    width: 100%;
+  }
+}

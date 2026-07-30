@@ -12,6 +12,7 @@ import {
   type Tally,
 } from '../api/client';
 import { useDeleteContest } from '../contests/use-delete-contest';
+import { useContests } from '../contests/contests-provider';
 import styles from './contest-control.module.css';
 
 const STATUS_MARK: Record<ContestDetail['status'], string> = {
@@ -43,6 +44,7 @@ export function ContestControl() {
   const [pending, setPending] = useState<'close' | 'reveal' | null>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
+  const { refresh: refreshContests } = useContests();
 
   // Deleting takes the contest away, so it takes the host back to their list.
   const { ask: askDelete, dialog: deleteDialog, error: deleteError } = useDeleteContest(() =>
@@ -84,6 +86,10 @@ export function ContestControl() {
     try {
       await (action === 'close' ? closeContest(id) : revealContest(id));
       await load();
+      // The contest's state is on the panel's navigation too — it names this
+      // contest and says what it is — so the shared list has to hear about it, or
+      // the sidebar goes on calling a closed contest live.
+      refreshContests();
     } catch {
       setActionError(
         action === 'close'
