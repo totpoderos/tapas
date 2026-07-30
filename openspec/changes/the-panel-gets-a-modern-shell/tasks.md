@@ -130,6 +130,10 @@ live smoke check) before opening the PR.
 
 ## 12. Close the change
 
-- [ ] 12.1 Full sweep: every host-web and ui unit test, the whole vitest run, typecheck, lint, the full Playwright suite with axe-core, `npm audit`.
+- [x] 12.1 Full sweep, on `main` with all eleven slices in: **1949 unit tests**, typecheck, lint, **259 browser tests** with axe-core hard-gating, and `openspec validate --all --strict` — **27 of 27 items**, specs and changes alike.
+
+  `npm run audit:ci` **passes**: no high or critical. It reports one **moderate**, and the honest reading of it is worth recording rather than waving through. `@hono/node-server` — a transitive dependency of `@modelcontextprotocol/sdk`, not anything this repo chose — carries a path traversal in `serve-static` **on Windows**, via an encoded backslash. This project does not use `serve-static`, and does not run on Windows.
+
+  `npm audit fix` "resolves" it by bumping that package from **1.19.15 to 2.0.12** — a major version, inside somebody else's dependency tree, overriding what the SDK asked for. That is a larger risk than the advisory it answers, so it was **tried, inspected and reverted** rather than taken quietly. The lockfile is unchanged. The call belongs to whoever owns the MCP surface; the alternative is to wait for `@modelcontextprotocol/sdk` to move its own floor.
 - [ ] 12.2 Manual pass: keyboard-only through all eight surfaces, screen-reader on the shell, 200% zoom, both themes, EN and ES.
 - [ ] 12.3 `openspec validate the-panel-gets-a-modern-shell --strict`, then sync the specs and archive the change.
