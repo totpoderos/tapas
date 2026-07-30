@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
-import { Button, Callout, DataTable, EmptyState, StatePill } from '@tapas/ui';
+import { Button, Callout, DataTable, EmptyState, ProgressBar, StatePill } from '@tapas/ui';
 import type { ContestSummary } from '../api/client';
 import { useDeleteContest } from '../contests/use-delete-contest';
 import { useContests } from '../contests/contests-provider';
@@ -97,6 +97,7 @@ export function Home() {
             <tr>
               <th scope="col">{t('home.columns.contest')}</th>
               <th scope="col">{t('home.columns.status')}</th>
+              <th scope="col">{t('home.columns.progress')}</th>
               <th scope="col">{t('home.columns.updated')}</th>
               <th scope="col">
                 <span className={styles.srOnly}>{t('home.columns.actions')}</span>
@@ -115,6 +116,57 @@ export function Home() {
   );
 }
 
+/**
+ * What the contest is judged on, and the code people join it with — the parts of
+ * it that exist. Each is omitted when the contest does not carry it, so a draft
+ * given only a name says nothing here rather than saying nothing four times.
+ */
+function RulesInBrief({ contest }: { contest: ContestSummary }) {
+  const { t } = useTranslation();
+  const parts = [
+    contest.attribution && t(`common.attribution.${contest.attribution}`),
+    contest.categoryCount !== undefined &&
+      t('home.categories', { count: contest.categoryCount }),
+    contest.joinCode && t('home.joinCode', { code: contest.joinCode }),
+  ].filter(Boolean);
+
+  if (parts.length === 0) return null;
+  return <span className={styles.brief}>{parts.join(' · ')}</span>;
+}
+
+/**
+ * How far along the contest's voting is.
+ *
+ * Four different answers, and the difference between them is the point of the
+ * column. A contest still being prepared is *not published* — saying "0 of 0
+ * votes sent" would read as a contest going badly rather than one that has not
+ * started. A published contest nobody has joined says so for the same reason. A
+ * revealed one has finished, so its progress is beside the point and its results
+ * are what matters.
+ */
+function Progress({ contest }: { contest: ContestSummary }) {
+  const { t } = useTranslation();
+
+  if (contest.status === 'draft') return <span className={styles.quiet}>{t('home.notPublished')}</span>;
+  if (contest.status === 'revealed')
+    return <span className={styles.quiet}>{t('home.resultsPublic')}</span>;
+
+  const progress = contest.progress;
+  if (!progress) return null;
+  if (progress.claimedCount === 0)
+    return <span className={styles.quiet}>{t('home.nobodyJoined')}</span>;
+
+  return (
+    <ProgressBar
+      segments={[
+        { of: progress.sentCount / progress.claimedCount, tone: 'good' },
+        { of: progress.draftCount / progress.claimedCount, tone: 'pending' },
+      ]}
+      label={t('home.votesSent', { sent: progress.sentCount, claimed: progress.claimedCount })}
+    />
+  );
+}
+
 function Row({
   contest,
   onDelete,
@@ -130,14 +182,20 @@ function Row({
   return (
     <tr>
       <td>
-        <Link to={to} className={styles.name}>
-          {contest.name}
-        </Link>
+        <div className={styles.contestCell}>
+          <Link to={to} className={styles.name}>
+            {contest.name}
+          </Link>
+          <RulesInBrief contest={contest} />
+        </div>
       </td>
       <td>
         <StatePill tone={STATE_TONE[contest.status]} mark={STATE_MARK[contest.status]}>
           {t(`common.contestState.${contest.status}`)}
         </StatePill>
+      </td>
+      <td>
+        <Progress contest={contest} />
       </td>
       <td className={styles.when}>{whenLastChanged(contest.updatedAt, i18n.language)}</td>
       <td>

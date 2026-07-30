@@ -1,0 +1,22 @@
+-- 0017_contest_attribution.sql
+-- Slice B: a host reads how each contest is going without opening it.
+--
+-- The contest list now says what a contest is judged on, and "each person on
+-- their own" versus "each couple together" is part of that. Attribution was
+-- dropped at publish until now: the compiler consumes it and emits dishes with
+-- one submitter or two, so the compiled view records the *consequence* of the
+-- rule and not the rule.
+--
+-- It is stored rather than inferred back from the dish shape. Re-deriving a
+-- compiled-away rule at read time is what the "compiled at publish, never
+-- re-interpreted at runtime" rule exists to prevent, and it is genuinely
+-- ambiguous anyway: a contest published with an empty roster has no dishes to
+-- read it from.
+--
+-- Nullable, with no default, and deliberately not backfilled. NULL means "this
+-- contest does not say", which the list already has to handle — a draft that has
+-- not been given an attribution yet reports exactly the same nothing. Guessing a
+-- value for contests published before this column existed would turn "unknown"
+-- into a claim, and the only portable way to read the old dish shapes is JSON
+-- functions that differ between SQLite and Postgres.
+ALTER TABLE contests ADD COLUMN attribution TEXT;

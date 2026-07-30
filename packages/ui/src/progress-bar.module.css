@@ -1,0 +1,33 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 120px;
+}
+
+.track {
+  display: flex;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  flex: none;
+}
+.good {
+  background: var(--good);
+}
+.pending {
+  background: var(--saffron);
+}
+.brand {
+  background: var(--brand);
+}
+
+.label {
+  font: 400 12px var(--sans);
+  color: var(--ink-2);
+}

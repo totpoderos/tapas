@@ -3,6 +3,7 @@ export { FormField, type FormFieldProps } from './form-field';
 export { ConfirmDialog, type ConfirmDialogProps } from './confirm-dialog';
 export { StatePill, type StatePillProps, type StateTone } from './state-pill';
 export { DataTable, type DataTableProps } from './data-table';
+export { ProgressBar, type ProgressBarProps, type ProgressSegment } from './progress-bar';
 export { Callout, type CalloutProps, type CalloutTone } from './callout';
 export { EmptyState, type EmptyStateProps } from './empty-state';
 export { ThemeToggle } from './theme-toggle';

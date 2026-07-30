@@ -163,6 +163,7 @@ export { SqliteSecurityEventLog } from './db/security-event-repository.js';
 export {
   SqliteVoteSessionRepository,
   type VoteSessionRepository,
+  type SessionCounts,
 } from './db/vote-session-repository.js';
 export type { StoredVoteSession, StoredScore } from './scoring/stored-vote-session.js';
 export { SaveScore, type SaveScoreDeps } from './scoring/use-cases/save-score.js';

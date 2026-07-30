@@ -8,6 +8,10 @@
     "closed": "Cerrado",
     "revealed": "Revelado"
   },
+  "attribution": {
+    "per_person": "Por persona",
+    "per_couple": "Por pareja"
+  },
   "language": {
     "label": "Idioma"
   },

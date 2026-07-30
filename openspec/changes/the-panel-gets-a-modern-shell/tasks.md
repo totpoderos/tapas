@@ -22,14 +22,14 @@ live smoke check) before opening the PR.
 
 ## 2. Slice B — the contest list says how each contest is going
 
-- [ ] 2.1 Write `tests/e2e/host-contest-progress.feature` (progress, rules in brief, join code, a draft reporting none). Confirm it before implementing.
-- [ ] 2.2 Migration: nullable `attribution` on the contest row; write it at publish from the draft; backfill existing rows by inference from materialized dishes, defaulting to per person when a contest has no dishes.
-- [ ] 2.3 Add batched counts: `countsByContest(ids)` on the roster repository and a grouped status count on the vote-session repository — plain `IN (...) GROUP BY`, short-circuiting an empty id list. Integration tests against in-memory SQLite.
-- [ ] 2.4 Widen `ContestSummary` with `attribution`, `categoryCount`, `joinCode`, `progress`; every field optional, `null` for a draft. Extend `ListMyContests` with the two repositories; unit-test that a draft reports none rather than zeroes.
-- [ ] 2.5 Assert in a test that listing N contests issues a bounded number of queries, not one per contest.
-- [ ] 2.6 Update the MCP contest-list tool and its contract test to the widened DTO.
-- [ ] 2.7 Widen `host-web/src/api/client.ts` and render the design's row: progress bar + "13 of 18 votes sent", and the subtitle "Per person · 4 categories · code 4KQ-207", each part omitted when the field is absent.
-- [ ] 2.8 Slice verification, then PR.
+- [x] 2.1 Write `tests/e2e/host-contest-progress.feature` (progress, rules in brief, join code, a draft reporting none). Confirm it before implementing.
+- [x] 2.2 Migration `0017_contest_attribution.sql`: nullable `attribution` on the contest row; written at publish from the draft. **The backfill is dropped** — reading it out of the old `materialized` JSON needs engine-specific JSON functions, which would put SQLite-only SQL in a migration that has to keep the Postgres swap a swap. `NULL` already means "does not say", which the list handles for unset drafts anyway, so an old row reports none rather than a guess (design.md revised).
+- [x] 2.3 Add batched counts: `countsByContest(ids)` on the roster repository and a grouped status count on the vote-session repository — plain `IN (...) GROUP BY`, short-circuiting an empty id list. Integration tests against in-memory SQLite.
+- [x] 2.4 Widen `ContestSummary` with `attribution`, `categoryCount`, `joinCode`, `progress`; every field optional, `null` for a draft. Extend `ListMyContests` with the two repositories; unit-test that a draft reports none rather than zeroes.
+- [x] 2.5 Assert in a test that listing N contests issues a bounded number of queries, not one per contest.
+- [x] 2.6 Update the MCP contest-list tool and its contract test to the widened DTO. The tool is a pure pass-through, so the description is what changed — including that a draft's absent progress means voting has not started, not that nobody voted, since an assistant confusing the two would tell the host something untrue.
+- [x] 2.7 Widen `host-web/src/api/client.ts` and render the design's row: `ProgressBar` (added to `@tapas/ui`) + "13 of 18 votes sent", and the subtitle "Per person · 4 categories · code 4KQ-207", each part omitted when the field is absent. A live contest nobody has joined says so instead of drawing an empty bar; a draft says "not published"; a revealed one says its results are public.
+- [x] 2.8 Slice verification, then PR. The reflow suite caught a latent slice-A bug the wider table exposed: the visually-hidden actions heading is absolutely positioned, and with no positioned ancestor it escaped the table's scroll container and stretched the page to 562px at a 375px viewport. `DataTable` now establishes a containing block, and the name column has a floor so a narrow screen scrolls the table instead of breaking names one word per line.
 
 ## 3. Slice C — the control room on the shell
 

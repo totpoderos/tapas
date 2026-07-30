@@ -16,6 +16,13 @@ export interface RosterRepository {
   listClaimed(contestId: string): RosterPlace[];
   /** Every place, claimed or not, in roster order — the full set of participants the host listed. */
   listAll(contestId: string): RosterPlace[];
+  /**
+   * How many places are claimed in each of several contests at once, for the
+   * host's contest list. One query for the whole list rather than one per
+   * contest: a host with a dozen contests should not cost a dozen round trips to
+   * draw one table. Contests with nothing claimed are simply absent from the map.
+   */
+  countClaimedByContest(contestIds: readonly string[]): Map<string, number>;
   find(contestId: string, participantId: string): RosterPlace | undefined;
   /** Atomically claims an open place; false if it does not exist or is already taken. */
   claim(contestId: string, participantId: string, claimedAt: string): boolean;
@@ -72,6 +79,20 @@ export class SqliteRosterRepository implements RosterRepository {
       .prepare(`SELECT * FROM persons WHERE contest_id = ? ORDER BY participant_id`)
       .all(contestId) as unknown as PersonRow[];
     return rows.map(toPlace);
+  }
+
+  countClaimedByContest(contestIds: readonly string[]): Map<string, number> {
+    // `IN ()` is not valid SQL, so nothing to ask about means nothing to ask.
+    if (contestIds.length === 0) return new Map();
+    const placeholders = contestIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT contest_id, COUNT(*) AS claimed FROM persons
+          WHERE contest_id IN (${placeholders}) AND claimed_at IS NOT NULL
+          GROUP BY contest_id`,
+      )
+      .all(...contestIds) as unknown as { contest_id: string; claimed: number }[];
+    return new Map(rows.map((row) => [row.contest_id, Number(row.claimed)]));
   }
 
   find(contestId: string, participantId: string): RosterPlace | undefined {
