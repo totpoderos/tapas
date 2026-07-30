@@ -23,7 +23,19 @@
   display: none;
 }
 
-/* A contest's name, which is also the way into it. */
+/* A contest's name, which is also the way into it, over its rules in brief. */
+.contestCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /*
+   * Room for a contest's name and its rules on one or two lines. Without a floor
+   * the table hands this column whatever is left after the others and a name
+   * breaks one word per line, which is the worst of both: still scrolling, and
+   * unreadable. With it the table simply gets wider and its frame scrolls.
+   */
+  min-width: 15rem;
+}
 .name {
   font: 600 16px var(--sans);
   color: var(--brand);
@@ -31,6 +43,18 @@
 }
 .name:hover {
   text-decoration: underline;
+}
+.brief {
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/* What a contest cannot yet have, said quietly rather than drawn as a bar. */
+.quiet {
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  white-space: nowrap;
 }
 
 .when {

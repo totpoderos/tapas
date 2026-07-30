@@ -10,6 +10,12 @@ Feature: Listing contests through a connected assistant
     When the assistant is asked to list the host's contests with the host's token
     Then both of the host's contests are listed
 
+  Scenario: The assistant is told how each contest is going
+    Given a host with a personal access token and a published contest they own
+    When the assistant is asked to list the host's contests with the host's token
+    Then that contest is listed with its join code and its progress
+    And it is listed with what it is judged on
+
   Scenario: The assistant lists only the host's own contests
     Given a host with a personal access token, and a contest owned by a different host
     When the assistant is asked to list the host's contests with the host's token

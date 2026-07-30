@@ -158,12 +158,35 @@ export async function resendInvitation(
   };
 }
 
-/** A one-line view of a host's contest, whatever state it is in — the contest list's rows. */
+/** How far along a contest's voting is: who has joined, and who has sent. */
+export interface ContestProgress {
+  readonly claimedCount: number;
+  readonly draftCount: number;
+  readonly sentCount: number;
+}
+
+/**
+ * A one-line view of a host's contest, whatever state it is in — the contest
+ * list's rows.
+ *
+ * Everything past `updatedAt` is optional, and **absent means not applicable
+ * yet, not zero**. A contest still being prepared has no join code and no
+ * progress: the screen must say "not published" rather than "nobody has voted",
+ * because those are different facts and only one of them is true.
+ */
 export interface ContestSummary {
   readonly id: string;
   readonly name: string;
   readonly status: 'draft' | 'live' | 'closed' | 'revealed';
   readonly updatedAt: string;
+  /** What a dish is credited to. Absent when the contest does not say. */
+  readonly attribution?: Attribution;
+  /** How many things each dish is judged on. Absent when none have been chosen. */
+  readonly categoryCount?: number;
+  /** The code people join with. Absent until the contest is published. */
+  readonly joinCode?: string;
+  /** How the voting is going. Absent until the contest is published. */
+  readonly progress?: ContestProgress;
 }
 
 /** Every contest the signed-in host owns, most recently touched first. */

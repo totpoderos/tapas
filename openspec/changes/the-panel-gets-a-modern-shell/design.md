@@ -52,7 +52,9 @@ To keep that from becoming a query per contest, both repositories get a batched 
 
 ### Attribution is persisted at publish, not re-derived on read
 
-`MaterializedContest` has no `attribution`; the compiler consumes it and emits dishes with one or two submitters. It is *inferable* (`submitterIds.length > 1` ⇒ per couple) but inferring it is re-interpreting a compiled-away rule at read time, which is precisely what the "compiled at publish, never re-interpreted at runtime" rule forbids — and it is genuinely ambiguous for a contest with an empty roster. So a migration adds a nullable `attribution` column to the contest row, written at publish from the draft. Existing rows are backfilled by the inference above, defaulting to per person when a contest has no dishes; the column stays nullable so an un-backfillable row reports none rather than lying.
+`MaterializedContest` has no `attribution`; the compiler consumes it and emits dishes with one or two submitters. It is *inferable* (`submitterIds.length > 1` ⇒ per couple) but inferring it is re-interpreting a compiled-away rule at read time, which is precisely what the "compiled at publish, never re-interpreted at runtime" rule forbids — and it is genuinely ambiguous for a contest with an empty roster. So a migration adds a nullable `attribution` column to the contest row, written at publish from the draft.
+
+**Revised while implementing:** the backfill of existing rows is dropped. Migrations here are plain `.sql` applied in filename order, and the only way to read attribution out of the old `materialized` JSON is engine-specific JSON functions — which would put SQLite-only SQL in a file that is supposed to keep the Postgres swap a swap. Since `NULL` already has a defined meaning the list must handle anyway ("this contest does not say", exactly as an unset draft reports), an un-backfilled row reports none rather than a guess. Only the category count and join code, which the compiled view and the contest row already hold, are available for contests published before this change.
 
 ### The activity log's file is produced by the API
 

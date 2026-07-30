@@ -1,4 +1,9 @@
-import type { StoredScore, StoredVoteSession, VoteSessionRepository } from '../../../src/index.js';
+import type {
+  SessionCounts,
+  StoredScore,
+  StoredVoteSession,
+  VoteSessionRepository,
+} from '../../../src/index.js';
 
 export class FakeVoteSessionRepository implements VoteSessionRepository {
   private readonly sessions = new Map<string, StoredVoteSession>();
@@ -43,6 +48,20 @@ export class FakeVoteSessionRepository implements VoteSessionRepository {
   }
   listSessions(contestId: string): StoredVoteSession[] {
     return [...this.sessions.values()].filter((session) => session.contestId === contestId);
+  }
+  countSessionsByContest(contestIds: readonly string[]): Map<string, SessionCounts> {
+    const wanted = new Set(contestIds);
+    const counts = new Map<string, SessionCounts>();
+    for (const session of this.sessions.values()) {
+      if (!wanted.has(session.contestId)) continue;
+      const soFar = counts.get(session.contestId) ?? { draftCount: 0, sentCount: 0 };
+      counts.set(session.contestId, {
+        draftCount: soFar.draftCount + (session.status === 'draft' ? 1 : 0),
+        sentCount: soFar.sentCount + (session.status === 'sent' ? 1 : 0),
+      });
+    }
+    // Absent rather than zero, matching the real one.
+    return counts;
   }
   deleteByContest(contestId: string): void {
     const doomed = new Set<string>();

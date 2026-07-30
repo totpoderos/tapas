@@ -2,6 +2,12 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { Clock } from '../audit/audit-projection.js';
 import type { StoredScore, StoredVoteSession } from '../scoring/stored-vote-session.js';
 
+/** Vote sessions in one contest, split by whether they have been sent. */
+export interface SessionCounts {
+  readonly draftCount: number;
+  readonly sentCount: number;
+}
+
 export interface VoteSessionRepository {
   findSession(contestId: string, voterId: string): StoredVoteSession | undefined;
   createSession(session: StoredVoteSession): void;
@@ -15,6 +21,12 @@ export interface VoteSessionRepository {
   listSentScores(contestId: string): StoredScore[];
   /** Every vote session in this contest, any status — for the live draft/sent progress tally. */
   listSessions(contestId: string): StoredVoteSession[];
+  /**
+   * How many votes are drafted and how many sent, in each of several contests at
+   * once, for the host's contest list. One query for the whole list rather than
+   * one per contest. Contests with no sessions are simply absent from the map.
+   */
+  countSessionsByContest(contestIds: readonly string[]): Map<string, SessionCounts>;
   /** Removes every vote session in a contest and all the scores inside them. */
   deleteByContest(contestId: string): void;
 }
@@ -136,6 +148,33 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
       .prepare(`SELECT * FROM vote_sessions WHERE contest_id = ? ORDER BY voter_id`)
       .all(contestId) as unknown as SessionRow[];
     return rows.map(toSession);
+  }
+
+  countSessionsByContest(contestIds: readonly string[]): Map<string, SessionCounts> {
+    // `IN ()` is not valid SQL, so nothing to ask about means nothing to ask.
+    if (contestIds.length === 0) return new Map();
+    const placeholders = contestIds.map(() => '?').join(', ');
+    const rows = this.db
+      .prepare(
+        `SELECT contest_id, status, COUNT(*) AS howMany FROM vote_sessions
+          WHERE contest_id IN (${placeholders})
+          GROUP BY contest_id, status`,
+      )
+      .all(...contestIds) as unknown as {
+      contest_id: string;
+      status: string;
+      howMany: number;
+    }[];
+
+    const counts = new Map<string, SessionCounts>();
+    for (const row of rows) {
+      const soFar = counts.get(row.contest_id) ?? { draftCount: 0, sentCount: 0 };
+      counts.set(row.contest_id, {
+        draftCount: soFar.draftCount + (row.status === 'draft' ? Number(row.howMany) : 0),
+        sentCount: soFar.sentCount + (row.status === 'sent' ? Number(row.howMany) : 0),
+      });
+    }
+    return counts;
   }
 
   /**

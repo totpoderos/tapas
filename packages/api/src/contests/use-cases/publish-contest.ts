@@ -26,6 +26,12 @@ export class PublishContest {
       joinCode,
       status: 'live',
       materialized: published.contest.materialized,
+      // Kept from the draft: the compiled view records that a dish has one
+      // submitter or two, which is the consequence of this rule rather than the
+      // rule, and the host's contest list says the rule.
+      ...(draft.content.attribution === undefined
+        ? {}
+        : { attribution: draft.content.attribution }),
       closeRule: published.contest.closeRule,
       revealStrategy: published.contest.revealStrategy,
       createdAt: this.deps.clock.now(),

@@ -3,12 +3,27 @@
   border-radius: var(--radius-card);
   background: var(--surface);
   overflow-x: auto;
+  /*
+   * A containing block for anything absolutely positioned inside — a
+   * visually-hidden column heading, say. Without it such an element resolves
+   * against the initial containing block, escapes this scroll container
+   * entirely, and stretches the whole document sideways at its static offset:
+   * a 1px hidden span pushed the page to 562px at a 375px viewport, which the
+   * reflow suite caught as soon as the table grew a column.
+   */
+  position: relative;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+  /*
+   * A floor, so a narrow screen scrolls the table sideways instead of crushing
+   * its first column into one word per line. Overridable per surface with
+   * `--table-min` when a table has fewer columns and can take less.
+   */
+  min-width: var(--table-min, 34rem);
 }
 
 .table thead th {

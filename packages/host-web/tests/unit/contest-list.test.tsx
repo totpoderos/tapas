@@ -104,3 +104,156 @@ describe('Host contest list', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 });
+
+/**
+ * What a host can read off a row without opening the contest.
+ *
+ * The distinction these tests exist to protect: what a contest cannot have yet is
+ * *absent*, never zero. "Not published" and "nobody has voted" are different
+ * facts, and a host skimming the list must not have to tell them apart by
+ * guessing.
+ */
+describe('How each contest is going', () => {
+  beforeEach(() => {
+    vi.mocked(api.whoAmI).mockResolvedValue({ hostId: 'h1', role: 'host' });
+  });
+  afterEach(() => vi.clearAllMocks());
+
+  const rowFor = (name: string) =>
+    screen.getAllByRole('row').find((row) => row.textContent?.includes(name))!;
+
+  it('says how far along a live contest is, in words as well as a bar', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Spring Tapas Crawl',
+        status: 'live',
+        progress: { claimedCount: 18, draftCount: 5, sentCount: 13 },
+      }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('Spring Tapas Crawl')).toHaveTextContent('13 of 18 votes sent');
+  });
+
+  it('says nobody has joined rather than drawing an empty bar', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Nobody Yet',
+        status: 'live',
+        progress: { claimedCount: 0, draftCount: 0, sentCount: 0 },
+      }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('Nobody Yet')).toHaveTextContent('Nobody has joined yet');
+    expect(rowFor('Nobody Yet')).not.toHaveTextContent('votes sent');
+  });
+
+  it('shows what a contest is judged on, and the code people join with', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Spring Tapas Crawl',
+        status: 'live',
+        attribution: 'per_person',
+        categoryCount: 4,
+        joinCode: '4KQ-207',
+        progress: { claimedCount: 1, draftCount: 0, sentCount: 1 },
+      }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('Spring Tapas Crawl')).toHaveTextContent(
+      'Per person · 4 categories · code 4KQ-207',
+    );
+  });
+
+  it('counts a single category in the singular', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({ id: 'a', name: 'One Thing', status: 'draft', categoryCount: 1 }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('One Thing')).toHaveTextContent('1 category');
+  });
+
+  it('says a contest being prepared is not published, not that nobody voted', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({ id: 'a', name: 'Barrio Supper Club', status: 'draft' }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    const row = rowFor('Barrio Supper Club');
+    expect(row).toHaveTextContent('Not published');
+    expect(row).not.toHaveTextContent('votes sent');
+    expect(row).not.toHaveTextContent('Nobody has joined yet');
+  });
+
+  it('says nothing at all about the rules of a draft that has none', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({ id: 'a', name: 'Just A Name', status: 'draft' }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    const row = rowFor('Just A Name');
+    expect(row).not.toHaveTextContent('categor');
+    expect(row).not.toHaveTextContent('code');
+  });
+
+  it('says a revealed contest’s results are public', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Winter Tapeo',
+        status: 'revealed',
+        progress: { claimedCount: 4, draftCount: 0, sentCount: 4 },
+      }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('Winter Tapeo')).toHaveTextContent('Results public');
+  });
+
+  it('still shows what was sent once voting has closed', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Pintxos Night',
+        status: 'closed',
+        progress: { claimedCount: 16, draftCount: 0, sentCount: 16 },
+      }),
+    ]);
+    renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(rowFor('Pintxos Night')).toHaveTextContent('16 of 16 votes sent');
+  });
+
+  it('has no accessibility violations with progress on the rows', async () => {
+    vi.mocked(api.listContests).mockResolvedValue([
+      summary({
+        id: 'a',
+        name: 'Spring Tapas Crawl',
+        status: 'live',
+        attribution: 'per_person',
+        categoryCount: 4,
+        joinCode: '4KQ-207',
+        progress: { claimedCount: 18, draftCount: 5, sentCount: 13 },
+      }),
+      summary({ id: 'b', name: 'Barrio Supper Club', status: 'draft' }),
+    ]);
+    const { container } = renderApp();
+
+    await screen.findByRole('table', { name: 'Your contests' });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

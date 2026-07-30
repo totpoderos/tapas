@@ -71,6 +71,41 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('The assistant is told how each contest is going', ({ Given, When, Then, And }) => {
+    let client: Client;
+    let result: ToolResult;
+
+    Given('a host with a personal access token and a published contest they own', async () => {
+      const api = await startTrackedApi();
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+      await publishContestAs(api.app, token);
+      client = await connectAssistant(api.baseUrl, token);
+    });
+    When("the assistant is asked to list the host's contests with the host's token", async () => {
+      result = await listContests(client);
+    });
+    Then('that contest is listed with its join code and its progress', () => {
+      expect(result.isError).toBeFalsy();
+      const [listed] = JSON.parse(firstText(result)) as {
+        joinCode?: string;
+        progress?: { claimedCount: number; draftCount: number; sentCount: number };
+        attribution?: string;
+        categoryCount?: number;
+      }[];
+      expect(listed?.joinCode).toMatch(/\S/);
+      // Published with a roster nobody has claimed: real zeroes, not absence.
+      expect(listed?.progress).toEqual({ claimedCount: 0, draftCount: 0, sentCount: 0 });
+    });
+    And('it is listed with what it is judged on', () => {
+      const [listed] = JSON.parse(firstText(result)) as {
+        attribution?: string;
+        categoryCount?: number;
+      }[];
+      expect(listed?.attribution).toBe('per_person');
+      expect(listed?.categoryCount).toBe(1);
+    });
+  });
+
   Scenario("The assistant lists only the host's own contests", ({ Given, When, Then }) => {
     let client: Client;
     let result: ToolResult;

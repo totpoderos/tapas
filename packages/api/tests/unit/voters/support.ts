@@ -28,6 +28,17 @@ export class FakeRosterRepository implements RosterRepository {
   listAll(contestId: string): RosterPlace[] {
     return [...this.places.values()].filter((p) => p.contestId === contestId);
   }
+  countClaimedByContest(contestIds: readonly string[]): Map<string, number> {
+    const wanted = new Set(contestIds);
+    const counts = new Map<string, number>();
+    for (const place of this.places.values()) {
+      if (!wanted.has(place.contestId) || place.claimedAt === null) continue;
+      counts.set(place.contestId, (counts.get(place.contestId) ?? 0) + 1);
+    }
+    // Absent rather than zero, matching the real one: the caller decides what
+    // "no rows" means for the contest it asked about.
+    return counts;
+  }
   find(contestId: string, participantId: string): RosterPlace | undefined {
     return this.places.get(this.key(contestId, participantId));
   }

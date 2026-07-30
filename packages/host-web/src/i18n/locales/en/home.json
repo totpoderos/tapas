@@ -17,9 +17,17 @@
   "columns": {
     "contest": "Contest",
     "status": "Status",
+    "progress": "Progress",
     "updated": "Updated",
     "actions": "Actions"
   },
+  "categories_one": "{{count}} category",
+  "categories_other": "{{count}} categories",
+  "joinCode": "code {{code}}",
+  "votesSent": "{{sent}} of {{claimed}} votes sent",
+  "nobodyJoined": "Nobody has joined yet",
+  "notPublished": "Not published",
+  "resultsPublic": "Results public",
   "open": "Open",
   "review": "Review",
   "people": "People"

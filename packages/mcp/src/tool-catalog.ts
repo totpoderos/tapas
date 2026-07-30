@@ -45,11 +45,18 @@ const getContest: McpTool = {
  * prepared and published contests alike), each with its id, name, and state, so
  * the host has an overview by name and never needs an internal id. Read-only and
  * host-scoped; the API returns only the host's own.
+ *
+ * Each entry also carries how the contest is going, so an assistant can answer
+ * "how is the spring contest doing?" from the list instead of reading each
+ * contest in turn. What a contest cannot have yet is absent rather than zero: a
+ * draft has no join code and no progress, and saying it had none sent would read
+ * as nobody having voted. The description says so, because an assistant that
+ * mistakes one for the other tells the host something untrue.
  */
 const listMyContests: McpTool = {
   name: 'list_my_contests',
   description:
-    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state.",
+    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state. Each also carries what it is judged on (attribution and how many scoring categories), its join code, and its progress (how many people have claimed a place, how many are still scoring, and how many have sent their vote). A contest still being prepared has no join code and no progress at all — that means voting has not started, which is NOT the same as nobody having voted yet.",
   destructive: false,
   scope: 'host',
   inputSchema: {},
