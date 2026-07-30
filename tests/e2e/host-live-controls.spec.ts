@@ -81,7 +81,11 @@ test('a host closes voting on a running contest', async ({ page }) => {
   await page.getByRole('button', { name: 'Close voting' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Close voting' }).click();
 
-  await expect(page.getByText('Closed')).toBeVisible();
+  // Scoped to the surface, as in the cancel case below: the panel says the state
+  // in its header and beside the contest in its navigation too, so an unscoped
+  // "Closed" matches three things. It only passed unscoped while the assertion
+  // beat the navigation's re-read, which is a race a slower machine wins.
+  await expect(page.getByRole('main').getByText('Closed')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reveal results' })).toBeVisible();
 });
 

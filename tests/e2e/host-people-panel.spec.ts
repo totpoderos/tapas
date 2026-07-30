@@ -57,6 +57,17 @@ test('an administrator resends and revokes from the row', async ({ page }) => {
   await expect(row).toContainText('Invited');
   await invitationLinkSentTo('e2e-panel-churn@sobremesa.es');
 
+  /*
+   * Reload before revoking. Resending replaces which invitation the row stands
+   * for, and "Invited" is true of both the superseded one and its replacement —
+   * so the assertions above cannot tell whether the re-read has landed. Clicking
+   * into that gap revokes the superseded invitation, which leaves the newest one
+   * standing and the row saying "Invited" for good. CI caught it once; the
+   * reload closes the window rather than hoping to win the race.
+   */
+  await page.reload();
+  await expect(row).toContainText('Invited');
+
   await row.getByRole('button', { name: 'Revoke' }).click();
   await expect(row).toContainText('Invitation revoked');
 });
