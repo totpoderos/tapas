@@ -1,5 +1,4 @@
 {
-  "back": "Back to contests",
   "title": "Activity log",
   "lead": "Everything that has happened to this contest, and how each action was triggered.",
   "loading": "Loading the activity log…",
@@ -12,8 +11,17 @@
     "system": "System",
     "mcp": "Connected tool"
   },
+  "column": {
+    "event": "Event",
+    "source": "Source",
+    "actor": "Actor",
+    "when": "When"
+  },
   "listLabel": "Activity",
-  "empty": "No activity from this source yet.",
+  "empty": "Nothing from this source yet.",
+  "emptyNote": "This contest does have a history — choose All sources to see it.",
+  "nothingYet": "Nothing has happened to this contest yet.",
+  "nothingYetNote": "Whatever is done to it — here, by the system, or through a connected tool — is recorded on this page.",
   "event": {
     "draftSaved": "Draft saved",
     "draftUpdated": "Draft renamed",
@@ -23,7 +31,6 @@
     "contestRevealed": "Results revealed"
   },
   "confirmed": "You confirmed",
-  "by": "by {{actor}}",
   "actorSystem": "the system",
   "actorYou": "you"
 }

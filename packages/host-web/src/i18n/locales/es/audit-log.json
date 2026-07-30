@@ -1,5 +1,4 @@
 {
-  "back": "Volver a los concursos",
   "title": "Registro de actividad",
   "lead": "Todo lo que le ha pasado a este concurso, y cómo se activó cada acción.",
   "loading": "Cargando el registro de actividad…",
@@ -12,8 +11,17 @@
     "system": "Sistema",
     "mcp": "Herramienta conectada"
   },
+  "column": {
+    "event": "Acción",
+    "source": "Origen",
+    "actor": "Quién",
+    "when": "Cuándo"
+  },
   "listLabel": "Actividad",
-  "empty": "Aún no hay actividad de este origen.",
+  "empty": "Aún no hay nada de este origen.",
+  "emptyNote": "Este concurso sí tiene historial: elige Todos los orígenes para verlo.",
+  "nothingYet": "Todavía no le ha pasado nada a este concurso.",
+  "nothingYetNote": "Todo lo que se le haga —aquí, desde el sistema o a través de una herramienta conectada— queda registrado en esta página.",
   "event": {
     "draftSaved": "Borrador guardado",
     "draftUpdated": "Borrador renombrado",
@@ -23,7 +31,6 @@
     "contestRevealed": "Resultados revelados"
   },
   "confirmed": "Lo confirmaste",
-  "by": "por {{actor}}",
   "actorSystem": "el sistema",
   "actorYou": "ti"
 }

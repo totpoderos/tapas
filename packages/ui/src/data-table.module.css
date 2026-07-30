@@ -14,6 +14,12 @@
   position: relative;
 }
 
+/* The frame is a tab stop because it scrolls; a tab stop has to show where it is. */
+.frame:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

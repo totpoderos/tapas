@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router';
+import { useParams } from 'react-router';
+import { DataTable, EmptyState } from '@tapas/ui';
 import { ApiError, getAuditLog, type AuditEntry } from '../api/client';
 import { SOURCE_MARK, eventKeyFor } from '../contests/audit-event';
+import { whenHappened } from '../contests/when';
 import styles from './audit-log.module.css';
 
 // How events are named and sources marked is shared with the control room's
@@ -10,6 +12,9 @@ import styles from './audit-log.module.css';
 // raw value (data), never a missing-key blank.
 
 type Source = 'all' | AuditEntry['sourcePath'];
+
+/** The filter's choices, in the order the design draws them. */
+const SOURCES: readonly Source[] = ['all', 'form', 'mcp', 'system'];
 
 type State =
   | { readonly kind: 'loading' }
@@ -23,6 +28,9 @@ type State =
  * destructive action was confirmed by the host (§7.1). The same log whatever the
  * path, because it is a projection of the contest's own events. Read-only, and
  * only ever the host's own.
+ *
+ * The brand bar, the title's own back link and the contest's name are the shell's
+ * now; what is left here is the log itself.
  */
 export function AuditLog() {
   const { t } = useTranslation();
@@ -51,16 +59,6 @@ export function AuditLog() {
 
   return (
     <main id="main" className={styles.page}>
-      <div className={styles.bar}>
-        <div className={styles.brand}>
-          <span className={styles.dot} aria-hidden="true" />
-          <b>{t('common.brand')}</b>
-        </div>
-        <Link to="/" className={styles.back}>
-          {t('auditLog.back')}
-        </Link>
-      </div>
-
       <h1 className={styles.title}>{t('auditLog.title')}</h1>
       <p className={styles.lead}>{t('auditLog.lead')}</p>
 
@@ -78,28 +76,21 @@ export function AuditLog() {
 
       {state.kind === 'ready' && (
         <>
-          <div className={styles.filter}>
-            <label htmlFor="source-filter">{t('auditLog.filterLabel')}</label>
-            <select
-              id="source-filter"
-              value={source}
-              onChange={(e) => setSource(e.target.value as Source)}
-            >
-              <option value="all">{t('auditLog.sourceAll')}</option>
-              <option value="form">{t('auditLog.source.form')}</option>
-              <option value="system">{t('auditLog.source.system')}</option>
-              <option value="mcp">{t('auditLog.source.mcp')}</option>
-            </select>
-          </div>
+          {/*
+           * Offered even when there is nothing to filter, so that narrowing to a
+           * source and finding it empty is a state the host can get back out of.
+           */}
+          <SourceFilter value={source} onChange={setSource} />
 
-          {shown.length === 0 ? (
-            <p className={styles.note}>{t('auditLog.empty')}</p>
+          {state.entries.length === 0 ? (
+            /* Nothing has ever happened here — a different thing entirely from
+               nothing having happened *through this source*, and said differently
+               so a host does not read one as the other. */
+            <EmptyState lead={t('auditLog.nothingYet')} note={t('auditLog.nothingYetNote')} />
+          ) : shown.length === 0 ? (
+            <EmptyState lead={t('auditLog.empty')} note={t('auditLog.emptyNote')} />
           ) : (
-            <ul className={styles.list} aria-label={t('auditLog.listLabel')}>
-              {shown.map((entry) => (
-                <Entry key={entry.id} entry={entry} />
-              ))}
-            </ul>
+            <Entries entries={shown} />
           )}
         </>
       )}
@@ -107,32 +98,105 @@ export function AuditLog() {
   );
 }
 
-function Entry({ entry }: { entry: AuditEntry }) {
+/**
+ * How the log is narrowed: one choice of four, so it is a radio group and says so.
+ *
+ * The radio stays visible inside its chip. A segmented control that hides its
+ * input is one only a mouse aiming at a label can operate — the lesson slice E
+ * paid for.
+ */
+function SourceFilter({
+  value,
+  onChange,
+}: {
+  value: Source;
+  onChange: (next: Source) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <fieldset className={styles.filter}>
+      <legend className={styles.filterLabel}>{t('auditLog.filterLabel')}</legend>
+      <div className={styles.chips}>
+        {SOURCES.map((option) => (
+          <label
+            key={option}
+            className={`${styles.chip} ${value === option ? styles.chosen : ''}`}
+          >
+            <input
+              type="radio"
+              name="source"
+              value={option}
+              checked={value === option}
+              onChange={() => onChange(option)}
+            />
+            {option === 'all' ? (
+              t('auditLog.sourceAll')
+            ) : (
+              <>
+                <span aria-hidden="true">{SOURCE_MARK[option]}</span>
+                {t(`auditLog.source.${option}`)}
+              </>
+            )}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+/** What happened, how it was triggered, who did it, and when — one row each. */
+function Entries({ entries }: { entries: readonly AuditEntry[] }) {
+  const { t, i18n } = useTranslation();
+  return (
+    <DataTable label={t('auditLog.listLabel')}>
+      <thead>
+        <tr>
+          <th scope="col">{t('auditLog.column.event')}</th>
+          <th scope="col">{t('auditLog.column.source')}</th>
+          <th scope="col">{t('auditLog.column.actor')}</th>
+          <th scope="col">{t('auditLog.column.when')}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {entries.map((entry) => (
+          <Entry key={entry.id} entry={entry} language={i18n.language} />
+        ))}
+      </tbody>
+    </DataTable>
+  );
+}
+
+function Entry({ entry, language }: { entry: AuditEntry; language: string }) {
   const { t } = useTranslation();
   const eventKey = eventKeyFor(entry.type);
   const eventLabel = eventKey ? t(`auditLog.event.${eventKey}`) : entry.type;
   const actor = t(entry.actorId === 'system' ? 'auditLog.actorSystem' : 'auditLog.actorYou');
   return (
-    <li className={styles.entry}>
-      <span className={styles.event}>{eventLabel}</span>
-      <span className={styles.when}>{new Date(entry.occurredAt).toLocaleString()}</span>
-      <div className={styles.meta}>
-        <span className={`${styles.badge} ${styles[entry.sourcePath]}`}>
-          <span aria-hidden="true">{SOURCE_MARK[entry.sourcePath]}</span> {t(`auditLog.source.${entry.sourcePath}`)}
-        </span>
+    <tr>
+      <td>
+        <span className={styles.event}>{eventLabel}</span>
         {entry.confirmation === 'host' && (
           <span className={`${styles.badge} ${styles.confirmed}`}>
             <span aria-hidden="true">✓</span> {t('auditLog.confirmed')}
           </span>
         )}
-        <span>
-          {t('auditLog.by', { actor })}
-          {entry.toolName ? ` · ${entry.toolName}` : ''}
+        {entry.toolName && entry.toolArgs != null ? (
+          <div className={styles.tool}>{JSON.stringify(entry.toolArgs)}</div>
+        ) : null}
+      </td>
+      <td>
+        {/* Word first, shape beside it: how an action was triggered is never told
+            by colour alone (WCAG 1.4.1). */}
+        <span className={`${styles.badge} ${styles[entry.sourcePath]}`}>
+          <span aria-hidden="true">{SOURCE_MARK[entry.sourcePath]}</span>{' '}
+          {t(`auditLog.source.${entry.sourcePath}`)}
         </span>
-      </div>
-      {entry.toolName && entry.toolArgs != null ? (
-        <div className={styles.tool}>{JSON.stringify(entry.toolArgs)}</div>
-      ) : null}
-    </li>
+      </td>
+      <td>
+        {actor}
+        {entry.toolName && <span className={styles.toolName}>{entry.toolName}</span>}
+      </td>
+      <td className={styles.when}>{whenHappened(entry.occurredAt, language)}</td>
+    </tr>
   );
 }

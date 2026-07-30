@@ -133,6 +133,16 @@ The role picks the whole navigation, not a group within it: `role === 'admin'` y
 
 Accessibility falls out of the same place: the sidebar is one `<nav aria-label>` landmark, the current item carries `aria-current="page"`, the existing skip link keeps targeting `#main` which is now the shell's content region (so skipping lands past the sidebar, not inside it), items are links at 44px minimum, and a contest's state keeps its mark (● ◇ ◆ ✓) beside its translated word.
 
+### The theme owns `color-scheme`, and saffron needs a second text token
+
+**Added while implementing slice G**, from a live look at the activity log's filter chips. Both are design-system faults rather than anything the log introduced, and both were invisible to the suite as it stood.
+
+`:root` declared `color-scheme: light dark`, which tells the browser it may paint native controls — radios, checkboxes, selects, scrollbars — in whichever scheme the *operating system* prefers. The app's theme is a `data-theme` attribute the host chooses, so the two could disagree: on a dark machine reading the light theme, every radio in a group rendered as a dark filled circle, which reads as all four being chosen. `color-scheme` now follows `data-theme` through the same three rules the colours do.
+
+Separately, `--saffron-soft` was paired with `--on-saffron` in both `StatePill` and the log's confirmed badge. Every other tone pairs `X-soft` with `X` and works in both themes, because each theme defines `X` at a readable lightness. Saffron is the exception — its bright value is a solid accent, unreadable as text on its own soft plate (2.03:1 in light) — so both consumers reached for `--on-saffron`, which is near-black in *both* themes and therefore 1.29:1 on the dark plate. A named `--on-saffron-soft` flips with the theme (14.47:1 light, 7.06:1 dark); `--on-saffron` keeps its own meaning, text on solid saffron. This was not only the log: `revealed` is the saffron state, so a revealed contest's pill was failing contrast wherever it appeared.
+
+*Why no test caught either:* every axe run in the suite is in the light theme. Slice G adds a dark-theme pass on the log, checked to fail against the old colour before being kept.
+
 ### Sub-slices
 
 Each is one ATDD loop — a `.feature` first, then implementation — and one PR.
