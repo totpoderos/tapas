@@ -1,0 +1,32 @@
+/*
+ * Deliberately NOT theme-aware, and the only place in this app that is.
+ *
+ * A scannable code is a machine-readable target, not a surface. Following the
+ * theme inverts it in the dark one — light modules on dark — and the QR standard
+ * assumes dark modules on a light ground. Some scanners cope with an inverted code
+ * and plenty do not, so a host at a venue in the dark theme would be holding up
+ * something half the room's phones refuse. It stays dark-on-light in both themes.
+ *
+ * The white plate is what makes that look deliberate rather than broken against a
+ * dark panel, and it doubles as the quiet border scanners need to find the edges.
+ *
+ * Sized in `em` so it grows with the text at 200% zoom instead of staying a fixed
+ * square of pixels beside type twice its old size.
+ */
+.plate {
+  display: inline-block;
+  padding: 0.6em;
+  border-radius: 8px;
+  /* Literal, not tokens: see above. Near-black rather than pure black keeps the
+     edge from ringing on a low-quality screen, and stays well inside the contrast
+     a scanner needs. */
+  background: #ffffff;
+  color: #14101a;
+}
+
+.code {
+  width: 11em;
+  height: 11em;
+  max-width: 100%;
+  display: block;
+}

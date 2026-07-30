@@ -45,11 +45,11 @@ live smoke check) before opening the PR.
 
 ## 4. Slice D — the join code can be scanned
 
-- [ ] 4.1 Write `tests/e2e/host-join-code-scannable.feature` (a scannable code is offered for a live contest, not for a draft, and the code stays readable beside it). Confirm it before implementing.
-- [ ] 4.2 Add `qrcode`, pinned, lockfile committed; `npm audit` clean.
-- [ ] 4.3 Render the join code as an SVG via `toString(code, {type: 'svg'})` in a disclosure beside Copy code; the code encodes the join code text only; accessible name and a text alternative; legible in both themes and at 200%.
-- [ ] 4.4 Unit test: no scannable code is offered when there is no join code.
-- [ ] 4.5 Slice verification, then PR.
+- [x] 4.1 Write `tests/e2e/host-join-code-scannable.feature` (a scannable code is offered for a live contest, not for a draft, and the code stays readable beside it). Confirm it before implementing.
+- [x] 4.2 Add **`qrcode-generator`** — not `qrcode`, which drags in `pngjs`, `dijkstrajs` and `yargs@^15` (a CLI arg parser, for its `bin`) behind a browser bundle. `qrcode-generator` has zero dependencies, is MIT, ships its own types, and is the original implementation most others descend from. Pinned, lockfile committed, `npm run audit:ci` clean (design.md revised).
+- [x] 4.3 Render the join code as an inline SVG built from `isDark(row, col)` — **not** `createSvgTag()`, which hardcodes `fill="white"` and would be wrong in the dark theme — in a disclosure beside Copy code, with `aria-expanded` and able to be hidden again. Encodes the join code text only; `role="img"` with a translated accessible name naming the code; sized in relative units so it survives 200% zoom.
+- [x] 4.4 Unit tests: nothing shown until asked for, `aria-expanded` following, hideable again, absent once revealed (no join code to scan), an accessible name naming the code, the quiet border present, and — the one that matters — the painted module grid matching an **independently recomputed** encoding of the join code, so it fails if the component ever encodes anything else. A snapshot would only have said "same as last time".
+- [x] 4.5 Slice verification, then PR. **The live check earned this slice**: in the dark theme the code rendered inverted — light modules on dark — which the QR standard does not assume and many scanners refuse. The plate is now deliberately not theme-aware, the one place in the app that isn't, and the feature and both tests say "stays dark-on-light" rather than "contrasts with what is behind it". No test would have caught it; the assertion I had written would have passed.
 
 ## 5. Slice E — the rule space on the shell
 

@@ -58,5 +58,8 @@
       "body": "The winners become visible to everyone. This can’t be undone.",
       "confirm": "Reveal results"
     }
-  }
+  },
+  "showScannable": "Show QR",
+  "hideScannable": "Hide QR",
+  "scannableFor": "Scannable code for join code {{code}}"
 }

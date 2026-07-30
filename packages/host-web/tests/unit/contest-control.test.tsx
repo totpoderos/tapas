@@ -78,6 +78,50 @@ describe('Contest control room', () => {
     expect(screen.getByRole('button', { name: 'Copy code' })).toBeInTheDocument();
   });
 
+  it('offers the scannable code without showing it until it is asked for', async () => {
+    renderControl();
+    await screen.findByText('ABCD12');
+
+    const show = screen.getByRole('button', { name: 'Show QR' });
+    expect(show).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('img', { name: /ABCD12/ })).not.toBeInTheDocument();
+
+    await userEvent.click(show);
+
+    expect(await screen.findByRole('img', { name: /ABCD12/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Hide QR' })).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    // The code stays printed and copying stays offered — a scan yields the code,
+    // which somebody then types.
+    expect(screen.getByText('ABCD12')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy code' })).toBeInTheDocument();
+  });
+
+  it('can hide the scannable code again', async () => {
+    renderControl();
+    await screen.findByText('ABCD12');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Show QR' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hide QR' }));
+
+    expect(screen.queryByRole('img', { name: /ABCD12/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show QR' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
+  it('offers no scannable code once the results are out, since nobody can still join', async () => {
+    vi.mocked(api.getContest).mockResolvedValue({ ...LIVE, status: 'revealed' });
+    renderControl();
+
+    await screen.findByRole('link', { name: 'See the results' });
+    expect(screen.queryByRole('button', { name: 'Show QR' })).not.toBeInTheDocument();
+    expect(screen.queryByText('ABCD12')).not.toBeInTheDocument();
+  });
+
   it('shows the tally against the number of places there are', async () => {
     renderControl();
 
