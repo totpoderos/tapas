@@ -11,6 +11,12 @@ Feature: Reading a contest's audit log
   they can keep cannot come to differ. A contest's name is the host's own text,
   so the file quotes and escapes what it carries rather than trusting it.
 
+  How an action arrived is part of the record. The assistant runs every tool by
+  dispatching an ordinary request back through this same API, so an action it
+  takes is the host's action — but the history still says it came through a
+  connected tool, names the tool, and keeps what the tool was asked for. That is
+  what lets a host answer "did I do this, or did something acting for me?".
+
   Scenario: The history of a contest spans its whole life
     Given a signed-in host who has published a contest and then closed it
     When that host reads the contest's audit log
@@ -61,3 +67,34 @@ Feature: Reading a contest's audit log
     When that host reads the log on screen and asks for it as a file
     Then the file has exactly one row per recorded action
     And the rows say the same actions, in the same order, as the screen
+
+  Scenario: An assistant renaming a draft is recorded as the assistant's work
+    Given a signed-in host with a draft
+    When that host asks the assistant to rename it
+    Then the renaming is recorded as having come through a connected tool
+    And it names the tool that renamed it
+    And the new name it was asked for is recorded with it
+
+  Scenario: The same action taken in the app is recorded as the host's own
+    Given a signed-in host with a draft
+    When that host renames it in the app
+    Then the renaming is recorded as having come from the app
+    And it names no tool
+
+  Scenario: A host can tell the two apart in one history
+    Given a signed-in host who has renamed a draft in the app and had the assistant rename it too
+    When that host reads the recorded history
+    Then the two renamings are recorded with different sources
+    And only the assistant's is left when the history is narrowed to a connected tool
+
+  Scenario: An assistant's action is still the host's action
+    Given a signed-in host who asked the assistant to rename a draft
+    When that host reads the recorded history
+    Then the renaming names the host as the actor
+
+  Scenario: A destructive action through the assistant is both connected-tool and confirmed
+    Given a signed-in host with a running contest
+    And that host closes it through the assistant, confirming when asked
+    When that host reads the contest's audit log
+    Then the closing is recorded as having come through a connected tool
+    And it is still recorded as confirmed by the host

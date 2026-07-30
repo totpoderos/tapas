@@ -8,6 +8,7 @@ import {
   MergeContestDraftInputSchema,
   type MergeContestDraftResult,
 } from '../drafts/extraction/merge-contest-draft.js';
+import { provenanceOfRequest } from './request-provenance.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -62,7 +63,11 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-      const created = deps.createDraft.execute(request.hostSession.id, request.body);
+      const created = deps.createDraft.execute(
+        request.hostSession.id,
+        request.body,
+        provenanceOfRequest(request),
+      );
       if (!created.ok)
         return reply.code(DRAFT_ERROR_STATUS[created.error.code]).send({ error: created.error });
       return reply.code(201).send(created.draft);
@@ -118,6 +123,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
         request.params.id,
         request.hostSession!.id,
         request.body.name,
+        provenanceOfRequest(request),
       );
       if (!renamed.ok)
         return reply.code(DRAFT_ERROR_STATUS[renamed.error.code]).send({ error: renamed.error });
@@ -132,7 +138,12 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireSession },
     async (request, reply) => {
       if (!loadOwnedDraft(request, reply)) return reply;
-      const updated = deps.updateDraft.execute(request.params.id, request.hostSession!.id, request.body);
+      const updated = deps.updateDraft.execute(
+        request.params.id,
+        request.hostSession!.id,
+        request.body,
+        provenanceOfRequest(request),
+      );
       if (!updated.ok)
         return reply.code(DRAFT_ERROR_STATUS[updated.error.code]).send({ error: updated.error });
       return reply.code(200).send(updated.draft);

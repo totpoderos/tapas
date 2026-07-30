@@ -73,7 +73,19 @@ export interface TurnDeps {
    * used to be handed on as if it were a result, so the host was shown "done"
    * for something that had not happened, and the reason was dropped.
    */
-  readonly execute: (request: ApiRequest) => Promise<ToolOutcome>;
+  readonly execute: (request: ApiRequest, ran: RanTool) => Promise<ToolOutcome>;
+}
+
+/**
+ * Which tool is being run, and what it was asked for.
+ *
+ * Handed to `execute` so the caller can record how the action arrived without
+ * this module knowing anything about transports or audit logs. The turn still
+ * decides *what* runs; the caller decides what that means on its own side.
+ */
+export interface RanTool {
+  readonly toolName: string;
+  readonly toolArgs: unknown;
 }
 
 /** A confirmation was sent for an action that isn't a known destructive tool. */
@@ -116,7 +128,7 @@ export async function runAssistantMessage(
 
   if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, parsed.args);
 
-  const outcome = await deps.execute(tool.toRequest(parsed.args));
+  const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
   if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
   return { kind: 'result', action: tool.name, text: completion.text, result: outcome.body };
 }
@@ -139,7 +151,7 @@ export async function runConfirmedAction(confirm: ConfirmRequest, deps: TurnDeps
     return { kind: 'reply', text: `I couldn’t do that — the details didn’t look right (${parsed.message}).` };
   }
 
-  const outcome = await deps.execute(tool.toRequest(parsed.args));
+  const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
   if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
   return { kind: 'result', action: tool.name, text: '', result: outcome.body };
 }

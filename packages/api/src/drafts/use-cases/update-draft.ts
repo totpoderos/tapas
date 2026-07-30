@@ -1,5 +1,5 @@
 import { Draft, type DraftContent } from '@tapas/domain';
-import type { SourcePath } from '@tapas/shared';
+import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { StoredDraft } from '../stored-draft.js';
 import { withParticipantIds, draftNotFound, findOwnedDraft, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
 
@@ -13,7 +13,7 @@ import { withParticipantIds, draftNotFound, findOwnedDraft, type DraftUseCaseDep
 export class UpdateDraft {
   constructor(private readonly deps: DraftUseCaseDeps) {}
 
-  execute(draftId: string, hostId: string, content: DraftContent, sourcePath: SourcePath = 'form'): DraftWriteResult {
+  execute(draftId: string, hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): DraftWriteResult {
     const existing = findOwnedDraft(this.deps.drafts, draftId, hostId);
     if (!existing) return { ok: false, error: draftNotFound };
 
@@ -24,7 +24,7 @@ export class UpdateDraft {
     this.deps.drafts.update(updated);
     this.deps.audit.record(
       { type: 'draft.updated', contestId: draftId, actorId: hostId, before: existing.content, after: edited.draft.content },
-      { sourcePath },
+      provenance,
     );
     return { ok: true, draft: updated };
   }

@@ -6,9 +6,11 @@ import {
   runConfirmedAction,
   UnknownActionError,
   type ConfirmRequest,
+  type RanTool,
   type ToolOutcome,
   type TurnDeps,
 } from '../assistant/host-assistant-turn.js';
+import { dispatchedAs } from './request-provenance.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -51,16 +53,30 @@ export function registerAssistantRoutes(app: FastifyInstance, deps: ServerDeps):
       // so the audit log records that the host approved it (design.md §7.1).
       const execute =
         (hostConfirmed: boolean) =>
-        async (apiRequest: ApiRequest): Promise<ToolOutcome> => {
-          const response = await app.inject({
-            method: apiRequest.method,
-            url: apiRequest.path,
-            payload: apiRequest.body as object | undefined,
-            headers: {
-              cookie: request.headers.cookie ?? '',
-              ...(hostConfirmed ? { 'x-tapas-confirmation': 'host' } : {}),
-            },
-          });
+        async (apiRequest: ApiRequest, ran: RanTool): Promise<ToolOutcome> => {
+          /*
+           * Marked as the assistant's for the length of the dispatch, so the
+           * routes that record can say how the action arrived. In-process rather
+           * than in a header: the tool's arguments are model-produced JSON, and
+           * they never leave this process (design.md).
+           *
+           * The mark is entered around the dispatch alone, not the whole turn,
+           * so one tool call cannot colour anything the host does after it.
+           */
+          const response = await dispatchedAs(
+            { sourcePath: 'mcp', toolName: ran.toolName, toolArgs: ran.toolArgs },
+            (provenanceHeaders) =>
+              app.inject({
+                method: apiRequest.method,
+                url: apiRequest.path,
+                payload: apiRequest.body as object | undefined,
+                headers: {
+                  cookie: request.headers.cookie ?? '',
+                  ...(hostConfirmed ? { 'x-tapas-confirmation': 'host' } : {}),
+                  ...provenanceHeaders,
+                },
+              }),
+          );
           const body = response.statusCode === 204 || response.body === '' ? undefined : response.json();
           // Report the API's verdict, not just its body: a refusal must not reach
           // the host dressed as a result (they are told what failed, and why).

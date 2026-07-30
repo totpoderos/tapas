@@ -1,3 +1,4 @@
+import { IN_APP } from '../../audit/audit-projection.js';
 import type { RevealContestDeps, RevealContestResult, StatusChangeContext } from './shared.js';
 
 /**
@@ -36,7 +37,7 @@ export class RevealContest {
         before: { status: 'closed' },
         after: { status: 'revealed' },
       },
-      { sourcePath: 'form', confirmation: context.confirmation },
+      { ...(context.provenance ?? IN_APP), confirmation: context.confirmation },
     );
     return { ok: true, contest: { ...contest, status: 'revealed', revealedAt } };
   }

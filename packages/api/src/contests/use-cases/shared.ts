@@ -1,5 +1,6 @@
 import type { PublishErrorCode, TallyResult } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
+import type { AuditProvenance } from '../../audit/audit-projection.js';
 import type { AuditRecorder } from '../../audit/audit-recorder.js';
 import type { ContestRepository } from '../../db/contest-repository.js';
 import type { DishRepository } from '../../db/dish-repository.js';
@@ -65,6 +66,12 @@ export interface StatusChangeContext {
   readonly actorId: string;
   /** 'host' when the host confirmed it (e.g. via the assistant), else 'auto'. */
   readonly confirmation: 'host' | 'auto';
+  /**
+   * How the action reached the API. Absent means the app — the two travel
+   * separately from `confirmation` because they answer different questions:
+   * whether anyone agreed to this, and how it arrived.
+   */
+  readonly provenance?: AuditProvenance;
 }
 
 export type RevealContestResult =

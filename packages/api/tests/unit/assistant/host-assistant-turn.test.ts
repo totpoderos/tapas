@@ -40,7 +40,12 @@ describe('runAssistantMessage', () => {
         execute,
       }),
     );
-    expect(execute).toHaveBeenCalledWith({ method: 'POST', path: '/drafts', body: { name: 'X' } });
+    // The executor is also told which tool ran, and with what, so the caller can
+    // record how the action arrived without this module knowing about audit logs.
+    expect(execute).toHaveBeenCalledWith(
+      { method: 'POST', path: '/drafts', body: { name: 'X' } },
+      { toolName: 'create_draft', toolArgs: { name: 'X' } },
+    );
     expect(turn).toEqual({ kind: 'result', action: 'create_draft', text: 'done', result: { id: 'd1' } });
   });
 
@@ -69,7 +74,10 @@ describe('runConfirmedAction', () => {
       { action: 'close_contest', args: { contestId: 'c1' }, confirmationToken: token },
       turnDeps({ assistant: assistantReturning({ text: '', toolCalls: [] }), execute }),
     );
-    expect(execute).toHaveBeenCalledWith({ method: 'POST', path: '/contests/c1/close' });
+    expect(execute).toHaveBeenCalledWith(
+      { method: 'POST', path: '/contests/c1/close' },
+      { toolName: 'close_contest', toolArgs: { contestId: 'c1' } },
+    );
     expect(turn).toMatchObject({ kind: 'result', action: 'close_contest' });
   });
 
