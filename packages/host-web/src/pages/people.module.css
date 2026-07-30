@@ -1,57 +1,79 @@
 .page {
-  max-width: 72rem;
-  margin: 0 auto;
-  padding: var(--space-6, 1.5rem);
+  padding: 26px 24px 96px;
+}
+.title {
+  font-size: 30px;
+  margin: 0 0 6px;
+}
+.lead {
+  color: var(--ink-2);
+  margin: 0 0 20px;
+}
+.note {
+  color: var(--ink-2);
+  margin: 0;
 }
 
-.invite {
+/*
+ * The list and the ways to change it, side by side — the table takes the room,
+ * the invite panel takes what is left. Below the tablet breakpoint they stack,
+ * the list first: reading who has access is the commoner errand.
+ */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) minmax(13rem, 0.8fr);
+  gap: 20px;
+  align-items: start;
+  /*
+   * A lower floor than the table frame's default. That default is tuned for the
+   * contest list, which carries far more per row; three short columns reach it
+   * long before they need to, and the actions get clipped inside a frame that
+   * had room to spare.
+   */
+  --table-min: 30rem;
+}
+/*
+ * Side by side only where there is genuinely room for both. The sidebar takes a
+ * fixed 248px, so at 1100px the surface is about 800 — enough for the table or
+ * for the panel beside it, but not for both without the row actions being
+ * clipped inside the table's own scroll. Below this the two stack, list first:
+ * reading who has access is the commoner errand.
+ */
+@media (max-width: 1120px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.aside {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-3, 0.75rem);
-  flex-wrap: wrap;
-  margin: var(--space-6, 1.5rem) 0;
-}
-
-.alert,
-.notice {
-  flex-basis: 100%;
-  display: flex;
-  gap: var(--space-2, 0.5rem);
-  padding: var(--space-3, 0.75rem);
-  border-radius: var(--radius-2, 0.5rem);
-}
-
-.alert {
-  background: var(--color-danger-surface, #fdecec);
-  color: var(--color-danger-text, #7a1c1c);
-}
-
-.notice {
   flex-direction: column;
-  background: var(--color-surface-2, #f4f1ec);
-  color: var(--color-text, #241f1a);
-  overflow-wrap: anywhere;
+  gap: 16px;
 }
 
-/* The widest thing in this app: it scrolls inside itself rather than pushing
-   the page sideways at 200% zoom or on a narrow screen. */
-.table {
-  display: block;
-  overflow-x: auto;
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.caption {
-  text-align: left;
-  padding-bottom: var(--space-2, 0.5rem);
-  color: var(--color-text-muted, #6b6259);
-}
-
-.table th,
-.table td {
-  text-align: left;
-  padding: var(--space-3, 0.75rem);
-  border-bottom: 1px solid var(--color-border, #e2dbd2);
+/*
+ * Two actions on a row, side by side. They are not allowed to wrap: a stacked
+ * pair doubles the row's height, and a table where some rows are twice as tall
+ * as others is much harder to read down. The table scrolls sideways inside its
+ * own frame when there is not room, which is the behaviour to prefer.
+ */
+.rowActions {
+  display: flex;
+  gap: 8px;
   white-space: nowrap;
+}
+
+/*
+ * The link is long and has no natural break, so it gets its own line and is
+ * allowed to wrap anywhere. Left alone it forces the callout wider than its
+ * column and takes the whole page sideways with it.
+ */
+.link {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.link code {
+  font-family: var(--mono);
+  font-size: 13px;
 }

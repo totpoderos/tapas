@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, FormField } from '@tapas/ui';
+import { Button, Callout, Card, DataTable, EmptyState, FormField, StatePill } from '@tapas/ui';
 import {
   ApiError,
   inviteHost,
@@ -10,6 +10,7 @@ import {
   revokeInvitation,
 } from '../api/client';
 import { mergePeople, type Person } from '../people/merge-people';
+import { STANDING_ACTIONS, STANDING_MARK, STANDING_TONE } from '../people/standing';
 import styles from './people.module.css';
 
 type Screen = { kind: 'loading' } | { kind: 'people'; people: Person[] } | { kind: 'notAllowed' };
@@ -97,77 +98,102 @@ export function People() {
 
   return (
     <main id="main" className={styles.page}>
-      <h1>{t('people.title')}</h1>
-      <p>{t('people.subtitle')}</p>
+      <h1 className={styles.title}>{t('people.title')}</h1>
+      <p className={styles.lead}>{t('people.subtitle')}</p>
 
-      <form className={styles.invite} onSubmit={onInvite} noValidate>
-        {formError ? (
-          <div className={styles.alert} role="alert">
-            <span aria-hidden="true">✕</span>
-            <span>{formError}</span>
-          </div>
-        ) : null}
-        {linkToPassOn ? (
-          <div className={styles.notice} role="status">
-            <p>{t('people.notSentBody')}</p>
-            <p>
-              <code>{linkToPassOn}</code>
-            </p>
-          </div>
-        ) : null}
-        <FormField
-          id="email"
-          label={t('people.email')}
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <Button type="submit" disabled={submitting}>
-          {submitting ? t('people.inviting') : t('people.invite')}
-        </Button>
-      </form>
-
-      {screen.kind === 'loading' ? (
-        <p role="status">{t('common.loading')}</p>
-      ) : (
-        <table className={styles.table}>
-          <caption className={styles.caption}>{t('people.tableCaption')}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('people.columnPerson')}</th>
-              <th scope="col">{t('people.columnStanding')}</th>
-              <th scope="col">{t('people.columnActions')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {screen.people.map((person) => (
-              <tr key={person.email}>
-                <td>{person.email}</td>
-                <td>{t(`people.standing.${person.standing}`)}</td>
-                <td>
-                  {person.invitationId ? (
-                    <>
-                      <Button
-                        type="button"
-                        onClick={() => void act('revoke', person.invitationId!)}
-                      >
-                        {t('people.revoke')}
-                      </Button>{' '}
-                      <Button
-                        type="button"
-                        onClick={() => void act('resend', person.invitationId!)}
-                      >
-                        {t('people.resend')}
-                      </Button>
-                    </>
-                  ) : null}
-                </td>
+      <div className={styles.columns}>
+        {screen.kind === 'loading' ? (
+          <p role="status" className={styles.note}>
+            {t('common.loading')}
+          </p>
+        ) : screen.people.length === 0 ? (
+          <EmptyState lead={t('people.noneYet')} note={t('people.noneYetNote')} />
+        ) : (
+          <DataTable label={t('people.tableCaption')}>
+            <thead>
+              <tr>
+                <th scope="col">{t('people.columnPerson')}</th>
+                <th scope="col">{t('people.columnStanding')}</th>
+                <th scope="col">{t('people.columnActions')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+            </thead>
+            <tbody>
+              {screen.people.map((person) => (
+                <tr key={person.email}>
+                  <td>{person.email}</td>
+                  <td>
+                    <StatePill
+                      tone={STANDING_TONE[person.standing]}
+                      mark={STANDING_MARK[person.standing]}
+                    >
+                      {t(`people.standing.${person.standing}`)}
+                    </StatePill>
+                  </td>
+                  <td>
+                    {/* Only what is still worth doing: see STANDING_ACTIONS. Each
+                        is named after the person, because a screen of rows all
+                        offering "Resend" says nothing about which one. */}
+                    <div className={styles.rowActions}>
+                      {person.invitationId &&
+                        STANDING_ACTIONS[person.standing].map((action) => (
+                          <Button
+                            key={action}
+                            type="button"
+                            variant={action === 'revoke' ? 'danger' : 'ghost'}
+                            aria-label={t(
+                              action === 'revoke' ? 'people.revokeFor' : 'people.resendTo',
+                              { email: person.email },
+                            )}
+                            onClick={() => void act(action, person.invitationId!)}
+                          >
+                            {t(action === 'revoke' ? 'people.revoke' : 'people.resend')}
+                          </Button>
+                        ))}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
+        )}
+
+        <div className={styles.aside}>
+          <Card title={t('people.inviteTitle')}>
+            <form onSubmit={onInvite} noValidate>
+              {formError ? (
+                <Callout tone="danger" role="alert">
+                  {formError}
+                </Callout>
+              ) : null}
+              <FormField
+                id="email"
+                label={t('people.email')}
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Button type="submit" disabled={submitting}>
+                {submitting ? t('people.inviting') : t('people.invite')}
+              </Button>
+            </form>
+          </Card>
+
+          {/*
+           * Shown once, and nothing stores it: the link is held in this
+           * component's state and never read back from the server, so it cannot
+           * reappear after a reload and the screen must not suggest it could.
+           */}
+          {linkToPassOn ? (
+            <Callout tone="saffron" title={t('people.notSentTitle')} role="status">
+              <p>{t('people.notSentBody')}</p>
+              <p className={styles.link}>
+                <code>{linkToPassOn}</code>
+              </p>
+            </Callout>
+          ) : null}
+        </div>
+      </div>
     </main>
   );
 }

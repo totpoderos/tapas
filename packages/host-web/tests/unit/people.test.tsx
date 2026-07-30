@@ -113,13 +113,22 @@ describe('The people in a deployment', () => {
     renderAt('/people');
 
     await screen.findByRole('cell', { name: 'bob@sobremesa.es' });
+    /*
+     * Each action is named after the person it acts on. A screen of rows all
+     * offering "Resend" says nothing about which invitation is about to be sent
+     * — which is the whole problem with an unqualified name in a table.
+     */
     const invited = within(rowFor('nuevo@sobremesa.es'));
-    expect(invited.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
-    expect(invited.getByRole('button', { name: 'Resend' })).toBeInTheDocument();
+    expect(
+      invited.getByRole('button', { name: 'Revoke the invitation for nuevo@sobremesa.es' }),
+    ).toBeInTheDocument();
+    expect(
+      invited.getByRole('button', { name: 'Resend the invitation to nuevo@sobremesa.es' }),
+    ).toBeInTheDocument();
 
     const account = within(rowFor('bob@sobremesa.es'));
-    expect(account.queryByRole('button', { name: 'Revoke' })).not.toBeInTheDocument();
-    expect(account.queryByRole('button', { name: 'Resend' })).not.toBeInTheDocument();
+    expect(account.queryByRole('button', { name: /Revoke/ })).not.toBeInTheDocument();
+    expect(account.queryByRole('button', { name: /Resend/ })).not.toBeInTheDocument();
   });
 
   it('has no accessibility violations', async () => {
@@ -247,5 +256,92 @@ describe('Who is offered the way in', () => {
 
     await screen.findByRole('heading', { name: 'This screen is not for you' });
     expect(document.body.textContent).not.toMatch(/@/);
+  });
+
+  it('says each standing in words, not by colour alone', async () => {
+    vi.mocked(api.listHostAccounts).mockResolvedValue([
+      { email: 'ana@sobremesa.es', isAdministrator: true },
+      { email: 'bob@sobremesa.es', isAdministrator: false },
+    ]);
+    vi.mocked(api.listInvitations).mockResolvedValue([
+      { id: 'i2', email: 'nuevo@sobremesa.es', status: 'pending', issuedAt: '2026-07-02T10:00:00Z' },
+      { id: 'i3', email: 'viejo@sobremesa.es', status: 'revoked', issuedAt: '2026-07-01T10:00:00Z' },
+    ]);
+    renderAt('/people');
+
+    await screen.findByRole('cell', { name: 'ana@sobremesa.es' });
+    // The word is what carries the meaning; the pill's tone and mark only echo it.
+    expect(within(rowFor('ana@sobremesa.es')).getByText('Administrator')).toBeInTheDocument();
+    expect(within(rowFor('bob@sobremesa.es')).getByText('Host')).toBeInTheDocument();
+    expect(within(rowFor('nuevo@sobremesa.es')).getByText('Invited')).toBeInTheDocument();
+    expect(within(rowFor('viejo@sobremesa.es')).getByText('Invitation revoked')).toBeInTheDocument();
+  });
+
+  it('shows a link that could not be sent, and does not bring it back', async () => {
+    vi.mocked(api.listHostAccounts).mockResolvedValue([]);
+    vi.mocked(api.listInvitations).mockResolvedValue([]);
+    vi.mocked(api.inviteHost).mockResolvedValue({
+      invitationId: 'i9',
+      messageSent: false,
+      link: 'https://tapas.example/accept-invite/once-only-token',
+    });
+    renderAt('/people');
+
+    await screen.findByRole('button', { name: 'Send invitation' });
+    await userEvent.type(screen.getByLabelText('Email'), 'nuevo@sobremesa.es');
+    await userEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(await screen.findByText(/once-only-token/)).toBeInTheDocument();
+
+    /*
+     * Nothing stores the link, so a later read of the list cannot bring it
+     * back. Asserted because it is exactly the property a re-composition can
+     * break invisibly — a re-render that restored it from state would look
+     * fine in review.
+     */
+    vi.mocked(api.inviteHost).mockResolvedValue({ invitationId: 'i10', messageSent: true });
+    await userEvent.type(screen.getByLabelText('Email'), 'otro@sobremesa.es');
+    await userEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
+
+    expect(screen.queryByText(/once-only-token/)).not.toBeInTheDocument();
+  });
+
+  it('says so when nobody has access yet', async () => {
+    vi.mocked(api.listHostAccounts).mockResolvedValue([]);
+    vi.mocked(api.listInvitations).mockResolvedValue([]);
+    renderAt('/people');
+
+    expect(await screen.findByText(/nobody has access yet/i)).toBeInTheDocument();
+    // And the way to change that is still on the screen.
+    expect(screen.getByRole('button', { name: 'Send invitation' })).toBeInTheDocument();
+  });
+
+  it('offers only what a standing still allows', async () => {
+    vi.mocked(api.listHostAccounts).mockResolvedValue([]);
+    vi.mocked(api.listInvitations).mockResolvedValue([
+      { id: 'i1', email: 'esperando@sobremesa.es', status: 'pending', issuedAt: '2026-07-03T10:00:00Z' },
+      { id: 'i2', email: 'caducado@sobremesa.es', status: 'expired', issuedAt: '2026-07-02T10:00:00Z' },
+      { id: 'i3', email: 'retirado@sobremesa.es', status: 'revoked', issuedAt: '2026-07-01T10:00:00Z' },
+    ]);
+    renderAt('/people');
+
+    await screen.findByRole('cell', { name: 'esperando@sobremesa.es' });
+
+    const waiting = within(rowFor('esperando@sobremesa.es'));
+    expect(waiting.getByRole('button', { name: /^Resend/ })).toBeInTheDocument();
+    expect(waiting.getByRole('button', { name: /^Revoke/ })).toBeInTheDocument();
+
+    // Worth another try; nothing left to take back.
+    const expired = within(rowFor('caducado@sobremesa.es'));
+    expect(expired.getByRole('button', { name: /^Resend/ })).toBeInTheDocument();
+    expect(expired.queryByRole('button', { name: /^Revoke/ })).not.toBeInTheDocument();
+
+    /*
+     * Already withdrawn. Offering to withdraw it again does nothing, and saying
+     * so on screen means the list has not understood itself.
+     */
+    const revoked = within(rowFor('retirado@sobremesa.es'));
+    expect(revoked.queryByRole('button', { name: /^Resend/ })).not.toBeInTheDocument();
+    expect(revoked.queryByRole('button', { name: /^Revoke/ })).not.toBeInTheDocument();
   });
 });

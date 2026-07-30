@@ -23,5 +23,11 @@
     "superseded": "Invitación sustituida"
   },
   "notAllowedTitle": "Esta pantalla no es para ti",
-  "notAllowedBody": "Solo una administradora puede ver las personas de esta instalación."
+  "notAllowedBody": "Solo una administradora puede ver las personas de esta instalación.",
+  "inviteTitle": "Invitar a un anfitrión",
+  "notSentTitle": "Pasa este enlace",
+  "resendTo": "Reenviar la invitación a {{email}}",
+  "revokeFor": "Revocar la invitación de {{email}}",
+  "noneYet": "Todavía nadie tiene acceso.",
+  "noneYetNote": "Invita a un anfitrión y aparecerá aquí."
 }
