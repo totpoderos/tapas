@@ -66,7 +66,11 @@ To keep that from becoming a query per contest, both repositories get a batched 
 
 ### The scannable code encodes the join code, and says so
 
-`qrcode` (pure JS, no native build) renders to an **SVG string** via `toString(code, {type: 'svg'})` — no canvas, no `dangerouslySetInnerHTML` beyond a generated SVG, `currentColor`-friendly, and it scales at 200% zoom. Pinned, lockfile-committed, `npm audit` in CI already covers it.
+**Revised while implementing.** `qrcode` was the plan; it is not what shipped. `qrcode@1.5.4` depends on `pngjs`, `dijkstrajs` and `yargs@^15` — `yargs` being a command-line argument parser, pulled in for the package's `bin`. Putting that tree behind a browser bundle to produce an SVG string is what the supply-chain gate exists to discourage.
+
+`qrcode-generator@2.0.4` instead: **zero dependencies**, MIT, ships its own types. It is kazuhikoarase's original implementation, which most other QR packages descend from, so this is the smaller-surface *and* better-established choice.
+
+Its `createSvgTag()` is not used: it hardcodes `fill="white"` on the background rect, which breaks the dark theme. It exposes `isDark(row, col)`, so the SVG is built from the module grid — about fifteen lines — with the colour coming from the tokens, sizing in relative units so it survives 200% zoom, and `role="img"` with a translated accessible name. The library does the part worth depending on (Reed–Solomon, mask selection) and nothing else.
 
 It encodes the join code **text**, not a join URL. A URL would be the more useful thing to scan, but nothing in the deployment tells host-web the participant app's public address, and inventing a configuration entry for it is a separate change. This is a real limitation of the feature as shipped: scanning yields the code, which the person then types. The code stays printed beside the image, which is what makes that acceptable rather than broken.
 

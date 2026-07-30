@@ -58,5 +58,8 @@
       "body": "Los ganadores se harán visibles para todos. Esto no se puede deshacer.",
       "confirm": "Revelar los resultados"
     }
-  }
+  },
+  "showScannable": "Mostrar QR",
+  "hideScannable": "Ocultar QR",
+  "scannableFor": "Código escaneable para el código de acceso {{code}}"
 }

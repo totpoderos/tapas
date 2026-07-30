@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
 import { Button, Callout, Card, ConfirmDialog, ProgressBar, StatTile } from '@tapas/ui';
@@ -17,6 +17,7 @@ import {
 import { useDeleteContest } from '../contests/use-delete-contest';
 import { useContests } from '../contests/contests-provider';
 import { SOURCE_MARK, eventKeyFor } from '../contests/audit-event';
+import { ScannableCode } from '../contests/scannable-code';
 import styles from './contest-control.module.css';
 
 const TALLY_POLL_MS = 3000;
@@ -172,10 +173,12 @@ export function ContestControl() {
   );
 }
 
-/** The code people join with, and a way to hand it over without reading it out. */
+/** The code people join with, and two ways to hand it over without reading it out. */
 function JoinCode({ code }: { code: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
+  const [scannable, setScannable] = useState(false);
+  const scannableId = useId();
 
   async function copy() {
     try {
@@ -191,19 +194,38 @@ function JoinCode({ code }: { code: string }) {
 
   return (
     <div className={styles.code}>
-      <div>
-        <p className={styles.codeLabel}>{t('contestControl.joinCode')}</p>
-        <span className={styles.codeValue}>{code}</span>
+      <div className={styles.codeMain}>
+        <div>
+          <p className={styles.codeLabel}>{t('contestControl.joinCode')}</p>
+          <span className={styles.codeValue}>{code}</span>
+        </div>
+        <div className={styles.codeActions}>
+          <Button variant="ghost" onClick={() => void copy()}>
+            {t('contestControl.copyCode')}
+          </Button>
+          {/*
+            A disclosure, not a permanent fixture: the code is large, and a host
+            watching a tally does not need it in the way until they are handing the
+            contest out. `aria-expanded` is what says whether it is showing.
+          */}
+          <Button
+            variant="ghost"
+            aria-expanded={scannable}
+            aria-controls={scannableId}
+            onClick={() => setScannable((showing) => !showing)}
+          >
+            {scannable ? t('contestControl.hideScannable') : t('contestControl.showScannable')}
+          </Button>
+          {/* Announced, because a copy that says nothing leaves the host guessing. */}
+          <span role="status" className={styles.copied}>
+            {copied ? t('contestControl.copied') : ''}
+          </span>
+        </div>
       </div>
-      <div className={styles.codeActions}>
-        <Button variant="ghost" onClick={() => void copy()}>
-          {t('contestControl.copyCode')}
-        </Button>
-        {/* Announced, because a copy that says nothing leaves the host guessing. */}
-        <span role="status" className={styles.copied}>
-          {copied ? t('contestControl.copied') : ''}
-        </span>
-      </div>
+      {/* The code stays printed above either way — a scan yields the code, which
+          somebody then types, and a phone without a camera to hand is still stuck
+          otherwise. */}
+      <div id={scannableId}>{scannable && <ScannableCode code={code} />}</div>
     </div>
   );
 }
