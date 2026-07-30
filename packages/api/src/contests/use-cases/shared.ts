@@ -127,6 +127,14 @@ export interface GetTallyDeps {
 }
 
 export interface Tally {
+  /**
+   * How many places the roster holds — what the other counts are out of.
+   *
+   * Without it a host reads "two have joined" and cannot tell a full room from a
+   * nearly empty one, which is the question they are actually asking while the
+   * contest runs.
+   */
+  readonly placeCount: number;
   readonly claimedCount: number;
   readonly draftCount: number;
   readonly sentCount: number;

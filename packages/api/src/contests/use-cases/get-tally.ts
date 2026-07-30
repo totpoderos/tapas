@@ -13,11 +13,13 @@ export class GetTally {
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
 
+    // Every place the host listed, claimed or not — what the rest is out of.
+    const placeCount = this.deps.roster.listAll(contestId).length;
     const claimedCount = this.deps.roster.listClaimed(contestId).length;
     const sessions = this.deps.voteSessions.listSessions(contestId);
     const draftCount = sessions.filter((session) => session.status === 'draft').length;
     const sentCount = sessions.filter((session) => session.status === 'sent').length;
 
-    return { ok: true, tally: { claimedCount, draftCount, sentCount } };
+    return { ok: true, tally: { placeCount, claimedCount, draftCount, sentCount } };
   }
 }

@@ -18,5 +18,12 @@
   "theme": {
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme"
-  }
+  },
+  "antiBias": {
+    "none": "No restriction",
+    "couples": "Couples can’t score each other",
+    "arbitrary_pairs": "Chosen pairs can’t score each other"
+  },
+  "on": "On",
+  "off": "Off"
 }

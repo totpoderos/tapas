@@ -1,27 +1,27 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router';
-import { Button, ConfirmDialog } from '@tapas/ui';
+import { Button, Callout, Card, ConfirmDialog, ProgressBar, StatTile } from '@tapas/ui';
 import {
   ApiError,
   closeContest,
+  getAuditLog,
   getContest,
   getTally,
   revealContest,
+  type AuditEntry,
   type ContestDetail,
+  type ContestRules,
   type Tally,
 } from '../api/client';
 import { useDeleteContest } from '../contests/use-delete-contest';
 import { useContests } from '../contests/contests-provider';
+import { SOURCE_MARK, eventKeyFor } from '../contests/audit-event';
 import styles from './contest-control.module.css';
 
-const STATUS_MARK: Record<ContestDetail['status'], string> = {
-  live: '●',
-  closed: '◆',
-  revealed: '✓',
-};
-
 const TALLY_POLL_MS = 3000;
+/** How much of the log the control room shows before sending the host to all of it. */
+const RECENT_ACTIVITY = 3;
 
 type State =
   | { readonly kind: 'loading' }
@@ -35,6 +35,10 @@ type State =
  * and drives the contest: close voting, then reveal. Closing and revealing can't
  * be undone, so each goes through a confirmation, and the audit log records that
  * the host confirmed it.
+ *
+ * It carries no chrome of its own. The panel names the contest, says what state it
+ * is in, and offers the way to its activity log; repeating any of that here was
+ * what made three browser assertions ambiguous.
  */
 export function ContestControl() {
   const { t } = useTranslation();
@@ -92,9 +96,7 @@ export function ContestControl() {
       refreshContests();
     } catch {
       setActionError(
-        action === 'close'
-          ? t('contestControl.closeError')
-          : t('contestControl.revealError'),
+        action === 'close' ? t('contestControl.closeError') : t('contestControl.revealError'),
       );
     } finally {
       setBusy(false);
@@ -102,17 +104,7 @@ export function ContestControl() {
   }
 
   return (
-    <main id="main" className={styles.page}>
-      <div className={styles.bar}>
-        <div className={styles.brand}>
-          <span className={styles.dot} aria-hidden="true" />
-          <b>{t('common.brand')}</b>
-        </div>
-        <Link to="/" className={styles.back}>
-          {t('contestControl.back')}
-        </Link>
-      </div>
-
+    <main id="main">
       {state.kind === 'loading' && (
         <p role="status" className={styles.note}>
           {t('contestControl.loading')}
@@ -131,72 +123,34 @@ export function ContestControl() {
       )}
 
       {state.kind === 'ready' && (
-        <>
-          <div className={styles.head}>
-            <h1 className={styles.title}>{state.contest.name}</h1>
-            <span className={`${styles.pill} ${styles[state.contest.status]}`}>
-              <span aria-hidden="true">{STATUS_MARK[state.contest.status]}</span>{' '}
-              {t(`contestControl.status.${state.contest.status}`)}
-            </span>
+        <div className={styles.columns}>
+          <div className={styles.main}>
+            {state.contest.status !== 'revealed' && <JoinCode code={state.contest.joinCode} />}
+
+            <Progress tally={state.tally} />
+
+            {(deleteError ?? actionError) && (
+              <Callout tone="danger" role="alert">
+                <p>{deleteError ?? actionError}</p>
+              </Callout>
+            )}
+
+            <Drive
+              status={state.contest.status}
+              contestId={state.contest.id}
+              onAsk={setPending}
+              busy={busy}
+            />
           </div>
 
-          {state.contest.status !== 'revealed' && (
-            <div className={styles.code}>
-              <p className={styles.codeLabel}>{t('contestControl.joinCode')}</p>
-              <span className={styles.codeValue}>{state.contest.joinCode}</span>
-            </div>
-          )}
-
-          <div className={styles.tally} aria-label={t('contestControl.progress')}>
-            <Stat num={state.tally.claimedCount} label={t('contestControl.joined')} />
-            <Stat num={state.tally.draftCount} label={t('contestControl.stillScoring')} />
-            <Stat num={state.tally.sentCount} label={t('contestControl.votesSent')} />
+          <div className={styles.aside}>
+            <RecentActivity contestId={state.contest.id} />
+            <RulesInForce rules={state.contest.rules} />
+            <DangerZone
+              onDelete={() => askDelete({ id: state.contest.id, name: state.contest.name })}
+            />
           </div>
-
-          {deleteError ? (
-            <div className={styles.alert} role="alert">
-              <span aria-hidden="true">✕</span>
-              <span>{deleteError}</span>
-            </div>
-          ) : null}
-
-          {actionError ? (
-            <div className={styles.alert} role="alert">
-              <span aria-hidden="true">✕</span>
-              <span>{actionError}</span>
-            </div>
-          ) : null}
-
-          <div className={styles.actions}>
-            {state.contest.status === 'live' && (
-              <Button variant="danger" onClick={() => setPending('close')}>
-                {t('contestControl.closeVoting')}
-              </Button>
-            )}
-            {state.contest.status === 'closed' && (
-              <Button onClick={() => setPending('reveal')}>{t('contestControl.revealResults')}</Button>
-            )}
-            {/* Once it is out, the note becomes the way in: the host watches the
-                same reveal the participants are looking at. */}
-            {state.contest.status === 'revealed' && (
-              <>
-                <p className={styles.note}>{t('contestControl.revealedNote')}</p>
-                <Link to={`/results/${state.contest.id}`} className={styles.logLink}>
-                  {t('contestControl.seeResults')}
-                </Link>
-              </>
-            )}
-            <Link to={`/log/${state.contest.id}`} className={styles.logLink}>
-              {t('contestControl.activityLog')}
-            </Link>
-            <Button
-              variant="danger"
-              onClick={() => askDelete({ id: state.contest.id, name: state.contest.name })}
-            >
-              {t('deleteContest.action')}
-            </Button>
-          </div>
-        </>
+        </div>
       )}
 
       {deleteDialog}
@@ -218,11 +172,268 @@ export function ContestControl() {
   );
 }
 
-function Stat({ num, label }: { num: number; label: string }) {
+/** The code people join with, and a way to hand it over without reading it out. */
+function JoinCode({ code }: { code: string }) {
+  const { t } = useTranslation();
+  const [copied, setCopied] = useState(false);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+    } catch {
+      // Some browsers refuse the clipboard without a permission the host has not
+      // given. The code is on screen either way, so this is a convenience that
+      // failed, not an error worth interrupting them about.
+      setCopied(false);
+    }
+  }
+
   return (
-    <div className={styles.stat}>
-      <div className={styles.statNum}>{num}</div>
-      <div className={styles.statLabel}>{label}</div>
+    <div className={styles.code}>
+      <div>
+        <p className={styles.codeLabel}>{t('contestControl.joinCode')}</p>
+        <span className={styles.codeValue}>{code}</span>
+      </div>
+      <div className={styles.codeActions}>
+        <Button variant="ghost" onClick={() => void copy()}>
+          {t('contestControl.copyCode')}
+        </Button>
+        {/* Announced, because a copy that says nothing leaves the host guessing. */}
+        <span role="status" className={styles.copied}>
+          {copied ? t('contestControl.copied') : ''}
+        </span>
+      </div>
     </div>
+  );
+}
+
+/**
+ * How far along the voting is: the counts, and the same thing as a bar.
+ *
+ * Everything is said against the roster's size. "One has sent" means nothing on
+ * its own; "one of four" is what a host at a venue is asking.
+ */
+function Progress({ tally }: { tally: Tally }) {
+  const { t } = useTranslation();
+  const { placeCount, claimedCount, draftCount, sentCount } = tally;
+  const share = (n: number) => (placeCount === 0 ? 0 : n / placeCount);
+
+  return (
+    <Card
+      title={t('contestControl.progress')}
+      aside={t('contestControl.joinedOf', { joined: claimedCount, total: placeCount })}
+    >
+      <div className={styles.tiles}>
+        <StatTile value={claimedCount} label={t('contestControl.joined')} />
+        <StatTile value={draftCount} label={t('contestControl.stillScoring')} tone="pending" />
+        <StatTile value={sentCount} label={t('contestControl.votesSent')} tone="good" />
+      </div>
+      <ProgressBar
+        segments={[
+          { of: share(sentCount), tone: 'good' },
+          { of: share(draftCount), tone: 'pending' },
+        ]}
+        label={t('contestControl.sentOf', { sent: sentCount, total: placeCount })}
+      />
+      <ul className={styles.legend}>
+        <li>
+          <span aria-hidden="true" className={`${styles.key} ${styles.keySent}`} />
+          {t('contestControl.legendSent')}
+        </li>
+        <li>
+          <span aria-hidden="true" className={`${styles.key} ${styles.keyScoring}`} />
+          {t('contestControl.legendScoring')}
+        </li>
+        <li>
+          <span aria-hidden="true" className={`${styles.key} ${styles.keyNotJoined}`} />
+          {t('contestControl.legendNotJoined')}
+        </li>
+      </ul>
+    </Card>
+  );
+}
+
+/**
+ * The two actions that move a contest on, and the warning that they are one-way.
+ *
+ * Revealing is drawn before it is possible rather than appearing from nowhere: a
+ * host waiting to reveal can see that it is what comes next. It is disabled, not
+ * merely styled as such, so the keyboard cannot reach a button that would refuse.
+ */
+function Drive({
+  status,
+  contestId,
+  onAsk,
+  busy,
+}: {
+  status: ContestDetail['status'];
+  contestId: string;
+  onAsk: (action: 'close' | 'reveal') => void;
+  busy: boolean;
+}) {
+  const { t } = useTranslation();
+
+  if (status === 'revealed') {
+    return (
+      <Card title={t('contestControl.driveTitle')}>
+        <p className={styles.note}>{t('contestControl.revealedNote')}</p>
+        <Link to={`/results/${contestId}`} className={styles.resultsLink}>
+          {t('contestControl.seeResults')}
+        </Link>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title={t('contestControl.driveTitle')}>
+      <div className={styles.drive}>
+        <Button variant="danger" onClick={() => onAsk('close')} disabled={busy || status !== 'live'}>
+          {t('contestControl.closeVoting')}
+        </Button>
+        <Button onClick={() => onAsk('reveal')} disabled={busy || status !== 'closed'}>
+          {t('contestControl.revealResults')}
+        </Button>
+        <p className={styles.driveNote}>{t('contestControl.driveNote')}</p>
+      </div>
+    </Card>
+  );
+}
+
+/** The last few things that happened, and the way to all of them. */
+function RecentActivity({ contestId }: { contestId: string }) {
+  const { t } = useTranslation();
+  const [entries, setEntries] = useState<readonly AuditEntry[] | 'failed' | undefined>();
+
+  useEffect(() => {
+    let live = true;
+    getAuditLog(contestId)
+      .then((all) => {
+        // The log arrives oldest first; the control room wants the newest few.
+        if (live) setEntries([...all].reverse().slice(0, RECENT_ACTIVITY));
+      })
+      .catch(() => live && setEntries('failed'));
+    return () => {
+      live = false;
+    };
+  }, [contestId]);
+
+  return (
+    <Card
+      title={t('contestControl.recentActivity')}
+      level={3}
+      aside={
+        <Link to={`/log/${contestId}`} className={styles.fullLog}>
+          {t('contestControl.fullLog')}
+        </Link>
+      }
+    >
+      {entries === undefined && <p className={styles.note}>{t('common.loading')}</p>}
+      {entries === 'failed' && <p className={styles.note}>{t('contestControl.activityFailed')}</p>}
+      {Array.isArray(entries) && entries.length === 0 && (
+        <p className={styles.note}>{t('contestControl.noActivity')}</p>
+      )}
+      {Array.isArray(entries) && entries.length > 0 && (
+        <ul className={styles.activity}>
+          {entries.map((entry) => (
+            <Happened key={entry.id} entry={entry} />
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/**
+ * One recorded action, named the way the full activity log names it and marked with
+ * the same shape — the two screens share that vocabulary rather than each keeping
+ * its own.
+ */
+function Happened({ entry }: { entry: AuditEntry }) {
+  const { t } = useTranslation();
+  const key = eventKeyFor(entry.type);
+  return (
+    <li className={styles.happened}>
+      {/* An unknown event type shows as itself: that is data, and better than blank. */}
+      <span className={styles.event}>{key ? t(`auditLog.event.${key}`) : entry.type}</span>
+      <span className={styles.eventHow}>
+        <span aria-hidden="true">{SOURCE_MARK[entry.sourcePath]}</span>{' '}
+        {t(`auditLog.source.${entry.sourcePath}`)}
+      </span>
+    </li>
+  );
+}
+
+/**
+ * What the contest is being played by. Read from the contest, because the draft it
+ * was published from no longer exists — and each line is omitted when the contest
+ * does not record it, rather than guessed. `antiBias` especially: `'none'` is a
+ * real choice a host can make, so an unrecorded rule must not read as one.
+ */
+function RulesInForce({ rules }: { rules: ContestRules }) {
+  const { t } = useTranslation();
+  const lines: { key: string; label: string; value: string }[] = [];
+
+  if (rules.attribution) {
+    lines.push({
+      key: 'attribution',
+      label: t('contestControl.rules.attribution'),
+      value: t(`common.attribution.${rules.attribution}`),
+    });
+  }
+  if (rules.antiBias) {
+    lines.push({
+      key: 'antiBias',
+      label: t('contestControl.rules.antiBias'),
+      value: t(`common.antiBias.${rules.antiBias}`),
+    });
+  }
+  if (rules.categories.length > 0) {
+    lines.push({
+      key: 'categories',
+      label: t('contestControl.rules.categories'),
+      value: rules.categories.map((category) => category.name).join(', '),
+    });
+  }
+  if (rules.scoreRange) {
+    lines.push({
+      key: 'scoreRange',
+      label: t('contestControl.rules.scoreRange'),
+      value: t('contestControl.rules.band', {
+        min: rules.scoreRange.min,
+        max: rules.scoreRange.max,
+      }),
+    });
+  }
+  lines.push({
+    key: 'uniquePerCategory',
+    label: t('contestControl.rules.uniquePerCategory'),
+    value: rules.uniquePerCategory ? t('common.on') : t('common.off'),
+  });
+
+  return (
+    <Card title={t('contestControl.rulesTitle')} level={3}>
+      <dl className={styles.rules}>
+        {lines.map((line) => (
+          <div key={line.key} className={styles.rule}>
+            <dt>{line.label}</dt>
+            <dd>{line.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  );
+}
+
+/** Deleting, kept apart from everything else and saying what it would take away. */
+function DangerZone({ onDelete }: { onDelete: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <Callout tone="danger" title={t('contestControl.dangerTitle')}>
+      <p>{t('contestControl.dangerBody')}</p>
+      <Button variant="ghost" className={styles.dangerButton} onClick={onDelete}>
+        {t('deleteContest.action')}
+      </Button>
+    </Callout>
   );
 }

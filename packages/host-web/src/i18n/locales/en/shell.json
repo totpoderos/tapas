@@ -35,5 +35,6 @@
   "role": {
     "host": "Host",
     "admin": "Administrator"
-  }
+  },
+  "tallyKeepingUp": "Tally updating every few seconds"
 }

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -23,8 +23,25 @@ vi.mock('../../src/api/client', async () => {
 });
 import * as api from '../../src/api/client';
 
-const LIVE: ContestDetail = { id: 'c1', name: 'Summer Tapas', status: 'live', joinCode: 'ABCD12' };
-const TALLY: Tally = { claimedCount: 4, draftCount: 1, sentCount: 3 };
+const RULES: ContestDetail['rules'] = {
+  attribution: 'per_person',
+  antiBias: 'couples',
+  categories: [
+    { id: 'taste', name: 'Taste' },
+    { id: 'look', name: 'Look' },
+  ],
+  uniquePerCategory: true,
+  scoreRange: { min: 1, max: 10 },
+};
+const LIVE: ContestDetail = {
+  id: 'c1',
+  name: 'Summer Tapas',
+  status: 'live',
+  joinCode: 'ABCD12',
+  rules: RULES,
+};
+// Five places, four of them claimed — the counts read against what they are out of.
+const TALLY: Tally = { placeCount: 5, claimedCount: 4, draftCount: 1, sentCount: 3 };
 
 function renderControl() {
   return render(
@@ -49,13 +66,62 @@ describe('Contest control room', () => {
   });
   afterEach(() => vi.clearAllMocks());
 
-  it('shows the join code and the live tally', async () => {
+  /*
+   * The contest's name and its state are the panel's to say now, not this
+   * screen's — see panel-shell.test.tsx. Asserting them here again would be
+   * testing the shell through a page that no longer draws them, which is how the
+   * three duplicate-name flakes got in.
+   */
+  it('shows the join code and offers to copy it', async () => {
     renderControl();
-    expect(await screen.findByRole('heading', { name: 'Summer Tapas' })).toBeInTheDocument();
-    expect(screen.getByText('ABCD12')).toBeInTheDocument();
-    const progress = screen.getByLabelText('Progress');
-    expect(within(progress).getByText('4')).toBeInTheDocument(); // joined
-    expect(within(progress).getByText('3')).toBeInTheDocument(); // sent
+    expect(await screen.findByText('ABCD12')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Copy code' })).toBeInTheDocument();
+  });
+
+  it('shows the tally against the number of places there are', async () => {
+    renderControl();
+
+    const progress = await screen.findByRole('region', { name: 'Progress' });
+    // Four of five joined, three of them sent — said in words, not only as a bar.
+    expect(within(progress).getByText('4 joined of 5 participants')).toBeInTheDocument();
+    expect(within(progress).getByText('3 of 5 votes sent')).toBeInTheDocument();
+    expect(within(progress).getByText('Joined')).toBeInTheDocument();
+    expect(within(progress).getByText('Still scoring')).toBeInTheDocument();
+    expect(within(progress).getByText('Votes sent')).toBeInTheDocument();
+  });
+
+  it('shows the rules the contest is being played by', async () => {
+    renderControl();
+
+    const rules = await screen.findByRole('region', { name: 'Rules in force' });
+    expect(within(rules).getByText('Per person')).toBeInTheDocument();
+    expect(within(rules).getByText('Couples can’t score each other')).toBeInTheDocument();
+    expect(within(rules).getByText('Taste, Look')).toBeInTheDocument();
+    expect(within(rules).getByText('1–10')).toBeInTheDocument();
+    expect(within(rules).getByText('On')).toBeInTheDocument();
+  });
+
+  it('says nothing about a rule the contest never recorded', async () => {
+    // A contest published before the rules were kept. 'none' is itself a real
+    // choice, so an unrecorded anti-bias rule must not be shown as one.
+    vi.mocked(api.getContest).mockResolvedValue({
+      ...LIVE,
+      rules: { categories: [], uniquePerCategory: false },
+    });
+    renderControl();
+
+    const rules = await screen.findByRole('region', { name: 'Rules in force' });
+    expect(within(rules).queryByText('No restriction')).not.toBeInTheDocument();
+    expect(within(rules).queryByText('Per person')).not.toBeInTheDocument();
+    expect(within(rules).getByText('Unique per category')).toBeInTheDocument();
+  });
+
+  it('shows revealing before it is possible, but will not let it be taken', async () => {
+    renderControl();
+
+    // Drawn while the contest is live so a host can see what comes next, and
+    // disabled rather than merely dimmed so the keyboard cannot reach it either.
+    expect(await screen.findByRole('button', { name: 'Reveal results' })).toBeDisabled();
   });
 
   it('closes voting only after the confirmation is accepted', async () => {
@@ -71,7 +137,10 @@ describe('Contest control room', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Close voting' }));
 
     expect(api.closeContest).toHaveBeenCalledWith('c1');
-    expect(await screen.findByText('Closed')).toBeInTheDocument();
+    // Closed, so revealing becomes takeable — the state itself is the panel's to say.
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Reveal results' })).toBeEnabled(),
+    );
   });
 
   it('cancelling the confirmation leaves the contest live', async () => {
@@ -81,7 +150,9 @@ describe('Contest control room', () => {
 
     expect(api.closeContest).not.toHaveBeenCalled();
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    expect(screen.getByText('Live')).toBeInTheDocument();
+    // Still live: closing is still on offer and revealing still is not.
+    expect(screen.getByRole('button', { name: 'Close voting' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Reveal results' })).toBeDisabled();
   });
 
   it('offers Reveal for a closed contest and reveals on confirm', async () => {
@@ -99,7 +170,7 @@ describe('Contest control room', () => {
 
   it('has no accessibility violations, live and with the confirmation open', async () => {
     const { container } = renderControl();
-    await screen.findByRole('heading', { name: 'Summer Tapas' });
+    await screen.findByRole('region', { name: 'Progress' });
     expect(await axe(container)).toHaveNoViolations();
 
     await userEvent.click(screen.getByRole('button', { name: 'Close voting' }));

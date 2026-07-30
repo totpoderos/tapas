@@ -32,6 +32,10 @@ export class PublishContest {
       ...(draft.content.attribution === undefined
         ? {}
         : { attribution: draft.content.attribution }),
+      // Likewise, and less recoverably: this rule is folded into `allowedVoters`,
+      // where barring couples and barring chosen pairs look the same. The draft is
+      // retired below, so if the contest does not carry it, nothing does.
+      ...(draft.content.antiBias === undefined ? {} : { antiBias: draft.content.antiBias }),
       closeRule: published.contest.closeRule,
       revealStrategy: published.contest.revealStrategy,
       createdAt: this.deps.clock.now(),

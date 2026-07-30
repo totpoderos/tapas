@@ -66,8 +66,14 @@ describe('The panel shell', () => {
       name: LIVE.name,
       status: 'live',
       joinCode: '4KQ-207',
+      rules: { categories: [], uniquePerCategory: false },
     });
-    vi.mocked(api.getTally).mockResolvedValue({ claimedCount: 0, draftCount: 0, sentCount: 0 });
+    vi.mocked(api.getTally).mockResolvedValue({
+      placeCount: 0,
+      claimedCount: 0,
+      draftCount: 0,
+      sentCount: 0,
+    });
     vi.mocked(api.getAuditLog).mockResolvedValue([]);
   });
   afterEach(() => vi.clearAllMocks());

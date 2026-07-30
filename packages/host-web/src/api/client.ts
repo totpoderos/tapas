@@ -327,27 +327,75 @@ export async function getAuditLog(contestId: string): Promise<AuditEntry[]> {
   return (await response.json()) as AuditEntry[];
 }
 
+/**
+ * The rules a published contest is being played by.
+ *
+ * Read from the contest rather than from the draft, which is retired at publish
+ * and no longer exists. `attribution` and `antiBias` are absent on a contest
+ * published before they were recorded — which reads as "does not say", and in
+ * `antiBias`'s case must never be shown as `'none'`, since that is itself a rule
+ * a host can choose.
+ */
+export interface ContestRules {
+  readonly attribution?: Attribution;
+  readonly antiBias?: AntiBias;
+  readonly categories: readonly { readonly id: string; readonly name: string }[];
+  readonly uniquePerCategory: boolean;
+  /** The band every judge scores in. Absent when the contest has no participants to derive it from. */
+  readonly scoreRange?: { readonly min: number; readonly max: number };
+}
+
 /** The live-contest control view of a contest a host owns. */
 export interface ContestDetail {
   readonly id: string;
   readonly name: string;
   readonly status: 'live' | 'closed' | 'revealed';
   readonly joinCode: string;
+  readonly rules: ContestRules;
 }
 
-/** How the contest is progressing: who has joined, is still scoring, and has sent their vote. */
+/** How the contest is progressing: how many places there are, and who has done what. */
 export interface Tally {
+  /** How many places the roster holds — what the rest of these are out of. */
+  readonly placeCount: number;
   readonly claimedCount: number;
   readonly draftCount: number;
   readonly sentCount: number;
+}
+
+/** The contest as the API sends it: the stored contest, with its compiled view flattened. */
+interface ContestDetailDto extends Omit<ContestDetail, 'rules'> {
+  readonly attribution?: Attribution;
+  readonly antiBias?: AntiBias;
+  readonly materialized: {
+    readonly uniquePerCategory: boolean;
+    readonly categories: readonly { readonly id: string; readonly name: string }[];
+    readonly scoreRangeByVoter: Record<string, { readonly min: number; readonly max: number }>;
+  };
 }
 
 /** Reads a contest the host owns; throws ApiError (404/403 when not theirs). */
 export async function getContest(id: string): Promise<ContestDetail> {
   const response = await send(`/contests/${encodeURIComponent(id)}`, 'GET');
   if (!response.ok) throw await errorFrom(response);
-  const dto = (await response.json()) as ContestDetail;
-  return { id: dto.id, name: dto.name, status: dto.status, joinCode: dto.joinCode };
+  const dto = (await response.json()) as ContestDetailDto;
+  // Score bounds are per judge but uniform across a contest (see the domain's
+  // `MaterializedContest`), so any judge's band is the contest's. A contest with
+  // no participants has none to read, and says nothing rather than inventing one.
+  const [bounds] = Object.values(dto.materialized.scoreRangeByVoter);
+  return {
+    id: dto.id,
+    name: dto.name,
+    status: dto.status,
+    joinCode: dto.joinCode,
+    rules: {
+      ...(dto.attribution === undefined ? {} : { attribution: dto.attribution }),
+      ...(dto.antiBias === undefined ? {} : { antiBias: dto.antiBias }),
+      categories: dto.materialized.categories,
+      uniquePerCategory: dto.materialized.uniquePerCategory,
+      ...(bounds === undefined ? {} : { scoreRange: { min: bounds.min, max: bounds.max } }),
+    },
+  };
 }
 
 /** Reads the live tally of a contest the host owns. */

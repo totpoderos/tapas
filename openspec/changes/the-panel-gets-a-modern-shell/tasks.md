@@ -33,13 +33,15 @@ live smoke check) before opening the PR.
 
 ## 3. Slice C — the control room on the shell
 
-- [ ] 3.1 Write `tests/e2e/host-control-room.feature` (contest-scoped navigation, join code, progress, close/reveal confirmations). Confirm it before implementing.
-- [ ] 3.2 Contest-scoped sidebar: the contest switcher card with name and state, Control room / Activity log / Results-after-reveal, and the way back to all contests; Results shown as not-yet-available and not takeable before reveal.
-- [ ] 3.3 Top bar: breadcrumb (contest / surface), state pill, and the live-tally indicator.
-- [ ] 3.4 Re-compose `contest-control.tsx`: join code panel with Copy, the three stat tiles, the two-tone progress bar with its legend, Drive-the-contest, Rules in force, Danger zone.
-- [ ] 3.5 Close and reveal confirmations on the design's dialog (danger top border, `ConfirmDialog`, focus trap); reveal disabled until closed.
-- [ ] 3.6 EN/ES for every new string; unit tests updated.
-- [ ] 3.7 Slice verification, then PR.
+- [x] 3.1 Write `tests/e2e/host-control-room.feature` (contest-scoped navigation, join code, progress, close/reveal confirmations). Confirm it before implementing.
+- [x] 3.1a **Spec gaps found while grounding**, both now delta'd and validated: the tally reports how many places the roster holds (`manage-live-contest`), and reading one's own contest reports the rules it is played by including anti-bias (`contest-management-api`).
+- [x] 3.1b API groundwork: migration `0018_contest_anti_bias.sql` (nullable, written at publish, no backfill — same reasoning as 0017, and more urgent since `allowedVoters` cannot tell barring couples from barring chosen pairs); `antiBias` on the contest row; `placeCount` on the tally. Publishing requires both rules, so a null column only ever comes from an older row — tested at the repository, where a null can actually be written, and asserted never to read as `'none'`.
+- [x] 3.2 Contest-scoped sidebar — landed in slice A and unchanged here; verified live against the re-composed surface.
+- [x] 3.3 Top bar: breadcrumb, state pill, and the live-tally indicator (shown only on a live contest's control room, where something is actually being re-read). Narrow screens revealed the reservation for the fixed language/theme controls was on the wrong row — they sit beside the disclosure there, not the crumbs — which had squeezed the contest and surface names to nothing between their separators.
+- [x] 3.4 Re-compose `contest-control.tsx`: join code panel with Copy, the three stat tiles, the two-tone bar with its legend, Drive-the-contest, Recent activity, Rules in force, Danger zone. Its own brand bar, title, state pill and activity-log link are gone — the three duplicates behind every CI scoping fix so far, so those workarounds were removed rather than left as dead defensiveness. `Card` and `StatTile` added to `@tapas/ui`; a titled `Card` is a named region, since a `<section>` without a name is not a region at all. The audit event/source vocabulary moved to `contests/audit-event` so the log and the control room cannot drift apart.
+- [x] 3.5 Close and reveal confirmations kept on `ConfirmDialog`; revealing is drawn while the contest is live but `disabled`, so a host can see what comes next and the keyboard cannot reach a button that would refuse.
+- [x] 3.6 EN/ES for every new string, including the anti-bias wording and on/off in `common`. Unit tests moved off the name and state pill the surface no longer owns — asserting them here would be testing the shell through a page that does not draw them, which is how the duplicate-name flakes got in.
+- [x] 3.7 Slice verification, then PR. Run file-by-file as well as whole (slice B's lesson): `host-live-controls` failed alone with two stale control-room assertions the whole-suite order had hidden.
 
 ## 4. Slice D — the join code can be scanned
 

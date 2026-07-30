@@ -49,6 +49,25 @@ describe('PublishContest', () => {
     ).toBe(true);
   });
 
+  /*
+   * The compiler consumes both of these and emits their consequence: dishes with
+   * one submitter or two, and a set of dishes each judge may score. Neither is
+   * recoverable afterwards — barring couples and barring chosen pairs compile to
+   * the same shape — and the draft that held them is retired at publish. So the
+   * contest has to keep them, or the host can never be told what their own live
+   * contest is being played by.
+   */
+  it('keeps the rules the compiler consumes, so the contest can still say them', () => {
+    const { deps, drafts, contests } = makePublishDeps();
+    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
+
+    new PublishContest(deps).execute('draft-1', 'host-1');
+
+    const stored = contests.findById('draft-1');
+    expect(stored?.attribution).toBe('per_person');
+    expect(stored?.antiBias).toBe('couples');
+  });
+
   it('seeds the roster with an open place per participant', () => {
     const { deps, drafts, roster } = makePublishDeps();
     seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
