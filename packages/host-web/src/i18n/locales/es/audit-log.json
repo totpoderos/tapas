@@ -1,6 +1,9 @@
 {
   "title": "Registro de actividad",
   "lead": "Todo lo que le ha pasado a este concurso, y cómo se activó cada acción.",
+  "export": "Exportar CSV",
+  "exporting": "Preparando el archivo…",
+  "exportRefused": "No se pudo preparar el archivo. El registro sigue aquí: inténtalo de nuevo.",
   "loading": "Cargando el registro de actividad…",
   "missing": "Este concurso no existe, o no es tuyo para verlo.",
   "error": "No se pudo cargar el registro de actividad. Inténtalo de nuevo.",

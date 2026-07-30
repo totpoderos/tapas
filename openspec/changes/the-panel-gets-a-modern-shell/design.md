@@ -65,7 +65,17 @@ To keep that from becoming a query per contest, both repositories get a batched 
 
 *Alternative considered:* build the file in the browser from the entries already on screen. Rejected on two counts: the ownership rule would then live in two places (memory: the recurring bug in this repo is two paths that agree until one layer diverges), and the escaping below belongs next to the projection, not next to the table.
 
-**CSV injection (OWASP A03).** A field beginning `=`, `+`, `-`, `@`, tab or CR is prefixed with an apostrophe so a spreadsheet renders it as text instead of evaluating it; fields containing a comma, quote or newline are quoted with quotes doubled. Audit entries carry `toolName` and `toolArgs` that originate from an assistant, i.e. from participant-influenced text, so this is a live path and not a theoretical one — it is the same "treat their text as data" rule the participant-name guard already applies elsewhere.
+**CSV injection (OWASP A03).** A field beginning `=`, `+`, `-`, `@`, tab or CR is prefixed with an apostrophe so a spreadsheet renders it as text instead of evaluating it; fields containing a comma, quote or newline are quoted with quotes doubled. Escaping happens *before* quoting, so the apostrophe ends up inside the quotes — the other order produces a row that no longer parses.
+
+**Corrected while implementing.** This first said the formula guard was a live path rather than a theoretical one. It is not, and the difference is worth being exact about. The file's columns are `event, source, actor, confirmed, when, details`: the first three are fixed vocabularies, `actor` and `when` are generated, and `details` is `JSON.stringify(toolArgs)` — which wraps a string in quotes, so the field begins `{` or `"` and never with a formula character. No column can reach the guard today. It is kept, tested directly at `csvField`, and described as defence for a column that later carries something raw. The **quoting** rules are the ones that would matter first, since `create_draft`/`update_draft` pass a host's own contest name into `toolArgs` — which brings us to the gap below.
+
+### The audit log cannot tell an assistant's work from a host's
+
+**Found while implementing slice H, and not fixed there.** Nothing in the running system ever records `sourcePath: 'mcp'`, a `toolName`, or `toolArgs`. The assistant executes every tool by re-dispatching it through this same API — `app.inject` with the host's cookie and, for a confirmed destructive action, `x-tapas-confirmation: host` — and no route passes a source through to the use case. `RenameDraft`, `UpdateDraft` and `CreateDraft` all take their `sourcePath = 'form'` default whoever is acting.
+
+So the log records an assistant renaming a draft identically to a host typing the name in. The panel offers a "Connected tool" filter that can never match a row, and the `details` column is always empty. That directly undercuts what the activity log is for: slice G's feature opens by saying a host "checking whether an assistant closed their contest, or whether they did it themselves, needs that told in words".
+
+This is the repo's recurring shape — two paths that agree until one layer diverges — and the fix is the same one the confirmation marker already models: carry the source and the tool through the dispatch and into the recorder. It is a change to **what the log records**, with its own spec scenarios, so it belongs in its own change rather than inside "the log leaves as a file".
 
 ### The scannable code encodes the join code, and says so
 

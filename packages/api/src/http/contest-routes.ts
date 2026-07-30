@@ -6,6 +6,7 @@ import type {
   GetTallyErrorCode,
   RevealContestErrorCode,
 } from '../contests/use-cases/shared.js';
+import { auditCsv, auditFilename } from '../audit/audit-csv.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
 import { toRevealDto } from '../contests/reveal-dto.js';
@@ -59,7 +60,13 @@ function hostConfirmed(request: FastifyRequest): 'host' | 'auto' {
 export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): void {
   const requireSession = requireHostSession(deps);
 
-  app.get<{ Params: { id: string } }>(
+  /*
+   * The log, on screen or as a file. `?format=csv` is the same read behind the
+   * same ownership check — deliberately one route, so the rule that decides who
+   * may see a contest's history cannot come to differ between looking at it and
+   * taking it away.
+   */
+  app.get<{ Params: { id: string }; Querystring: { format?: string } }>(
     '/contests/:id/audit',
     { preHandler: requireSession },
     async (request, reply) => {
@@ -72,7 +79,17 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
-      return reply.code(200).send(deps.auditLog.findByContest(request.params.id));
+
+      const entries = deps.auditLog.findByContest(request.params.id);
+      if (request.query.format !== 'csv') return reply.code(200).send(entries);
+
+      // The filename is reduced to a conservative set by `auditFilename`, so a
+      // contest name cannot write a second header field here.
+      return reply
+        .code(200)
+        .header('content-type', 'text/csv; charset=utf-8')
+        .header('content-disposition', `attachment; filename="${auditFilename(contest.name)}"`)
+        .send(auditCsv(entries));
     },
   );
 

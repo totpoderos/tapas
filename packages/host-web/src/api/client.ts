@@ -328,6 +328,31 @@ export async function getAuditLog(contestId: string): Promise<AuditEntry[]> {
 }
 
 /**
+ * The same log as a file, with the name the server gave it.
+ *
+ * Fetched rather than linked so a refusal arrives as an `ApiError` the panel can
+ * render in place. A plain `<a download>` would hand a 403 to the browser, which
+ * would replace the screen with whatever it made of the response body.
+ */
+export async function getAuditLogFile(
+  contestId: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await send(`/contests/${encodeURIComponent(contestId)}/audit?format=csv`, 'GET');
+  if (!response.ok) throw await errorFrom(response);
+  return {
+    blob: await response.blob(),
+    // The server decides what the file is called; this only reads it back out.
+    filename: filenameFrom(response.headers.get('content-disposition')),
+  };
+}
+
+/** The filename from a Content-Disposition header, or a plain fallback. */
+function filenameFrom(header: string | null): string {
+  const quoted = header?.match(/filename="([^"]+)"/);
+  return quoted?.[1] ?? 'activity-log.csv';
+}
+
+/**
  * The rules a published contest is being played by.
  *
  * Read from the contest rather than from the draft, which is retired at publish

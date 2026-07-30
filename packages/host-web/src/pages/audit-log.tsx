@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { DataTable, EmptyState } from '@tapas/ui';
-import { ApiError, getAuditLog, type AuditEntry } from '../api/client';
+import { ApiError, getAuditLog, getAuditLogFile, type AuditEntry } from '../api/client';
+import { PanelActions } from '../shell/panel-actions';
 import { SOURCE_MARK, eventKeyFor } from '../contests/audit-event';
 import { whenHappened } from '../contests/when';
 import styles from './audit-log.module.css';
@@ -76,6 +77,10 @@ export function AuditLog() {
 
       {state.kind === 'ready' && (
         <>
+          {/* Only where there is a history to take: an empty file is not a thing
+              a host wants, and offering it would suggest there is something in it. */}
+          {state.entries.length > 0 && <ExportAction contestId={id} />}
+
           {/*
            * Offered even when there is nothing to filter, so that narrowing to a
            * source and finding it empty is a state the host can get back out of.
@@ -95,6 +100,54 @@ export function AuditLog() {
         </>
       )}
     </main>
+  );
+}
+
+/**
+ * Taking the log away, offered in the panel's header where the design puts it.
+ *
+ * The file is fetched rather than linked so a refusal lands here, in the panel,
+ * beside the log the host was reading — instead of the browser navigating away
+ * and rendering whatever it made of a 403 body.
+ */
+function ExportAction({ contestId }: { contestId: string }) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(false);
+  const [refused, setRefused] = useState(false);
+
+  async function take() {
+    setBusy(true);
+    setRefused(false);
+    try {
+      const { blob, filename } = await getAuditLogFile(contestId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      // Released straight away: the download has the data by now, and a blob URL
+      // held open pins the whole file in memory for the life of the document.
+      URL.revokeObjectURL(url);
+    } catch {
+      setRefused(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      <PanelActions>
+        <button type="button" className={styles.export} onClick={take} disabled={busy}>
+          {busy ? t('auditLog.exporting') : t('auditLog.export')}
+        </button>
+      </PanelActions>
+      {refused && (
+        <p role="alert" className={styles.refused}>
+          {t('auditLog.exportRefused')}
+        </p>
+      )}
+    </>
   );
 }
 

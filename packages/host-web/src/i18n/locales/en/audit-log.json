@@ -1,6 +1,9 @@
 {
   "title": "Activity log",
   "lead": "Everything that has happened to this contest, and how each action was triggered.",
+  "export": "Export CSV",
+  "exporting": "Preparing the file…",
+  "exportRefused": "The file couldn’t be prepared. The log is still here — try again.",
   "loading": "Loading the activity log…",
   "missing": "This contest doesn’t exist, or isn’t yours to view.",
   "error": "The activity log couldn’t be loaded. Please try again.",

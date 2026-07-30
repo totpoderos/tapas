@@ -192,4 +192,140 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.json().error.code).toBe('NOT_SIGNED_IN');
     });
   });
+
+  Scenario('A host takes the log away as a file', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let file: LightMyRequestResponse;
+    let contestId: string;
+
+    Given('a signed-in host who has published a contest and then closed it', async () => {
+      ({ app } = makeTestApp());
+      jar = await signedInHost(app, 'ana@example.com');
+      const id = await liveContest(app, jar, 'Summer Tapas');
+      await request(app, jar, { method: 'POST', url: `/contests/${id}/close` });
+      contestId = id;
+    });
+    When('that host asks for the audit log as a file', async () => {
+      file = await request(app, jar, {
+        method: 'GET',
+        url: `/contests/${contestId}/audit?format=csv`,
+      });
+      expect(file.statusCode).toBe(200);
+      expect(file.headers['content-type']).toContain('text/csv');
+    });
+    Then('the file carries a row for the publishing and a row for the closing', () => {
+      expect(file.body).toContain('contest.published');
+      expect(file.body).toContain('contest.closed');
+    });
+    And('each row carries how it was triggered, who acted, and when', () => {
+      const [heading, ...rows] = file.body.trimEnd().split('\r\n');
+      expect(heading).toBe('event,source,actor,confirmed,when,details');
+      expect(rows.length).toBeGreaterThan(1);
+      for (const row of rows) {
+        const [, source, actor, , when] = row.split(',');
+        expect(source).toBeTruthy();
+        expect(actor).toBeTruthy();
+        expect(when).toBeTruthy();
+      }
+    });
+    And('the file is named after the contest', () => {
+      expect(file.headers['content-disposition']).toContain('Summer-Tapas-activity-log.csv');
+    });
+  });
+
+  Scenario("A host cannot take away another host's log as a file", ({ Given, And, When, Then }) => {
+    let app: FastifyInstance;
+    let anaJar: CookieJar;
+    let bobJar: CookieJar;
+    let contestId: string;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host who has published a contest', async () => {
+      ({ app } = makeTestApp());
+      anaJar = await signedInHost(app, 'ana@example.com');
+      contestId = await liveContest(app, anaJar, 'Summer Tapas');
+    });
+    And('a second signed-in host', async () => {
+      bobJar = await signedInHost(app, 'bob@example.com');
+    });
+    When("the second host asks for the first host's log as a file", async () => {
+      response = await request(app, bobJar, {
+        method: 'GET',
+        url: `/contests/${contestId}/audit?format=csv`,
+      });
+    });
+    Then('it is refused as not allowed', () => {
+      expect(response.statusCode).toBe(403);
+      expect(response.json().error.code).toBe('NOT_ALLOWED');
+    });
+    And("no part of that contest's history is written", () => {
+      // Not a file with an error in it: nothing of the log leaves at all.
+      expect(response.headers['content-type']).not.toContain('text/csv');
+      expect(response.body).not.toContain('contest.published');
+      expect(response.headers['content-disposition']).toBeUndefined();
+    });
+  });
+
+  Scenario('Taking the log away requires being signed in', ({ Given, And, When, Then }) => {
+    let app: FastifyInstance;
+    let contestId: string;
+    let response: LightMyRequestResponse;
+
+    Given('a contest exists', async () => {
+      ({ app } = makeTestApp());
+      const ownerJar = await signedInHost(app, 'ana@example.com');
+      contestId = await liveContest(app, ownerJar, 'Summer Tapas');
+    });
+    And('no one is signed in', () => {
+      // the next request carries no cookies
+    });
+    When('its audit log is asked for as a file', async () => {
+      response = await app.inject({
+        method: 'GET',
+        url: `/contests/${contestId}/audit?format=csv`,
+      });
+    });
+    Then('it is refused as not signed in', () => {
+      expect(response.statusCode).toBe(401);
+      expect(response.json().error.code).toBe('NOT_SIGNED_IN');
+    });
+  });
+
+  Scenario('The file and the screen cannot drift apart', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let contestId: string;
+    let onScreen: Entry[];
+    let file: LightMyRequestResponse;
+
+    Given('a signed-in host who has published a contest and then closed it', async () => {
+      ({ app } = makeTestApp());
+      jar = await signedInHost(app, 'ana@example.com');
+      contestId = await liveContest(app, jar, 'Summer Tapas');
+      await request(app, jar, { method: 'POST', url: `/contests/${contestId}/close` });
+    });
+    When('that host reads the log on screen and asks for it as a file', async () => {
+      const screen = await request(app, jar, { method: 'GET', url: `/contests/${contestId}/audit` });
+      onScreen = screen.json();
+      file = await request(app, jar, {
+        method: 'GET',
+        url: `/contests/${contestId}/audit?format=csv`,
+      });
+      expect(file.statusCode).toBe(200);
+    });
+    Then('the file has exactly one row per recorded action', () => {
+      const rows = file.body.trimEnd().split('\r\n').slice(1);
+      expect(rows).toHaveLength(onScreen.length);
+    });
+    And('the rows say the same actions, in the same order, as the screen', () => {
+      /*
+       * The point of building the file from the projection rather than from
+       * what a screen happens to be holding: one read, one order, no chance of
+       * the two answering the same question differently.
+       */
+      const rows = file.body.trimEnd().split('\r\n').slice(1);
+      expect(rows.map((row) => row.split(',')[0])).toEqual(onScreen.map((entry) => entry.type));
+    });
+  });
 });
