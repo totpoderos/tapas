@@ -7,6 +7,12 @@ Feature: Checking the live tally
     Given a contest where some participants have claimed a place, some have drafted scores, and one has sent a vote
     When the host checks the tally
     Then the tally shows how many have claimed, how many are still drafting, and how many have sent
+    And it says how many places there are in total
+
+  Scenario: A contest nobody has joined still says how many places there are
+    Given a contest nobody has claimed a place in
+    When the host checks the tally
+    Then the tally says how many places there are, and that none are claimed
 
   Scenario: A host cannot check another host's tally
     Given a contest owned by one host

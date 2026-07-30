@@ -93,6 +93,15 @@ function HostCrumbs({ nav }: { nav: Exclude<PanelNav, { kind: 'admin' }> }) {
       </span>
       <span className={styles.here}>{surface}</span>
       {inside && <State status={inside.status} />}
+      {/* Only while there is something to keep up with: the control room re-reads
+          the tally on a timer, and a host watching it should know that rather than
+          wonder whether to reload. */}
+      {inside?.status === 'live' && nav.current === 'control' && (
+        <span className={styles.keepingUp}>
+          <span aria-hidden="true" className={styles.pulse} />
+          {t('shell.tallyKeepingUp')}
+        </span>
+      )}
     </>
   );
 }

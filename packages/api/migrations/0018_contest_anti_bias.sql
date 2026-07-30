@@ -1,0 +1,15 @@
+-- 0018_contest_anti_bias.sql
+-- Slice C: the control room shows the rules a live contest is being played by.
+--
+-- The same shape as attribution in 0017, and for the same reason. The compiler
+-- consumes the anti-bias rule into the set of dishes each judge may score, so the
+-- compiled view records its consequence and not the rule — and the consequence is
+-- lossy: a contest where couples cannot score each other and one where chosen
+-- pairs cannot look identical once compiled. The draft it was published from is
+-- retired at publish, so if the contest does not carry the rule, nothing does.
+--
+-- Nullable, no default, not backfilled. NULL means "this contest does not say",
+-- which the screen already has to handle. Guessing from the compiled view would
+-- turn "unknown" into a claim, and would be wrong for exactly the two cases a
+-- host most needs told apart.
+ALTER TABLE contests ADD COLUMN anti_bias TEXT;

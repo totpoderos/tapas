@@ -48,3 +48,24 @@ A contest still being prepared has no join code and no progress, and SHALL repor
 #### Scenario: Listing contests requires being signed in
 - **WHEN** listing contests is attempted through the API with no one signed in
 - **THEN** the API refuses it as not signed in
+
+### Requirement: A host can read their own contest over the API
+A host SHALL be able to read a contest they own through the API.
+
+The read SHALL report the rules the contest is being played by, so that a host running it can see what it was published with without opening the draft it came from — which no longer exists. That includes how dishes are attributed, which same-side scoring is barred to guard against bias, what the contest is judged on, the score band, and whether a score may be used more than once in a category.
+
+The anti-bias rule SHALL be reported from what the contest recorded at publish, not reconstructed from the compiled constraint view. The compiler consumes that rule into the set of dishes each judge may score, so the compiled view holds its consequence and not the rule: a contest where couples cannot score each other and one where chosen pairs cannot are indistinguishable once compiled. A contest published before the rule was recorded SHALL report that it does not say, rather than a guess.
+
+#### Scenario: A host reads their own published contest through the API
+- **WHEN** a host who has published a contest reads that contest through the API
+- **THEN** the contest's details are returned
+
+#### Scenario: The read reports the rules the contest is being played by
+- **WHEN** a host reads a contest they published to score each person on their own, barring couples from scoring each other, judged on three categories from one to ten with each score used once
+- **THEN** the read reports each person on their own, and couples barred from scoring each other
+- **AND** it reports the three categories, the band from one to ten, and that a score is used only once in a category
+
+#### Scenario: A contest that never recorded its anti-bias rule says so
+- **WHEN** a host reads a contest published before the anti-bias rule was recorded
+- **THEN** the read reports that the contest does not say which same-side scoring is barred
+- **AND** it does not report a rule inferred from the compiled view

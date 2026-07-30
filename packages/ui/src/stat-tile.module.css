@@ -1,0 +1,41 @@
+.tile {
+  flex: 1;
+  min-width: 6rem;
+  padding: 14px 16px;
+  border-radius: var(--radius-control);
+}
+
+.value {
+  font: 400 32px/1.1 var(--serif);
+}
+
+.label {
+  font: 400 13px var(--sans);
+}
+
+.neutral {
+  background: var(--surface-2);
+}
+.neutral .value,
+.neutral .label {
+  color: var(--ink);
+}
+.neutral .label {
+  color: var(--ink-2);
+}
+
+.good {
+  background: var(--good-soft);
+}
+.good .value,
+.good .label {
+  color: var(--good);
+}
+
+.pending {
+  background: var(--saffron-soft);
+}
+.pending .value,
+.pending .label {
+  color: var(--pending);
+}

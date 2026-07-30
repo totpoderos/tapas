@@ -1,151 +1,203 @@
-.page {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px 28px 96px;
+/* The design's two columns: the contest being run, and what is true about it. */
+.columns {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 20px;
+  align-items: start;
 }
-.bar {
+.main,
+.aside {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
 }
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
 }
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-.brand b {
-  font-family: var(--serif);
-  font-size: 21px;
-}
-.back {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-2);
-  text-decoration: none;
-  font-weight: 600;
-}
-.back:hover {
-  color: var(--ink);
-}
-.head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 4px;
-}
+
 .title {
-  font-size: 32px;
-  margin: 0;
-}
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font: 600 13px var(--sans);
-}
-.live {
-  background: var(--good-soft);
-  color: var(--good);
-}
-.closed {
-  background: var(--pending-soft);
-  color: var(--pending);
-}
-.revealed {
-  background: var(--saffron-soft);
-  color: var(--on-saffron);
+  font: 400 30px/1.2 var(--serif);
+  margin: 0 0 8px;
 }
 .note {
   color: var(--ink-2);
   margin: 0;
 }
-.alert {
+
+/* The join code, big enough to read out across a room. */
+.code {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-weight: 600;
-  margin: 16px 0;
-}
-
-/* Join code, for sharing. */
-.code {
-  margin: 20px 0;
-  padding: 16px 20px;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 20px;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
-  background: var(--surface);
 }
 .codeLabel {
-  color: var(--ink-2);
-  font-size: 13px;
   margin: 0 0 4px;
+  font: 600 12px var(--sans);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-2);
 }
 .codeValue {
-  font-family: var(--mono);
-  font-size: 28px;
-  letter-spacing: 0.12em;
+  font: 700 44px/1 var(--mono);
+  letter-spacing: 0.14em;
+  overflow-wrap: anywhere;
+}
+.codeActions {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.copied {
+  font: 400 12px var(--sans);
+  color: var(--good);
+  min-height: 1em;
 }
 
-/* Tally. */
-.tally {
+/* Progress: the three counts, then the same thing as a bar. */
+.tiles {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  margin: 20px 0;
-}
-.stat {
-  flex: 1;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  text-align: center;
-}
-.statNum {
-  font-family: var(--serif);
-  font-size: 30px;
-  font-variant-numeric: tabular-nums;
-}
-.statLabel {
-  color: var(--ink-2);
-  font-size: 13px;
+  margin-bottom: 18px;
 }
 
-.actions {
+.legend {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 24px;
+  flex-wrap: wrap;
+  gap: 18px;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
 }
-.logLink {
-  color: var(--brand);
-  font-weight: 600;
-  text-decoration: none;
-  min-height: 44px;
+.legend li {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
 }
-.logLink:hover {
-  text-decoration: underline;
+.key {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: none;
+}
+.keySent {
+  background: var(--good);
+}
+.keyScoring {
+  background: var(--saffron);
+}
+.keyNotJoined {
+  background: var(--line);
 }
 
-/* The confirmation dialog moved to @tapas/ui (confirm-dialog.module.css) —
-   the contest list needs it too. Its styles left with it. */
+/* Driving the contest: the two one-way actions, and why they ask first. */
+.drive {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.driveNote {
+  margin: 0;
+  margin-left: auto;
+  max-width: 26ch;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+@media (max-width: 700px) {
+  .driveNote {
+    margin-left: 0;
+    max-width: none;
+  }
+}
+
+.resultsLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  color: var(--ink);
+  font: 600 14px var(--sans);
+  text-decoration: none;
+}
+.resultsLink:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* Recent activity. */
+.fullLog {
+  font: 600 13px var(--sans);
+  color: var(--brand);
+  text-decoration: none;
+}
+.fullLog:hover {
+  text-decoration: underline;
+}
+.activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.happened {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.event {
+  font: 600 14px var(--sans);
+  color: var(--ink);
+}
+.eventHow {
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+
+/* The rules the contest is being played by. */
+.rules {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font: 400 14px var(--sans);
+}
+.rule {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rule dt {
+  color: var(--ink-2);
+}
+.rule dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.dangerButton {
+  margin-top: 10px;
+  border-color: var(--danger);
+  color: var(--danger);
+}

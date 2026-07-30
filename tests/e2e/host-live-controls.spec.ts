@@ -68,9 +68,11 @@ test('a host watches the tally of a running contest', async ({ page }) => {
   await participantJoins(joinCode, contestId, 'bob');
 
   await page.goto(`${HOST_WEB}/contest/${contestId}`);
-  const progress = page.getByLabel('Progress');
-  await expect(progress.getByText('Joined')).toBeVisible();
-  await expect(progress.getByText('Votes sent')).toBeVisible();
+  // Progress is a named region now, and says its counts against the roster's size
+  // rather than as bare labels — see host-control-room.spec.ts for the detail.
+  const progress = page.getByRole('region', { name: 'Progress' });
+  await expect(progress).toContainText('2 joined of 3 participants');
+  await expect(progress).toContainText('Votes sent');
   await expect(page.getByText(joinCode)).toBeVisible();
 });
 
@@ -81,11 +83,9 @@ test('a host closes voting on a running contest', async ({ page }) => {
   await page.getByRole('button', { name: 'Close voting' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'Close voting' }).click();
 
-  // Scoped to the surface, as in the cancel case below: the panel says the state
-  // in its header and beside the contest in its navigation too, so an unscoped
-  // "Closed" matches three things. It only passed unscoped while the assertion
-  // beat the navigation's re-read, which is a race a slower machine wins.
-  await expect(page.getByRole('main').getByText('Closed')).toBeVisible();
+  // The panel says the state; the surface no longer repeats it, so this asks the
+  // panel. The scoping this needed while both said it is gone with the duplicate.
+  await expect(page.getByRole('navigation', { name: 'Panel navigation' }).getByText('Closed')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Reveal results' })).toBeVisible();
 });
 
@@ -97,9 +97,7 @@ test('closing is confirmed first — cancelling leaves it live', async ({ page }
   await page.getByRole('button', { name: 'Cancel' }).click();
 
   await expect(page.getByRole('alertdialog')).toHaveCount(0);
-  // Scoped to the surface: the panel says the state too — in the header and beside
-  // the contest in the navigation — so an unscoped "Live" now matches three things.
-  await expect(page.getByRole('main').getByText('Live')).toBeVisible();
+  await expect(page.getByRole('navigation', { name: 'Panel navigation' }).getByText('Live')).toBeVisible();
 });
 
 test('a host reveals, and a waiting participant sees the results appear', async ({ page, browser }) => {
@@ -132,7 +130,8 @@ test('a host reveals, and a waiting participant sees the results appear', async 
 test('the control room is keyboard-operable and has no accessibility violations', async ({ page }) => {
   const { contestId } = await hostWithLiveContest(page, 'e2e-live-a11y@sobremesa.es');
   await page.goto(`${HOST_WEB}/contest/${contestId}`);
-  await expect(page.getByRole('heading', { name: 'Balcony Cook-off' })).toBeVisible();
+  // The contest's name is the panel's to say; the surface waits on its own content.
+  await expect(page.getByRole('region', { name: 'Progress' })).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);

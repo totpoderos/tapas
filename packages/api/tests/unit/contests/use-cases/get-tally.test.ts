@@ -71,7 +71,39 @@ describe('GetTally', () => {
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
-    expect(outcome.tally).toEqual({ claimedCount: 2, draftCount: 1, sentCount: 1 });
+    // Three places, two of them claimed — the total is what the rest is out of.
+    expect(outcome.tally).toEqual({
+      placeCount: 3,
+      claimedCount: 2,
+      draftCount: 1,
+      sentCount: 1,
+    });
+  });
+
+  it('reports how many places there are even when nobody has claimed one', () => {
+    const contests = new FakeContestRepository();
+    contests.insert(liveContest());
+    const roster = new FakeRosterRepository();
+    roster.seed('contest-1', [
+      { participantId: 'ana', displayName: 'Ana' },
+      { participantId: 'bob', displayName: 'Bob' },
+    ]);
+
+    const outcome = new GetTally({
+      contests,
+      roster,
+      voteSessions: new FakeVoteSessionRepository(),
+    }).execute('contest-1');
+
+    expect(outcome.ok).toBe(true);
+    if (!outcome.ok) return;
+    // Two places and nobody in them: "none of two", not "none of nothing".
+    expect(outcome.tally).toEqual({
+      placeCount: 2,
+      claimedCount: 0,
+      draftCount: 0,
+      sentCount: 0,
+    });
   });
 
   it('reports CONTEST_NOT_FOUND for an unknown contest', () => {

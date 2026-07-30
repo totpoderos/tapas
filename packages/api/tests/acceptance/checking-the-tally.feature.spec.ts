@@ -113,7 +113,40 @@ async function sendVote(app: FastifyInstance, contestId: string, voterCookie: st
 }
 
 describeFeature(feature, ({ Scenario }) => {
-  Scenario('The host checks the tally of a contest in progress', ({ Given, When, Then }) => {
+  Scenario(
+    'A contest nobody has joined still says how many places there are',
+    ({ Given, When, Then }) => {
+      let app: FastifyInstance;
+      let hostJar: CookieJar;
+      let contestId: string;
+      let response: LightMyRequestResponse;
+
+      Given('a contest nobody has claimed a place in', async () => {
+        ({ app } = makeTestApp());
+        hostJar = await signedInHost(app, 'ana@example.com');
+        contestId = await publishLiveContest(app, hostJar);
+      });
+      When('the host checks the tally', async () => {
+        response = await request(app, hostJar, {
+          method: 'GET',
+          url: `/contests/${contestId}/tally`,
+        });
+      });
+      Then('the tally says how many places there are, and that none are claimed', () => {
+        expect(response.statusCode).toBe(200);
+        // Three places on the roster and nobody in them. "None of three" — not a
+        // bare nought, which says nothing about whether anyone was expected.
+        expect(response.json()).toEqual({
+          placeCount: 3,
+          claimedCount: 0,
+          draftCount: 0,
+          sentCount: 0,
+        });
+      });
+    },
+  );
+
+  Scenario('The host checks the tally of a contest in progress', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
     let hostJar: CookieJar;
     let contestId: string;
@@ -145,9 +178,17 @@ describeFeature(feature, ({ Scenario }) => {
       'the tally shows how many have claimed, how many are still drafting, and how many have sent',
       () => {
         expect(response.statusCode).toBe(200);
-        expect(response.json()).toEqual({ claimedCount: 3, draftCount: 1, sentCount: 1 });
+        expect(response.json()).toEqual({
+          placeCount: 3,
+          claimedCount: 3,
+          draftCount: 1,
+          sentCount: 1,
+        });
       },
     );
+    And('it says how many places there are in total', () => {
+      expect(response.json().placeCount).toBe(3);
+    });
   });
 
   Scenario("A host cannot check another host's tally", ({ Given, When, Then }) => {

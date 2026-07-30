@@ -2,24 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { ApiError, getAuditLog, type AuditEntry } from '../api/client';
+import { SOURCE_MARK, eventKeyFor } from '../contests/audit-event';
 import styles from './audit-log.module.css';
 
-// Known event types map to a translation key; an unknown type falls back to its
+// How events are named and sources marked is shared with the control room's
+// recent activity — see `contests/audit-event`. An unknown type falls back to its
 // raw value (data), never a missing-key blank.
-const EVENT_KEY: Record<string, string> = {
-  'draft.saved': 'draftSaved',
-  'draft.updated': 'draftUpdated',
-  'draft.discarded': 'draftDiscarded',
-  'contest.published': 'contestPublished',
-  'contest.closed': 'contestClosed',
-  'contest.revealed': 'contestRevealed',
-};
-
-const SOURCE_MARK: Record<AuditEntry['sourcePath'], string> = {
-  form: '◇',
-  system: '◈',
-  mcp: '⬡',
-};
 
 type Source = 'all' | AuditEntry['sourcePath'];
 
@@ -121,7 +109,7 @@ export function AuditLog() {
 
 function Entry({ entry }: { entry: AuditEntry }) {
   const { t } = useTranslation();
-  const eventKey = EVENT_KEY[entry.type];
+  const eventKey = eventKeyFor(entry.type);
   const eventLabel = eventKey ? t(`auditLog.event.${eventKey}`) : entry.type;
   const actor = t(entry.actorId === 'system' ? 'auditLog.actorSystem' : 'auditLog.actorYou');
   return (

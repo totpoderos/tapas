@@ -18,5 +18,12 @@
   "theme": {
     "switchToDark": "Cambiar al tema oscuro",
     "switchToLight": "Cambiar al tema claro"
-  }
+  },
+  "antiBias": {
+    "none": "Sin restricción",
+    "couples": "Las parejas no pueden puntuarse entre sí",
+    "arbitrary_pairs": "Las parejas elegidas no pueden puntuarse entre sí"
+  },
+  "on": "Sí",
+  "off": "No"
 }

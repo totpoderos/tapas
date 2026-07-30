@@ -83,15 +83,33 @@
 }
 
 @media (max-width: 900px) {
-  /* The actions drop onto their own row, which is below the fixed corner
-     controls and can have the full width — so the reservation moves onto the
-     crumbs, which are now the row that shares space with them. */
   .bar {
     padding: 0 12px 10px;
   }
+  /*
+   * No reservation here. Narrow, the shell stacks and the navigation's disclosure
+   * button is the row that sits beside the fixed corner controls — the crumbs are
+   * already below them. Reserving 180px here instead squeezed the contest's name
+   * and the surface's name to nothing between their separators, since both shrink
+   * before the state pill and the tally note, which do not.
+   */
   .crumbs {
     flex-basis: 100%;
-    padding-right: 180px;
+    flex-wrap: wrap;
+    min-height: 0;
+    padding: 6px 0;
+  }
+  /* Room to wrap rather than be truncated to nothing. */
+  .crumbName,
+  .here {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .keepingUp {
+    margin-left: 0;
+    flex-basis: 100%;
+    white-space: normal;
   }
   .actions {
     flex-basis: 100%;
@@ -100,4 +118,22 @@
   .newContest {
     width: 100%;
   }
+}
+
+/* "Keeping itself up to date" — shown only where something actually is. */
+.keepingUp {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--good);
+  flex: none;
 }

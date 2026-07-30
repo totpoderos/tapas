@@ -35,5 +35,6 @@
   "role": {
     "host": "Anfitriona",
     "admin": "Administradora"
-  }
+  },
+  "tallyKeepingUp": "El recuento se actualiza cada pocos segundos"
 }
