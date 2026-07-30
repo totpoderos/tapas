@@ -105,11 +105,16 @@ live smoke check) before opening the PR.
 
 ## 10. Slice J — the assistant on the shell
 
-- [ ] 10.1 Write `tests/e2e/host-assistant-panel.feature` (the conversation on the shell, and confirming a destructive action). Confirm it before implementing.
-- [ ] 10.2 Re-compose `chat.tsx` on the design: the connected-tool header with Clear conversation, the asymmetric message bubbles, the confirmation card, and the carried-out-action note.
-- [ ] 10.3 Keep the composer at 44px and 16px input, keep the existing aria-live announcements, and keep the double-send guard.
-- [ ] 10.4 EN/ES; keep the existing chat and clear-conversation unit tests green.
-- [ ] 10.5 Slice verification, then PR.
+- [x] 10.1 Write `tests/e2e/host-assistant-panel.feature` (the conversation on the shell, and confirming a destructive action). Confirmed before implementing.
+- [x] 10.2 Re-compose `chat.tsx` on the design: the header with its saffron dot, the **Connected tool** badge, Clear conversation moved to the panel's actions slot, asymmetric bubbles, and the carried-out action as the design's green line rather than a monospace echo of the call. The page's own brand bar and back link are gone; the orphaned `chat.back` key with them. The badge is not decoration any more — since `the-log-says-who-acted`, what the assistant does really is recorded as a connected tool, and one scenario closes that loop by reading the log afterwards.
+- [x] 10.2a **The confirmation stays a modal, and that is a deviation from the mockup.** The design draws it inline in the feed. Inline in a *clearable* feed loses the guarantee an existing scenario already pins — that a waiting approval cannot be cleared out from under itself — so the modality is kept and only the card's own treatment revisited. Confirmed with the user before implementing.
+- [x] 10.2b **Cancel stays first, also against the mockup.** The design draws "Yes, do it" first. Focus opens on whatever comes first, so that would open focus on the button that closes a contest and turn a stray Enter into the thing the card exists to prevent. Reordering visually with CSS would only trade it for tab order disagreeing with reading order (WCAG 2.4.3). The e2e says so where a future reader will meet it.
+- [x] 10.3 Composer keeps its 44px target and 16px input, the `aria-live` announcements, and the double-send guard; a browser test measures the target at 375px rather than trusting the rule.
+- [x] 10.4 EN/ES for the badge. The chat and clear-conversation unit tests stay green with two harness changes that follow real ones: the clear button now portals into the panel header, and the surface now depends on the shared contest list.
+- [x] 10.5 Slice verification (1949 unit tests, typecheck, lint, 250 browser tests whole *and* file-by-file), then PR. **Three defects the live check found:**
+  - **The panel went on calling a contest live after the assistant closed it.** The control room already re-reads the shared list after its own actions; the assistant is a second path to the same changes and did not. This is the parallel-path asymmetry again, one layer up from the one `the-log-says-who-acted` fixed. Now covered by a browser test, checked to fail without the fix.
+  - **The modal's backdrop dimmed nothing in the dark theme** — the tint was within a few points of the theme's own ground, so the card stopped reading as modal, which is the one thing it has to read as. Near-black now, in both themes.
+  - **The composer's negative margin overflowed the page at 375px.** It had to know the padding around it, and the shell's padding is not that file's to assume. Removed; the rule and surface set it apart without the coupling.
 
 ## 11. Slice K — the results on the shell
 

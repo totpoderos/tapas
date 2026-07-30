@@ -1,5 +1,4 @@
 {
-  "back": "Back to contests",
   "title": "Assistant",
   "lead": "Tell the assistant what to do with your contests, in plain language.",
   "conversationLabel": "Conversation",
@@ -42,5 +41,6 @@
   "cancelled": "Cancelled — nothing was changed.",
   "failed": "{{action}} didn’t happen — {{reason}}",
   "clear": "Clear conversation",
-  "cleared": "Conversation cleared"
+  "cleared": "Conversation cleared",
+  "connectedTool": "Connected tool"
 }

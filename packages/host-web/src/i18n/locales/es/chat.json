@@ -1,5 +1,4 @@
 {
-  "back": "Volver a los concursos",
   "title": "Asistente",
   "lead": "Dile al asistente qué hacer con tus concursos, en lenguaje natural.",
   "conversationLabel": "Conversación",
@@ -42,5 +41,6 @@
   "cancelled": "Cancelado — no se ha cambiado nada.",
   "failed": "{{action}} no se realizó — {{reason}}",
   "clear": "Borrar conversación",
-  "cleared": "Conversación borrada"
+  "cleared": "Conversación borrada",
+  "connectedTool": "Herramienta conectada"
 }
