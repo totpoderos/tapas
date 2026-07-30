@@ -10,9 +10,10 @@ expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, getAuditLog: vi.fn() };
+  return { ...actual, getAuditLog: vi.fn(), getAuditLogFile: vi.fn() };
 });
 import * as api from '../../src/api/client';
+import { WithPanelSlots } from './support/panel-slots';
 
 const entry = (over: Partial<AuditEntry> & Pick<AuditEntry, 'id' | 'type' | 'sourcePath'>): AuditEntry => ({
   actorId: 'host-1',
@@ -29,9 +30,11 @@ const LOG: AuditEntry[] = [
 function renderLog() {
   return render(
     <MemoryRouter initialEntries={['/log/c1']}>
-      <Routes>
-        <Route path="/log/:id" element={<AuditLog />} />
-      </Routes>
+      <WithPanelSlots>
+        <Routes>
+          <Route path="/log/:id" element={<AuditLog />} />
+        </Routes>
+      </WithPanelSlots>
     </MemoryRouter>,
   );
 }
@@ -145,5 +148,66 @@ describe('Activity log', () => {
     const { container } = renderLog();
     await screen.findByRole('table', { name: 'Activity' });
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('taking the log away as a file', () => {
+    const FILE = { blob: new Blob(['event\r\n']), filename: 'Summer-Tapas-activity-log.csv' };
+
+    beforeEach(() => {
+      vi.mocked(api.getAuditLogFile).mockReset();
+      vi.mocked(api.getAuditLogFile).mockResolvedValue(FILE);
+      // jsdom has neither, and a download is what this button is for.
+      URL.createObjectURL = vi.fn(() => 'blob:log');
+      URL.revokeObjectURL = vi.fn();
+    });
+
+    it('saves the file under the name the server gave it', async () => {
+      renderLog();
+      await screen.findByRole('table', { name: 'Activity' });
+
+      const clicks: HTMLAnchorElement[] = [];
+      const realClick = HTMLAnchorElement.prototype.click;
+      HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+        clicks.push(this);
+      };
+      try {
+        await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+      } finally {
+        HTMLAnchorElement.prototype.click = realClick;
+      }
+
+      expect(api.getAuditLogFile).toHaveBeenCalledWith('c1');
+      // The server names the file; the panel does not invent one.
+      expect(clicks[0]?.download).toBe('Summer-Tapas-activity-log.csv');
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:log');
+    });
+
+    it('says so in the panel when the file is refused, keeping the log on screen', async () => {
+      vi.mocked(api.getAuditLogFile).mockRejectedValue(new ApiError(403, 'NOT_ALLOWED'));
+      renderLog();
+      await screen.findByRole('table', { name: 'Activity' });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Export CSV' }));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/couldn’t be prepared/i);
+      // The refusal is told beside the log, not instead of it.
+      expect(screen.getByRole('table', { name: 'Activity' })).toBeInTheDocument();
+    });
+
+    it('is not offered when there is no history to take', async () => {
+      vi.mocked(api.getAuditLog).mockResolvedValue([]);
+      renderLog();
+
+      await screen.findByText(/nothing has happened to this contest yet/i);
+      expect(screen.queryByRole('button', { name: 'Export CSV' })).not.toBeInTheDocument();
+    });
+
+    it('puts the action in the panel’s header, not in the surface', async () => {
+      const { container } = renderLog();
+      await screen.findByRole('table', { name: 'Activity' });
+
+      const button = screen.getByRole('button', { name: 'Export CSV' });
+      expect(container.querySelector('main')?.contains(button)).toBe(false);
+    });
   });
 });
