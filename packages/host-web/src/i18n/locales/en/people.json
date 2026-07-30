@@ -23,5 +23,11 @@
     "superseded": "Invitation replaced"
   },
   "notAllowedTitle": "This screen is not for you",
-  "notAllowedBody": "Only an administrator can see the people in this deployment."
+  "notAllowedBody": "Only an administrator can see the people in this deployment.",
+  "inviteTitle": "Invite a host",
+  "notSentTitle": "Pass this link on",
+  "resendTo": "Resend the invitation to {{email}}",
+  "revokeFor": "Revoke the invitation for {{email}}",
+  "noneYet": "Nobody has access yet.",
+  "noneYetNote": "Invite a host and they will appear here."
 }

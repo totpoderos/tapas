@@ -50,7 +50,8 @@ test('an administrator resends and revokes from the row', async ({ page }) => {
   const row = page.getByRole('row').filter({ hasText: 'e2e-panel-churn@sobremesa.es' });
   await expect(row).toContainText('Invited');
 
-  await row.getByRole('button', { name: 'Resend' }).click();
+  // Named after the person now, so a table of rows says which one.
+  await row.getByRole('button', { name: /^Resend the invitation to/ }).click();
   // Still one row: the superseded invitation is no longer the newest, so it
   // stops standing for this person rather than joining them.
   await expect(row).toHaveCount(1);
@@ -68,7 +69,7 @@ test('an administrator resends and revokes from the row', async ({ page }) => {
   await page.reload();
   await expect(row).toContainText('Invited');
 
-  await row.getByRole('button', { name: 'Revoke' }).click();
+  await row.getByRole('button', { name: /^Revoke the invitation for/ }).click();
   await expect(row).toContainText('Invitation revoked');
 });
 
