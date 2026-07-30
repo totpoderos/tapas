@@ -62,12 +62,12 @@ live smoke check) before opening the PR.
 
 ## 6. Slice F — draft review on the shell
 
-- [ ] 6.1 Write `tests/e2e/host-draft-review.feature` (the before-publishing warning, and publishing from the shell). Confirm it before implementing.
-- [ ] 6.2 Draft-scoped sidebar: the draft card, Rules and Participants & pairing, Activity log, and the "Before publishing" callout counting participants without a partner.
-- [ ] 6.3 Re-compose `review-draft.tsx`: the participants & pairing grid with partner selects and Remove, the unpartnered row marked as needing one, the add-participant row, the can't-score-each-other pairs, and the publish checklist.
-- [ ] 6.4 Top bar: breadcrumb, draft pill, saved indicator, Save changes, Publish.
-- [ ] 6.5 EN/ES; keep the existing review-draft unit tests green.
-- [ ] 6.6 Slice verification, then PR.
+- [x] 6.1 Write `tests/e2e/host-draft-review.feature` (the before-publishing warning, and publishing from the shell). Confirm it before implementing.
+- [x] 6.2 Draft-scoped sidebar keeps its single item — the mockup's split into "Rules" and "Participants & pairing" would need new routes, which is a change of its own (design.md). It gains the "Before publishing" callout counting participants without a partner, through a **second portal slot** (`PanelNote`): the navigation knows the contest list, not what is inside a draft, so the surface has to tell it.
+- [x] 6.3 Re-compose `review-draft.tsx` in two columns: name and rules, then participants & pairing with a people-and-couples count; alongside them the barred pairs and the publish checklist. A participant is marked as needing a partner **only when scoring is per couple** — pairing is beside the point per person — and it is said in words, not by a red edge alone. **Barring a pair is now mutual**, as the option's own name always claimed.
+- [x] 6.4 Top bar: breadcrumb, draft pill, the "Saved." acknowledgement, Save changes and Publish, via slice E's actions slot. "New contest" is suppressed wherever the surface has actions of its own, so it stops competing with them.
+- [x] 6.5 EN/ES for 35 new strings. The existing review-draft unit tests stay green, with two following real changes: categories are chips here too, and publishing lands in the control room. New tests cover the pairing grid, the checklist, and mutual barring — including a draft holding a half-bar from before, which shows as the pair it was meant to be and is stored mutually on the next save.
+- [x] 6.6 Slice verification, then PR. Publishing now lands in the control room where the join code is; the browser suite caught that it also has to re-read the shared list, or the control room opens under a sidebar still calling the live contest a draft. **The preview pane stopped rendering midway**, so the second half of the live check was done through DOM measurement rather than by eye.
 
 ## 7. Slice G — the activity log on the shell
 

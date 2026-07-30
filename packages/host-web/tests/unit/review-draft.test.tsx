@@ -1,16 +1,26 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReviewDraft } from '../../src/pages/review-draft';
+import { ContestsProvider } from '../../src/contests/contests-provider';
+import { WithPanelSlots } from './support/panel-slots';
 import { ApiError, type DraftContent, type StoredDraft } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, getDraft: vi.fn(), publishDraft: vi.fn(), updateDraft: vi.fn() };
+  return {
+    ...actual,
+    getDraft: vi.fn(),
+    publishDraft: vi.fn(),
+    updateDraft: vi.fn(),
+    // Publishing re-reads the panel's list, so the provider is in play here too —
+    // without this the sidebar would go on calling the new live contest a draft.
+    listContests: vi.fn(),
+  };
 });
 import * as api from '../../src/api/client';
 
@@ -34,10 +44,17 @@ const DRAFT: StoredDraft = {
 function renderReview() {
   return render(
     <MemoryRouter initialEntries={['/review/d1']}>
-      <Routes>
-        <Route path="/review/:id" element={<ReviewDraft />} />
-        <Route path="/" element={<h1>Your contests</h1>} />
-      </Routes>
+      <ContestsProvider>
+        <WithPanelSlots>
+          <Routes>
+          <Route path="/review/:id" element={<ReviewDraft />} />
+          <Route path="/" element={<h1>Your contests</h1>} />
+          {/* Publishing lands in the control room now — the join code is the very
+              next thing a host needs, not another click away on the list. */}
+          <Route path="/contest/:id" element={<h1>Control room</h1>} />
+          </Routes>
+        </WithPanelSlots>
+      </ContestsProvider>
     </MemoryRouter>,
   );
 }
@@ -50,6 +67,7 @@ function savedContent(): DraftContent {
 
 describe('Edit draft', () => {
   beforeEach(() => {
+    vi.mocked(api.listContests).mockReset().mockResolvedValue([]);
     vi.mocked(api.getDraft).mockReset().mockResolvedValue(DRAFT);
     vi.mocked(api.publishDraft).mockReset().mockResolvedValue('c1');
     vi.mocked(api.updateDraft).mockReset().mockResolvedValue();
@@ -62,7 +80,7 @@ describe('Edit draft', () => {
     expect(await screen.findByRole('heading', { name: /Edit .Summer Tapas./ })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'Each couple is scored together' })).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Couples cannot score each other' })).toBeChecked();
-    expect(screen.getByLabelText('Category 1 name')).toHaveValue('Taste');
+    expect(screen.getByRole('list', { name: 'Scoring categories' })).toHaveTextContent('Taste');
     expect(screen.getByLabelText('Participant 1 name')).toHaveValue('Ana');
     expect(screen.getByLabelText('Participant 2 name')).toHaveValue('Bruno');
   });
@@ -114,14 +132,136 @@ describe('Edit draft', () => {
     expect(screen.getByText('A name is required.')).toBeInTheDocument();
   });
 
-  it('publishes the draft and returns to the list', async () => {
+  it('publishes the draft and lands in its control room', async () => {
     renderReview();
     await screen.findByRole('heading', { name: /Edit/ });
 
     await userEvent.click(screen.getByRole('button', { name: /Publish/ }));
 
     expect(api.publishDraft).toHaveBeenCalledWith('d1');
-    expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();
+    // Where the join code is, which is what a host needs the moment it goes live.
+    expect(await screen.findByRole('heading', { name: 'Control room' })).toBeInTheDocument();
+  });
+
+
+  /*
+   * The rule is offered as "chosen pairs cannot score each other" and used to write
+   * one direction only, so barring Núria from scoring Pau left Pau free to score
+   * Núria. Pairing on this same screen was already reciprocal; barring is now too.
+   */
+  it('bars a pair from scoring each other, both ways', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
+    await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
+    await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    const ps = savedContent().participants ?? [];
+    expect(ps.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
+    expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
+  });
+
+  it('lists a barred pair once, not once per person', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
+    await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
+    await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
+
+    const pairs = screen.getByRole('list', { name: 'Can’t score each other' });
+    expect(within(pairs).getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('lifts a bar from both sides', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
+    await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
+    await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Let Ana and Bruno score each other again' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    const ps = savedContent().participants ?? [];
+    expect(ps.find((p) => p.id === 'p1')?.noScoreWith ?? []).toEqual([]);
+    expect(ps.find((p) => p.id === 'p2')?.noScoreWith ?? []).toEqual([]);
+  });
+
+  it('shows a half-bar left by an older draft as the pair it was meant to be', async () => {
+    // One direction only, the way this screen used to write it.
+    vi.mocked(api.getDraft).mockResolvedValue({
+      ...DRAFT,
+      content: {
+        ...DRAFT.content,
+        participants: [
+          { id: 'p1', displayName: 'Ana', noScoreWith: ['p2'] },
+          { id: 'p2', displayName: 'Bruno' },
+        ],
+      },
+    });
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    const pairs = screen.getByRole('list', { name: 'Can’t score each other' });
+    expect(within(pairs).getAllByRole('listitem')).toHaveLength(1);
+
+    // And saving makes it mutual for good.
+    await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+    const ps = savedContent().participants ?? [];
+    expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
+  });
+
+  it('marks who still needs a partner, when scoring is per couple', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    // Neither is paired, and the draft is scored per couple.
+    expect(screen.getAllByText('needs a partner')).toHaveLength(2);
+    // Said in both places on purpose: on the checklist, and in the panel where the
+    // host sees it without scrolling.
+    expect(screen.getAllByText(/2 participants without a partner/)).toHaveLength(2);
+
+    await userEvent.selectOptions(screen.getByLabelText('Partner of Ana'), 'p2');
+
+    expect(screen.queryByText('needs a partner')).not.toBeInTheDocument();
+  });
+
+  it('does not ask about pairing when each person is scored on their own', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Each person is scored on their own' }));
+
+    // Pairing is beside the point, so nobody is short of anything.
+    expect(screen.queryByText('needs a partner')).not.toBeInTheDocument();
+    expect(screen.queryByText(/without a partner/)).not.toBeInTheDocument();
+  });
+
+  it('says what is ready and what is not before publishing', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    const checklist = screen.getByRole('region', { name: 'Publish checklist' });
+    expect(checklist).toHaveTextContent('Name set');
+    expect(checklist).toHaveTextContent('1 scoring category');
+    expect(checklist).toHaveTextContent('Score range fixed 1–5');
+    expect(checklist).toHaveTextContent('2 participants without a partner');
+  });
+
+  it('says everything is in place once nothing is missing', async () => {
+    renderReview();
+    await screen.findByRole('heading', { name: /Edit/ });
+
+    await userEvent.selectOptions(screen.getByLabelText('Partner of Ana'), 'p2');
+
+    const checklist = screen.getByRole('region', { name: 'Publish checklist' });
+    expect(checklist).toHaveTextContent('Everything needed is in place');
+    expect(checklist).not.toHaveTextContent('without a partner');
   });
 
   it('announces the reason when a draft is too incomplete to publish', async () => {

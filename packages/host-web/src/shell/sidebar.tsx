@@ -16,7 +16,14 @@ import styles from './sidebar.module.css';
  * drawn is `usePanelNav`'s answer, and the other kind is absent rather than shown
  * and refused. Nothing here is a control: the API decides on every request.
  */
-export function Sidebar({ nav }: { nav: PanelNav }) {
+export function Sidebar({
+  nav,
+  noteSlotRef,
+}: {
+  nav: PanelNav;
+  /** Receives the container a surface can portal a note into. */
+  noteSlotRef: (element: HTMLElement | null) => void;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -31,6 +38,9 @@ export function Sidebar({ nav }: { nav: PanelNav }) {
 
       <div className={styles.groups}>
         {nav.kind === 'admin' ? <AdminWays nav={nav} /> : <HostWays nav={nav} />}
+        {/* Whatever the surface wants said here — what a draft still needs, say.
+            The navigation knows the contest list, not what is inside a draft. */}
+        <div ref={noteSlotRef} />
       </div>
 
       <Footer isAdministrator={nav.kind === 'admin'} />

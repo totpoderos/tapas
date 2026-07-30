@@ -24,6 +24,7 @@ The change also widens two reads and adds one rendering, because the design show
 
 - The design's **Deployment** item under the administrator-only group. There is no such screen and this change does not invent one.
 - The rule space's **four-step wizard**. The mockup's sidebar reads *1 Name · 2 Rules · 3 Participants · 4 Review & publish*, but the same mockup puts name *and* rules in one content pane, so the steps are not screens — and the app has no wizard: creating a contest is one form, while participants and publishing live on draft review. A real wizard means new routes, per-step validation and draft autosave, which is a change of its own and not a restyle. The sidebar draws **two honest steps** instead — *Set it up* (current) and *Review & publish* (unreachable until something is saved) — keeping the mockup's intent, which is to show where you are and make saving feel cheap.
+- **Splitting draft review into "Rules" and "Participants & pairing".** The mockup gives them separate sidebar items; the app has one route and one form. This stays one screen laid out in the mockup's two columns, with the sidebar's single draft item unchanged. Splitting means new routes, which is a change of its own.
 - **In-place editing of a category label.** The mockup draws categories as chips with a remove control, and chips are what shipped, so fixing a typo means removing and retyping. Acceptable for labels of one or two words. Participants keep their editable rows: the mockup does not show them on this screen at all, draft review keeps them editable, and a person's name is longer and more typo-prone than "Taste".
 - The top bar's **search** field ("Search contests, people, events…"). The API can find a contest by name, but there is no people or event search, and building one is its own capability. The top bar is built without it.
 - Contest-scoped **Rules** and **Participants** ways-in for a *published* contest. Those screens exist only for a draft; a live contest's rules are read-only and the design already shows them, as "Rules in force", inside the control room. The contest-scoped navigation therefore offers Rules and Participants for a draft, and Control room / Activity log / Results for a published contest.
@@ -95,6 +96,34 @@ fills nothing leaves an empty container.
 One consequence to keep in mind: a portalled button is outside its form in the DOM,
 so a submit has to name its form with `form="…"`. That works in every browser this
 targets, and it is the reason the form carries a stable id.
+
+### Barring a pair is mutual, and was not
+
+`arbitrary_pairs` is offered to a host as *"chosen pairs cannot score each other"*.
+It delivered half of that: the editor wrote `noScoreWith` on one person, and the
+compiler's `isBarred` consults only the voter's own list — so barring Núria from
+scoring Pau left Pau free to score Núria.
+
+The screen was already inconsistent with itself about this. `setPartner` is
+symmetric: it writes the back-link and breaks the old pairing on both sides.
+Pairing was mutual and barring was not, in the same form.
+
+Barring now writes both directions and lifting removes both, so the option's own
+name becomes true. **No domain or API change**: the compiler does the right thing
+as soon as both directions are stored, which is the argument for fixing it here
+rather than teaching `isBarred` about symmetry it should not have to know about.
+
+One consequence to be plain about: a draft saved earlier with one-way data will
+show as a barred pair and become mutual the next time it is saved. That is a change
+to stored data, in the direction the option promised all along.
+
+### The publish checklist predicts; the server decides
+
+The checklist is derived on the client from the draft's own content, so a host can
+see what is missing without pressing publish and reading a refusal. It is not
+authority. Publishing still goes to the API and the API's answer still governs — if
+the two ever disagree, the server wins and the host is told what it said. The
+checklist exists to stop the guessing, not to replace the check.
 
 ### The navigation model is derived, not configured per page
 
