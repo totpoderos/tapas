@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '@tapas/ui';
@@ -10,6 +9,8 @@ import {
   type AssistantTurn,
   type PendingAction,
 } from '../api/client';
+import { useContests } from '../contests/contests-provider';
+import { PanelActions } from '../shell/panel-actions';
 import styles from './chat.module.css';
 
 // Known actions have a fixed, human phrasing (translated fixed UI); anything else
@@ -136,6 +137,7 @@ function loadChat(): PersistedChat {
  */
 export function Chat() {
   const { t } = useTranslation();
+  const { refresh: refreshContests } = useContests();
   const initial = useMemo(loadChat, []);
   const [feed, setFeed] = useState<readonly Feed[]>(initial.feed);
   const [history, setHistory] = useState<readonly AssistantMessage[]>(initial.history);
@@ -224,6 +226,14 @@ export function Chat() {
         if (turn.text) add({ kind: 'assistant', text: turn.text });
         setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows, t) }]);
       } else {
+        /*
+         * The assistant has just changed something. The shared contest list has
+         * to be re-read, or the panel goes on saying a contest it has closed is
+         * live — the same staleness the control room's own actions already
+         * refresh away. The assistant is a second path to the same changes, and
+         * this is the layer where the two would otherwise diverge.
+         */
+        refreshContests();
         add({ kind: 'ticket', text: resultSummary(turn.action, turn.result, t) });
         // A small model often calls a tool and says nothing at all. Rather than
         // leave a bare ticket, put what happened into words — the same sentence
@@ -312,11 +322,9 @@ export function Chat() {
 
   return (
     <main id="main" className={styles.page}>
-      <div className={styles.bar}>
-        <div className={styles.brand}>
-          <span className={styles.dot} aria-hidden="true" />
-          <b>{t('common.brand')}</b>
-        </div>
+      {/* Clearing belongs to this surface, so it sits in the panel's header
+          beside the breadcrumb rather than competing with the composer. */}
+      <PanelActions>
         <Button
           variant="ghost"
           onClick={clearConversation}
@@ -324,12 +332,19 @@ export function Chat() {
         >
           {t('chat.clear')}
         </Button>
-        <Link to="/" className={styles.back}>
-          {t('chat.back')}
-        </Link>
-      </div>
+      </PanelActions>
 
-      <h1 className={styles.title}>{t('chat.title')}</h1>
+      <div className={styles.head}>
+        <span className={styles.dot} aria-hidden="true" />
+        <h1 className={styles.title}>{t('chat.title')}</h1>
+        {/*
+         * Not decoration: what the assistant does really is recorded as having
+         * come through a connected tool, and the activity log can be narrowed to
+         * exactly these actions. The badge says which of the two the host is
+         * about to leave a trace as.
+         */}
+        <span className={styles.connected}>{t('chat.connectedTool')}</span>
+      </div>
       <p className={styles.lead}>{t('chat.lead')}</p>
 
       {/* Outside the feed on purpose: emptying a live region announces nothing,
@@ -467,13 +482,21 @@ function ConfirmDialog({
         className={styles.card}
       >
         <h2 id="confirm-title" className={styles.cardTitle}>
-          <span aria-hidden="true">⚠</span> {t('chat.confirmTitle')}
+          {t('chat.confirmTitle')}
         </h2>
         <p id="confirm-body" className={styles.cardBody}>
-          {t('chat.confirmBodyLead')} <span className={styles.cardDetail}>{labelFor(action, t)}</span>
+          {t('chat.confirmBodyLead')} <b className={styles.cardDetail}>{labelFor(action, t)}</b>
           {t('chat.confirmBodyTail')}
         </p>
         <div className={styles.cardActions}>
+          {/*
+           * Cancel first — the mockup draws agreeing first, and that is not
+           * followed. Focus opens on whatever comes first here, and opening it on
+           * the button that closes a contest means a stray Enter does the thing
+           * the card exists to prevent. Reordering visually with CSS would only
+           * move the problem: tab order would then disagree with reading order
+           * (WCAG 2.4.3). So the safe default keeps both.
+           */}
           <Button variant="ghost" onClick={onCancel}>
             {t('chat.cancel')}
           </Button>

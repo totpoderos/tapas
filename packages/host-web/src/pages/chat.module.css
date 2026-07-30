@@ -1,23 +1,21 @@
+/*
+ * The assistant is a column: a header that stays, the conversation scrolling
+ * between, and the composer pinned at the foot. The shell supplies the page's
+ * own chrome, so what is left here is the conversation itself.
+ */
 .page {
-  max-width: 820px;
-  margin: 0 auto;
-  padding: 24px 28px 0;
-  height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 20px 24px 0;
+  min-height: 0;
 }
-.bar {
+
+.head {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .dot {
   width: 9px;
@@ -26,34 +24,30 @@
   background: var(--saffron);
   box-shadow: 0 0 0 3px var(--saffron-soft);
 }
-.brand b {
-  font-family: var(--serif);
-  font-size: 21px;
+.title {
+  font-size: 22px;
+  margin: 0;
 }
-.back {
-  min-height: 44px;
+/* Says which of the two ways of working a host is about to leave a trace as. */
+.connected {
   display: inline-flex;
   align-items: center;
-  color: var(--ink-2);
-  text-decoration: none;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--pending-soft);
+  color: var(--pending);
   font-weight: 600;
-}
-.back:hover {
-  color: var(--ink);
-}
-
-.title {
-  font-size: 26px;
-  margin: 18px 0 4px;
+  font-size: 11px;
 }
 .lead {
   color: var(--ink-2);
-  margin: 0 0 16px;
+  margin: 6px 0 16px;
 }
 
 /* The conversation feed. */
 .feed {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -69,11 +63,15 @@
 .assistant {
   justify-content: flex-start;
 }
+/*
+ * Told apart by side and by shape — which corner is squared off — as well as by
+ * colour, so the conversation still reads as a conversation without it.
+ */
 .bubble {
   max-width: 78%;
-  padding: 12px 16px;
+  padding: 12px 15px;
   border-radius: 14px;
-  line-height: 1.5;
+  line-height: 1.55;
   white-space: pre-wrap;
 }
 .user .bubble {
@@ -82,25 +80,30 @@
   border-bottom-right-radius: 4px;
 }
 .assistant .bubble {
-  background: var(--surface-2);
+  background: var(--surface);
   color: var(--ink);
+  border: 1px solid var(--line);
   border-bottom-left-radius: 4px;
 }
 
 /* A tool call shown in the open — "what the assistant did". */
+/*
+ * What was carried out, said in words rather than in a monospace echo of the
+ * call: "closed this contest — now Closed" is what a host wants to read back.
+ * Deliberately unlike the refusal below it, since telling the two apart is the
+ * whole point of showing either.
+ */
 .ticket {
   align-self: flex-start;
   max-width: 78%;
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--ink-2);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--good-soft);
+  color: var(--good);
+  font-weight: 600;
+  font-size: 14px;
 }
 .ticketAction {
-  color: var(--good);
   font-weight: 600;
 }
 .note {
@@ -195,12 +198,23 @@
   color: var(--ink);
 }
 
-/* Composer. */
+/*
+ * Composer, pinned at the foot of the column and set apart from the scrolling
+ * conversation the way the design draws it — its own surface, so it stays
+ * legible when a bubble scrolls up behind it.
+ */
 .composer {
   display: flex;
   gap: 10px;
-  padding: 14px 0 24px;
+  padding: 16px 0 20px;
+  background: var(--ground);
   border-top: 1px solid var(--line);
+  /*
+   * No negative margin to bleed it to the page's edge. That has to know the
+   * padding around it, and the shell's padding is not this file's to assume —
+   * at 375px it put the composer 12px past the viewport. The rule and the
+   * surface set it apart from the conversation without the coupling.
+   */
 }
 .input {
   flex: 1;
@@ -217,13 +231,25 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20, 12, 18, 0.55);
+  /*
+   * Near-black rather than a tinted dim. The tint was within a few points of the
+   * dark theme's own ground, so on a dark screen the backdrop dimmed nothing and
+   * the card stopped reading as modal — the one thing it has to read as.
+   */
+  background: rgba(0, 0, 0, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px;
   z-index: 50;
 }
+/*
+ * The card keeps a plain surface under its danger accent. The design tints this
+ * plate brand-soft, but it draws the confirmation *inline in the feed*, where a
+ * tint is what separates it from the conversation. This one is a modal over a
+ * backdrop, which already separates it — and a warm rule reading "irreversible"
+ * needs a quiet plate to read against, not a purple one.
+ */
 .card {
   width: min(440px, 100%);
   background: var(--surface);

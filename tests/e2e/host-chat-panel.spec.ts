@@ -125,8 +125,9 @@ test('the conversation is kept when leaving the panel and coming back', async ({
   const log = page.getByRole('log', { name: 'Conversation' });
   await expect(log.getByText('hello there')).toBeVisible();
 
-  // Leave for the contest list, then return via the Assistant link.
-  await page.getByRole('link', { name: 'Back to contests' }).click();
+  // Leave for the contest list, then return via the Assistant link. Both are the
+  // panel's now — the page's own back link went with its brand bar.
+  await page.getByRole('link', { name: 'All contests' }).click();
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
   await page.getByRole('link', { name: 'Assistant' }).click();
 

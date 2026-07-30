@@ -11,9 +11,16 @@ expect.extend(toHaveNoViolations);
 vi.mock('../../src/api/client', async () => {
   const actual =
     await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, sendAssistantMessage: vi.fn(), confirmAssistantAction: vi.fn() };
+  return {
+    ...actual,
+    sendAssistantMessage: vi.fn(),
+    confirmAssistantAction: vi.fn(),
+    listContests: vi.fn(),
+  };
 });
 import * as api from '../../src/api/client';
+import { WithPanelSlots } from './support/panel-slots';
+import { WithContests } from './support/with-contests';
 
 const CONFIRM_TURN: AssistantTurn = {
   kind: 'confirm',
@@ -26,7 +33,11 @@ const CONFIRM_TURN: AssistantTurn = {
 function renderChat() {
   return render(
     <MemoryRouter initialEntries={['/chat']}>
-      <Chat />
+      <WithContests>
+        <WithPanelSlots>
+          <Chat />
+        </WithPanelSlots>
+      </WithContests>
     </MemoryRouter>,
   );
 }
