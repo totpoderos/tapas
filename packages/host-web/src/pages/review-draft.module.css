@@ -1,295 +1,299 @@
-.page {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px 28px 96px;
-}
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
-}
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-.brand b {
-  font-family: var(--serif);
-  font-size: 21px;
-}
-.back {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-2);
-  text-decoration: none;
-  font-weight: 600;
-}
-.back:hover {
-  color: var(--ink);
+.heading {
+  margin-bottom: 20px;
 }
 .title {
-  font-size: 32px;
-  margin: 0 0 6px;
+  font: 400 30px/1.2 var(--serif);
+  margin: 0 0 4px;
 }
 .lead {
+  margin: 0;
+  font: 400 15px var(--sans);
   color: var(--ink-2);
-  margin: 0 0 28px;
 }
 .note {
   color: var(--ink-2);
   margin: 0;
 }
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-weight: 600;
-  margin-bottom: 20px;
+.wide {
+  margin-bottom: 16px;
+  max-width: 620px;
 }
 
-/* Read-only rule summary. */
-.rules {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  margin: 0 0 28px;
-  padding: 4px 22px;
-}
-.rule {
+/* The design's two columns: what is being changed, and what is true about it. */
+.columns {
   display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 16px;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
+  align-items: start;
 }
-.rule:last-child {
-  border-bottom: none;
-}
-.ruleLabel {
-  color: var(--ink-2);
-  font-weight: 600;
-}
-.ruleValue {
-  color: var(--ink);
-}
-.tags {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.tag {
-  display: inline-flex;
-  padding: 3px 11px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--ink);
-  font-size: 14px;
-}
-
-/* Rename control. */
-.rename {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  margin-bottom: 28px;
-}
-.rename > div {
-  flex: 1;
-}
-
-/* Actions. */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-/* --- Editable form (real draft editing) ---------------------------------- */
-.form {
+.main,
+.aside {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 18px;
+  min-width: 0;
 }
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 .group {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 20px 22px;
-  margin: 0;
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.group:last-of-type {
+  margin-bottom: 0;
 }
 .legend {
-  font-family: var(--serif);
-  font-size: 19px;
   padding: 0;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
+  font: 400 19px var(--serif);
+  color: var(--ink);
 }
-.groupHint {
+.cardHint {
+  margin: -6px 0 12px;
+  font: 400 13px var(--sans);
   color: var(--ink-2);
-  font-size: 14px;
-  margin: 0 0 16px;
 }
+
+/* Choices, as on the rule space. */
 .choices {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
-.choice {
+.choiceCard {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-height: 44px;
-  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font: 400 15px var(--sans);
+  cursor: pointer;
 }
-.choice input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--brand);
+.choiceCard.chosen {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+.choiceCard:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.sideBySide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sideBySide .choiceCard {
+  flex: 1;
+  min-width: 12rem;
 }
 .inline {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
-.rows {
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  font: 400 14px var(--sans);
+  cursor: pointer;
+}
+
+/* What dishes are judged on. */
+.chips {
   list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font: 600 14px var(--sans);
+}
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chipRemove:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.input {
+  flex: 1;
+  min-width: 8rem;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  /* 16px, so iOS does not zoom the page when it takes focus. */
+  font: 400 16px var(--sans);
+}
+.select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 16px var(--sans);
+}
+.empty {
   margin: 12px 0 0;
+  font: 400 14px var(--sans);
+  color: var(--ink-2);
+}
+
+/* Who is taking part, and who they are paired with. */
+.people {
+  list-style: none;
+  margin: 14px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-.row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.row input {
-  flex: 1;
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-}
-.numberField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.numberField label {
-  font-size: 14px;
-  font-weight: 600;
-}
-.numberField input {
-  width: 120px;
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-}
-.remove {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: 14px;
-  cursor: pointer;
-}
-.add {
-  align-self: flex-start;
-  margin-top: 12px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--brand);
-  font: 600 14px var(--sans);
-  cursor: pointer;
-}
-.empty {
-  color: var(--ink-2);
-  font-size: 14px;
-  margin: 8px 0 0;
-}
-
-/* Couple pairing + per-pair no-score editors. */
 .personRow {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .partner {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 .partnerLabel {
-  font-size: 13px;
+  font: 400 13px var(--sans);
   color: var(--ink-2);
+  white-space: nowrap;
 }
-.partner select {
-  min-height: 44px;
-  padding: 0 8px;
-  font-size: 15px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
+/* Wanting a partner: an edge and a wording, since the edge alone says nothing to
+   somebody who cannot see it. */
+.wanting {
+  border-color: var(--danger);
 }
-.noScore {
-  font-size: 14px;
-  color: var(--ink-2);
+.wantingNote {
+  font: 400 13px var(--sans);
+  color: var(--pending);
 }
-.noScore summary {
-  cursor: pointer;
-  min-height: 32px;
+
+/* Pairs barred from scoring each other. */
+.pairs {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pair {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 12px;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  font: 400 14px var(--sans);
 }
-.noScoreList {
-  list-style: none;
-  margin: 6px 0 0;
-  padding: 0 0 0 8px;
+.addPair {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+.pairPick {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.saved {
+
+/* What is ready, and what is not. */
+.checklist {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font: 400 14px var(--sans);
+}
+.checklist li {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+}
+.mark {
+  font-weight: 700;
+}
+.done .mark {
   color: var(--good);
-  font-weight: 600;
+}
+.todo {
+  color: var(--pending);
+}
+.todo .mark {
+  color: var(--pending);
+}
+.readyNote {
   margin: 0;
+  font: 600 14px var(--sans);
+  color: var(--good);
+}
+.notReadyNote {
+  margin: 0;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+
+/* "Saved.", in the panel's header beside the actions. */
+.savedNote {
+  font: 400 13px var(--sans);
+  color: var(--good);
+  white-space: nowrap;
+}
+.savedNote:empty {
+  display: none;
 }

@@ -1,11 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState, type ReactNode } from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewContest } from '../../src/pages/new-contest';
-import { PanelActionsSlotProvider } from '../../src/shell/panel-actions';
+import { WithPanelSlots } from './support/panel-slots';
 import type { DraftContent } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
@@ -16,33 +15,16 @@ vi.mock('../../src/api/client', async () => {
 });
 import * as api from '../../src/api/client';
 
-/**
- * The panel's header slot, arranged exactly as the shell arranges it.
- *
- * Save and Cancel live in that header now, portalled out of the form. Rendered
- * without a slot they would not exist at all, so this stands in for the shell —
- * in the tree rather than appended to the body, so `axe` sees them too.
- */
-function WithHeaderSlot({ children }: { children: ReactNode }) {
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  return (
-    <>
-      <div ref={setSlot} />
-      <PanelActionsSlotProvider slot={slot}>{children}</PanelActionsSlotProvider>
-    </>
-  );
-}
-
 /** Renders the form at /new with a stub list page, so a save can navigate to "/". */
 function renderForm() {
   return render(
     <MemoryRouter initialEntries={['/new']}>
-      <WithHeaderSlot>
+      <WithPanelSlots>
         <Routes>
           <Route path="/new" element={<NewContest />} />
           <Route path="/" element={<h1>Your contests</h1>} />
         </Routes>
-      </WithHeaderSlot>
+      </WithPanelSlots>
     </MemoryRouter>,
   );
 }

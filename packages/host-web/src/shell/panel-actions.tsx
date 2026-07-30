@@ -2,27 +2,24 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
- * Where a surface's own actions go: the panel's header.
+ * The two places a surface can put something into the panel around it: the header's
+ * actions, and a note in the navigation.
  *
- * The shell owns the header and the surface owns the action, so something has to
- * bridge them. This is a portal rather than a context holding a `ReactNode`,
- * because passing an element up through state means an effect on every surface, a
- * first render where the header is empty before that effect runs, and a cleanup
- * racing the next surface's setup — all to do what the DOM already does.
- *
- * A surface that renders nothing here leaves the container empty, which is what
- * the contest list and the control room do.
+ * Both are portals rather than contexts holding a `ReactNode`, because passing an
+ * element up through state means an effect on every surface, a first render where
+ * the panel is empty before that effect runs, and a cleanup racing the next
+ * surface's setup — all to do what the DOM already does. A surface that renders
+ * nothing leaves the container empty.
  */
-const SlotContext = createContext<HTMLElement | null>(null);
+interface Slots {
+  readonly actions: HTMLElement | null;
+  readonly note: HTMLElement | null;
+}
 
-export function PanelActionsSlotProvider({
-  slot,
-  children,
-}: {
-  slot: HTMLElement | null;
-  children: ReactNode;
-}) {
-  return <SlotContext.Provider value={slot}>{children}</SlotContext.Provider>;
+const SlotContext = createContext<Slots>({ actions: null, note: null });
+
+export function PanelSlotProvider({ slots, children }: { slots: Slots; children: ReactNode }) {
+  return <SlotContext.Provider value={slots}>{children}</SlotContext.Provider>;
 }
 
 /**
@@ -36,6 +33,19 @@ export function PanelActionsSlotProvider({
  * the form it belongs to: `<Button type="submit" form="…">`.
  */
 export function PanelActions({ children }: { children: ReactNode }) {
-  const slot = useContext(SlotContext);
-  return slot ? createPortal(children, slot) : null;
+  const { actions } = useContext(SlotContext);
+  return actions ? createPortal(children, actions) : null;
+}
+
+/**
+ * Renders its children into the panel's navigation, under whatever the surface is
+ * scoped to.
+ *
+ * For something the host should see without scrolling the surface — what a draft
+ * still needs before it can be published, say. The navigation cannot work that out
+ * itself: it knows the contest list, not what is inside a draft.
+ */
+export function PanelNote({ children }: { children: ReactNode }) {
+  const { note } = useContext(SlotContext);
+  return note ? createPortal(children, note) : null;
 }

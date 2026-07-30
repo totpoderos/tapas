@@ -45,13 +45,16 @@ export function TopBar({
         {/* Whatever the surface puts here comes first: it is about this screen,
             where starting another contest is about the panel. */}
         <div ref={actionSlotRef} className={styles.surfaceActions} />
-        {/* Not offered while already setting one up — the surface's own Save and
-            Cancel are the actions that matter there. */}
-        {nav.kind !== 'admin' && !(nav.kind === 'deployment' && nav.current === 'new') && (
-          <Link to="/new" className={styles.newContest}>
-            {t('shell.newContest')}
-          </Link>
-        )}
+        {/* Not offered where the surface has actions of its own: setting a contest
+            up, or getting one ready to go live. Starting another contest is not what
+            the host is doing there, and it competes with what is. */}
+        {nav.kind !== 'admin' &&
+          nav.kind !== 'draft' &&
+          !(nav.kind === 'deployment' && nav.current === 'new') && (
+            <Link to="/new" className={styles.newContest}>
+              {t('shell.newContest')}
+            </Link>
+          )}
       </div>
     </header>
   );

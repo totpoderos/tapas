@@ -53,9 +53,12 @@ test('a host publishes a complete draft and it goes live', async ({ page }) => {
   await page.goto(`/review/${id}`);
   await page.getByRole('button', { name: /Publish/ }).click();
 
-  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  const row = page.getByRole('row').filter({ hasText: 'Balcony Cook-off' });
-  await expect(row).toContainText('Live');
+  // Publishing lands in the control room now, where the join code is — the very
+  // next thing a host needs, rather than another click away on the list.
+  await expect(page.getByRole('region', { name: 'Progress' })).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Panel navigation' }).getByText('Live'),
+  ).toBeVisible();
 });
 
 test('an incomplete draft cannot be taken live', async ({ page }) => {
@@ -97,6 +100,8 @@ test('the review screen is keyboard-operable and has no accessibility violations
 
   await page.getByRole('button', { name: /Publish/ }).focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
-  await expect(page.getByRole('row').filter({ hasText: 'Rooftop Rounds' })).toContainText('Live');
+  await expect(page.getByRole('region', { name: 'Progress' })).toBeVisible();
+  await expect(
+    page.getByRole('navigation', { name: 'Panel navigation' }).getByText('Live'),
+  ).toBeVisible();
 });
