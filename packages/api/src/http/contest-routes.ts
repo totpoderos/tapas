@@ -12,6 +12,7 @@ import { toResultsDto } from '../contests/results-dto.js';
 import { toRevealDto } from '../contests/reveal-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
+import { provenanceOfRequest } from './request-provenance.js';
 import { requireHostSession } from './require-host-session.js';
 import type { ServerDeps } from './server-deps.js';
 
@@ -163,6 +164,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       const deleted = deps.deleteContest.execute(request.params.id, request.hostSession.id, {
         confirmName: request.query.confirm,
         confirmation: hostConfirmed(request),
+        provenance: provenanceOfRequest(request),
       });
       if (!deleted.ok) {
         return reply
@@ -190,6 +192,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       const closed = deps.closeContest.execute(request.params.id, {
         actorId: request.hostSession.id,
         confirmation: hostConfirmed(request),
+        provenance: provenanceOfRequest(request),
       });
       if (!closed.ok) {
         return reply
@@ -217,6 +220,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       const revealed = deps.revealContest.execute(request.params.id, {
         actorId: request.hostSession.id,
         confirmation: hostConfirmed(request),
+        provenance: provenanceOfRequest(request),
       });
       if (!revealed.ok) {
         return reply

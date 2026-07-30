@@ -9,6 +9,19 @@ export interface AuditContext {
   readonly confirmation?: 'host' | 'auto';
 }
 
+/**
+ * How an action arrived, without saying whether anyone confirmed it.
+ *
+ * The two travel separately because they answer different questions and are
+ * decided in different places: confirmation is a property of *this* request,
+ * while provenance is carried across the assistant's dispatch. Use cases take
+ * this and add their own confirmation handling on top.
+ */
+export type AuditProvenance = Pick<AuditContext, 'sourcePath' | 'toolName' | 'toolArgs'>;
+
+/** Nobody said otherwise: a host working in the app directly. */
+export const IN_APP: AuditProvenance = { sourcePath: 'form' };
+
 /** Boundary dependencies the pure domain must not own. */
 export interface Clock {
   now(): string;

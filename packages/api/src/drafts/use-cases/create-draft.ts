@@ -1,5 +1,5 @@
 import { Draft, type DraftContent } from '@tapas/domain';
-import type { SourcePath } from '@tapas/shared';
+import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { StoredDraft } from '../stored-draft.js';
 import { withParticipantIds, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
 
@@ -7,7 +7,7 @@ import { withParticipantIds, type DraftUseCaseDeps, type DraftWriteResult } from
 export class CreateDraft {
   constructor(private readonly deps: DraftUseCaseDeps) {}
 
-  execute(hostId: string, content: DraftContent, sourcePath: SourcePath = 'form'): DraftWriteResult {
+  execute(hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): DraftWriteResult {
     // Participants may arrive without ids (the assistant sends names); assign
     // them before the domain sees the draft — see withParticipantIds.
     const withIds = withParticipantIds(content, this.deps.ids);
@@ -26,7 +26,7 @@ export class CreateDraft {
     this.deps.drafts.insert(stored);
     this.deps.audit.record(
       { type: 'draft.saved', contestId: stored.id, actorId: hostId, after: content },
-      { sourcePath },
+      provenance,
     );
     return { ok: true, draft: stored };
   }

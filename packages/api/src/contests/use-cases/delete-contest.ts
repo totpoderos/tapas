@@ -1,3 +1,4 @@
+import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { DeleteContestDeps, DeleteContestResult } from './shared.js';
 
 /** Whether the contest has anything of anyone else's invested in it yet. */
@@ -37,7 +38,11 @@ export class DeleteContest {
   execute(
     contestId: string,
     hostId: string,
-    options: { readonly confirmName?: string; readonly confirmation?: 'host' | 'auto' } = {},
+    options: {
+      readonly confirmName?: string;
+      readonly confirmation?: 'host' | 'auto';
+      readonly provenance?: AuditProvenance;
+    } = {},
   ): DeleteContestResult {
     const contest = this.deps.contests.findById(contestId);
     const draft = contest ? undefined : this.deps.drafts.findById(contestId);
@@ -80,11 +85,14 @@ export class DeleteContest {
       this.deps.audit.deleteByContest(contestId);
       this.deps.audit.record(
         { type: 'contest.deleted', contestId, actorId: hostId },
-        // `sourcePath: 'form'` matches CloseContest and RevealContest. The API
-        // deliberately cannot tell an in-app session from an external MCP client
-        // (require-host-session.ts) — a PAT's use is accountable through the
-        // security event log (`pat.used`), not through this field.
-        { sourcePath: 'form', confirmation: options.confirmation ?? 'host' },
+        // An action the host asked their assistant for is recorded as having come
+        // through a connected tool; one taken in the app is recorded as the app's.
+        // What this still cannot tell apart is an **external MCP client** holding
+        // a PAT: that does not pass through the assistant's dispatch, and the API
+        // deliberately cannot tell such a session from an in-app one
+        // (require-host-session.ts). Its use stays accountable through the
+        // security event log (`pat.used`) rather than through this field.
+        { ...(options.provenance ?? IN_APP), confirmation: options.confirmation ?? 'host' },
       );
     });
 

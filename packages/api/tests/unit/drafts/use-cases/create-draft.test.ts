@@ -28,12 +28,29 @@ describe('CreateDraft', () => {
     expect(auditLog.entries).toHaveLength(0);
   });
 
-  it('tags the audit entry with the given source path', () => {
+  it('records how the action arrived, and what asked for it', () => {
     const { deps, auditLog } = makeDraftDeps();
 
-    const creation = new CreateDraft(deps).execute('host-1', draftNamed('Via chat'), 'mcp');
+    const creation = new CreateDraft(deps).execute('host-1', draftNamed('Via chat'), {
+      sourcePath: 'mcp',
+      toolName: 'create_draft',
+      toolArgs: { name: 'Via chat' },
+    });
 
     if (!creation.ok) throw new Error('expected success');
-    expect(auditLog.findByContest(creation.draft.id)[0]?.sourcePath).toBe('mcp');
+    const entry = auditLog.findByContest(creation.draft.id)[0];
+    expect(entry?.sourcePath).toBe('mcp');
+    expect(entry?.toolName).toBe('create_draft');
+    expect(entry?.toolArgs).toMatchObject({ name: 'Via chat' });
+  });
+
+  it('records an unmarked call as the app', () => {
+    // The default matters: a direct call is a host working in the app.
+    const { deps, auditLog } = makeDraftDeps();
+
+    const creation = new CreateDraft(deps).execute('host-1', draftNamed('By hand'));
+
+    if (!creation.ok) throw new Error('expected success');
+    expect(auditLog.findByContest(creation.draft.id)[0]?.sourcePath).toBe('form');
   });
 });

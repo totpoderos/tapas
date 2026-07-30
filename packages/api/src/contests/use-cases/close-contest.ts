@@ -1,3 +1,4 @@
+import { IN_APP } from '../../audit/audit-projection.js';
 import type { CloseContestDeps, CloseContestResult, StatusChangeContext } from './shared.js';
 
 /**
@@ -30,7 +31,7 @@ export class CloseContest {
         before: { status: 'live' },
         after: { status: 'closed' },
       },
-      { sourcePath: 'form', confirmation: context.confirmation },
+      { ...(context.provenance ?? IN_APP), confirmation: context.confirmation },
     );
     return { ok: true, contest: { ...contest, status: 'closed', closedAt } };
   }

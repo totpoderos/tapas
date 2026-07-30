@@ -250,3 +250,40 @@ test('the log holds together on a narrow screen', async ({ page }) => {
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('an action the assistant took is told apart from the host’s own', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-log-provenance@sobremesa.es');
+  // Live, not already closed: the assistant needs something left to do.
+  const created = await page.request.post('/drafts', { data: completeContent('Balcony Cook-off') });
+  const id = (await created.json()).id as string;
+  expect((await page.request.post(`/drafts/${id}/publish`)).ok()).toBe(true);
+
+  /*
+   * The whole loop, in a browser: the host asks the assistant to do something,
+   * the assistant dispatches it back through the API, and the log says it came
+   * through a connected tool. Before provenance was carried across that
+   * dispatch this filter could never match a row — which no unit test noticed,
+   * because each half worked on its own.
+   */
+  await page.goto('/chat');
+  await page.getByLabel('Message the assistant').fill(`close contest ${id}`);
+  await page.getByRole('button', { name: 'Send' }).click();
+  await page.getByRole('button', { name: 'Yes, do it' }).click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+  await page.goto(`/log/${id}`);
+  await page.getByRole('radio', { name: /Connected tool/ }).check();
+
+  const closed = log(page).getByRole('row').filter({ hasText: 'Contest closed' });
+  await expect(closed).toHaveCount(1);
+  await expect(closed).toContainText('Connected tool');
+  // Still the host's action, and still one they confirmed.
+  await expect(closed).toContainText('you');
+  await expect(closed).toContainText('You confirmed');
+
+  // And what the host did in the app is not swept in with it.
+  await expect(log(page).getByText('Draft saved')).toHaveCount(0);
+  await page.getByRole('radio', { name: /In-app/ }).check();
+  await expect(log(page).getByText('Draft saved')).toBeVisible();
+  await expect(log(page).getByText('Contest closed')).toHaveCount(0);
+});

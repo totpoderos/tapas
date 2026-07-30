@@ -46,7 +46,7 @@ class CookieJar {
 async function request(
   app: FastifyInstance,
   jar: CookieJar,
-  options: { method: 'GET' | 'POST'; url: string; payload?: object },
+  options: { method: 'GET' | 'POST' | 'PATCH'; url: string; payload?: object },
 ): Promise<LightMyRequestResponse> {
   const response = await app.inject({ ...options, headers: { cookie: jar.header() } });
   jar.capture(response);
@@ -70,7 +70,61 @@ interface Entry {
   type: string;
   actorId: string;
   occurredAt: string;
+  sourcePath: 'form' | 'mcp' | 'system';
+  toolName?: string;
+  toolArgs?: unknown;
   confirmation?: 'host' | 'auto';
+}
+
+/** A draft, unpublished — what a rename acts on. */
+async function draftFor(app: FastifyInstance, jar: CookieJar, name: string): Promise<string> {
+  const created = await request(app, jar, {
+    method: 'POST',
+    url: '/drafts',
+    payload: completeContent(name),
+  });
+  expect(created.statusCode).toBe(201);
+  return created.json().id as string;
+}
+
+/** Has the assistant rename a draft, the way a host asking it to would. */
+async function assistantRenames(
+  app: FastifyInstance,
+  jar: CookieJar,
+  llm: ScriptedLLMClient,
+  draftId: string,
+  name: string,
+): Promise<void> {
+  llm.next = { text: '', toolCalls: [{ name: 'update_draft', arguments: { draftId, name } }] };
+  const turn = await request(app, jar, {
+    method: 'POST',
+    url: '/assistant/messages',
+    payload: { messages: [{ role: 'user', content: `call it ${name}` }] },
+  });
+  expect(turn.json().kind).toBe('result');
+}
+
+/**
+ * Everything recorded against a draft, read the only way it can be: a draft has
+ * no readable history until it becomes a contest, so it is published first. The
+ * renames happened while it was still a draft, which is the only time a draft
+ * can be renamed at all.
+ */
+async function historyOf(app: FastifyInstance, jar: CookieJar, draftId: string): Promise<Entry[]> {
+  const published = await request(app, jar, { method: 'POST', url: `/drafts/${draftId}/publish` });
+  expect(published.statusCode).toBe(201);
+  const log = await request(app, jar, { method: 'GET', url: `/contests/${draftId}/audit` });
+  expect(log.statusCode).toBe(200);
+  return log.json() as Entry[];
+}
+
+/** The most recent rename recorded against a draft. */
+async function lastRename(
+  app: FastifyInstance,
+  jar: CookieJar,
+  draftId: string,
+): Promise<Entry | undefined> {
+  return (await historyOf(app, jar, draftId)).filter((e) => e.type === 'draft.updated').at(-1);
 }
 
 describeFeature(feature, ({ Scenario }) => {
@@ -326,6 +380,172 @@ describeFeature(feature, ({ Scenario }) => {
        */
       const rows = file.body.trimEnd().split('\r\n').slice(1);
       expect(rows.map((row) => row.split(',')[0])).toEqual(onScreen.map((entry) => entry.type));
+    });
+  });
+
+  /*
+   * Provenance. The assistant runs a tool by dispatching an ordinary request
+   * back through this same API, so these drive the real assistant and then read
+   * the real log — a unit test of the plumbing would not have caught that the
+   * plumbing was never connected.
+   */
+  Scenario("An assistant renaming a draft is recorded as the assistant's work", ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let draftId: string;
+    let renamed: Entry | undefined;
+
+    Given('a signed-in host with a draft', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+      draftId = await draftFor(app, jar, 'Summer Tapas');
+    });
+    When('that host asks the assistant to rename it', async () => {
+      await assistantRenames(app, jar, llm, draftId, 'Autumn Tapas');
+      renamed = await lastRename(app, jar, draftId);
+    });
+    Then('the renaming is recorded as having come through a connected tool', () => {
+      expect(renamed?.sourcePath).toBe('mcp');
+    });
+    And('it names the tool that renamed it', () => {
+      expect(renamed?.toolName).toBe('update_draft');
+    });
+    And('the new name it was asked for is recorded with it', () => {
+      expect(renamed?.toolArgs).toMatchObject({ name: 'Autumn Tapas' });
+    });
+  });
+
+  Scenario("The same action taken in the app is recorded as the host's own", ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let draftId: string;
+    let renamed: Entry | undefined;
+
+    Given('a signed-in host with a draft', async () => {
+      ({ app } = makeTestApp());
+      jar = await signedInHost(app, 'ana@example.com');
+      draftId = await draftFor(app, jar, 'Summer Tapas');
+    });
+    When('that host renames it in the app', async () => {
+      const response = await request(app, jar, {
+        method: 'PATCH',
+        url: `/drafts/${draftId}`,
+        payload: { name: 'Autumn Tapas' },
+      });
+      expect(response.statusCode).toBe(200);
+      renamed = await lastRename(app, jar, draftId);
+    });
+    Then('the renaming is recorded as having come from the app', () => {
+      expect(renamed?.sourcePath).toBe('form');
+    });
+    And('it names no tool', () => {
+      expect(renamed?.toolName).toBeUndefined();
+    });
+  });
+
+  Scenario('A host can tell the two apart in one history', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let draftId: string;
+    let renames: Entry[];
+
+    Given('a signed-in host who has renamed a draft in the app and had the assistant rename it too', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+      draftId = await draftFor(app, jar, 'Summer Tapas');
+      await request(app, jar, {
+        method: 'PATCH',
+        url: `/drafts/${draftId}`,
+        payload: { name: 'By hand' },
+      });
+      await assistantRenames(app, jar, llm, draftId, 'By assistant');
+    });
+    When('that host reads the recorded history', async () => {
+      renames = (await historyOf(app, jar, draftId)).filter((e) => e.type === 'draft.updated');
+      expect(renames).toHaveLength(2);
+    });
+    Then('the two renamings are recorded with different sources', () => {
+      expect(new Set(renames.map((e) => e.sourcePath)).size).toBe(2);
+    });
+    And("only the assistant's is left when the history is narrowed to a connected tool", () => {
+      const throughATool = renames.filter((e) => e.sourcePath === 'mcp');
+      expect(throughATool).toHaveLength(1);
+      expect(throughATool[0]?.toolArgs).toMatchObject({ name: 'By assistant' });
+    });
+  });
+
+  Scenario("An assistant's action is still the host's action", ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let draftId: string;
+    let hostId: string;
+    let renamed: Entry | undefined;
+
+    Given('a signed-in host who asked the assistant to rename a draft', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+      const me = await request(app, jar, { method: 'GET', url: '/auth/me' });
+      hostId = me.json().hostId;
+      draftId = await draftFor(app, jar, 'Summer Tapas');
+      await assistantRenames(app, jar, llm, draftId, 'Autumn Tapas');
+    });
+    When('that host reads the recorded history', async () => {
+      renamed = await lastRename(app, jar, draftId);
+    });
+    Then('the renaming names the host as the actor', () => {
+      /*
+       * Provenance says how the action arrived, not who is answerable for it.
+       * The assistant holds no identity and no authorization of its own.
+       */
+      expect(renamed?.actorId).toBe(hostId);
+    });
+  });
+
+  Scenario('A destructive action through the assistant is both connected-tool and confirmed', ({ Given, And, When, Then }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let contestId: string;
+    let closed: Entry | undefined;
+
+    Given('a signed-in host with a running contest', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+      contestId = await liveContest(app, jar, 'Balcony Cook-off');
+    });
+    And('that host closes it through the assistant, confirming when asked', async () => {
+      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId } }] };
+      const asked = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'close my contest' }] },
+      });
+      const body = asked.json();
+      expect(body.kind).toBe('confirm');
+      const confirmed = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { confirm: { action: body.action, args: body.args, confirmationToken: body.confirmationToken } },
+      });
+      expect(confirmed.json().kind).toBe('result');
+    });
+    When("that host reads the contest's audit log", async () => {
+      const log = await request(app, jar, { method: 'GET', url: `/contests/${contestId}/audit` });
+      closed = (log.json() as Entry[]).find((e) => e.type === 'contest.closed');
+    });
+    Then('the closing is recorded as having come through a connected tool', () => {
+      expect(closed?.sourcePath).toBe('mcp');
+    });
+    And('it is still recorded as confirmed by the host', () => {
+      // The new marking must not be bought at the cost of the old one.
+      expect(closed?.confirmation).toBe('host');
     });
   });
 });
