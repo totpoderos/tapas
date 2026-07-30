@@ -53,12 +53,12 @@ live smoke check) before opening the PR.
 
 ## 5. Slice E — the rule space on the shell
 
-- [ ] 5.1 Write `tests/e2e/host-rule-space.feature` (the step navigation, and that only a name is required to save). Confirm it before implementing.
-- [ ] 5.2 Sidebar in new-contest scope: the four numbered steps with the current one marked, and the "only a name is required" note.
-- [ ] 5.3 Re-compose `new-contest.tsx` on the design: attribution and anti-bias as radio cards, the category chips with add/remove, the score-range segmented control with lowest/highest, and the unique-per-category checkbox.
-- [ ] 5.4 Top bar: breadcrumb, Cancel, Save as draft.
-- [ ] 5.5 EN/ES; keep the existing new-contest unit tests green.
-- [ ] 5.6 Slice verification, then PR.
+- [x] 5.1 Write `tests/e2e/host-rule-space.feature` (the step navigation, and that only a name is required to save). Confirm it before implementing.
+- [x] 5.2 Sidebar in new-contest scope: **two** numbered steps, not the mockup's four — *Set it up* (current) and *Review & publish* (drawn, said to be unreachable until something is saved) — plus the "only a name is required" note. The mockup's four steps are not screens (it puts name and rules in one pane) and this app has no wizard; four labels would be navigation that does not exist. Recorded in design.md.
+- [x] 5.3 Re-compose `new-contest.tsx`: attribution and anti-bias as radio cards, categories as chips with add/remove (losing in-place editing — acceptable for one-word labels), lowest/highest asked for only once a band is being fixed, and the unique-per-category checkbox as the tinted row. **The score range is two choice cards, not a segmented control**: a segment hides its radio, and an input hidden with `opacity: 0` or clipped to a pixel is one only a mouse aiming at its label can reach. The browser suite refused to operate it, which is a fair proxy for anything else driving the control directly. Participants keep their editable rows.
+- [x] 5.4 Top bar: breadcrumb, Cancel, Save as draft — via a new **portal-based actions slot** in the shell (`PanelActions`), which slices F/G/H also need. A portal rather than a `ReactNode` in context: no effect per surface, no empty first render, no cleanup racing the next surface. The portalled submit names its form with `form="…"` since it is outside it in the DOM. "New contest" is suppressed in the header while already setting one up.
+- [x] 5.5 EN/ES for every new string. The existing unit test that *edited* "Category 1 name" now adds a category instead; new tests cover the chips, the band's ends appearing only when fixed, the header slot (including that the submit still reaches its form), and that a failed save keeps what was typed.
+- [x] 5.6 Slice verification, then PR. The live check caught the sidebar truncating "Review & pu…" — the one thing on that row saying what comes next — so step rows wrap instead.
 
 ## 6. Slice F — draft review on the shell
 

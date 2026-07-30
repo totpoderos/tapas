@@ -1,6 +1,7 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
+import { PanelActionsSlotProvider } from './panel-actions';
 import { Sidebar } from './sidebar';
 import { TopBar } from './top-bar';
 import { usePanelNav } from './use-panel-nav';
@@ -20,6 +21,10 @@ export function PanelShell({ children }: { children: ReactNode }) {
   const nav = usePanelNav();
   const { pathname, search } = useLocation();
   const [open, setOpen] = useState(false);
+  // The header's container for whatever actions the surface below wants there.
+  // A ref callback rather than `useRef`, because the surface renders into it and
+  // needs to re-render once it exists.
+  const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null);
   const navId = useId();
 
   // On a narrow screen the navigation is a disclosure. Following a way in should
@@ -47,8 +52,10 @@ export function PanelShell({ children }: { children: ReactNode }) {
       </nav>
 
       <div className={styles.body}>
-        <TopBar nav={nav} />
-        <div className={styles.surface}>{children}</div>
+        <TopBar nav={nav} actionSlotRef={setActionSlot} />
+        <div className={styles.surface}>
+          <PanelActionsSlotProvider slot={actionSlot}>{children}</PanelActionsSlotProvider>
+        </div>
       </div>
     </div>
   );

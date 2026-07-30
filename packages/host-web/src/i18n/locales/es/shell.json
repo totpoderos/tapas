@@ -9,7 +9,8 @@
     "workspace": "Espacio de trabajo",
     "administration": "Administración",
     "thisContest": "Este concurso",
-    "thisDraft": "Este borrador"
+    "thisDraft": "Este borrador",
+    "newContest": "Nuevo concurso"
   },
   "contests": {
     "all": "Todos los concursos",
@@ -36,5 +37,11 @@
     "host": "Anfitriona",
     "admin": "Administradora"
   },
-  "tallyKeepingUp": "El recuento se actualiza cada pocos segundos"
+  "tallyKeepingUp": "El recuento se actualiza cada pocos segundos",
+  "steps": {
+    "setUp": "Configúralo",
+    "reviewAndPublish": "Revisar y publicar",
+    "afterSaving": "— tras guardar"
+  },
+  "onlyANameIsRequired": "Solo hace falta un nombre para guardar. Todo lo demás se comprueba al publicar."
 }

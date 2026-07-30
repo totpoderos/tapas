@@ -1,9 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState, type ReactNode } from 'react';
 import { MemoryRouter, Routes, Route } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewContest } from '../../src/pages/new-contest';
+import { PanelActionsSlotProvider } from '../../src/shell/panel-actions';
 import type { DraftContent } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
@@ -14,14 +16,33 @@ vi.mock('../../src/api/client', async () => {
 });
 import * as api from '../../src/api/client';
 
+/**
+ * The panel's header slot, arranged exactly as the shell arranges it.
+ *
+ * Save and Cancel live in that header now, portalled out of the form. Rendered
+ * without a slot they would not exist at all, so this stands in for the shell —
+ * in the tree rather than appended to the body, so `axe` sees them too.
+ */
+function WithHeaderSlot({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  return (
+    <>
+      <div ref={setSlot} />
+      <PanelActionsSlotProvider slot={slot}>{children}</PanelActionsSlotProvider>
+    </>
+  );
+}
+
 /** Renders the form at /new with a stub list page, so a save can navigate to "/". */
 function renderForm() {
   return render(
     <MemoryRouter initialEntries={['/new']}>
-      <Routes>
-        <Route path="/new" element={<NewContest />} />
-        <Route path="/" element={<h1>Your contests</h1>} />
-      </Routes>
+      <WithHeaderSlot>
+        <Routes>
+          <Route path="/new" element={<NewContest />} />
+          <Route path="/" element={<h1>Your contests</h1>} />
+        </Routes>
+      </WithHeaderSlot>
     </MemoryRouter>,
   );
 }
@@ -41,7 +62,9 @@ describe('New contest form', () => {
     await userEvent.type(screen.getByLabelText('Contest name'), 'Summer Tapas');
     await userEvent.click(screen.getByLabelText('Each couple is scored together'));
     await userEvent.click(screen.getByLabelText('Couples cannot score each other'));
-    await userEvent.type(screen.getByLabelText('Category 1 name'), ' & Presentation');
+    // Categories are chips now: added and removed, not edited in place.
+    await userEvent.type(screen.getByLabelText('New category name'), 'Presentation');
+    await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
 
     await userEvent.type(screen.getByLabelText('New participant name'), 'Ana');
     await userEvent.click(screen.getByRole('button', { name: 'Add' }));
@@ -57,7 +80,10 @@ describe('New contest form', () => {
       attribution: 'per_couple',
       antiBias: 'couples',
       scoring: {
-        categories: [{ id: 'c1', name: 'Taste & Presentation' }],
+        categories: [
+          { id: 'c1', name: 'Taste' },
+          { id: 'c2', name: 'Presentation' },
+        ],
         range: { type: 'auto' },
         uniquePerCategory: true,
       },
@@ -103,6 +129,62 @@ describe('New contest form', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove participant Ana' }));
     expect(screen.queryByLabelText('Participant 1 name')).not.toBeInTheDocument();
+  });
+
+  it('takes a category back off', async () => {
+    renderForm();
+
+    const categories = screen.getByRole('list', { name: 'Scoring categories' });
+    expect(categories).toHaveTextContent('Taste');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove category Taste' }));
+
+    expect(categories).not.toHaveTextContent('Taste');
+  });
+
+  it('asks for the ends of the band only once one is being fixed', async () => {
+    renderForm();
+
+    // Worked out automatically to begin with, so there are no ends to give.
+    expect(screen.queryByLabelText('Lowest score')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText('Fixed range'));
+
+    expect(screen.getByLabelText('Lowest score')).toBeInTheDocument();
+    expect(screen.getByLabelText('Highest score')).toBeInTheDocument();
+  });
+
+  it('puts saving and cancelling in the panel’s header, not in the form', async () => {
+    const { container } = renderForm();
+
+    /*
+     * The header is outside the `<form>` in the DOM, so the save button reaches it
+     * by name. If that attribute were dropped the button would simply do nothing,
+     * which is exactly the sort of quiet break worth a test of its own.
+     */
+    const save = screen.getByRole('button', { name: 'Save as draft' });
+    expect(save).toHaveAttribute('form', 'new-contest-form');
+    expect(container.querySelector('form')?.contains(save)).toBe(false);
+
+    // And it still submits, from out there.
+    await userEvent.type(screen.getByLabelText('Contest name'), 'Headered');
+    await userEvent.click(save);
+    expect(api.createDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps what was filled in when saving fails', async () => {
+    vi.mocked(api.createDraft).mockRejectedValue(new Error('network'));
+    renderForm();
+
+    await userEvent.type(screen.getByLabelText('Contest name'), 'Doomed Feast');
+    await userEvent.type(screen.getByLabelText('New participant name'), 'Ana');
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/couldn’t be saved/i);
+    // Nothing thrown away: a failed save must not cost the host their typing.
+    expect(screen.getByLabelText('Contest name')).toHaveValue('Doomed Feast');
+    expect(screen.getByLabelText('Participant 1 name')).toHaveValue('Ana');
   });
 
   it('has no accessibility violations', async () => {

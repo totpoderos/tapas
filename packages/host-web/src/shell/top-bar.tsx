@@ -15,7 +15,14 @@ import styles from './top-bar.module.css';
  * surface. The bar says where you are; it does not collect everything that can
  * be done.
  */
-export function TopBar({ nav }: { nav: PanelNav }) {
+export function TopBar({
+  nav,
+  actionSlotRef,
+}: {
+  nav: PanelNav;
+  /** Receives the container the surface's own actions are portalled into. */
+  actionSlotRef: (element: HTMLElement | null) => void;
+}) {
   const { t } = useTranslation();
 
   return (
@@ -34,13 +41,18 @@ export function TopBar({ nav }: { nav: PanelNav }) {
         )}
       </div>
 
-      {nav.kind !== 'admin' && (
-        <div className={styles.actions}>
+      <div className={styles.actions}>
+        {/* Whatever the surface puts here comes first: it is about this screen,
+            where starting another contest is about the panel. */}
+        <div ref={actionSlotRef} className={styles.surfaceActions} />
+        {/* Not offered while already setting one up — the surface's own Save and
+            Cancel are the actions that matter there. */}
+        {nav.kind !== 'admin' && !(nav.kind === 'deployment' && nav.current === 'new') && (
           <Link to="/new" className={styles.newContest}>
             {t('shell.newContest')}
           </Link>
-        </div>
-      )}
+        )}
+      </div>
     </header>
   );
 }

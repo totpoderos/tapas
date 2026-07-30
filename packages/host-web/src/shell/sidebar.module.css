@@ -198,3 +198,50 @@
 .signOut:hover {
   background: var(--surface-2);
 }
+
+/* The numbered steps of getting a contest going. */
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font: 600 12px var(--sans);
+}
+.currentWay .stepNumber {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+/* The reassurance the mockup carries: saving is cheap. */
+.note {
+  margin: 12px 10px 0;
+  padding: 12px;
+  border: 1px solid var(--saffron-soft);
+  background: var(--saffron-soft);
+  border-radius: var(--radius-control);
+  font: 400 13px/1.5 var(--sans);
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+
+/*
+ * A step's row wraps rather than truncating. "Review & publish — after saving" does
+ * not fit a 248px sidebar on one line, and an ellipsis on the one thing that says
+ * what comes next is the wrong thing to lose.
+ */
+.step {
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.step .wayLabel {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}

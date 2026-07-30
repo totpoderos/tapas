@@ -137,3 +137,8 @@
   background: var(--good);
   flex: none;
 }
+
+/* Where a surface portals its own actions. Empty on surfaces that have none. */
+.surfaceActions {
+  display: contents;
+}

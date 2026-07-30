@@ -34,5 +34,7 @@
   "saveError": "Your contest couldn’t be saved. Please try again.",
   "saving": "Saving…",
   "saveDraft": "Save as draft",
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "newCategoryLabel": "New category name",
+  "removeNamedCategory": "Remove category {{name}}"
 }

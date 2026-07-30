@@ -23,6 +23,8 @@ The change also widens two reads and adds one rendering, because the design show
 **Non-Goals:**
 
 - The design's **Deployment** item under the administrator-only group. There is no such screen and this change does not invent one.
+- The rule space's **four-step wizard**. The mockup's sidebar reads *1 Name · 2 Rules · 3 Participants · 4 Review & publish*, but the same mockup puts name *and* rules in one content pane, so the steps are not screens — and the app has no wizard: creating a contest is one form, while participants and publishing live on draft review. A real wizard means new routes, per-step validation and draft autosave, which is a change of its own and not a restyle. The sidebar draws **two honest steps** instead — *Set it up* (current) and *Review & publish* (unreachable until something is saved) — keeping the mockup's intent, which is to show where you are and make saving feel cheap.
+- **In-place editing of a category label.** The mockup draws categories as chips with a remove control, and chips are what shipped, so fixing a typo means removing and retyping. Acceptable for labels of one or two words. Participants keep their editable rows: the mockup does not show them on this screen at all, draft review keeps them editable, and a person's name is longer and more typo-prone than "Taste".
 - The top bar's **search** field ("Search contests, people, events…"). The API can find a contest by name, but there is no people or event search, and building one is its own capability. The top bar is built without it.
 - Contest-scoped **Rules** and **Participants** ways-in for a *published* contest. Those screens exist only for a draft; a live contest's rules are read-only and the design already shows them, as "Rules in force", inside the control room. The contest-scoped navigation therefore offers Rules and Participants for a draft, and Control room / Activity log / Results for a published contest.
 - A join **URL** in the scannable code — see the decision below.
@@ -75,6 +77,24 @@ Its `createSvgTag()` is not used: it hardcodes `fill="white"` on the background 
 It encodes the join code **text**, not a join URL. A URL would be the more useful thing to scan, but nothing in the deployment tells host-web the participant app's public address, and inventing a configuration entry for it is a separate change. This is a real limitation of the feature as shipped: scanning yields the code, which the person then types. The code stays printed beside the image, which is what makes that acceptable rather than broken.
 
 *Alternative considered:* hand-rolled QR encoder to avoid a dependency. Rejected — several hundred lines of Reed–Solomon and mask-pattern selection is a worse supply-chain answer than one audited, pinned package.
+
+### Surface actions reach the top bar through a portal, not through state
+
+From the rule space onwards, the design puts each surface's own actions in the top
+bar — Save as draft, Publish, Save changes, Export CSV. The shell owns that bar and
+the surface owns the action, so something has to bridge them.
+
+A portal, not a context holding a `ReactNode`. Passing an element up through state
+means an effect on every surface, a render where the bar is empty before the effect
+runs, and a cleanup that has to win a race against the next surface's setup — all
+for something the DOM already does. `TopBar` renders an empty container and
+publishes the element through context; a surface renders `<PanelActions>` which
+portals into it. Nothing to synchronise, nothing to clean up, and a surface that
+fills nothing leaves an empty container.
+
+One consequence to keep in mind: a portalled button is outside its form in the DOM,
+so a submit has to name its form with `form="…"`. That works in every browser this
+targets, and it is the reason the form carries a stable id.
 
 ### The navigation model is derived, not configured per page
 

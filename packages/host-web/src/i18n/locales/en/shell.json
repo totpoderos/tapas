@@ -9,7 +9,8 @@
     "workspace": "Workspace",
     "administration": "Administration",
     "thisContest": "This contest",
-    "thisDraft": "This draft"
+    "thisDraft": "This draft",
+    "newContest": "New contest"
   },
   "contests": {
     "all": "All contests",
@@ -36,5 +37,11 @@
     "host": "Host",
     "admin": "Administrator"
   },
-  "tallyKeepingUp": "Tally updating every few seconds"
+  "tallyKeepingUp": "Tally updating every few seconds",
+  "steps": {
+    "setUp": "Set it up",
+    "reviewAndPublish": "Review & publish",
+    "afterSaving": "— after saving"
+  },
+  "onlyANameIsRequired": "Only a name is required to save. Everything else is checked when you publish."
 }
