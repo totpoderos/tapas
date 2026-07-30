@@ -34,5 +34,7 @@
   "saveError": "No se pudo guardar tu concurso. Inténtalo de nuevo.",
   "saving": "Guardando…",
   "saveDraft": "Guardar como borrador",
-  "cancel": "Cancelar"
+  "cancel": "Cancelar",
+  "newCategoryLabel": "Nombre de la nueva categoría",
+  "removeNamedCategory": "Quitar la categoría {{name}}"
 }

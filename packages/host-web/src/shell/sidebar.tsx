@@ -65,18 +65,54 @@ function HostWays({ nav }: { nav: Exclude<PanelNav, { kind: 'admin' }> }) {
         <ContestScope nav={nav} contest={inside} loading={state.kind === 'loading'} />
       )}
       {nav.kind === 'draft' && <DraftScope nav={nav} draft={inside} />}
-      {nav.kind === 'deployment' && (
+      {nav.kind === 'deployment' && nav.current === 'new' && <NewContestScope />}
+      {nav.kind === 'deployment' && nav.current !== 'new' && (
         <DeploymentScope nav={nav} contests={contests} listed={state.kind === 'ready'} />
       )}
 
-      {/* Inside a contest or a draft, the way back out. */}
-      {nav.kind !== 'deployment' && (
+      {/* Inside a contest, a draft, or setting one up: the way back out. */}
+      {(nav.kind !== 'deployment' || nav.current === 'new') && (
         <>
           <hr className={styles.divider} />
           <Way to="/">{t('shell.contests.all')}</Way>
           <Way to="/chat">{t('shell.assistant')}</Way>
         </>
       )}
+    </>
+  );
+}
+
+/**
+ * Setting up a contest: where that sits in getting one going.
+ *
+ * Two steps, not the mockup's four. The mockup reads "1 Name · 2 Rules · 3
+ * Participants · 4 Review & publish" while putting name and rules in one pane, and
+ * this app has no wizard — creating is one form, and participants and publishing
+ * belong to draft review. Two steps say something true; four would be navigation
+ * that does not exist. What the mockup is really doing is showing where you are and
+ * making saving feel cheap, and both survive.
+ */
+function NewContestScope() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <p className={styles.groupLabel}>{t('shell.groups.newContest')}</p>
+      <span className={`${styles.way} ${styles.step} ${styles.currentWay}`} aria-current="step">
+        <span className={styles.stepNumber} aria-hidden="true">
+          1
+        </span>
+        <span className={styles.wayLabel}>{t('shell.steps.setUp')}</span>
+      </span>
+      {/* Drawn, and said to be unreachable: there is nothing to review until the
+          contest has been saved, and a host should be able to see that is next. */}
+      <span className={`${styles.unavailable} ${styles.step}`} aria-disabled="true">
+        <span className={styles.stepNumber} aria-hidden="true">
+          2
+        </span>
+        <span className={styles.wayLabel}>{t('shell.steps.reviewAndPublish')}</span>
+        <span className={styles.unavailableNote}>{t('shell.steps.afterSaving')}</span>
+      </span>
+      <div className={styles.note}>{t('shell.onlyANameIsRequired')}</div>
     </>
   );
 }

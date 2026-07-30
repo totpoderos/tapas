@@ -1,192 +1,201 @@
-.page {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 24px 28px 96px;
-}
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
-}
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-.brand b {
-  font-family: var(--serif);
-  font-size: 21px;
+.heading {
+  margin-bottom: 20px;
 }
 .title {
-  font-size: 32px;
-  margin: 0 0 6px;
+  font: 400 30px/1.2 var(--serif);
+  margin: 0 0 4px;
 }
 .lead {
-  color: var(--ink-2);
-  margin: 0 0 28px;
-}
-
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control);
-  background: var(--danger-soft);
-  color: var(--danger);
-  font-weight: 600;
-}
-
-/* A grouped section of the rule space. */
-.group {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 20px 22px;
   margin: 0;
+  font: 400 15px var(--sans);
+  color: var(--ink-2);
+}
+
+/* The design's two columns, with some things spanning both. */
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}
+
+.group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.group:last-of-type {
+  margin-bottom: 0;
 }
 .legend {
-  font-family: var(--serif);
-  font-size: 19px;
   padding: 0;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
+  font: 400 19px var(--serif);
+  color: var(--ink);
 }
 .groupHint {
+  margin: -6px 0 10px;
+  font: 400 13px var(--sans);
   color: var(--ink-2);
-  font-size: 14px;
-  margin: 0 0 16px;
 }
 
-/* Radio / checkbox choices. */
+/* A choice, drawn as a card. The radio itself stays visible — it is what says
+   "one of these", and a tick drawn in CSS says it only to people who can see. */
 .choices {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
-.choice {
+.choiceCard {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   min-height: 44px;
-  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font: 400 15px var(--sans);
+  cursor: pointer;
 }
-.choice input {
-  width: 20px;
-  height: 20px;
-  accent-color: var(--brand);
+.choiceCard:hover {
+  border-color: var(--line-strong);
 }
-.inline {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+.choiceCard.chosen {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+/* The ring goes on the card, since that is what the eye reads as the control. */
+.choiceCard:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
-/* Rows of repeatable inputs (categories, participants). */
+/* Two choices that fit on one line. */
+.sideBySide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sideBySide .choiceCard {
+  flex: 1;
+  min-width: 12rem;
+}
+
+/* What dishes are judged on, as removable chips. */
+.chips {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font: 600 14px var(--sans);
+}
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 28px inside a 34px chip, with the chip's own padding making up the rest of the
+     44px target around it. */
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chipRemove:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.input {
+  flex: 1;
+  min-width: 8rem;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  /* 16px, so iOS does not zoom the page when it takes focus. */
+  font: 400 16px var(--sans);
+}
+
+/* A rule that is on or off, as the design's tinted row. */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  font: 400 14px var(--sans);
+  cursor: pointer;
+}
+
+/* Who is taking part: editable rows, not chips. */
 .rows {
   list-style: none;
   margin: 12px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .row {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.row input {
-  flex: 1;
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-}
-.numberField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.numberField label {
-  font-size: 14px;
-  font-weight: 600;
-}
-.numberField input {
-  width: 120px;
-  min-height: 44px;
-  padding: 0 14px;
-  font-size: 16px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-}
-.remove {
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0 12px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink-2);
-  font-size: 14px;
-  cursor: pointer;
-}
-.remove:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-}
-.add {
-  align-self: flex-start;
-  margin-top: 12px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--brand);
-  font: 600 14px var(--sans);
-  cursor: pointer;
-}
 .empty {
+  margin: 12px 0 0;
+  font: 400 14px var(--sans);
   color: var(--ink-2);
-  font-size: 14px;
-  margin: 8px 0 0;
 }
 
-/* Sticky-ish action bar. */
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
+/* Cancel, in the panel's header beside Save. */
 .cancel {
-  min-height: 44px;
   display: inline-flex;
   align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
   color: var(--ink-2);
+  font: 600 15px var(--sans);
   text-decoration: none;
-  font-weight: 600;
+  white-space: nowrap;
 }
 .cancel:hover {
-  color: var(--ink);
+  color: var(--brand);
+  text-decoration: underline;
 }
