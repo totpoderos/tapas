@@ -46,9 +46,9 @@ test('a host opens a contest’s activity log from their list', async ({ page })
   await page.getByRole('link', { name: 'Activity log' }).click();
 
   await expect(page.getByRole('heading', { name: 'Activity log' })).toBeVisible();
-  const list = page.getByRole('list', { name: 'Activity' });
-  await expect(list.getByText('Contest published')).toBeVisible();
-  await expect(list.getByText('Contest closed')).toBeVisible();
+  const entries = page.getByRole('table', { name: 'Activity' });
+  await expect(entries.getByText('Contest published')).toBeVisible();
+  await expect(entries.getByText('Contest closed')).toBeVisible();
 });
 
 test('a host filters the log by how actions were triggered', async ({ page }) => {
@@ -56,14 +56,15 @@ test('a host filters the log by how actions were triggered', async ({ page }) =>
   const id = await contestWithHistory(page.request, 'Balcony Cook-off');
 
   await page.goto(`/log/${id}`);
-  const list = page.getByRole('list', { name: 'Activity' });
-  await expect(list.getByText('Contest published')).toBeVisible(); // system
-  await expect(list.getByText('Draft saved')).toBeVisible(); // in-app
+  const entries = page.getByRole('table', { name: 'Activity' });
+  await expect(entries.getByText('Contest published')).toBeVisible(); // system
+  await expect(entries.getByText('Draft saved')).toBeVisible(); // in-app
 
-  await page.getByLabel('Filter by source').selectOption('system');
+  // The filter is a radio group now, not a select: one of four, chosen directly.
+  await page.getByRole('radio', { name: /System/ }).check();
 
-  await expect(list.getByText('Contest published')).toBeVisible();
-  await expect(list.getByText('Draft saved')).toHaveCount(0);
+  await expect(entries.getByText('Contest published')).toBeVisible();
+  await expect(entries.getByText('Draft saved')).toHaveCount(0);
 });
 
 test('the activity log is keyboard-operable and has no accessibility violations', async ({ page }) => {
@@ -71,13 +72,14 @@ test('the activity log is keyboard-operable and has no accessibility violations'
   const id = await contestWithHistory(page.request, 'Balcony Cook-off');
 
   await page.goto(`/log/${id}`);
-  await expect(page.getByRole('list', { name: 'Activity' })).toBeVisible();
+  await expect(page.getByRole('table', { name: 'Activity' })).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 
   // Operate the filter with the keyboard alone.
-  await page.getByLabel('Filter by source').focus();
-  await page.getByLabel('Filter by source').selectOption('form');
-  await expect(page.getByRole('list', { name: 'Activity' }).getByText('Draft saved')).toBeVisible();
+  const inApp = page.getByRole('radio', { name: /In-app/ });
+  await inApp.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('table', { name: 'Activity' }).getByText('Draft saved')).toBeVisible();
 });

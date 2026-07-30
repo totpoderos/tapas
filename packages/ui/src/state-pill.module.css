@@ -28,7 +28,7 @@
 }
 .saffron {
   background: var(--saffron-soft);
-  color: var(--on-saffron);
+  color: var(--on-saffron-soft);
 }
 .brand {
   background: var(--brand-soft);

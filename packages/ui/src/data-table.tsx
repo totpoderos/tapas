@@ -17,10 +17,15 @@ export interface DataTableProps {
  * column a cell belongs to. The frame scrolls sideways on its own when the
  * columns cannot fit, so a narrow screen scrolls the table rather than the page
  * (WCAG 1.4.10 reflow).
+ *
+ * That scrolling is why the frame is a tab stop. A region that only a pointer
+ * can scroll hides whatever is off its right-hand edge from anyone driving the
+ * app by keyboard (WCAG 2.1.1) — and since the frame is named by the table it
+ * holds, landing on it says which table you are about to scroll.
  */
 export function DataTable({ label, children }: DataTableProps) {
   return (
-    <div className={styles.frame}>
+    <div className={styles.frame} tabIndex={0} role="group" aria-label={label}>
       <table aria-label={label} className={styles.table}>
         {children}
       </table>

@@ -5,7 +5,16 @@
  * data-theme attribute that overrides the media query in both directions.
  */
 :root {
-  color-scheme: light dark;
+  /*
+   * Follows the theme actually being shown, not the operating system's
+   * preference. `light dark` left the browser free to paint native controls —
+   * radios, checkboxes, selects, scrollbars — in the OS's scheme, so a host
+   * whose machine is dark but who is looking at the light theme got dark
+   * controls on a pale surface: every radio in a group rendered as a filled
+   * circle, which reads as all of them being chosen. Found on the activity
+   * log's source filter, but it was never particular to it.
+   */
+  color-scheme: light;
   --ground: #fcfaf6;
   --surface: #ffffff;
   --surface-2: #f5efe8;
@@ -20,6 +29,14 @@
   --saffron: #e39b12;
   --on-saffron: #2a1b05;
   --saffron-soft: #fbeecb;
+  /*
+   * Saffron is the one accent whose bright value is unreadable as text on its
+   * own soft background (2.03:1 in this theme), so unlike every other tone the
+   * pair needs naming. `--on-saffron` is for text on *solid* saffron and is
+   * near-black in both themes; this is for text on the soft one, and has to
+   * flip with the theme or it reads 1.29:1 against a dark plate.
+   */
+  --on-saffron-soft: #2a1b05;
   --good: #4e6b21;
   --on-good: #ffffff;
   --good-soft: #e6efd4;
@@ -51,6 +68,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
+    color-scheme: dark;
     --ground: #17131a;
     --surface: #211a26;
     --surface-2: #2b2231;
@@ -65,6 +83,7 @@
     --saffron: #f1b54b;
     --on-saffron: #2a1b05;
     --saffron-soft: #3e2f14;
+    --on-saffron-soft: #f1b54b;
     --good: #9ec45e;
     --on-good: #17200a;
     --good-soft: #2c3717;
@@ -80,6 +99,7 @@
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
   --ground: #17131a;
   --surface: #211a26;
   --surface-2: #2b2231;
@@ -94,6 +114,7 @@
   --saffron: #f1b54b;
   --on-saffron: #2a1b05;
   --saffron-soft: #3e2f14;
+  --on-saffron-soft: #f1b54b;
   --good: #9ec45e;
   --on-good: #17200a;
   --good-soft: #2c3717;

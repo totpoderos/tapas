@@ -71,11 +71,15 @@ live smoke check) before opening the PR.
 
 ## 7. Slice G — the activity log on the shell
 
-- [ ] 7.1 Write `tests/e2e/host-activity-log-panel.feature` (filtering by source, and that each row names how it was triggered). Confirm it before implementing.
-- [ ] 7.2 Re-compose `audit-log.tsx` as the design's table (event, source, actor, when) with the source-filter chips (all / in-app / connected tool / system) as a real radio group.
-- [ ] 7.3 Mark the host-confirmed entries as the design does; keep source conveyed by wording, not colour alone.
-- [ ] 7.4 EN/ES; keep the existing audit-log unit tests green.
-- [ ] 7.5 Slice verification, then PR.
+- [x] 7.1 Write `tests/e2e/host-activity-log-panel.feature` (filtering by source, and that each row names how it was triggered). One of its scenarios — a contest nothing has happened to — has **no browser test**: every contest begins as a saved draft, so the API cannot produce an empty log and there is nothing real to drive. It is covered in the unit test, which can hand the screen one, and the spec file says so rather than leaving the gap silent.
+- [x] 7.2 Re-compose `audit-log.tsx` as the design's table (event, source, actor, when) with the source-filter chips as a real radio group. The radio stays **visible** inside each chip — slice E's lesson, and the reason the chips are not the mockup's plain pills. The page's own brand bar and back link are gone (the shell's now). "When" gets a second `Intl` helper, `whenHappened`: the list's "2 minutes ago" cannot tell two actions a minute apart from two an hour apart, so a log says the time of day, with the day named relatively while that still means something.
+- [x] 7.3 Mark the host-confirmed entries as the design does; source conveyed by word + shape, never colour alone. Narrowing to a source with nothing in it is worded as its own state — "nothing from this source" beside "this contest does have a history" — so it cannot be read as the contest having no past.
+- [x] 7.4 EN/ES for the columns and both empty states; `back` and `by` deleted rather than left orphaned. The audit-log unit tests follow the list→table change and gain the filter, the two empty states, and the tool name.
+- [x] 7.5 Slice verification, then PR. **Three defects the live check found, none of them this slice's own and none catchable by the suite as it stood:**
+  - `DataTable`'s scroll container was not focusable, so anything past its right edge was pointer-only (WCAG 2.1.1). It is a named tab stop now, with a focus ring. Caught by axe once the log's fourth column made the table overflow at 375px; it had been true of every table since slice A.
+  - `color-scheme: light dark` let the browser paint native controls in the **operating system's** scheme rather than the app's. A host on a dark machine looking at the light theme saw every radio in the group as a filled circle — all four reading as chosen. `color-scheme` now follows `data-theme`.
+  - The "You confirmed" badge read **1.29:1** in the dark theme. `--saffron-soft` was paired with `--on-saffron`, which is near-black in both themes; saffron is the one accent whose bright value is unreadable on its own soft plate, so the pair needed naming. New `--on-saffron-soft` flips with the theme (14.47:1 light, 7.06:1 dark) and `StatePill`'s saffron tone — a **revealed** contest's pill, everywhere in the app — is fixed with it.
+- [x] 7.6 Add a **dark-theme axe pass**. Every other axe run in the suite is in the light theme, which is how a 1.29:1 badge shipped. Verified the new assertion fails against the old colour before keeping it — the slice-D lesson about assertions written before looking.
 
 ## 8. Slice H — the activity log leaves as a file
 
