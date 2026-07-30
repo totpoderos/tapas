@@ -118,11 +118,15 @@ live smoke check) before opening the PR.
 
 ## 11. Slice K — the results on the shell
 
-- [ ] 11.1 Write `tests/e2e/host-results-panel.feature` (the results on the shell, reachable from the contest-scoped navigation once revealed). Confirm it before implementing.
-- [ ] 11.2 Re-compose `results.tsx` / `RevealView` on the design: the winner block, best-in-each-category rows, and the leaderboard with the leader emphasised — no flashing on reveal, rank conveyed by number as well as by emphasis.
-- [ ] 11.3 Enable the Results way-in in the contest-scoped sidebar once the contest is revealed.
-- [ ] 11.4 EN/ES; keep the existing results and reveal-view unit tests green.
-- [ ] 11.5 Slice verification, then PR.
+- [x] 11.1 Write `tests/e2e/host-results-panel.feature` (the results on the shell, reachable from the contest-scoped navigation once revealed). Confirmed before implementing.
+- [x] 11.2 Re-compose `results.tsx` on the design — which turned out to mean **removing chrome, not adding styling**. `RevealView` and `reveal-view.module.css` already draw what the design asks for: the winner's saffron underline, bordered best-in-category rows, and the leader on a saffron-soft plate with numbered ranks. Nothing was owed to it, and nothing was invented to look busy. What went: the page's own brand bar and back link (the shell carries both), and the now-orphaned `results.backToControl` key. `results.module.css` moves onto a reading width and keeps only what is left.
+- [x] 11.2a **The not-yet and not-found states keep a heading of their own.** They were briefly turned into `EmptyState`s; that component's lead is a paragraph, which is right for "no rows in this list" and wrong where the state *is* the page — it would have left those two screens with no heading at all, while the revealed state has one from `RevealView`. Caught by three existing tests, and the tests were right.
+- [x] 11.3 The Results way-in — **already landed in slice A**, shown and marked unavailable with "— after reveal" before the reveal rather than quietly missing. Verified here rather than built, as slice I's navigation task was.
+- [x] 11.4 EN/ES needed nothing new beyond dropping the orphaned key. The existing results and reveal-view unit tests stay green.
+- [x] 11.5 Slice verification (1949 unit tests, typecheck, lint, 259 browser tests whole *and* file-by-file), then PR. **The one thing the new spec had to learn**: axe caught the reveal's entrance mid-fade at 1.49:1 — a frame on its way to full ink, not a settled state. The suite already had the answer, in the participant reveal: scan with `reducedMotion: 'reduce'`, which is both the honoured preference and the stable frame `reveal-view.module.css` says the scans depend on.
+
+  Two feature scenarios are **not** in the new spec, because they already live where they belong: "the same ones the participants see" and "a host who goes there early is told" are in `host-sees-the-results.spec.ts`, which stands both apps up to compare them. Said in the spec file rather than left as a silent gap.
+- [x] 11.6 **A scoping finding, taken up as its own change.** `RevealView` needing no restyle is good news for this slice and a question for the next one: the same-results promise in `host-sees-the-results` is currently kept *by construction*, because one component draws both screens — and the existing coverage cannot notice if that changes, since both screens resolve to the same code. Scoped in `the-reveal-is-ready-to-be-restyled`, ahead of the planned participant redesign.
 
 ## 12. Close the change
 

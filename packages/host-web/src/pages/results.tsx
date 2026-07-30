@@ -49,29 +49,30 @@ export function Results() {
 
   return (
     <main id="main" className={styles.page}>
-      <div className={styles.bar}>
-        <div className={styles.brand}>
-          <span className={styles.dot} aria-hidden="true" />
-          <b>{t('common.brand')}</b>
-        </div>
-        <Link to={`/contest/${id}`} className={styles.back}>
-          {t('results.backToControl')}
-        </Link>
-      </div>
-
       {state.kind === 'loading' && (
         <p role="status" className={styles.note}>
           {t('results.loading')}
         </p>
       )}
 
+      {/*
+       * These keep a heading of their own rather than becoming an `EmptyState`.
+       * That component's lead is a paragraph — right for "no rows in this list",
+       * wrong here, where the state *is* the page and dropping the heading would
+       * leave the screen with none at all. The revealed state has one from
+       * `RevealView`; these two should not be the odd pages out.
+       */}
       {state.kind === 'not-yet' && (
         <>
           <h1 className={styles.title}>{t('results.notYetTitle')}</h1>
           <p className={styles.note}>{t('results.notYetBody')}</p>
-          <Link to={`/contest/${id}`} className={styles.note}>
-            {t('results.goToControl')}
-          </Link>
+          {/* Revealing happens in the control room, so the way there is offered
+              rather than left for the host to find. */}
+          <p>
+            <Link to={`/contest/${id}`} className={styles.wayOut}>
+              {t('results.goToControl')}
+            </Link>
+          </p>
         </>
       )}
 

@@ -1,56 +1,24 @@
-/* The host's results screen. Only the page chrome lives here — the reveal itself
-   is `RevealView` from @tapas/ui, which brings its own styles. */
+/*
+ * The host's results screen. Only the page chrome lives here — the reveal itself
+ * is `RevealView` from @tapas/ui, which brings its own styles and is the same
+ * view the participants are looking at.
+ *
+ * The brand bar and the back link are gone: the shell carries both, and the
+ * contest's own navigation is where the way back to it belongs.
+ */
 
 .page {
+  /*
+   * A reading width, centred. The reveal is a narrow column — a winner, then
+   * rows — and letting it run the whole width of the panel would strand the
+   * name from the leaderboard underneath it on a wide screen.
+   */
   max-width: 760px;
   margin: 0 auto;
-  padding: 24px 28px 96px;
-}
-
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-  margin-bottom: 28px;
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-right: auto;
-}
-
-.dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-
-.brand b {
-  font-family: var(--serif);
-  font-size: 21px;
-}
-
-.back {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  color: var(--ink-2);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.back:hover {
-  color: var(--ink);
+  padding: 26px 24px 96px;
 }
 
 .title {
-  font-family: var(--serif);
   font-size: 28px;
   margin: 0 0 8px;
 }
@@ -60,4 +28,21 @@
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* The way on, from a screen that has nothing to show yet. */
+.wayOut {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+.wayOut:hover {
+  border-color: var(--ink-2);
 }
