@@ -12,8 +12,9 @@ The prompt for it was a scoping surprise worth recording. `RevealView` was expec
 
 - **The same-results promise gains a test that does not depend on one component drawing both.** Today's coverage renders the host's screen and the participant's screen and reads each — but both resolve to the same component, so the assertion cannot fail for the reason it exists. It is pinned against the data instead, so it still holds when the two are drawn differently.
 - **What a restyle may not undo is written down**, next to the component rather than in a commit message: saffron as an accent and never as text, the entrance animation neutralised under `prefers-reduced-motion`, rank carried by its number, and full i18n key paths because a missing key is read aloud as the key.
-- **How the reveal is shared is decided**, with the decision recorded and its alternatives kept — a variant prop, a data/presentation split, or two copies — so the redesign starts from a choice rather than making one under time pressure.
-- Not included, deliberately: **any new visual treatment**. The participant redesign does not exist yet, and inventing one here would be designing without a brief and would date the moment the real one arrives.
+- **How the reveal is shared is decided, and carried out**: two copies. The participant design handoff arrived while this change was open and diverges structurally, so the participant's reveal moves into `packages/participant-web` and `@tapas/ui`'s `RevealView` becomes the host's alone. `RevealData` stays shared — the shape is the thing that must agree.
+- The move happens **here rather than in the redesign**, because the new test cannot be falsified while one component still draws both screens. Splitting them is what gives the assertion something to fail against; a test written before the split would pass by construction for the third time.
+- Not included, deliberately: **any new visual treatment**. What lands here is a move — the participant copy renders exactly what it renders today. The vermouth restyle belongs to the redesign, which is where the brief for it is.
 
 ## Capabilities
 
@@ -23,6 +24,7 @@ The prompt for it was a scoping surprise worth recording. `RevealView` was expec
 
 ## Impact
 
-- `packages/ui` — `RevealView` gains the note about what must survive; no behaviour change.
-- `packages/host-web`, `packages/participant-web` — no change until the redesign; this change exists so that one can begin safely.
-- `tests` — a check that the two audiences are told the same thing, resting on the results themselves rather than on their sharing a renderer.
+- `packages/ui` — `RevealView` gains the note about what must survive, and becomes the host's component; `RevealData` stays exported and shared.
+- `packages/participant-web` — gains its own copy of the reveal, rendering what it renders today. No visual change lands here.
+- `packages/host-web` — unchanged.
+- `tests` — a check that the two audiences are told the same thing, across the two **rendered** screens. The existing API-level check stays: it guards that both routes feed `toRevealDto` equivalent arguments, which is a narrower property than it appears and is not the one at risk here.
