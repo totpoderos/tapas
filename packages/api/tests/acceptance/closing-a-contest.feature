@@ -20,6 +20,12 @@ Feature: Closing a contest
     When anyone checks the contest
     Then the contest is still live
 
+  Scenario: A contest does not close while a place is still unclaimed
+    Given a live contest that closes once everyone has sent their vote, where everyone who joined has sent but a place is still open
+    When anyone checks the contest
+    Then the contest is still live
+    And the participant who arrives afterwards can still score and send
+
   Scenario: A contest closes automatically once its scheduled time arrives
     Given a live contest scheduled to close at a set time, and that time has passed
     When anyone checks the contest

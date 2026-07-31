@@ -51,7 +51,7 @@ const TWO_CATEGORIES = [
 async function seedScorableContest(
   email: string,
   categories?: { id: string; name: string }[],
-): Promise<{ joinCode: string; contestId: string }> {
+): Promise<{ joinCode: string; contestId: string; cooks: Map<string, APIRequestContext> }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
   await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
@@ -60,12 +60,16 @@ async function seedScorableContest(
   const body = await published.json();
   const joinCode = body.joinCode as string;
   const contestId = body.id as string;
+  // Their contexts are handed back: a test that needs one of them to vote must
+  // use the context that holds their claim, not claim the place a second time.
+  const cooks = new Map<string, APIRequestContext>();
   for (const [pid, name] of [['a', 'Ana bravas'], ['c', 'Carmen gazpacho']] as const) {
     const cook: APIRequestContext = await playwrightRequest.newContext({ baseURL: API });
     await cook.post(`/contests/${joinCode}/claim`, { data: { participantId: pid } });
     await cook.post(`/contests/${contestId}/dishes`, { data: { name } });
+    cooks.set(pid, cook);
   }
-  return { joinCode, contestId };
+  return { joinCode, contestId, cooks };
 }
 
 /**
@@ -133,6 +137,39 @@ test('a vote cannot be sent until every dish is scored', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeDisabled();
   // The ballot names what is missing rather than only refusing to send.
   await expect(page.getByRole('link', { name: /Taste missing/i }).first()).toBeVisible();
+});
+
+/**
+ * The evening this broke: a contest that closes once everyone has voted used to
+ * close as soon as the FIRST participant sent, because at that moment they were
+ * often the only person who had claimed a place. Everybody still to arrive was
+ * then locked out — a closed contest refuses scores and refuses dishes.
+ *
+ * `repeatsAllowed` names no close rule, so this contest gets the default
+ * `all_sent`, which is exactly the configuration that has to be safe.
+ */
+test('someone who arrives after another has voted can still take part', async ({ page }) => {
+  const { joinCode, contestId, cooks } = await seedScorableContest('e2e-score-latecomer@sobremesa.es');
+
+  // Ana is first: she scores every dish open to her and sends.
+  const ana = cooks.get('a')!;
+  const ballot = await (await ana.get(`/contests/${contestId}/ballot`)).json();
+  for (const dish of ballot.dishes as { dishId: string }[]) {
+    await ana.post(`/contests/${contestId}/scores`, {
+      data: { dishId: dish.dishId, categoryId: 'c1', value: 4 },
+    });
+  }
+  expect((await ana.post(`/contests/${contestId}/send-vote`)).status()).toBe(200);
+
+  // Bruno turns up afterwards. The contest must still be his to take part in.
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+  await page.getByRole('button', { name: 'Bruno' }).click();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
+
+  await scoreEveryDish(page, '5', 2);
+  await page.getByRole('button', { name: 'Send my vote' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, send my vote' }).click();
+  await expect(page.getByText(/vote sent/i)).toBeVisible();
 });
 
 test('a sent vote is locked and cannot be sent again', async ({ page }) => {

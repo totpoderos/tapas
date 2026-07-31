@@ -52,11 +52,19 @@ export class SendVote {
     this.deps.voteSessions.markSent(stored.id, now);
 
     if (contest.closeRule.when === 'all_sent') {
-      const claimed = this.deps.roster.listClaimed(contestId);
-      const allClaimedSent = claimed.every(
+      /*
+       * Every place on the roster, not every place claimed so far. `listClaimed`
+       * here meant the first participant to send closed the contest for the
+       * whole room: at that moment they were often the only person who had
+       * claimed, so "everyone who claimed has sent" was trivially true. A closed
+       * contest refuses scores and dishes, so the rest of the evening was locked
+       * out with their drafts stranded and closing has no undo.
+       */
+      const places = this.deps.roster.listAll(contestId);
+      const allPlacesSent = places.every(
         (place) => this.deps.voteSessions.findSession(contestId, place.participantId)?.status === 'sent',
       );
-      if (shouldAutoClose(contest.closeRule, { allClaimedSent }, now)) {
+      if (shouldAutoClose(contest.closeRule, { allPlacesSent }, now)) {
         this.deps.contests.updateStatus(contestId, 'closed', now, null);
       }
     }

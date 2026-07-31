@@ -70,6 +70,11 @@ Feature: A participant scores the dishes and sends their vote
     When they dismiss the confirmation with the keyboard
     Then their vote is not sent and they are back on their ballot, where they asked from
 
+  Scenario: Someone who arrives after another has voted can still take part
+    Given a contest that closes once everyone has voted, where one participant has already sent theirs
+    When another participant joins and scores every dish open to them
+    Then they can send their vote
+
   Scenario: A sent vote cannot be changed or sent again
     Given a participant who has sent their vote
     Then they cannot change a score or send it again

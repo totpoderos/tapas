@@ -23,7 +23,7 @@ export function ensureContestFresh(
 
   if (current.status === 'live' && current.closeRule.when === 'scheduled') {
     const now = deps.clock.now();
-    if (shouldAutoClose(current.closeRule, { allClaimedSent: false }, now)) {
+    if (shouldAutoClose(current.closeRule, { allPlacesSent: false }, now)) {
       deps.contests.updateStatus(current.id, 'closed', now, null);
       current = { ...current, status: 'closed', closedAt: now };
     }
