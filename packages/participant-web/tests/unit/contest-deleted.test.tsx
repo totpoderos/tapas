@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -106,11 +106,13 @@ describe('when the host deletes the contest underneath a participant', () => {
     vi.mocked(api.sendVote).mockRejectedValue(deleted());
     wrap(<Score />);
 
-    const send = await screen.findByRole('button', { name: /send/i });
-    await userEvent.click(send);
-    // The send goes through a confirmation, so accept it.
-    const confirm = await screen.findByRole('button', { name: /send my vote|yes|confirm/i });
-    await userEvent.click(confirm);
+    await userEvent.click(await screen.findByRole('button', { name: /send/i }));
+    // The send goes through a confirmation sheet, so accept it there. The
+    // trigger stays on the ballot behind it — hidden from assistive technology
+    // by `aria-modal`, but still matched by a query that does not say where it
+    // is looking.
+    const sheet = await screen.findByRole('dialog');
+    await userEvent.click(within(sheet).getByRole('button', { name: /yes, send/i }));
 
     expect(await screen.findByRole('heading', { name: 'This contest is gone' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /send/i })).not.toBeInTheDocument();

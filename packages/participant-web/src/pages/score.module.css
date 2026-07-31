@@ -167,10 +167,161 @@
 }
 
 /*
- * The confirmation sheet (screen 9) and the sent screen (screen 10) belong to
- * the next slice. Until then the send confirmation keeps the panel it already
- * had — it works, and half-dressing it here would be worse than leaving it.
+ * The send action, dressed as `.onward` below is: on the ballot it is the
+ * primary action, and the two are a tap apart on the same journey. It carried
+ * the shared `Button`'s 12px rectangle until the sheet arrived beside it, at
+ * which point the mismatch was on screen at the one moment that matters.
  */
+.send {
+  width: 100%;
+  min-height: 54px;
+  margin-top: 4px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-primary);
+}
+
+.send:hover:not(:disabled) {
+  background: var(--brand-600);
+}
+
+/*
+ * Disabled, not hidden: it is the thing a participant is working towards, and
+ * the ballot above already names what is still missing. No shadow — a raised
+ * button that does nothing reads as broken rather than as not-yet.
+ */
+.send:disabled {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.send:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- the vote is in (screen 10) ---------------------------------------
+ *
+ * A receipt, not a form. Everything here is for reading: what was sent, what
+ * happens next, and the one way onward. The sheet's glass is spent on the
+ * record of the scores, because that is the part anyone comes back to look at.
+ */
+
+.sent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 0 24px;
+  flex: 1;
+}
+
+.sentHead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sentMark {
+  color: var(--brand);
+  line-height: 0;
+}
+
+.sentTitle {
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1.08;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sentLead {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.given {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.givenRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 0;
+}
+
+.givenRow + .givenRow {
+  border-top: 1px solid var(--line);
+}
+
+.givenDish {
+  font-family: var(--serif);
+  font-size: 19px;
+}
+
+/*
+ * The scores and the total share a row and can wrap apart from each other: at
+ * 320px, three categories and a total do not fit on one line, and pushing them
+ * to two is better than either truncating or scrolling the panel sideways.
+ */
+.givenDetail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.givenScores {
+  color: var(--ink-2);
+}
+
+/*
+ * "you gave 9" — said in words, and in the second person, because the number is
+ * this participant's own sum and not the dish's standing. The reveal will show
+ * that same dish carrying every judge's scores, and a bare 9 here would look
+ * like the beginning of a disagreement with it.
+ */
+.givenTotal {
+  font-weight: 600;
+  color: var(--amber-700);
+}
+
+.sentNote {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.sentLink {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--brand);
+}
 
 /*
  * "Next dish" is a link, not a button, because it goes somewhere — which is

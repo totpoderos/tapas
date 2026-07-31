@@ -31,6 +31,8 @@
   "ballotLeadComplete": "Está todo puntuado. Échale un último vistazo antes de enviarlo.",
   "ballotLeadIncomplete": "Falta {{category}} en {{dish}}.",
   "categoryMissing": "Falta {{category}} →",
-  "confirmTitle": "¿Enviar tu voto? No podrás cambiarlo.",
-  "notYet": "Todavía no"
+  "confirmTitle": "¿Enviar tu voto?",
+  "confirmLead": "Una vez enviado, no se puede cambiar ni volver a enviar.",
+  "notYet": "Todavía no",
+  "youGave": "le diste {{total}}"
 }

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowRight, Info } from '@phosphor-icons/react/dist/ssr';
-import { Button } from '@tapas/ui';
+import { ArrowLeft, ArrowRight, CheckCircle, Info } from '@phosphor-icons/react/dist/ssr';
+import { ConfirmSheet } from '../confirm-sheet';
 import { Nav } from '../nav';
 import { PlainScreen } from '../plain-screen';
 import { ScoreTrack } from '../score-track';
@@ -134,8 +134,36 @@ export function Score() {
   const ballot = state.kind === 'ready' ? state.ballot : undefined;
   // Names for the scores on a sent vote, where there is no editable ballot.
   const sentBallot = state.kind === 'sent' ? state.ballot : undefined;
-  const dishName = (dishId: string) =>
-    sentBallot?.dishes.find((d) => d.dishId === dishId)?.name ?? dishId;
+
+  /*
+   * What was given, a row per DISH (screen 10) — not a row per score. After
+   * sending, the question is how each dish was rated; a list of every
+   * dish-and-category pair answers a question nobody asked.
+   *
+   * The total is this participant's own sum for that dish, and is labelled as
+   * theirs. It is derived the way the leaderboard's is — `tally()` sums category
+   * values unweighted — so the two cannot disagree arithmetically; what they are
+   * is different, because the reveal's number carries every judge and this one
+   * carries only them. Hence "you gave", and hence no total at all where there
+   * is a single category and the total would just repeat the score.
+   *
+   * It reads from `scores` rather than from what loaded, so it is the same list
+   * whether the vote was sent a moment ago or on another device yesterday.
+   */
+  const given = (sentBallot?.dishes ?? [])
+    .map((dish) => {
+      const scored = sentBallot!.categories
+        .map((category) => ({ name: category.name, value: scores[key(dish.dishId, category.id)] }))
+        .filter((entry): entry is { name: string; value: number } => entry.value !== undefined);
+      return {
+        dishId: dish.dishId,
+        name: dish.name,
+        parts: scored.map((entry) => `${entry.name} ${entry.value}`),
+        total: scored.length > 1 ? scored.reduce((sum, entry) => sum + entry.value, 0) : undefined,
+      };
+    })
+    .filter((row) => row.parts.length > 0);
+
   const total = ballot ? ballot.dishes.length * ballot.categories.length : 0;
   const complete = total > 0 && Object.keys(scores).length === total;
 
@@ -222,23 +250,37 @@ export function Score() {
         </p>
       )}
       {state.kind === 'sent' && (
-        <div className="pt-joined" role="status">
-          <div className="pt-check" aria-hidden="true">
-            ✓
+        <div className={styles.sent}>
+          {/* The change of state is what is announced — not the record below it,
+              which is there to be read rather than recited. */}
+          <div className={styles.sentHead} role="status">
+            <span className={styles.sentMark} aria-hidden="true">
+              <CheckCircle size={44} weight="duotone" />
+            </span>
+            <h1 className={styles.sentTitle}>{t('score.voteSent')}</h1>
+            <p className={styles.sentLead}>{t('score.alreadySentLead')}</p>
           </div>
-          <p className="pt-you">{t('score.voteSent')}</p>
-          <p className="pt-note">{t('score.resultsLater')}</p>
-          {initial.length > 0 && (
-            <ul className="pt-dishes" aria-label={t('score.alreadySentTitle')}>
-              {initial.map((entry) => (
-                <li key={key(entry.dishId, entry.categoryId)} className="pt-dish-row">
-                  <span className="pt-dish-name">{dishName(entry.dishId)}</span>
-                  <span className="pt-yours">{entry.value}</span>
+
+          {given.length > 0 && (
+            <ul className={styles.given} aria-label={t('score.alreadySentTitle')}>
+              {given.map((row) => (
+                <li key={row.dishId} className={styles.givenRow}>
+                  <span className={styles.givenDish}>{row.name}</span>
+                  <span className={styles.givenDetail}>
+                    <span className={styles.givenScores}>{row.parts.join(' · ')}</span>
+                    {row.total !== undefined && (
+                      <span className={styles.givenTotal}>
+                        {t('score.youGave', { total: row.total })}
+                      </span>
+                    )}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
-          <Link to="/reveal" className="pt-score-link">
+
+          <p className={styles.sentNote}>{t('score.resultsLater')}</p>
+          <Link to="/reveal" className={styles.sentLink}>
             {t('score.seeResults')}
           </Link>
         </div>
@@ -307,7 +349,13 @@ export function Score() {
   );
 }
 
-/** Asking to send, and the confirmation that stands between asking and sending. */
+/**
+ * Asking to send, and the confirmation that stands between asking and sending.
+ *
+ * The trigger stays on the screen while the sheet is open rather than being
+ * swapped out for it: declining has to put the participant back exactly where
+ * they were, and the cheapest way to keep that true is never to have moved.
+ */
 function SendControls({
   complete,
   confirming,
@@ -324,27 +372,25 @@ function SendControls({
   onSend: () => void;
 }) {
   const { t } = useTranslation();
-  if (!confirming) {
-    return (
-      <Button block disabled={!complete} onClick={onAsk}>
-        {t('score.send')}
-      </Button>
-    );
-  }
+  const ask = useRef<HTMLButtonElement>(null);
   return (
-    <div className="pt-confirm" role="group" aria-labelledby="send-confirm-title">
-      <p id="send-confirm-title" className="pt-confirm-title">
-        {t('score.confirmTitle')}
-      </p>
-      <div className="pt-confirm-actions">
-        <Button variant="ghost" onClick={onCancel} disabled={sending}>
-          {t('score.notYet')}
-        </Button>
-        <Button onClick={onSend} disabled={sending}>
-          {sending ? t('score.sending') : t('score.confirmSend')}
-        </Button>
-      </div>
-    </div>
+    <>
+      <button ref={ask} type="button" className={styles.send} disabled={!complete} onClick={onAsk}>
+        {t('score.send')}
+      </button>
+      {confirming && (
+        <ConfirmSheet
+          title={t('score.confirmTitle')}
+          lead={t('score.confirmLead')}
+          confirmLabel={sending ? t('score.sending') : t('score.confirmSend')}
+          cancelLabel={t('score.notYet')}
+          busy={sending}
+          returnFocusTo={ask}
+          onConfirm={onSend}
+          onCancel={onCancel}
+        />
+      )}
+    </>
   );
 }
 

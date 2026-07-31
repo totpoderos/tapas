@@ -62,12 +62,14 @@ The largest slice, and the one carrying the accessibility risk of the whole chan
 
 ## 5. Slice E — sending
 
-- [ ] 5.1 Write the acceptance feature for the confirmation: declining leaves the ballot alone, the keyboard stays within it while open, and it can be dismissed from the keyboard. Confirm it before implementing.
-- [ ] 5.2 Draw screen 9 (confirm send) as a focus-trapped bottom sheet in thumb reach, over the blurred ballot. Both actions are its own; nothing else dismisses it.
-- [ ] 5.3 Write the acceptance feature for the modified "A participant can tell that their vote is already in": what they gave is shown per dish rather than one row per score.
-- [ ] 5.4 Draw screen 10 (vote sent) with the per-dish totals. Check how the total is derived against how the reveal derives its own — if the tally weights categories and this screen sums them plainly, a participant's totals and the leaderboard's will disagree, and that is worse than showing nothing.
-- [ ] 5.5 EN and ES resources for every new string in this slice.
-- [ ] 5.6 Run the slice verification.
+- [x] 5.1 Write the acceptance feature for the confirmation: declining leaves the ballot alone, the keyboard stays within it while open, and it can be dismissed from the keyboard. Confirm it before implementing. **Declining was already covered; the two keyboard promises were not.**
+- [x] 5.2 Draw screen 9 (confirm send) as a focus-trapped bottom sheet in thumb reach, over the blurred ballot. Both actions are its own; nothing else dismisses it. **The trap moves every stop by hand rather than correcting the two ends — Safari does not put buttons in its tab order, so a boundary-only trap holds in Chromium and leaks in WebKit, which is the engine every phone at a venue runs. Caught by the WebKit project, not by review.** Focus returns to a named ref rather than to whatever had focus, for the same reason: Safari does not focus a button when it is clicked, so the inferred opener is the page body.
+- [x] 5.3 Write the acceptance feature for the modified "A participant can tell that their vote is already in": what they gave is shown per dish rather than one row per score. **Seeded with two categories — with one, a row-per-dish list and a row-per-score list are the same list, and the promise is untestable.**
+- [x] 5.4 Draw screen 10 (vote sent) with the per-dish totals. **Checked: `tally()` sums category values unweighted and then sums categories, so a plain per-dish sum is derived exactly as the leaderboard's is — they cannot disagree arithmetically.** What they are still differs: this total carries one judge and the reveal's carries every judge. So it is labelled "you gave 9" rather than shown as a bare number, and it is left out entirely where a single category would make it a repeat of the score.
+- [x] 5.5 EN and ES resources for every new string in this slice. `confirmTitle` split into a title and a lead — a sheet has room for the consequence in its own line, where the old inline panel had to run them together.
+- [x] 5.6 Run the slice verification. Typecheck clean, lint clean, vitest 1972/1972, Playwright 298/298 (Chromium + WebKit), `openspec validate` passing, and both screens driven live in Spanish and English at 390px and 320px — including the tab cycle, Escape, the focus return and the scroll-lock release.
+- [x] 5.7 Retire the names this slice's rewrite killed, per the sheet-shrinks decision: the send confirmation's panel, the sent screen's rows, and the classes orphaned when slice D moved scoring and ranking into their own module sheets. `participant.css` is 318 → 129 lines; `.pt-you` and `.pt-wait` stay for slice G.
+- [x] 5.8 Dress the ballot's send action as the pill the rest of the app uses. Not in the original list: it kept `@tapas/ui`'s 12px rectangle, which was invisible until the sheet's own pills appeared a tap away from it on the same screen. Removes the last `Button` import from `score.tsx`.
 
 ## 6. Slice F — waiting
 

@@ -132,9 +132,11 @@ describe('a vote that is already in', () => {
     });
     const { container } = wrap(<Score />);
 
-    expect(await screen.findByText(/vote is in|vote sent|sent/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /vote sent/i })).toBeInTheDocument();
     expect(screen.getByText('Tortilla')).toBeInTheDocument();
-    expect(screen.getByText('4')).toBeInTheDocument();
+    // A row per dish, with the category named — the score is a record now, and
+    // a bare "4" outside the ballot's own columns says nothing on its own.
+    expect(screen.getByText('Taste 4')).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
