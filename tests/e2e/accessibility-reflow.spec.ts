@@ -75,7 +75,7 @@ test('scoring reflows to a narrow screen and stays operable', async ({ page }) =
 
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: /score the dishes/i }).click();
+  await page.getByRole('link', { name: 'Your scores' }).click();
   await expect(page.getByRole('heading', { name: 'Score the dishes' })).toBeVisible();
 
   expect(await scrollsSideways(page)).toBe(false);
@@ -101,7 +101,7 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
   // Join and vote, then the host closes and reveals.
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: /score the dishes/i }).click();
+  await page.getByRole('link', { name: 'Your scores' }).click();
   const groups = page.getByRole('radiogroup');
   await groups.first().waitFor();
   const count = await groups.count();

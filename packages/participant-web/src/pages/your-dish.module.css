@@ -1,0 +1,152 @@
+/*
+ * The cook's own dish, and the dishes in so far. Screens 5 and 6 of the handoff
+ * — the same screen before and after there is something to save.
+ */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 10px 0 24px;
+  flex: 1;
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 42px;
+  line-height: 1.05;
+  font-weight: 600;
+  margin: 0;
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/*
+ * The whole form in one glass panel: the name, the optional description, and the
+ * action that saves them. One panel rather than three loose fields, because on a
+ * phone the thing being asked for is "your dish", not "three inputs".
+ */
+.panel {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(34, 22, 26, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.name {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 14px;
+  font-family: var(--serif);
+  font-size: 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.description {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/*
+ * The saved line lives INSIDE the panel, under the thing it is about — the same
+ * rule the join code's error follows. Amber at its dark step: `--amber-700` is
+ * 5.96:1 on the tint and 6.39:1 on the sheet, where the base amber is not safe
+ * as text on the tint.
+ */
+.saved {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--amber-700);
+}
+
+.saved svg {
+  flex: none;
+}
+
+/* --- the dishes in so far -------------------------------------------- */
+
+/*
+ * "Two of five in" — a kicker, not a heading a reader has to step over. It is
+ * still an h2 in the document so the roster below it is reachable by structure.
+ */
+.count {
+  margin: 12px 0 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.dishes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dishRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dishName {
+  font-family: var(--serif);
+  font-size: 20px;
+  margin-right: auto;
+}
+
+.dishDescription {
+  flex-basis: 100%;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+/*
+ * The cook's own dish, tagged. Amber on its tint, and the word "yours" as well
+ * as the colour — a tag that only differed by hue would say nothing to somebody
+ * who cannot see the difference.
+ */
+.yours {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--amber-tint);
+  color: var(--amber-700);
+  white-space: nowrap;
+}
+
+.note {
+  margin: 0;
+  font-size: 15px;
+  color: var(--ink-2);
+}

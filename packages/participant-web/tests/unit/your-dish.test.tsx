@@ -28,17 +28,26 @@ const dish = (over: Partial<Dish> & Pick<Dish, 'dishId' | 'name' | 'submitterIds
   ...over,
 });
 
+/**
+ * What the dishes read answers: the dishes in, and how many the contest is
+ * waiting for. Five places unless a test cares, which is the size the screen's
+ * "n of five in" line is read against.
+ */
+const inContest = (dishes: Dish[], expected = 5) => ({ dishes, expected });
+
 describe('Your dish', () => {
   beforeEach(() => {
-    vi.mocked(api.getDishes).mockReset().mockResolvedValue([]);
+    vi.mocked(api.getDishes).mockReset().mockResolvedValue(inContest([]));
     vi.mocked(api.submitDish).mockReset().mockResolvedValue(dish({ dishId: 'd-a', name: 'Patatas bravas', submitterIds: ['a'] }));
   });
   afterEach(() => vi.clearAllMocks());
 
   it('submits a dish with a name and shows it as theirs', async () => {
     vi.mocked(api.getDishes)
-      .mockResolvedValueOnce([]) // initial load: nothing yet
-      .mockResolvedValueOnce([dish({ dishId: 'd-a', name: 'Patatas bravas', submitterIds: ['a'] })]); // after submit
+      .mockResolvedValueOnce(inContest([])) // initial load: nothing yet
+      .mockResolvedValueOnce(
+        inContest([dish({ dishId: 'd-a', name: 'Patatas bravas', submitterIds: ['a'] })]),
+      ); // after submit
     renderYourDish(ANA);
 
     await userEvent.type(await screen.findByLabelText('Dish name'), 'Patatas bravas');
@@ -51,7 +60,9 @@ describe('Your dish', () => {
   });
 
   it('pre-fills the cook’s existing dish so re-submitting revises it', async () => {
-    vi.mocked(api.getDishes).mockResolvedValue([dish({ dishId: 'd-a', name: 'Old name', submitterIds: ['a'] })]);
+    vi.mocked(api.getDishes).mockResolvedValue(
+      inContest([dish({ dishId: 'd-a', name: 'Old name', submitterIds: ['a'] })]),
+    );
     renderYourDish(ANA);
 
     // The form is pre-filled and the button offers to update, not add.
@@ -70,9 +81,9 @@ describe('Your dish', () => {
   });
 
   it('shows the dishes submitted so far, including others’', async () => {
-    vi.mocked(api.getDishes).mockResolvedValue([
-      dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] }),
-    ]);
+    vi.mocked(api.getDishes).mockResolvedValue(
+      inContest([dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] })]),
+    );
     renderYourDish(ANA);
 
     const list = await screen.findByRole('list', { name: 'Dishes submitted' });
@@ -81,7 +92,9 @@ describe('Your dish', () => {
   });
 
   it('has no accessibility violations', async () => {
-    vi.mocked(api.getDishes).mockResolvedValue([dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] })]);
+    vi.mocked(api.getDishes).mockResolvedValue(
+      inContest([dish({ dishId: 'd-b', name: 'Tortilla', submitterIds: ['b'] })]),
+    );
     const { container } = renderYourDish(ANA);
     await screen.findByLabelText('Dish name');
     expect(await axe(container)).toHaveNoViolations();

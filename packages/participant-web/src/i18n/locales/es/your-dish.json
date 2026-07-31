@@ -8,16 +8,16 @@
   "submit": "Enviar plato",
   "errorNameRequired": "Ponle un nombre a tu plato.",
   "errorSave": "No se pudo guardar tu plato. Inténtalo de nuevo.",
-  "dishesSoFar": "Platos hasta ahora",
   "dishesLabel": "Platos enviados",
   "loadingDishes": "Cargando…",
   "noDishes": "Todavía no hay platos. Sé el primero.",
   "yours": "El tuyo",
   "waiting": "Cuando estén todos los platos, llega la hora de puntuar.",
-  "scoreLink": "Puntuar los platos →",
   "goneTitle": "Este concurso ya no existe",
   "goneLead": "El anfitrión lo eliminó, y los platos se fueron con él. No hiciste nada mal.",
   "signedOutTitle": "Únete primero",
   "signedOutLead": "Tu plato y las puntuaciones que diste siguen ahí. Vuelve a unirte y podrás continuar donde lo dejaste.",
-  "goToJoin": "Ir a unirse →"
+  "goToJoin": "Ir a unirse →",
+  "savedConfirmation": "Guardado — tu plato está dentro.",
+  "countIn": "{{submitted}} de {{expected}} dentro"
 }

@@ -111,11 +111,20 @@ export interface Dish {
   readonly submitterIds: readonly string[];
 }
 
-/** The dishes submitted so far in the contest. */
-export async function getDishes(contestId: string): Promise<Dish[]> {
+/**
+ * The dishes submitted so far, and how many the contest is waiting for — one per
+ * place on the roster. `expected` is a count and only a count: who has not
+ * submitted is not said, they are simply absent from `dishes`.
+ */
+export interface Dishes {
+  readonly dishes: readonly Dish[];
+  readonly expected: number;
+}
+
+export async function getDishes(contestId: string): Promise<Dishes> {
   const response = await send(`/contests/${encodeURIComponent(contestId)}/dishes`, 'GET');
   if (!response.ok) throw await errorFrom(response);
-  return ((await response.json()) as { dishes: Dish[] }).dishes;
+  return (await response.json()) as Dishes;
 }
 
 /** Submits (or revises) the participant's own dish; throws ApiError (e.g. a name is required). */

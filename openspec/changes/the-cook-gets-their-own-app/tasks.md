@@ -35,11 +35,12 @@ The two flattest screens, chosen first: 13 and 14 carry no glass, no accent and 
 
 ## 3. Slice C — your dish
 
-- [ ] 3.1 Write the acceptance feature for the dish screens, if the existing coverage does not already carry these observables. This slice changes no requirement; if nothing new is promised, say so and lean on the existing feature rather than writing a ceremonial one.
-- [ ] 3.2 Draw screen 5 (your dish, empty): the form in one glass panel, the roster below, the ways onward pinned to the foot.
-- [ ] 3.3 Draw screen 6 (dish saved): the saved line inside the panel, the amber "yours" tag on the participant's own row, the action becoming "Update dish".
-- [ ] 3.4 EN and ES resources for every new string in this slice.
-- [ ] 3.5 Run the slice verification.
+- [x] 3.1 Write the acceptance feature for the dish screens, if the existing coverage does not already carry these observables. **Checked, and two things were new**: the "n of five in" count (the dishes read carried no expected total), and a confirmation that had never been translated — `Saved — your dish is in.` was a bare English string in an app promising full EN/ES. Two scenarios added; the rest of the coverage stands.
+- [x] 3.2 Draw screen 5 (your dish, empty): the form in one glass panel, the roster below, the ways onward pinned to the foot.
+- [x] 3.3 Draw screen 6 (dish saved): the saved line inside the panel, the amber "yours" tag on the participant's own row, the action becoming "Update dish".
+- [x] 3.4 EN and ES resources for every new string in this slice.
+- [x] 3.5 Run the slice verification. Typecheck clean, lint clean, vitest 1949/1949, Playwright 280/280 (Chromium + WebKit), `openspec validate` passing, both screens driven live in English and Spanish at 390px and 320px.
+- [x] 3.6 Route the score and ranking specs through the ways onward. Removing the dish screen's separate "Score the dishes →" link — the handoff gives screen 5 only the quiet ways-onward links — broke ten locators across three e2e specs. The navigation promise is unchanged and `participant-navigation` guards it independently.
 
 ## 4. Slice D — scoring
 
