@@ -77,7 +77,7 @@ test.describe('choosing and remembering a language', () => {
     await page.goto(PARTICIPANT);
     await expect(page.getByRole('heading', { name: 'Join the contest' })).toBeVisible();
 
-    await page.getByLabel('Language').selectOption('es');
+    await page.getByRole('radio', { name: 'Español' }).check();
 
     // Same page instance — no reload happened, the screen simply re-rendered.
     await expect(page.getByRole('heading', { name: 'Únete al concurso' })).toBeVisible();
@@ -92,7 +92,7 @@ test.describe('choosing and remembering a language', () => {
     ]);
 
     await page.goto(PARTICIPANT);
-    await page.getByLabel('Language').selectOption('es');
+    await page.getByRole('radio', { name: 'Español' }).check();
     await expect(page.getByRole('heading', { name: 'Únete al concurso' })).toBeVisible();
 
     // Take a place: the next screen must be Spanish too.
@@ -131,8 +131,15 @@ test.describe('the selector is usable by everyone', () => {
     await page.goto(PARTICIPANT);
     await expect(page.getByRole('heading', { name: 'Join the contest' })).toBeVisible();
 
-    // Named in words, not by a resource key.
-    await expect(page.getByLabel('Language')).toHaveAttribute('aria-label', 'Language');
+    /*
+     * Named in words, not by a resource key — the defect this guards against is
+     * i18next echoing a missing key, which would announce "common.language.label".
+     * The control is a segmented radio group now rather than a <select>, so the
+     * naming lives on each option and on the group that holds them.
+     */
+    await expect(page.getByRole('group', { name: 'Language' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'English' })).toBeVisible();
+    await expect(page.getByRole('radio', { name: 'Español' })).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

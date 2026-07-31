@@ -2,7 +2,9 @@ Feature: A host sees the results on their own screen
   The host runs the contest but watches the ending like everyone else. Once they
   have revealed it, they reach the results from the contest and see the winners
   named — the same winners, in the same order, that the participants are looking
-  at on their phones. The screen is keyboard-operable and meets accessibility
+  at on their phones. That agreement is about the outcome, not about the two
+  screens resembling each other: it holds however differently each audience's
+  results are laid out. The screen is keyboard-operable and meets accessibility
   standards (WCAG 2.1 AA).
 
   Scenario: A host reaches the results from the contest and sees the winners
@@ -12,6 +14,12 @@ Feature: A host sees the results on their own screen
 
   Scenario: The host and a participant are shown the same winners
     Given a revealed contest that a participant took part in
+    When the host and the participant each look at the results
+    Then the same dish is named the winner, and the leaderboard reads the same order
+
+  Scenario: The two agree even though the screens look nothing alike
+    Given a revealed contest that a participant took part in
+    And a host's results screen and a participant's that are laid out differently
     When the host and the participant each look at the results
     Then the same dish is named the winner, and the leaderboard reads the same order
 

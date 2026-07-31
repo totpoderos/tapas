@@ -1,8 +1,14 @@
 /*
- * The reveal moment, shared by both apps. Lifted out of the participant app's
- * global `pt-*` stylesheet so the host can render the same view (design.md §11C).
+ * The reveal moment, as the HOST app draws it. This was once shared with the
+ * participant app; the participant now draws its own (packages/participant-web),
+ * because the two apps became different products with different visual
+ * languages. What they still share is `RevealData` — the shape of a result —
+ * and the promise in `host-sees-the-results` that both audiences are told the
+ * same thing. That promise is now held by a test across the two rendered
+ * screens, not by this file being the only one there is.
  *
- * Two properties here were paid for once already and must not be undone:
+ * Four properties here were paid for once already and must not be undone. Each
+ * is invisible in a screenshot, which is exactly why they are written down:
  *
  *   1. Saffron is an ACCENT, never text. `--saffron` (#e39b12) is 2.24:1 on the
  *      light ground — it fails as a text colour. It appears only as the winner's
@@ -10,6 +16,13 @@
  *   2. The entrance animation is neutralised by the global
  *      `prefers-reduced-motion` rule in tokens.css, which the accessibility
  *      scans rely on for a stable final frame to measure contrast against.
+ *   3. Rank is carried by its NUMBER, not by weight or tint alone — so a
+ *      leaderboard read without the styling still says who came where.
+ *   4. Translation keys are asked for as FULL paths, and both apps carry a
+ *      `reveal` resource. i18next answers a missing key by echoing the key,
+ *      which in a label is read aloud.
+ *
+ * Anyone rewriting the participant's copy owes it the same four.
  */
 
 .reveal {

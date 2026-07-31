@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "-w", "@tapas/host-web"],
       "port": 5173
+    },
+    {
+      "name": "participant-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "-w", "@tapas/participant-web"],
+      "port": 5174
     }
   ]
 }
