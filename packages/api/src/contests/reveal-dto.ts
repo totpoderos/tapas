@@ -1,4 +1,4 @@
-import type { Category, DishId, TallyResult } from '@tapas/domain';
+import type { Category, DishId, MaterializedContest, TallyResult } from '@tapas/domain';
 
 /** A dish's standing in a category (or overall): its name and total, for the leaderboard. */
 export interface RevealStanding {
@@ -9,7 +9,55 @@ export interface RevealStanding {
 
 export interface RevealWinner {
   readonly dishId: string;
+  /** The dish, by the name it was submitted under. */
   readonly name: string;
+  /**
+   * Who brought it — so the result names a person as well as a plate.
+   *
+   * A LIST, because a dish can genuinely have more than one cook: under
+   * `per_couple` attribution partners share a dish, and a singular field would
+   * force this to pick one of two people who cooked together. It never replaces
+   * `name`; a dish is identified to both audiences by what it was called.
+   */
+  readonly cooks: readonly string[];
+}
+
+/** What a dish is called and who brought it. */
+export interface DishNaming {
+  readonly nameOf: (dishId: DishId) => string;
+  readonly cooksOf: (dishId: DishId) => readonly string[];
+}
+
+/**
+ * Builds the naming both reveal routes need, in one place.
+ *
+ * The host's `/winners` and the participant's `/reveal` each call `toRevealDto`
+ * with their own arguments, which is precisely the shape of this repo's
+ * recurring defect: two paths assumed equivalent, agreeing by convention until
+ * one is edited. They now build their naming from the same function, so a dish
+ * cannot be called one thing on one screen and another elsewhere.
+ *
+ * Cooks come from the MATERIALIZED dish rather than from the submitted one: the
+ * roster slot exists whether or not anyone got round to submitting a dish, so a
+ * dish that was never named still knows whose it was.
+ */
+export function dishNaming(
+  materialized: MaterializedContest,
+  dishes: readonly { readonly dishId: string; readonly name: string }[],
+  roster: readonly { readonly participantId: string; readonly displayName: string }[],
+): DishNaming {
+  const names = new Map(dishes.map((dish) => [dish.dishId, dish.name]));
+  const people = new Map(roster.map((place) => [place.participantId, place.displayName]));
+  const cooks = new Map(
+    materialized.dishes.map((dish) => [
+      dish.id,
+      dish.submitterIds.map((id) => people.get(id)).filter((name): name is string => !!name),
+    ]),
+  );
+  return {
+    nameOf: (dishId) => names.get(dishId) ?? 'A dish',
+    cooksOf: (dishId) => cooks.get(dishId) ?? [],
+  };
 }
 
 export interface RevealCategory {
@@ -35,14 +83,23 @@ export function toRevealDto(
   contestName: string,
   categories: readonly Category[],
   results: TallyResult,
-  dishName: (dishId: DishId) => string,
+  naming: DishNaming,
 ): RevealDto {
   const categoryName = new Map(categories.map((c) => [c.id, c.name]));
-  const winner = (dishId: DishId): RevealWinner => ({ dishId, name: dishName(dishId) });
+  const winner = (dishId: DishId): RevealWinner => ({
+    dishId,
+    name: naming.nameOf(dishId),
+    cooks: naming.cooksOf(dishId),
+  });
+  /*
+   * The leaderboard stays dish names alone. Naming a cook is the headline's
+   * job — a board that named everybody would turn the standings into a list of
+   * who lost, which is not what a leaderboard is for.
+   */
   const standingsOf = (totals: ReadonlyMap<DishId, number>): RevealStanding[] =>
     [...totals.entries()]
       .sort(([, a], [, b]) => b - a)
-      .map(([dishId, total]) => ({ dishId, name: dishName(dishId), total }));
+      .map(([dishId, total]) => ({ dishId, name: naming.nameOf(dishId), total }));
 
   return {
     contestName,

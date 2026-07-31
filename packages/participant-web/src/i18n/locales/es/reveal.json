@@ -10,6 +10,7 @@
   "goToJoin": "Ir a unirse →",
   "winner": "Ganador",
   "jointWinners": "Ganadores ex aequo",
+  "broughtBy": "de {{cooks}}",
   "bestInCategory": "Lo mejor de cada categoría",
   "categoryWinnersLabel": "Ganadores por categoría",
   "leaderboard": "Clasificación",

@@ -139,10 +139,79 @@ interface Turnout {
   participants: { participantId: string; displayName: string; sent: boolean }[];
 }
 
+/** Publishes `draft`, returning the contest id, its join code and the host's jar. */
+async function publish(app: FastifyInstance, hostEmail: string, draft: DraftContent) {
+  const host = new CookieJar();
+  await seedHost(app, hostEmail, STRONG_PASSWORD);
+  await request(app, host, { method: 'POST', url: '/auth/login', payload: { email: hostEmail, password: STRONG_PASSWORD } });
+  const created = await request(app, host, { method: 'POST', url: '/drafts', payload: draft });
+  const published = await request(app, host, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
+  expect(published.statusCode).toBe(201);
+  return { host, contestId: published.json().id as string, joinCode: published.json().joinCode as string };
+}
+
+/** Closes and reveals, so the results can be read. */
+async function closeAndReveal(app: FastifyInstance, host: CookieJar, contestId: string) {
+  await request(app, host, { method: 'POST', url: `/contests/${contestId}/close` });
+  await request(app, host, { method: 'POST', url: `/contests/${contestId}/reveal` });
+}
+
+/** Ana and Bob score each other's dish the same, so the two tie on equal totals. */
+async function tiedContest(app: FastifyInstance) {
+  const { host, contestId, joinCode } = await publish(app, 'tie@x.es', content());
+  const ana = await claim(app, joinCode, 'ana');
+  const bob = await claim(app, joinCode, 'bob');
+  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Patatas bravas' } });
+  await request(app, bob, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Tortilla' } });
+  for (const [jar, dishId] of [[ana, 'D-bob'], [bob, 'D-ana']] as const) {
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value: 5 } });
+    expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  }
+  await closeAndReveal(app, host, contestId);
+  return { contestId, ana };
+}
+
+/**
+ * `per_couple`: Ana and Bob are partners and bring ONE dish between them; Carol
+ * brings her own. Carol rates theirs highest, so the shared dish wins and has to
+ * name both of the people who made it.
+ */
+async function sharedDishContest(app: FastifyInstance) {
+  const couples: DraftContent = {
+    ...content(),
+    attribution: 'per_couple',
+    participants: [
+      { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
+      { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
+      { id: 'carol', displayName: 'Carol' },
+    ],
+  };
+  const { host, contestId, joinCode } = await publish(app, 'couple@x.es', couples);
+  const ana = await claim(app, joinCode, 'ana');
+  const carol = await claim(app, joinCode, 'carol');
+  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Tortilla for two' } });
+  await request(app, carol, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Gazpacho' } });
+
+  // Each scores every dish open to them: Carol theirs, Ana Carol's.
+  await request(app, carol, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId: 'D-ana-bob', categoryId: 'taste', value: 5 } });
+  expect((await request(app, carol, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId: 'D-carol', categoryId: 'taste', value: 1 } });
+  expect((await request(app, ana, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+
+  await closeAndReveal(app, host, contestId);
+  return { contestId, ana };
+}
+
+interface RevealWinner {
+  dishId: string;
+  name: string;
+  cooks: string[];
+}
+
 interface Reveal {
   contestName: string;
-  overall: { winners: { dishId: string; name: string }[]; standings: { dishId: string; name: string; total: number }[] };
-  categories: { categoryId: string; name: string; winners: { dishId: string; name: string }[] }[];
+  overall: { winners: RevealWinner[]; standings: { dishId: string; name: string; total: number }[] };
+  categories: { categoryId: string; name: string; winners: RevealWinner[] }[];
 }
 
 describeFeature(feature, ({ Scenario }) => {
@@ -167,6 +236,89 @@ describeFeature(feature, ({ Scenario }) => {
     And('they see the winner of each category', () => {
       const taste = reveal.categories.find((c) => c.categoryId === 'taste');
       expect(taste?.winners.map((w) => w.name)).toEqual(['Tortilla']);
+    });
+  });
+
+  Scenario('The winning dish names the cook who brought it', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let contestId: string;
+    let reveal: Reveal;
+
+    Given('a contest that has been fully voted, closed, and revealed', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, ana } = await playContest(app, { close: true, reveal: true }));
+    });
+    When('a participant who took part reads the results', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(response.statusCode).toBe(200);
+      reveal = response.json();
+    });
+    Then('the winning dish is named, and so is the participant who brought it', () => {
+      // Bob's tortilla wins; Bob brought it. The dish keeps the name it was
+      // submitted under — the cook is named ALONGSIDE it, never instead of it.
+      expect(reveal.overall.winners).toEqual([
+        { dishId: 'D-bob', name: 'Tortilla', cooks: ['Bob'] },
+      ]);
+    });
+  });
+
+  Scenario('Joint winners each name their own cook', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let contestId: string;
+    let reveal: Reveal;
+
+    Given('a revealed contest that ended in a tie', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, ana } = await tiedContest(app));
+    });
+    When('a participant who took part reads the results', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(response.statusCode).toBe(200);
+      reveal = response.json();
+    });
+    Then('each winning dish is named, and so is the participant who brought it', () => {
+      expect(reveal.overall.winners).toHaveLength(2);
+      // Each winner carries its OWN cook — not a shared list of everyone who tied.
+      expect(reveal.overall.winners).toContainEqual({
+        dishId: 'D-ana',
+        name: 'Patatas bravas',
+        cooks: ['Ana'],
+      });
+      expect(reveal.overall.winners).toContainEqual({
+        dishId: 'D-bob',
+        name: 'Tortilla',
+        cooks: ['Bob'],
+      });
+    });
+  });
+
+  Scenario('A dish brought by two people names them both', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let contestId: string;
+    let reveal: Reveal;
+
+    Given('a revealed contest where two partners shared a dish', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, ana } = await sharedDishContest(app));
+    });
+    When('a participant who took part reads the results', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(response.statusCode).toBe(200);
+      reveal = response.json();
+    });
+    Then('the dish they shared names both of them', () => {
+      /*
+       * Under `per_couple` a dish genuinely has two cooks, which is why the
+       * field is a list. Naming one of them would be the API choosing which
+       * half of a couple cooked, in the one moment of the evening that names
+       * people at all.
+       */
+      expect(reveal.overall.winners).toEqual([
+        { dishId: 'D-ana-bob', name: 'Tortilla for two', cooks: ['Ana', 'Bob'] },
+      ]);
     });
   });
 

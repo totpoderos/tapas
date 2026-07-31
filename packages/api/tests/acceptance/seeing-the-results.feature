@@ -10,6 +10,21 @@ Feature: A participant sees the results
     Then they see the overall winner by name
     And they see the winner of each category
 
+  Scenario: The winning dish names the cook who brought it
+    Given a contest that has been fully voted, closed, and revealed
+    When a participant who took part reads the results
+    Then the winning dish is named, and so is the participant who brought it
+
+  Scenario: Joint winners each name their own cook
+    Given a revealed contest that ended in a tie
+    When a participant who took part reads the results
+    Then each winning dish is named, and so is the participant who brought it
+
+  Scenario: A dish brought by two people names them both
+    Given a revealed contest where two partners shared a dish
+    When a participant who took part reads the results
+    Then the dish they shared names both of them
+
   Scenario: The results are held back until the contest is revealed
     Given a contest that has been fully voted and closed but not revealed
     When a participant who took part reads the results

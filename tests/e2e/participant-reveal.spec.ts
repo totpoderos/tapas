@@ -4,13 +4,11 @@ import { hostInvitedBy } from './support/hosts.js';
 
 /**
  * The winning dish's name. It also appears on the leaderboard below, so it needs
- * disambiguating — anchored to the "Winner" heading it sits under rather than to
- * a class name, since the reveal moved into `@tapas/ui` and its styles are
- * module-scoped now. "The winner is named directly beneath the Winner heading"
- * is the actual promise to a screen-reader user, and it survives the move.
+ * disambiguating — it is the h1 since the restyle, which is the promise itself:
+ * on this screen the dish that won is the headline, not a line under one.
  */
 function winnerLine(page: Page) {
-  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+  return page.getByRole('heading', { level: 1 });
 }
 
 /**
@@ -140,6 +138,18 @@ test('waiting still works when how the voting stands cannot be read', async ({ p
   await expect(page.getByRole('list', { name: 'Who has voted' })).toHaveCount(0);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByRole('navigation', { name: 'Go to' })).toBeVisible();
+});
+
+test('the reveal names the cook as well as the dish', async ({ page }) => {
+  const { contestId, host } = await seedVotedAndClosed(page, 'e2e-reveal-cook@sobremesa.es');
+  await host.post(`/contests/${contestId}/reveal`);
+
+  await page.goto(`${PARTICIPANT}/reveal`);
+
+  // The dish is the headline — and it is still identified by the name it was
+  // submitted under, with the cook named alongside rather than instead.
+  await expect(winnerLine(page)).toHaveText('Ana paella');
+  await expect(page.getByText('brought by Ana')).toBeVisible();
 });
 
 test('the reveal is accessible and honours reduced motion', async ({ page }) => {

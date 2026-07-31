@@ -9,7 +9,7 @@ import type {
 import { auditCsv, auditFilename } from '../audit/audit-csv.js';
 import { ensureContestFresh } from '../contests/ensure-fresh.js';
 import { toResultsDto } from '../contests/results-dto.js';
-import { toRevealDto } from '../contests/reveal-dto.js';
+import { dishNaming, toRevealDto } from '../contests/reveal-dto.js';
 import { toContestDto } from '../contests/contest-dto.js';
 import { SENSITIVE_RATE_LIMIT } from './rate-limit.js';
 import { provenanceOfRequest } from './request-provenance.js';
@@ -291,14 +291,21 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
           .send({ error: results.error });
       }
 
-      const names = new Map(deps.dishes.findByContest(contest.id).map((d) => [d.dishId, d.name]));
+      /*
+       * The same naming the participant's reveal is built from — including the
+       * cooks, which this payload carries and the host's screen does not draw.
+       * That is not an oversight: the field belongs to the result, both routes
+       * describe the same result, and a payload that differed by route is how
+       * two screens quietly stop agreeing.
+       */
+      const naming = dishNaming(
+        contest.materialized,
+        deps.dishes.findByContest(contest.id),
+        deps.roster.listAll(contest.id),
+      );
       return reply
         .code(200)
-        .send(
-          toRevealDto(contest.name, contest.materialized.categories, results.results, (dishId) =>
-            names.get(dishId) ?? 'A dish',
-          ),
-        );
+        .send(toRevealDto(contest.name, contest.materialized.categories, results.results, naming));
     },
   );
 
