@@ -1,0 +1,171 @@
+/*
+ * The score track: one category's score, as a single wide control instead of a
+ * row of ten small radio buttons.
+ *
+ * Underneath it is still a radio group — one input per allowed value. That is
+ * not an implementation detail to be tidied away later: it is what makes the
+ * control operable by keyboard, announced correctly, and incapable of producing
+ * a value that is not one of the allowed ones. The drag is layered on top of it
+ * and could be removed without the control ceasing to work.
+ */
+
+.panel {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 12px 30px rgba(34, 22, 26, 0.13);
+}
+
+/* A category still waiting: an amber edge AND the words, never the edge alone. */
+.panelUnscored {
+  border-color: rgba(138, 90, 9, 0.4);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.category {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.value {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 50px;
+  line-height: 1;
+  color: var(--brand);
+  text-shadow: 0 8px 20px rgba(140, 47, 57, 0.28);
+}
+
+.yourTurn {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--amber-700);
+}
+
+/* --- the track ------------------------------------------------------- */
+
+.track {
+  position: relative;
+  height: 64px;
+  padding: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  box-shadow: inset 0 2px 6px rgba(34, 22, 26, 0.1);
+  touch-action: none; /* the drag owns horizontal movement, not the page */
+}
+
+.fill {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, #a8434d, #8c2f39);
+  box-shadow: 0 8px 18px rgba(140, 47, 57, 0.35);
+  pointer-events: none;
+}
+
+.knob {
+  position: absolute;
+  top: 50%;
+  width: 60px;
+  height: 60px;
+  margin-top: -30px;
+  border-radius: 50%;
+  background: #fffdf9;
+  box-shadow:
+    0 10px 22px rgba(140, 47, 57, 0.4),
+    0 0 0 1px rgba(140, 47, 57, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  pointer-events: none;
+}
+
+/* --- the steps ------------------------------------------------------- */
+
+/*
+ * The inputs themselves, laid across the track as equal slots. They are
+ * transparent rather than removed from the page: each keeps its role, its
+ * checked state, and its own focus. Tapping a slot checks it natively; the drag
+ * below only adds a way to slide between them.
+ */
+.steps {
+  position: relative;
+  display: flex;
+  height: 100%;
+}
+
+.step {
+  flex: 1 1 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  cursor: pointer;
+  font-size: 14px;
+  color: rgba(34, 22, 26, 0.5);
+  z-index: 1;
+}
+
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Below the fill, the label sits on vermouth and has to be light to be read. */
+.stepUnder {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.stepChosen {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--brand);
+}
+
+.step:has(.input:focus-visible) {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+  border-radius: var(--radius-pill);
+}
+
+/*
+ * Only the ends are labelled when there is no room for every step — either
+ * because the host set a wide range, or because the screen is narrow.
+ *
+ * The rule hides the NUMBER, not the step. Hiding the step hides the input
+ * inside it: `visibility: hidden` takes an element out of the accessibility
+ * tree and out of hit-testing, so steps 2–9 stopped existing at 320px — on the
+ * narrow screens this app is mostly used on, and precisely where the spec
+ * allows the target-size exception on the understanding that every step is
+ * still reachable. What goes is the labelling, never a step.
+ */
+.stepLabelHidden > span {
+  visibility: hidden;
+}
+
+@media (max-width: 359px) {
+  .step:not(.stepFirst):not(.stepLast) > span {
+    visibility: hidden;
+  }
+}

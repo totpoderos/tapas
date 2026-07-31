@@ -1,0 +1,269 @@
+/*
+ * Scoring, one dish at a time, and the ballot that holds them all.
+ * Screens 7 and 8 of the handoff.
+ */
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 6px 0 24px;
+  flex: 1;
+}
+
+/* --- the progress rail ------------------------------------------------ */
+
+/*
+ * One bar per dish, filled when that dish is *completely* scored. It answers
+ * "how much of this is left", which is the only question worth a permanent
+ * fixture on the screen — not how any individual category stands.
+ */
+.rail {
+  display: flex;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.railBar {
+  flex: 1 1 0;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(34, 22, 26, 0.13);
+}
+
+.railBarDone {
+  background: var(--brand);
+  box-shadow: 0 2px 8px rgba(140, 47, 57, 0.4);
+}
+
+/* The last bar left when everything else is in — amber, the "nearly" colour. */
+.railBarLast {
+  background: rgba(138, 90, 9, 0.55);
+}
+
+.kicker {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.dishName {
+  font-family: var(--serif);
+  font-size: 38px;
+  line-height: 1.05;
+  font-weight: 600;
+  margin: 0;
+}
+
+.dishDescription {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.categories {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* --- moving between dishes -------------------------------------------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 20px;
+}
+
+.back {
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.back:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.back:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- the ballot (screen 8) -------------------------------------------- */
+
+.ballot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ballotRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ballotDish {
+  font-family: var(--serif);
+  font-size: 19px;
+  min-width: 0;
+}
+
+.ballotScores {
+  font-size: 15px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/*
+ * What is missing, as a link to the place it is missing from. Amber, and a link
+ * rather than a note: the point of naming it is that you can go and fix it.
+ */
+.missing {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--amber-700);
+  white-space: nowrap;
+}
+
+.incomplete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--amber-700);
+}
+
+.incomplete svg {
+  flex: none;
+}
+
+/*
+ * The confirmation sheet (screen 9) and the sent screen (screen 10) belong to
+ * the next slice. Until then the send confirmation keeps the panel it already
+ * had — it works, and half-dressing it here would be worse than leaving it.
+ */
+
+/*
+ * "Next dish" is a link, not a button, because it goes somewhere — which is
+ * what makes the browser's own back control work and what lets it be opened
+ * the way any link can. It is dressed as the primary action because on this
+ * screen it is the primary action.
+ */
+.onward {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-primary);
+}
+
+.onward:hover {
+  background: var(--brand-600);
+}
+
+.onward:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/* --- strict ranking ---------------------------------------------------
+ *
+ * No design exists for this branch and none is invented here: the control is
+ * the same select-per-dish it has always been. What changes is its dress, so a
+ * contest configured for strict ranking does not look like the app before this
+ * change while every other contest looks like the app after it.
+ */
+.rankCategory {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 12px 30px rgba(34, 22, 26, 0.13);
+}
+
+.rankCategory + .rankCategory {
+  margin-top: 16px;
+}
+
+.rankTitle {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.rankRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.rankRow + .rankRow {
+  border-top: 1px solid var(--line);
+}
+
+.rankDish {
+  font-family: var(--serif);
+  font-size: 19px;
+  margin-right: auto;
+  min-width: 0;
+}
+
+.rankSelect {
+  min-width: 76px;
+  min-height: 48px;
+  padding: 0 12px;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.rankSelect:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}

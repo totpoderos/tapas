@@ -69,6 +69,21 @@ async function scrollsSideways(page: Page): Promise<boolean> {
   });
 }
 
+/** Scores every dish by address, then returns to the ballot where sending lives. */
+async function scoreEveryDishNarrow(page: Page, value: string, dishes = 2): Promise<void> {
+  for (let dish = 1; dish <= dishes; dish++) {
+    await page.goto(`${PARTICIPANT}/score/${dish}`);
+    const groups = page.getByRole('radiogroup');
+    await groups.first().waitFor();
+    const count = await groups.count();
+    for (let i = 0; i < count; i++) {
+      await groups.nth(i).getByRole('radio', { name: value }).check();
+    }
+    expect(await scrollsSideways(page)).toBe(false);
+  }
+  await page.goto(`${PARTICIPANT}/score`);
+}
+
 test('scoring reflows to a narrow screen and stays operable', async ({ page }) => {
   const { joinCode } = await seedScorableContest('e2e-reflow-score@sobremesa.es');
   await page.setViewportSize(NARROW);
@@ -76,17 +91,16 @@ test('scoring reflows to a narrow screen and stays operable', async ({ page }) =
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
   await page.getByRole('link', { name: 'Your scores' }).click();
-  await expect(page.getByRole('heading', { name: 'Score the dishes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your ballot' })).toBeVisible();
 
   expect(await scrollsSideways(page)).toBe(false);
 
-  // Still fully operable at this width: score every dish and send.
-  const groups = page.getByRole('radiogroup');
-  await groups.first().waitFor();
-  const count = await groups.count();
-  for (let i = 0; i < count; i++) {
-    await groups.nth(i).getByRole('radio', { name: '4' }).check();
-  }
+  /*
+   * Still fully operable at this width, a dish at a time. The track's ten step
+   * labels are the thing this width is meant to catch: below 360px they drop to
+   * the ends, and the control itself does not change.
+   */
+  await scoreEveryDishNarrow(page, '4');
   await page.getByRole('button', { name: 'Send my vote' }).click();
   await page.getByRole('button', { name: 'Yes, send my vote' }).click();
   await expect(page.getByText(/vote sent/i)).toBeVisible();
@@ -102,12 +116,7 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
   await page.getByRole('link', { name: 'Your scores' }).click();
-  const groups = page.getByRole('radiogroup');
-  await groups.first().waitFor();
-  const count = await groups.count();
-  for (let i = 0; i < count; i++) {
-    await groups.nth(i).getByRole('radio', { name: '5' }).check();
-  }
+  await scoreEveryDishNarrow(page, '5');
   await page.getByRole('button', { name: 'Send my vote' }).click();
   await page.getByRole('button', { name: 'Yes, send my vote' }).click();
   await expect(page.getByText(/vote sent/i)).toBeVisible();
