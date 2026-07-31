@@ -85,192 +85,20 @@
   border-color: var(--brand);
 }
 
-/* Your-dish screen. */
-.pt-subhead {
-  font-size: 19px;
-  margin: 32px 0 12px;
-}
-.pt-dishes {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.pt-dish-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  padding: 12px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-}
-.pt-dish-name {
-  font-family: var(--serif);
-  font-size: 17px;
-}
-.pt-dish-desc {
-  color: var(--ink-2);
-  font-size: 14px;
-  flex-basis: 100%;
-}
-.pt-yours {
-  padding: 1px 9px;
-  border-radius: 999px;
-  background: var(--good-soft);
-  color: var(--good);
-  font-size: 12px;
-  font-weight: 600;
-}
 .pt-wait {
   margin-top: 28px;
   text-align: center;
 }
 
-/* Score screen. */
-.pt-score-list {
-  list-style: none;
-  margin: 8px 0 24px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.pt-score-dish {
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-}
-.pt-score-dish .pt-dish-name {
-  display: block;
-  margin-bottom: 12px;
-}
-.pt-rating {
-  border: none;
-  margin: 0;
-  padding: 0;
-}
-.pt-rating + .pt-rating {
-  margin-top: 12px;
-}
-.pt-rating-legend {
-  padding: 0;
-  font-size: 13px;
-  color: var(--ink-2);
-  margin-bottom: 6px;
-}
-.pt-rating-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.pt-rating-value {
-  min-width: 44px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-  font-size: 16px;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-.pt-rating-value input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-}
-.pt-rating-value:focus-within {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-}
-.pt-rating-value.chosen {
-  background: var(--brand);
-  color: var(--on-brand);
-  border-color: var(--brand);
-  font-weight: 700;
-}
-
-/* Strict-ranking assignment. */
-.pt-rank-cats {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  margin: 8px 0 24px;
-}
-.pt-rank-cat {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  padding: 16px 18px;
-}
-.pt-rank-cat .pt-subhead {
-  margin: 0 0 12px;
-}
-.pt-rank-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.pt-rank-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.pt-rank-row .pt-dish-name {
-  margin-right: auto;
-}
-.pt-rank-select {
-  min-width: 72px;
-  min-height: 44px;
-  padding: 0 12px;
-  font-size: 16px;
-  font-variant-numeric: tabular-nums;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-control);
-  background: var(--ground);
-  color: var(--ink);
-}
-
-/* Send-vote confirmation beat. */
-.pt-confirm {
-  border: 1px solid var(--brand-line);
-  border-radius: var(--radius-card);
-  background: var(--brand-soft);
-  padding: 16px 18px;
-}
-.pt-confirm-title {
-  margin: 0 0 12px;
-  font-weight: 600;
-}
-.pt-confirm-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-.pt-score-link {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  margin-top: 8px;
-  color: var(--brand);
-  font-weight: 600;
-  text-decoration: none;
-}
-.pt-score-link:hover {
-  text-decoration: underline;
-}
+/*
+ * The score screen, the ballot, the strict-ranking branch, the send
+ * confirmation and the sent screen all draw from their own module stylesheets
+ * now — `score.module.css`, `score-track.module.css`, `confirm-sheet.module.css`
+ * — so the fifty-target rating grid, the confirmation panel and the sent
+ * screen's rows are gone from here. The names retire with the screens that used
+ * them, which is what keeps this sheet shrinking towards nothing rather than
+ * accumulating a second, dead vocabulary underneath the live one.
+ */
 
 /* Waiting for the reveal. */
 .pt-waiting {
@@ -293,23 +121,6 @@
 /* The reveal moment has its own stylesheet, reveal-view.module.css, beside its
    own component. It was shared with the host app; it is this app's now. */
 
-/* Joined confirmation. */
-.pt-joined {
-  margin-top: 40px;
-  text-align: center;
-}
-.pt-check {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 16px;
-  border-radius: 50%;
-  background: var(--good-soft);
-  color: var(--good);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-}
 .pt-you {
   font-family: var(--serif);
   font-size: 24px;

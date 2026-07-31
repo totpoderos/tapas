@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
@@ -128,7 +128,11 @@ describe('when the participant is no longer signed in', () => {
     wrap(<Score />);
 
     await userEvent.click(await screen.findByRole('button', { name: /send/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /send my vote|yes|confirm/i }));
+    // Accepted in the confirmation sheet: the trigger is still on the ballot
+    // behind it, so the query has to say which of the two it means.
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: /yes, send/i }),
+    );
 
     expect(await screen.findByRole('heading', { name: 'Join first' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /send/i })).not.toBeInTheDocument();
@@ -144,7 +148,11 @@ describe('when the participant is no longer signed in', () => {
     wrap(<Score />);
 
     await userEvent.click(await screen.findByRole('button', { name: /send/i }));
-    await userEvent.click(await screen.findByRole('button', { name: /send my vote|yes|confirm/i }));
+    // Accepted in the confirmation sheet: the trigger is still on the ballot
+    // behind it, so the query has to say which of the two it means.
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: /yes, send/i }),
+    );
 
     expect(
       screen.queryByRole('heading', { name: 'Join first' }),

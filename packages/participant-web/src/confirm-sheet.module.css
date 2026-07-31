@@ -1,0 +1,130 @@
+/*
+ * The confirmation before an irreversible send (screen 9).
+ *
+ * A sheet rising from the foot of the screen rather than a box in the middle:
+ * the phone is being held one-handed and the two choices belong under the thumb
+ * that is already there. The ballot stays visible behind it — blurred and
+ * dimmed, so it reads as "still there, just not now" rather than as gone.
+ */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(34, 22, 26, 0.32);
+  backdrop-filter: blur(5px);
+  animation: fade 0.18s ease-out;
+}
+
+/*
+ * No click handler and no `pointer-events: none`: the scrim exists partly to
+ * swallow taps that miss the sheet. Dismissal is the participant's own choice,
+ * made with one of the two controls below or with Escape — nothing else.
+ */
+
+.sheet {
+  width: 100%;
+  max-width: 460px;
+  padding: 22px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--glass-border);
+  border-radius: 26px 26px 0 0;
+  box-shadow: var(--shadow-sheet);
+  animation: rise 0.22s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/*
+ * The sheet takes focus so its title is announced whole, but it is a container
+ * and not a control: a focus ring around the entire panel would suggest it does
+ * something when pressed. The two things that are operable keep theirs.
+ */
+.sheet:focus {
+  outline: none;
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 26px;
+  line-height: 1.15;
+  font-weight: 600;
+  margin: 0;
+}
+
+.lead {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/*
+ * Both actions are full-width and 54px tall. The confirming one is not made
+ * harder to hit than the declining one — this is a checkpoint, not an obstacle
+ * course — but declining sits closest to the thumb's resting place.
+ */
+.confirm,
+.cancel {
+  width: 100%;
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm {
+  border: 1px solid transparent;
+  background: var(--brand);
+  color: var(--on-brand);
+  box-shadow: var(--shadow-primary);
+}
+
+.confirm:hover:not(:disabled) {
+  background: var(--brand-600);
+}
+
+.cancel {
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--ink);
+}
+
+.cancel:hover:not(:disabled) {
+  border-color: var(--ink-2);
+}
+
+.confirm:disabled,
+.cancel:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.confirm:focus-visible,
+.cancel:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+}

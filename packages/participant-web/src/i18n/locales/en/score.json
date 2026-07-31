@@ -31,6 +31,8 @@
   "ballotLeadComplete": "Everything is scored. Have a last look before you send it.",
   "ballotLeadIncomplete": "{{category}} is still missing for {{dish}}.",
   "categoryMissing": "{{category}} missing →",
-  "confirmTitle": "Send your vote? You won’t be able to change it.",
-  "notYet": "Not yet"
+  "confirmTitle": "Send your vote?",
+  "confirmLead": "Once it is in, it can’t be changed or sent again.",
+  "notYet": "Not yet",
+  "youGave": "you gave {{total}}"
 }

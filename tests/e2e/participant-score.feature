@@ -4,9 +4,12 @@ Feature: A participant scores the dishes and sends their vote
   out-of-range score is impossible to enter. They score one dish at a time, and
   can read the whole ballot before sending it: scoring a dish at a time hides
   what has already been done, and a refusal to send says nothing about what is
-  missing. They can send only once every dish is scored; sending locks the vote,
-  and it cannot be changed or sent again. The screen is mobile-first,
-  keyboard-operable, and meets WCAG 2.1 AA.
+  missing. They can send only once every dish is scored. Sending is asked for
+  once, in a confirmation that holds the keyboard and can be waved away with it —
+  a sent vote cannot be undone, so that beat is the only safety net there is.
+  Sending locks the vote, and afterwards they are shown what they gave each dish,
+  a dish at a time. The screen is mobile-first, keyboard-operable, and meets
+  WCAG 2.1 AA.
 
   Scenario: A participant scores every open dish and sends their vote
     Given a participant in a live contest where scores may repeat
@@ -57,9 +60,24 @@ Feature: A participant scores the dishes and sends their vote
     When they ask to send and then decline
     Then their vote is not sent and their ballot is unchanged
 
+  Scenario: The confirmation holds the keyboard while it is open
+    Given a participant asked to confirm sending
+    When they move through the screen with the keyboard alone
+    Then they only ever reach the confirmation's own choices
+
+  Scenario: The confirmation can be dismissed from the keyboard
+    Given a participant asked to confirm sending
+    When they dismiss the confirmation with the keyboard
+    Then their vote is not sent and they are back on their ballot, where they asked from
+
   Scenario: A sent vote cannot be changed or sent again
     Given a participant who has sent their vote
     Then they cannot change a score or send it again
+
+  Scenario: A sent vote shows what was given, dish by dish
+    Given a participant who has sent their vote in a contest with more than one category
+    Then they see one row for each dish, with what they gave it
+    And what they gave is named as their own, not as the dish's standing
 
   Scenario: Scoring is keyboard-operable and accessible
     Given a participant scoring in a live contest

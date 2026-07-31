@@ -20,12 +20,12 @@ const PASSWORD = 'Str0ng!Passw0rd';
  */
 
 /** Per-person, no anti-bias, repeats allowed, fixed 1–5. Voter Ana may score everyone else. */
-function repeatsAllowed(name: string) {
+function repeatsAllowed(name: string, categories = [{ id: 'c1', name: 'Taste' }]) {
   return {
     name,
     attribution: 'per_person',
     antiBias: 'none',
-    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
+    scoring: { categories, range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'a', displayName: 'Ana' },
       { id: 'b', displayName: 'Bruno' },
@@ -34,15 +34,28 @@ function repeatsAllowed(name: string) {
   };
 }
 
+/*
+ * Two categories, for the screen that shows what was given after sending. One
+ * category cannot tell a row-per-dish list from a row-per-score one — they are
+ * the same list — so the promise is only testable with more than one.
+ */
+const TWO_CATEGORIES = [
+  { id: 'c1', name: 'Taste' },
+  { id: 'c2', name: 'Texture' },
+];
+
 /**
  * Seeds a live contest and has the OTHER cooks (Ana, Carmen) submit dishes, so
  * they are scoreable — leaving Bruno's place open for the browser to join as.
  */
-async function seedScorableContest(email: string): Promise<{ joinCode: string; contestId: string }> {
+async function seedScorableContest(
+  email: string,
+  categories?: { id: string; name: string }[],
+): Promise<{ joinCode: string; contestId: string }> {
   const host = await playwrightRequest.newContext({ baseURL: API });
   await hostInvitedBy(email, PASSWORD);
   await host.post('/auth/login', { data: { email, password: PASSWORD } });
-  const created = await host.post('/drafts', { data: repeatsAllowed('Balcony Cook-off') });
+  const created = await host.post('/drafts', { data: repeatsAllowed('Balcony Cook-off', categories) });
   const published = await host.post(`/drafts/${(await created.json()).id}/publish`);
   const body = await published.json();
   const joinCode = body.joinCode as string;
@@ -228,4 +241,65 @@ test('sending is confirmed, and declining changes nothing', async ({ page }) => 
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeEnabled();
   await page.reload();
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeEnabled();
+});
+
+test('the confirmation holds the keyboard while it is open', async ({ page }) => {
+  const { joinCode } = await seedScorableContest('e2e-score-trap@sobremesa.es');
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+  await page.getByRole('button', { name: 'Bruno' }).click();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
+  await scoreEveryDish(page, '4', 2);
+
+  await page.getByRole('button', { name: 'Send my vote' }).click();
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeFocused(); // the question is announced before either answer
+
+  /*
+   * Round the sheet's own two choices and back to the first, in a real browser
+   * rather than in a simulated tab order. Past the last one it must wrap, not
+   * step out onto the ballot behind — where the very control that opened this
+   * is still sitting, one Tab and one Enter from an unconfirmed send.
+   */
+  for (const name of ['Yes, send my vote', 'Not yet', 'Yes, send my vote']) {
+    await page.keyboard.press('Tab');
+    await expect(sheet.getByRole('button', { name })).toBeFocused();
+  }
+  await page.keyboard.press('Shift+Tab');
+  await expect(sheet.getByRole('button', { name: 'Not yet' })).toBeFocused();
+});
+
+test('the confirmation can be dismissed from the keyboard', async ({ page }) => {
+  const { joinCode } = await seedScorableContest('e2e-score-escape@sobremesa.es');
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+  await page.getByRole('button', { name: 'Bruno' }).click();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
+  await scoreEveryDish(page, '4', 2);
+
+  await page.getByRole('button', { name: 'Send my vote' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  // Gone, nothing sent, and focus back on what opened it rather than adrift.
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Send my vote' })).toBeFocused();
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Send my vote' })).toBeEnabled();
+});
+
+test('a sent vote shows what was given, dish by dish', async ({ page }) => {
+  const { joinCode } = await seedScorableContest('e2e-score-record@sobremesa.es', TWO_CATEGORIES);
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+  await page.getByRole('button', { name: 'Bruno' }).click();
+  await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
+  await scoreEveryDish(page, '4', 2); // both categories of both dishes
+
+  await page.getByRole('button', { name: 'Send my vote' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Yes, send my vote' }).click();
+
+  const record = page.getByRole('list', { name: 'Your vote is in' });
+  // Two dishes, two rows — where a row-per-score list would give four.
+  await expect(record.getByRole('listitem')).toHaveCount(2);
+  await expect(record.getByText('Taste 4 · Texture 4').first()).toBeVisible();
+  // Named as theirs: the reveal will show this dish carrying every judge.
+  await expect(record.getByText('you gave 8').first()).toBeVisible();
 });
