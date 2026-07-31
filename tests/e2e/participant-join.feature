@@ -1,20 +1,35 @@
 Feature: A participant joins a contest
   Someone at the venue joins a live contest with its join code — no account, no
-  password — by choosing their own name from the places still open. Once joined
-  they are remembered on that device, so reopening the app keeps them in without
-  the code again. An unrecognised code is refused, and a place someone else has
-  just taken cannot be chosen. Joining is mobile-first, fully keyboard-operable,
-  and meets accessibility standards (WCAG 2.1 AA).
+  password — by choosing their own name from the roster. Places already taken
+  stay on the list, marked, so a cook can see the roster is the right one and can
+  tell "someone already took my name" apart from "this is the wrong contest".
+  Once joined they are remembered on that device, so reopening the app keeps them
+  in without the code again. An unrecognised code is refused where it was
+  entered, and a place someone else has just taken cannot be chosen. Joining is
+  mobile-first, fully keyboard-operable, and meets accessibility standards
+  (WCAG 2.1 AA).
 
   Scenario: A participant joins by choosing their place
     Given a live contest with open places
     When a participant enters its join code and chooses their name
     Then they have joined the contest as that participant
 
-  Scenario: An unrecognised join code is refused
+  Scenario: An unrecognised join code is refused at the field
     When a participant enters a join code that no contest has
-    Then they are told the code is not recognised
+    Then they are told the code is not recognised, at the code field itself
     And they have not joined anything
+
+  Scenario: A place someone has already taken is shown, and cannot be chosen
+    Given a live contest where one place has already been taken
+    When a participant enters the join code
+    Then the taken place is listed and marked as taken
+    And it is not something they can choose
+
+  Scenario: A contest with every place taken explains itself
+    Given a live contest where every place has been taken
+    When a participant enters the join code
+    Then they are told every place is taken, and the roster is named
+    And they are offered a way to try another code
 
   Scenario: A place taken since the list loaded cannot be claimed
     Given a participant who has entered a valid code and is choosing a place

@@ -58,13 +58,18 @@ export function isSignedOut(caught: unknown): boolean {
   return caught instanceof ApiError && caught.status === 401;
 }
 
-/** One open place on a contest's roster: a participant a joiner can claim to be. */
+/**
+ * One place on a contest's roster. `taken` is the whole of what is said about
+ * somebody who has already arrived — not when they did, not anything else.
+ */
 export interface Place {
   readonly participantId: string;
   readonly displayName: string;
+  readonly taken: boolean;
 }
 
-export interface OpenPlaces {
+/** A contest's roster as a joiner sees it: every place, open and taken alike. */
+export interface Roster {
   readonly contestId: string;
   readonly places: readonly Place[];
 }
@@ -76,11 +81,11 @@ export interface Identity {
   readonly displayName: string;
 }
 
-/** Looks up the still-open places for a join code; throws ApiError (404 when the code is unknown). */
-export async function getPlaces(joinCode: string): Promise<OpenPlaces> {
+/** Looks up a contest's whole roster by join code; throws ApiError (404 when the code is unknown). */
+export async function getPlaces(joinCode: string): Promise<Roster> {
   const response = await send(`/contests/${encodeURIComponent(joinCode)}/places`, 'GET');
   if (!response.ok) throw await errorFrom(response);
-  return (await response.json()) as OpenPlaces;
+  return (await response.json()) as Roster;
 }
 
 /** Claims a place by the join code, becoming that participant; throws ApiError (409 when taken). */

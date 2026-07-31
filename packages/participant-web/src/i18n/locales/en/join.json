@@ -6,10 +6,15 @@
   "continue": "Continue",
   "chooseTitle": "Who are you?",
   "chooseLead": "Choose your name to take your place.",
-  "allTaken": "Every place has been taken already.",
   "openPlaces": "Open places",
   "errorUnknownCode": "That code isn’t recognised. Check it and try again.",
   "errorPlaceTaken": "That place was just taken. Please choose another.",
   "errorGeneric": "Something went wrong. Please try again.",
-  "errorJoining": "Something went wrong joining. Please try again."
+  "errorJoining": "Something went wrong joining. Please try again.",
+  "tryAgain": "Try again",
+  "taken": "taken",
+  "refreshNote": "If someone takes a place while you are looking, the list updates and tells you.",
+  "allTakenTitle": "Every place is taken",
+  "allTakenLead": "Everyone on this contest’s list has already joined. If you were expecting a place, check with your host — or try another code.",
+  "tryAnotherCode": "Try another code"
 }

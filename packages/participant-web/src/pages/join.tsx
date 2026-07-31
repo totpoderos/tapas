@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { ArrowRight, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { Button, FormField } from '@tapas/ui';
 import { Nav } from '../nav';
+import styles from './join.module.css';
 import {
   ApiError,
   claimPlace,
@@ -113,69 +115,144 @@ export function Join() {
    */
   if (step.name === 'joined') return <YourDish identity={step.identity} />;
 
+  const open = step.name === 'choosing' ? step.places.filter((p) => !p.taken) : [];
+
   return (
     <>
       <Nav />
       <main id="main" className="pt-main">
-      {error ? (
-        <div className="pt-alert" role="alert">
-          <span aria-hidden="true">✕</span>
-          <span>{error}</span>
-        </div>
-      ) : null}
+        {step.name === 'recognizing' && (
+          <p role="status" className={styles.lead}>
+            {t('common.loading')}
+          </p>
+        )}
 
-      {step.name === 'recognizing' && (
-        <p role="status" className="pt-note">
-          {t('common.loading')}
-        </p>
-      )}
+        {step.name === 'code' && (
+          <div className={styles.centred}>
+            {/*
+              The "?" stands in for the count a real contest would show. It
+              appears only when a code was not recognised — there is nothing to
+              count before one is, and an empty numeral slot on the way in would
+              be furniture rather than information.
+            */}
+            {error ? (
+              <div className={`${styles.figure} ${styles.figureUnknown}`} aria-hidden="true">
+                ?
+              </div>
+            ) : null}
+            <h1 className={styles.title}>{t('join.codeTitle')}</h1>
+            <p className={styles.lead}>{t('join.codeLead')}</p>
+            <form onSubmit={onSubmitCode} noValidate>
+              <div className={`${styles.panel} ${error ? styles.panelError : ''}`}>
+                <FormField
+                  id="join-code"
+                  label={t('join.codeLabel')}
+                  className={`${styles.code} ${error ? styles.codeError : ''}`}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? 'join-code-problem' : undefined}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                />
+                {/*
+                  Attached to the field that was wrong, inside its own panel —
+                  not a banner above a title that still says "Join the contest".
+                */}
+                {error ? (
+                  <p id="join-code-problem" className={styles.fieldError} role="alert">
+                    <WarningCircle size={18} weight="duotone" aria-hidden="true" />
+                    <span>{error}</span>
+                  </p>
+                ) : null}
+              </div>
+              <Button type="submit" block disabled={busy || !code.trim()}>
+                {busy ? t('join.checking') : error ? t('join.tryAgain') : t('join.continue')}
+              </Button>
+            </form>
+          </div>
+        )}
 
-      {step.name === 'code' && (
-        <>
-          <h1 className="pt-title">{t('join.codeTitle')}</h1>
-          <p className="pt-lead">{t('join.codeLead')}</p>
-          <form className="pt-form" onSubmit={onSubmitCode} noValidate>
-            <FormField
-              id="join-code"
-              label={t('join.codeLabel')}
-              className="pt-code"
-              autoCapitalize="characters"
-              autoComplete="off"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-            <Button type="submit" block disabled={busy || !code.trim()}>
-              {busy ? t('join.checking') : t('join.continue')}
-            </Button>
-          </form>
-        </>
-      )}
+        {step.name === 'choosing' && open.length > 0 && (
+          <div className={styles.top}>
+            {/*
+              How many are cooking. The handoff shows the contest's dish count
+              here, which nothing knows yet — dishes are entered after joining —
+              so this is the roster's size, which is the number that exists at
+              this moment and is the one a cook is looking for.
+            */}
+            <div className={styles.figure} aria-hidden="true">
+              {step.places.length}
+            </div>
+            <h1 className={styles.title}>{t('join.chooseTitle')}</h1>
+            <p className={styles.lead}>{t('join.chooseLead')}</p>
 
-      {step.name === 'choosing' && (
-        <>
-          <h1 className="pt-title">{t('join.chooseTitle')}</h1>
-          <p className="pt-lead">{t('join.chooseLead')}</p>
-          {step.places.length === 0 ? (
-            <p className="pt-note">{t('join.allTaken')}</p>
-          ) : (
-            <ul className="pt-places" aria-label={t('join.openPlaces')}>
+            {error ? (
+              <p className={styles.fieldError} role="alert">
+                <WarningCircle size={18} weight="duotone" aria-hidden="true" />
+                <span>{error}</span>
+              </p>
+            ) : null}
+
+            <ul className={styles.places} aria-label={t('join.openPlaces')}>
+              {step.places.map((place) =>
+                place.taken ? (
+                  /*
+                    Still listed, so the roster reads as the real one and a cook
+                    can tell "somebody took my name" from "wrong contest". Not a
+                    button: there is nothing to press. The word carries it as
+                    well as the dimming, because dimming alone is colour.
+                  */
+                  <li key={place.participantId} className={styles.taken}>
+                    <span>{place.displayName}</span>
+                    <span className={styles.tag}>{t('join.taken')}</span>
+                  </li>
+                ) : (
+                  <li key={place.participantId}>
+                    <button
+                      type="button"
+                      className={styles.place}
+                      disabled={busy}
+                      onClick={() => void onChoose(place)}
+                    >
+                      <span>{place.displayName}</span>
+                      <ArrowRight
+                        className={styles.placeArrow}
+                        size={22}
+                        weight="duotone"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </li>
+                ),
+              )}
+            </ul>
+            <p className={styles.footnote}>{t('join.refreshNote')}</p>
+          </div>
+        )}
+
+        {/*
+          Every place taken. Its own screen rather than one muted line: the
+          roster is named so a cook can see it is the contest they meant, and
+          there is a way out rather than a dead end.
+        */}
+        {step.name === 'choosing' && open.length === 0 && (
+          <div className={styles.top}>
+            <h1 className={styles.title}>{t('join.allTakenTitle')}</h1>
+            <p className={styles.lead}>{t('join.allTakenLead')}</p>
+            <ul className={styles.roster} aria-label={t('join.openPlaces')}>
               {step.places.map((place) => (
-                <li key={place.participantId}>
-                  <button
-                    type="button"
-                    className="pt-place"
-                    disabled={busy}
-                    onClick={() => void onChoose(place)}
-                  >
-                    {place.displayName}
-                  </button>
+                <li key={place.participantId} className={styles.rosterRow}>
+                  <span>{place.displayName}</span>
+                  <span className={styles.tag}>{t('join.taken')}</span>
                 </li>
               ))}
             </ul>
-          )}
-        </>
-      )}
-
+            <Button variant="ghost" block onClick={() => setStep({ name: 'code' })}>
+              {t('join.tryAnotherCode')}
+            </Button>
+          </div>
+        )}
       </main>
     </>
   );

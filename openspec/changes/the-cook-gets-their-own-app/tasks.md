@@ -22,16 +22,16 @@ The two flattest screens, chosen first: 13 and 14 carry no glass, no accent and 
 
 ## 2. Slice B — join
 
-- [ ] 2.1 Write the acceptance feature for the widened `enroll-participants`: the whole roster comes back for a valid code, a taken place is shown as taken and is not claimable, a contest with no place left still names its roster, and an unknown code is still refused. Confirm it before implementing.
-- [ ] 2.2 Widen the join-code lookup to return every place with its state, in the API. Keep claiming refused for a taken place — the roster widens, the rule does not.
-- [ ] 2.3 Check whether the MCP surface mirrors this read, and follow it if so. This repo's recurring bug is two equivalent paths diverging in one layer; the check belongs in this slice, not in a sweep at the end.
-- [ ] 2.4 Draw screen 1 (join by code) — the dish-count numeral, the glass field panel, the primary action.
-- [ ] 2.5 Draw screen 2 (code not recognised): the message moves from the banner above the title down onto the field itself, and the numeral becomes a neutral "?".
-- [ ] 2.6 Draw screen 3 (choose your place): 68px glass rows for open places; a taken place stays in the list, dimmed, dashed and tagged, and is not a button.
-- [ ] 2.7 Draw screen 4 (all places taken): the full roster as plain rows and a way out, replacing today's single muted line.
-- [ ] 2.8 Keep the 409 behaviour: a place claimed between loading and choosing refreshes the list and then says so.
-- [ ] 2.9 EN and ES resources for every new string in this slice.
-- [ ] 2.10 Run the slice verification.
+- [x] 2.1 Write the acceptance feature for the widened `enroll-participants`: the whole roster comes back for a valid code, a taken place is shown as taken and is not claimable, a contest with no place left still names its roster, and an unknown code is still refused. Confirm it before implementing.
+- [x] 2.2 Widen the join-code lookup to return every place with its state, in the API. Keep claiming refused for a taken place — the roster widens, the rule does not.
+- [x] 2.3 Check whether the MCP surface mirrors this read, and follow it if so. **Checked: there is no mirror.** The MCP tools are host-scoped (contests, drafts, participants, tally, results); the places lookup is voter-scoped by join code and has no MCP equivalent. Nothing to keep in step.
+- [x] 2.4 Draw screen 1 (join by code) — the dish-count numeral, the glass field panel, the primary action.
+- [x] 2.5 Draw screen 2 (code not recognised): the message moves from the banner above the title down onto the field itself, and the numeral becomes a neutral "?".
+- [x] 2.6 Draw screen 3 (choose your place): 68px glass rows for open places; a taken place stays in the list, dimmed, dashed and tagged, and is not a button.
+- [x] 2.7 Draw screen 4 (all places taken): the full roster as plain rows and a way out, replacing today's single muted line.
+- [x] 2.8 Keep the 409 behaviour: a place claimed between loading and choosing refreshes the list and then says so.
+- [x] 2.9 EN and ES resources for every new string in this slice.
+- [x] 2.10 Run the slice verification. Typecheck clean, lint clean, vitest 1956/1956, Playwright 280/280 (Chromium + WebKit), `openspec validate` passing, and all four screens driven live against a seeded five-place contest at 390px and 320px.
 
 ## 3. Slice C — your dish
 
