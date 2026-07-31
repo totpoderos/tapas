@@ -8,16 +8,17 @@ Seven slices, A–G, each one ATDD loop and one PR. Every slice writes its `.fea
 
 The two flattest screens, chosen first: 13 and 14 carry no glass, no accent and one button each. If the participant-owns-its-own-tokens decision is wrong, this is where it is cheap to find out.
 
-- [ ] 1.1 Write the acceptance feature for `participant-app-shell`: the app is drawn from its own definitions, is shown in one light appearance whatever the device asks for, offers no appearance control, carries the same header everywhere, and holds the 320px reflow and reduced-motion floor. Confirm it before implementing.
-- [ ] 1.2 Give `participant-web` its own token sheet — the vermouth roles, the sheet and its wash, the glass surface, Source Serif 4, the pill and panel radii, the accent-tinted shadows — and stop importing `@tapas/ui/tokens.css`.
-- [ ] 1.3 Pin the document to the light appearance. Removing `ThemeToggle` is not enough on its own: `tokens.css` flips under `prefers-color-scheme: dark` unless the light theme is set explicitly, and an unpinned app on a dark phone would take a ramp this design has no values for.
-- [ ] 1.4 Remove `ThemeToggle` and `initTheme()` from `main.tsx`. Confirm `theme-toggle.spec.ts` still passes — it drives the host app's sign-in screen, so it should be untouched. If it is not, stop: something else depends on this.
-- [ ] 1.5 Build the header bar and the participant-local `LanguageSelect` replacement (the EN/ES segmented control the design puts in the header, not the shared component's shape).
-- [ ] 1.6 Restyle `ways-onward.tsx` to the pinned foot: top rule, 16px padding, 15px links.
-- [ ] 1.7 Draw screens 13 (contest deleted) and 14 (session lost) — flat `#f6f2ec`, no glass, no accent, one way out each. These are the states where the only touchable thing should be the exit.
-- [ ] 1.8 Add `@phosphor-icons/react`, importing per icon rather than from the barrel. Record the built bundle size before the rest of the icons arrive in later slices, so the growth has a baseline.
-- [ ] 1.9 EN and ES resources for every new string in this slice.
-- [ ] 1.10 Run the slice verification.
+- [x] 1.1 Write the acceptance feature for `participant-app-shell`: the app is drawn from its own definitions, is shown in one light appearance whatever the device asks for, offers no appearance control, carries the same header everywhere, and holds the 320px reflow and reduced-motion floor. Confirm it before implementing.
+- [x] 1.2 Give `participant-web` its own token sheet — the vermouth roles, the sheet and its wash, the glass surface, Source Serif 4, the pill and panel radii, the accent-tinted shadows — and stop importing `@tapas/ui/tokens.css`.
+- [x] 1.3 Pin the document to the light appearance. Removing `ThemeToggle` is not enough on its own: `tokens.css` flips under `prefers-color-scheme: dark` unless the light theme is set explicitly, and an unpinned app on a dark phone would take a ramp this design has no values for.
+- [x] 1.4 Remove `ThemeToggle` and `initTheme()` from `main.tsx`. Confirm `theme-toggle.spec.ts` still passes — it drives the host app's sign-in screen, so it should be untouched. If it is not, stop: something else depends on this.
+- [x] 1.5 Build the header bar and the participant-local `LanguageSelect` replacement (the EN/ES segmented control the design puts in the header, not the shared component's shape).
+- [x] 1.6 Restyle `ways-onward.tsx` to the pinned foot: top rule, 16px padding, 15px links.
+- [x] 1.7 Draw screens 13 (contest deleted) and 14 (session lost) — flat `#f6f2ec`, no glass, no accent, one way out each. These are the states where the only touchable thing should be the exit.
+- [x] 1.8 Add `@phosphor-icons/react`, importing per icon rather than from the barrel. Record the built bundle size before the rest of the icons arrive in later slices, so the growth has a baseline. **Baseline: 327.47 kB raw / 103.85 kB gzip with two icons; 320.81 / 101.58 with none — so 6.66 kB raw, 2.27 kB gzip for the pair.** Tree-shaking works despite the build transforming 3197 modules; the untransformed count is not the shipped one. At ~3.3 kB per icon, the handoff's eleven should land near 36 kB raw / 12 kB gzip. Re-measure at 8.3.
+- [x] 1.9 EN and ES resources for every new string in this slice.
+- [x] 1.10 Run the slice verification. Typecheck clean, lint clean, vitest 1949/1949, Playwright 275/275 (Chromium + WebKit), `openspec validate` passing, and the screens driven live at 390px and 320px.
+- [ ] 1.11 **Bundle Source Serif 4, self-hosted.** The handoff sets everything in it and this repo ships no webfont, so `--serif` currently lists it first and renders the Georgia fallback — a different face at a similar colour. Nothing external may be fetched (no CDN), so this means committing a subset or taking `@fontsource-variable/source-serif-4`, and it needs its own bundle-size measurement against 1.8's baseline. Left out of this slice because a webfont on a phone at a venue is a decision of its own, not a token value.
 
 ## 2. Slice B — join
 

@@ -1,0 +1,58 @@
+/*
+ * The header bar: the product on the left, where you are on the right. Present
+ * on every screen, so a participant always has the same fixed point however
+ * they arrived — by a link, the back button, a reload, or the address typed in.
+ */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.brandName {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/*
+ * Whatever the screen wants to say about where you are — the participant's
+ * name, "5 of 15 scored". It shrinks before the language control does, because
+ * the control is the one thing here that is operable.
+ */
+.context {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  color: var(--ink-2);
+}

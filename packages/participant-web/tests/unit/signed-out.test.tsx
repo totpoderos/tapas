@@ -82,11 +82,13 @@ describe('when the participant is no longer signed in', () => {
     await userEvent.type(await screen.findByLabelText(/dish/i), 'Patatas bravas');
     await userEvent.click(screen.getByRole('button', { name: 'Submit dish' }));
 
+    // One title for this one state, wherever a participant meets it — the dish
+    // screen, scoring, and the results all now say the same thing.
     expect(
-      await screen.findByRole('heading', { name: 'You’re no longer signed in' }),
+      await screen.findByRole('heading', { name: 'Join first' }),
     ).toBeInTheDocument();
     expect(screen.queryByText(/try again/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Go to join' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /go to join/i })).toBeInTheDocument();
     expect(await axe(container)).toHaveNoViolations();
   });
 
@@ -102,7 +104,7 @@ describe('when the participant is no longer signed in', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/couldn’t be saved/i);
     expect(
-      screen.queryByRole('heading', { name: 'You’re no longer signed in' }),
+      screen.queryByRole('heading', { name: 'Join first' }),
     ).not.toBeInTheDocument();
   });
 

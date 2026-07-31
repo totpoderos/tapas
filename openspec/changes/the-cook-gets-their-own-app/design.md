@@ -22,6 +22,29 @@ Both apps currently draw the reveal with the same component. `the-reveal-is-read
 
 So `Button`, `FormField` and `LanguageSelect` get participant-local replacements. This is duplication, chosen knowingly: the shared versions stay exactly as the host panel needs them, and neither app can now break the other's chrome. The boundary to hold is that participant-shaped components **never** travel back into `@tapas/ui`.
 
+### The token sheet keeps the old names, and changes only their values
+
+`participant.css` and the components it borrows consume 23 token names across 51
+rules. Dropping `@tapas/ui/tokens.css` without replacing all 23 renders the app
+unstyled, so slice A's sheet declares **the same names** — `--brand`, `--ground`,
+`--ink`, `--line`, `--radius-card` and the rest — carrying vermouth values.
+
+The effect is that the whole participant app re-tints in slice A, six slices
+before it is re-laid-out. That is the intended order. The alternative is running
+both sheets side by side until the last slice, which leaves the app in two
+palettes at once for the entire change — visible to anyone who opens it, and
+impossible to judge a screen against.
+
+Names are retired as the screens that use them are rewritten, so the sheet
+shrinks toward the handoff's own vocabulary rather than being translated twice.
+A name still present at the end of slice G is either genuinely needed or was
+missed, and either way it is then cheap to see.
+
+*Consequence for the reveal:* both copies of `reveal-view.module.css` read these
+same names, so the participant's copy re-tints in slice A and the host's does
+not. That is the fork behaving as intended, and it happens whether or not the
+reveal fork has landed yet — which is why slice A does not depend on it.
+
 ### Light only, pinned rather than merely unstyled
 
 `ThemeToggle` leaves `main.tsx`, `initTheme()` goes with it, and the document is pinned to the light theme. Pinning matters: `tokens.css` today flips under `prefers-color-scheme: dark` unless `data-theme="light"` is set, so an unpinned app on a dark phone would take a dark ramp it has no values for.
