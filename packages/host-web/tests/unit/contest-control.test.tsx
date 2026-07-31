@@ -212,6 +212,76 @@ describe('Contest control room', () => {
     expect(await screen.findByText(/results are out/i)).toBeInTheDocument();
   });
 
+  /*
+   * A contest whose close rule is `all_sent` — the default — closes itself the
+   * moment the last vote lands. Nobody presses anything, so the control room
+   * only finds out by asking.
+   *
+   * It used to poll the tally alone, so the counts filled up while the panel
+   * went on believing the contest was live: "Close voting" stayed on offer and
+   * "Reveal results" stayed disabled. The host's only way through was to press
+   * Close, be told the contest could not be closed, and carry on from the error.
+   */
+  it('notices a contest that closed itself, without the host having to try', async () => {
+    vi.mocked(api.getContest)
+      .mockResolvedValueOnce(LIVE)
+      .mockResolvedValue({ ...LIVE, status: 'closed' });
+    // Every claimed place has sent — which is what closed it.
+    vi.mocked(api.getTally).mockResolvedValue({ ...TALLY, draftCount: 0, sentCount: 4 });
+
+    renderControl();
+    expect(await screen.findByRole('button', { name: 'Close voting' })).toBeEnabled();
+
+    await waitFor(
+      () => expect(screen.getByRole('button', { name: 'Reveal results' })).toBeEnabled(),
+      { timeout: 8000 },
+    );
+    // And closing is no longer offered, because there is nothing left to close.
+    expect(screen.getByRole('button', { name: 'Close voting' })).toBeDisabled();
+    // Nothing went wrong, so nothing is reported as having gone wrong.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  }, 15_000);
+
+  /*
+   * The same race, from the other side: the host presses Close in the instant
+   * between the last vote landing and the next poll. The contest is closed
+   * either way, which is exactly what they asked for — so it is not a failure.
+   */
+  it('treats closing an already-closed contest as done, not as a failure', async () => {
+    vi.mocked(api.getContest)
+      .mockResolvedValueOnce(LIVE)
+      .mockResolvedValue({ ...LIVE, status: 'closed' });
+    vi.mocked(api.closeContest).mockRejectedValue(
+      new api.ApiError(409, 'ALREADY_CLOSED', 'This contest is already closed.'),
+    );
+
+    renderControl();
+    await userEvent.click(await screen.findByRole('button', { name: 'Close voting' }));
+    await userEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Close voting' }),
+    );
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Reveal results' })).toBeEnabled(),
+    );
+  });
+
+  /* A close that genuinely failed still has to say so. */
+  it('still reports a close that really did fail', async () => {
+    vi.mocked(api.closeContest).mockRejectedValue(
+      new api.ApiError(500, 'INTERNAL', 'Something broke.'),
+    );
+
+    renderControl();
+    await userEvent.click(await screen.findByRole('button', { name: 'Close voting' }));
+    await userEvent.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Close voting' }),
+    );
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
   it('has no accessibility violations, live and with the confirmation open', async () => {
     const { container } = renderControl();
     await screen.findByRole('region', { name: 'Progress' });

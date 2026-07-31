@@ -70,17 +70,32 @@ export function ContestControl() {
     void load();
   }, [load]);
 
-  // While the contest is live, keep the tally fresh.
+  /*
+   * While the contest is live, keep the tally AND the contest fresh.
+   *
+   * The contest matters as much as the counts because a contest can close
+   * itself: the default close rule is `all_sent`, so the moment the last vote
+   * lands the contest is closed with nobody having pressed anything. Polling the
+   * tally alone left the panel watching the counts fill while it went on
+   * believing the contest was live — "Close voting" still offered, "Reveal
+   * results" still disabled — and the host's only way through was to press
+   * Close, be told the contest could not be closed, and carry on from the error.
+   */
   const live = state.kind === 'ready' && state.contest.status === 'live';
   useEffect(() => {
     if (!live) return;
     const timer = setInterval(() => {
-      getTally(id)
-        .then((tally) => setState((s) => (s.kind === 'ready' ? { ...s, tally } : s)))
+      Promise.all([getContest(id), getTally(id)])
+        .then(([contest, tally]) => {
+          setState((s) => (s.kind === 'ready' ? { kind: 'ready', contest, tally } : s));
+          // A contest that closed itself is a state change the panel's own
+          // navigation shows too, so the shared list has to hear about it.
+          if (contest.status !== 'live') refreshContests();
+        })
         .catch(() => {});
     }, TALLY_POLL_MS);
     return () => clearInterval(timer);
-  }, [live, id]);
+  }, [live, id, refreshContests]);
 
   async function onConfirm() {
     const action = pending;
@@ -90,18 +105,34 @@ export function ContestControl() {
     setActionError(undefined);
     try {
       await (action === 'close' ? closeContest(id) : revealContest(id));
-      await load();
-      // The contest's state is on the panel's navigation too — it names this
-      // contest and says what it is — so the shared list has to hear about it, or
-      // the sidebar goes on calling a closed contest live.
-      refreshContests();
-    } catch {
-      setActionError(
-        action === 'close' ? t('contestControl.closeError') : t('contestControl.revealError'),
-      );
-    } finally {
-      setBusy(false);
+    } catch (caught) {
+      /*
+       * The contest may have reached this state on its own in the moment
+       * between the last poll and the press — `all_sent` closes it as the last
+       * vote lands, and a scheduled reveal fires on its own clock. The host
+       * asked for it to be closed and it is closed: that is the outcome they
+       * wanted, not a failure, and reporting it as one sends them looking for a
+       * problem that does not exist.
+       *
+       * Anything else is a real refusal and still says so.
+       */
+      const alreadyDone =
+        caught instanceof ApiError &&
+        caught.code === (action === 'close' ? 'ALREADY_CLOSED' : 'ALREADY_REVEALED');
+      if (!alreadyDone) {
+        setActionError(
+          action === 'close' ? t('contestControl.closeError') : t('contestControl.revealError'),
+        );
+        setBusy(false);
+        return;
+      }
     }
+    await load();
+    // The contest's state is on the panel's navigation too — it names this
+    // contest and says what it is — so the shared list has to hear about it, or
+    // the sidebar goes on calling a closed contest live.
+    refreshContests();
+    setBusy(false);
   }
 
   return (
