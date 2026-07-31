@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { RevealView } from '@tapas/ui';
+import { RevealView } from '../reveal-view';
 import { WaysOnward } from '../ways-onward';
 import { ApiError, getReveal, isContestDeleted, type Reveal as RevealData } from '../api/client';
 
@@ -100,7 +100,8 @@ export function Reveal() {
         </p>
       )}
 
-      {/* The reveal itself is the shared view — the host sees exactly this. */}
+      {/* This app's own reveal. It draws the same results as the host's, and is
+          no longer the same component doing it — see reveal-view.tsx. */}
       {state.kind === 'revealed' && <RevealView reveal={state.reveal} />}
 
       {/* Including while it waits: that is where a participant spends longest,

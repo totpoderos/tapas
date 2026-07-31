@@ -301,8 +301,8 @@
   50% { transform: scale(1.25); opacity: 1; }
 }
 
-/* The reveal moment itself now lives in @tapas/ui (reveal-view.module.css), so
-   the host app renders the identical view. Its styles left with it. */
+/* The reveal moment has its own stylesheet, reveal-view.module.css, beside its
+   own component. It was shared with the host app; it is this app's now. */
 
 /* Joined confirmation. */
 .pt-joined {
