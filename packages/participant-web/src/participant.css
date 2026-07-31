@@ -85,45 +85,15 @@
   border-color: var(--brand);
 }
 
-.pt-wait {
-  margin-top: 28px;
-  text-align: center;
-}
-
 /*
- * The score screen, the ballot, the strict-ranking branch, the send
- * confirmation and the sent screen all draw from their own module stylesheets
- * now — `score.module.css`, `score-track.module.css`, `confirm-sheet.module.css`
- * — so the fifty-target rating grid, the confirmation panel and the sent
- * screen's rows are gone from here. The names retire with the screens that used
- * them, which is what keeps this sheet shrinking towards nothing rather than
- * accumulating a second, dead vocabulary underneath the live one.
+ * Every screen past the join flow now draws from its own module stylesheet —
+ * `score.module.css`, `score-track.module.css`, `confirm-sheet.module.css`,
+ * `waiting.module.css`, `reveal-view.module.css`. The names retire with the
+ * screens that used them, which is what keeps this sheet shrinking towards
+ * nothing rather than accumulating a second, dead vocabulary under the live one.
+ *
+ * What is left is the join flow (slice B drew its screens but still borrows
+ * these) and the four names every screen shares: `pt-main`, `pt-title`,
+ * `pt-lead`, `pt-note`.
  */
-
-/* Waiting for the reveal. */
-.pt-waiting {
-  margin-top: 64px;
-  text-align: center;
-}
-.pt-waiting-dot {
-  width: 44px;
-  height: 44px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  background: var(--saffron-soft);
-  animation: pt-pulse 1.6s ease-in-out infinite;
-}
-@keyframes pt-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.7; }
-  50% { transform: scale(1.25); opacity: 1; }
-}
-
-/* The reveal moment has its own stylesheet, reveal-view.module.css, beside its
-   own component. It was shared with the host app; it is this app's now. */
-
-.pt-you {
-  font-family: var(--serif);
-  font-size: 24px;
-  margin: 0 0 4px;
-}
 

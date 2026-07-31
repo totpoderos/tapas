@@ -20,6 +20,16 @@ Feature: A participant sees the results revealed
     When the host reveals the contest
     Then the results appear for the participant without them reloading
 
+  Scenario: Waiting says how the voting stands
+    Given a participant waiting for the reveal, where one other has still to vote
+    Then they are told how many votes are in, out of how many are expected
+    And the one still to vote is named, and said to be still voting in words
+
+  Scenario: Waiting still works when how the voting stands cannot be read
+    Given a participant waiting for the reveal, where the standing cannot be read
+    Then they are still told the results are being waited for
+    And they can still reach the other steps open to them
+
   Scenario: The reveal is keyboard-operable and accessible
     Given a participant viewing a revealed contest's results
     Then the screen has no accessibility violations

@@ -89,6 +89,7 @@ export { GetResults } from './contests/use-cases/get-results.js';
 export { DeleteContest } from './contests/use-cases/delete-contest.js';
 export { SqliteUnitOfWork, DirectUnitOfWork, type UnitOfWork } from './db/unit-of-work.js';
 export { GetTally } from './contests/use-cases/get-tally.js';
+export { GetTurnout } from './contests/use-cases/get-turnout.js';
 export type {
   PublishContestDeps,
   PublishContestResult,
@@ -114,6 +115,12 @@ export type {
   GetTallyResult,
   GetTallyError,
   GetTallyErrorCode,
+  GetTurnoutDeps,
+  GetTurnoutResult,
+  GetTurnoutError,
+  GetTurnoutErrorCode,
+  Turnout,
+  TurnoutParticipant,
   Tally,
 } from './contests/use-cases/shared.js';
 export { ensureContestFresh } from './contests/ensure-fresh.js';

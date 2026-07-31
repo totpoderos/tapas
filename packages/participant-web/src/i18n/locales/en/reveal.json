@@ -1,6 +1,10 @@
 {
   "waitingLead": "Almost there…",
   "waitingNote": "The results appear the moment the host reveals them.",
+  "votesIn": "{{in}} of {{expected}} votes in",
+  "whoIsIn": "Who has voted",
+  "voteIn": "in",
+  "stillVoting": "still voting",
   "joinFirstTitle": "Join first",
   "joinFirstLead": "Your dish and any scores you gave are still there. Join again and you can carry on where you left off.",
   "goToJoin": "Go to join →",

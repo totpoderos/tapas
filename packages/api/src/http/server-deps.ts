@@ -46,6 +46,7 @@ import type { GetResults } from '../contests/use-cases/get-results.js';
 import type { DeleteContest } from '../contests/use-cases/delete-contest.js';
 import type { CookieTransport } from './session-cookies.js';
 import type { GetTally } from '../contests/use-cases/get-tally.js';
+import type { GetTurnout } from '../contests/use-cases/get-turnout.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
 import type { Clock } from '../audit/audit-projection.js';
@@ -91,6 +92,7 @@ export interface ServerDeps {
   /** How session cookies travel — derived from the environment (see cookieTransportFor). */
   readonly cookieTransport: CookieTransport;
   readonly getTally: GetTally;
+  readonly getTurnout: GetTurnout;
   readonly clock: Clock;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;
