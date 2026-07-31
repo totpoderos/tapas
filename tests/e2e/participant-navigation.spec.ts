@@ -68,12 +68,21 @@ async function joinAsBruno(page: Page, joinCode: string): Promise<void> {
   await expect(page.getByRole('navigation', { name: 'Go to' })).toBeVisible();
 }
 
-/** Scores every dish and sends, through the browser, as a participant would. */
-async function scoreAndSend(page: Page): Promise<void> {
-  const groups = page.getByRole('radiogroup');
-  await groups.first().waitFor();
-  const count = await groups.count();
-  for (let i = 0; i < count; i++) await groups.nth(i).getByRole('radio', { name: '4' }).check();
+/**
+ * Scores every dish and sends, through the browser, as a participant would.
+ *
+ * Scoring is one dish at a time now, so this walks the dishes by address. The
+ * ballot at `/score` is where sending happens.
+ */
+async function scoreAndSend(page: Page, dishes = 2): Promise<void> {
+  for (let dish = 1; dish <= dishes; dish++) {
+    await page.goto(`${PARTICIPANT}/score/${dish}`);
+    const groups = page.getByRole('radiogroup');
+    await groups.first().waitFor();
+    const count = await groups.count();
+    for (let i = 0; i < count; i++) await groups.nth(i).getByRole('radio', { name: '4' }).check();
+  }
+  await page.goto(`${PARTICIPANT}/score`);
   await page.getByRole('button', { name: 'Send my vote' }).click();
   await page.getByRole('button', { name: 'Yes, send my vote' }).click();
   await expect(page.getByText(/vote sent/i)).toBeVisible();

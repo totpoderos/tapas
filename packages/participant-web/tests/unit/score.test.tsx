@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Score } from '../../src/pages/score';
@@ -36,10 +36,18 @@ function stubLocalStorage(contestId: string | null) {
   });
 }
 
-function renderScore() {
+/*
+ * Scoring is paginated now: `/score` is the ballot — every dish, what it was
+ * given, and the way to send — and `/score/1` is the first dish's controls.
+ * Tests say which they mean rather than relying on one page holding both.
+ */
+function renderScore(at = '/score') {
   return render(
-    <MemoryRouter initialEntries={['/score']}>
-      <Score />
+    <MemoryRouter initialEntries={[at]}>
+      <Routes>
+        <Route path="/score" element={<Score />} />
+        <Route path="/score/:dish" element={<Score />} />
+      </Routes>
     </MemoryRouter>,
   );
 }
@@ -58,7 +66,7 @@ describe('Score screen', () => {
   afterEach(() => vi.clearAllMocks());
 
   it('offers only the values in the allowed range', async () => {
-    renderScore();
+    renderScore('/score/1');
     const rating = await screen.findByRole('radiogroup', { name: /Tortilla/ });
     // Exactly 1, 2, 3 — no 0 and no 4.
     expect(within(rating).getAllByRole('radio')).toHaveLength(3);
@@ -68,23 +76,72 @@ describe('Score screen', () => {
   });
 
   it('saves each score as it is chosen', async () => {
-    renderScore();
+    renderScore('/score/1');
     await screen.findByRole('radiogroup', { name: /Tortilla/ });
     await userEvent.click(within(ratingFor('Tortilla')).getByRole('radio', { name: '2' }));
     expect(api.saveScore).toHaveBeenCalledWith('c1', { dishId: 'D-C', categoryId: 'cat1', value: 2 });
   });
 
-  it('cannot send until every dish is scored', async () => {
+  it('cannot send until every dish is scored, and says what is missing', async () => {
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-C', categoryId: 'cat1', value: 2 }],
+      status: 'draft',
+    });
     renderScore();
+
+    expect(await screen.findByRole('button', { name: 'Send my vote' })).toBeDisabled();
+    // Naming it is the point: a disabled button on its own explains nothing.
+    expect(screen.getByText(/Taste is still missing for Gazpacho/i)).toBeInTheDocument();
+  });
+
+  it('shows one dish at a time, and says which of how many', async () => {
+    renderScore('/score/2');
+    expect(await screen.findByRole('heading', { name: 'Gazpacho' })).toBeInTheDocument();
+    expect(screen.getByText('Dish 2 of 2')).toBeInTheDocument();
+    // The other dish's controls are not on this screen.
+    expect(screen.queryByRole('radiogroup', { name: /Tortilla/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the scores already given when a dish is revisited', async () => {
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-C', categoryId: 'cat1', value: 2 }],
+      status: 'draft',
+    });
+    renderScore('/score/1');
+    const rating = await screen.findByRole('radiogroup', { name: /Tortilla/ });
+    expect(within(rating).getByRole('radio', { name: '2' })).toBeChecked();
+  });
+
+  it('marks a category still waiting, in words and not by colour alone', async () => {
+    renderScore('/score/1');
     await screen.findByRole('radiogroup', { name: /Tortilla/ });
+    expect(screen.getByText('your turn')).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('button', { name: 'Send my vote' })).toBeDisabled();
+  it('lists every dish with what it was given, on the ballot', async () => {
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [
+        { dishId: 'D-C', categoryId: 'cat1', value: 2 },
+        { dishId: 'D-D', categoryId: 'cat1', value: 3 },
+      ],
+      status: 'draft',
+    });
+    renderScore();
+    const ballot = await screen.findByRole('list', { name: 'Your ballot' });
+    expect(within(ballot).getByText('Tortilla')).toBeInTheDocument();
+    expect(within(ballot).getByText('2')).toBeInTheDocument();
+    expect(within(ballot).getByText('3')).toBeInTheDocument();
+  });
 
-    await userEvent.click(within(ratingFor('Tortilla')).getByRole('radio', { name: '2' }));
-    expect(screen.getByRole('button', { name: 'Send my vote' })).toBeDisabled(); // one dish still unscored
-
-    await userEvent.click(within(ratingFor('Gazpacho')).getByRole('radio', { name: '3' }));
-    expect(screen.getByRole('button', { name: 'Send my vote' })).toBeEnabled();
+  it('links from the ballot to the dish and category that is missing', async () => {
+    vi.mocked(api.getMyScores).mockResolvedValue({
+      scores: [{ dishId: 'D-C', categoryId: 'cat1', value: 2 }],
+      status: 'draft',
+    });
+    renderScore();
+    const link = await screen.findByRole('link', { name: /Taste missing/i });
+    // Gazpacho is the second dish, and the link carries the category with it.
+    expect(link).toHaveAttribute('href', '/score/2?category=cat1');
   });
 
   it('confirms before sending, then locks the vote (no re-send)', async () => {
@@ -115,9 +172,15 @@ describe('Score screen', () => {
     expect(api.getBallot).not.toHaveBeenCalled();
   });
 
-  it('has no accessibility violations', async () => {
-    const { container } = renderScore();
+  it('has no accessibility violations while scoring a dish', async () => {
+    const { container } = renderScore('/score/1');
     await screen.findByRole('radiogroup', { name: /Tortilla/ });
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('has no accessibility violations on the ballot', async () => {
+    const { container } = renderScore();
+    await screen.findByRole('heading', { name: 'Your ballot' });
     expect(await axe(container)).toHaveNoViolations();
   });
 });

@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft, ArrowRight, Info } from '@phosphor-icons/react/dist/ssr';
 import { Button } from '@tapas/ui';
 import { Nav } from '../nav';
 import { PlainScreen } from '../plain-screen';
+import { ScoreTrack } from '../score-track';
 import { WaysOnward } from '../ways-onward';
+import styles from './score.module.css';
 import { ApiError, getBallot, getMyScores, isContestDeleted, isSignedOut, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
@@ -30,6 +33,9 @@ type State =
  */
 export function Score() {
   const { t } = useTranslation();
+  const { dish: dishParam } = useParams();
+  const [query] = useSearchParams();
+  const navigate = useNavigate();
   const contestId = localStorage.getItem(REMEMBERED_CONTEST);
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [scores, setScores] = useState<Record<string, number>>({});
@@ -133,6 +139,41 @@ export function Score() {
   const total = ballot ? ballot.dishes.length * ballot.categories.length : 0;
   const complete = total > 0 && Object.keys(scores).length === total;
 
+  /** Is every category of this dish scored? What the progress rail is drawn from. */
+  const dishDone = (dishId: string) =>
+    !!ballot && ballot.categories.every((c) => scores[key(dishId, c.id)] !== undefined);
+
+  /** The first score still missing, in reading order — what the ballot names and links to. */
+  const missing = ballot
+    ? ballot.dishes
+        .flatMap((d, i) =>
+          ballot.categories.map((c) => ({ dish: d, category: c, position: i + 1 })),
+        )
+        .find((slot) => scores[key(slot.dish.dishId, slot.category.id)] === undefined)
+    : undefined;
+
+  /*
+   * Which dish the address asks for, 1-based, or undefined for the ballot itself.
+   * Anything that is not a real dish — a typo, a stale link, a dish that left the
+   * ballot — is not worth its own error screen; the ballot is the hub, so that is
+   * where it goes.
+   */
+  const asked = dishParam === undefined ? undefined : Number(dishParam);
+  const dishNumber =
+    asked !== undefined &&
+    Number.isInteger(asked) &&
+    asked >= 1 &&
+    ballot !== undefined &&
+    asked <= ballot.dishes.length &&
+    !ballot.uniquePerCategory
+      ? asked
+      : undefined;
+
+  useEffect(() => {
+    if (!ballot || dishParam === undefined || dishNumber !== undefined) return;
+    navigate('/score', { replace: true });
+  }, [ballot, dishParam, dishNumber, navigate]);
+
   // Two dead ends, drawn flat and without the header: nothing here is operable
   // except the way out, so nothing else is offered.
   if (state.kind === 'need-join') {
@@ -160,7 +201,15 @@ export function Score() {
 
   return (
     <>
-      <Nav />
+      {/* How far along, wherever they are in the ballot — the one fact worth a
+          permanent place on the screen while scoring. */}
+      <Nav
+        context={
+          ballot && !ballot.uniquePerCategory
+            ? t('score.navProgress', { done: Object.keys(scores).length, total })
+            : undefined
+        }
+      />
       <main id="main" className="pt-main">
       {state.kind === 'loading' && (
         <p role="status" className="pt-note">
@@ -195,106 +244,326 @@ export function Score() {
         </div>
       )}
 
-      {/* Always reachable from here, however they arrived — a link, the back
-          button, a reload, or the address typed straight in. The two states
-          that used to be excluded here now return early as flat screens, so
-          there is nothing left to exclude. */}
-      <WaysOnward from="score" />
-
-      {ballot && (
-        <>
-          <h1 className="pt-title">{ballot.uniquePerCategory ? t('score.titleRank') : t('score.titleScore')}</h1>
-          <p className="pt-lead">
-            {ballot.uniquePerCategory
-              ? t('score.leadRank')
-              : t('score.leadScore')}{' '}
-            {Object.keys(scores).length} of {total} done.
-          </p>
-
+      {/* Strict ranking keeps its own control and its single page — no design
+          exists for paginating it, and inventing one here would date the moment
+          a brief arrives. It wears the new palette and nothing else changes. */}
+      {ballot && ballot.uniquePerCategory && (
+        <div className={styles.screen}>
+          <h1 className={styles.dishName}>{t('score.titleRank')}</h1>
+          <p className={styles.dishDescription}>{t('score.leadRank')}</p>
           {error ? (
-            <div className="pt-alert" role="alert">
-              <span aria-hidden="true">✕</span>
+            <p className={styles.incomplete} role="alert">
+              <Info size={18} weight="duotone" aria-hidden="true" />
               <span>{error}</span>
-            </div>
+            </p>
           ) : null}
-
-          {ballot.uniquePerCategory ? (
-            <RankingInputs ballot={ballot} initial={initial} onSaveCategory={save} />
-          ) : (
-            <StepperInputs
-              ballot={ballot}
-              scores={scores}
-              onRate={(dishId, categoryId, value) => void save([{ dishId, categoryId, value }])}
-            />
-          )}
-
-          {confirming ? (
-            <div className="pt-confirm" role="group" aria-labelledby="send-confirm-title">
-              <p id="send-confirm-title" className="pt-confirm-title">
-                Send your vote? You won’t be able to change it.
-              </p>
-              <div className="pt-confirm-actions">
-                <Button variant="ghost" onClick={() => setConfirming(false)} disabled={sending}>
-                  Not yet
-                </Button>
-                <Button onClick={() => void onSend()} disabled={sending}>
-                  {sending ? t('score.sending') : t('score.confirmSend')}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button block disabled={!complete} onClick={() => setConfirming(true)}>
-              {t('score.send')}
-            </Button>
-          )}
-        </>
+          <RankingInputs ballot={ballot} initial={initial} onSaveCategory={save} />
+          <SendControls
+            complete={complete}
+            confirming={confirming}
+            sending={sending}
+            onAsk={() => setConfirming(true)}
+            onCancel={() => setConfirming(false)}
+            onSend={() => void onSend()}
+          />
+        </div>
       )}
+
+      {/* One dish (screen 7). */}
+      {ballot && dishNumber !== undefined && (
+        <OneDish
+          ballot={ballot}
+          number={dishNumber}
+          scores={scores}
+          dishDone={dishDone}
+          focusCategory={query.get('category') ?? undefined}
+          error={error}
+          onRate={(dishId, categoryId, value) => void save([{ dishId, categoryId, value }])}
+        />
+      )}
+
+      {/* The ballot itself (screen 8) — everything at once, and the way to send. */}
+      {ballot && !ballot.uniquePerCategory && dishNumber === undefined && (
+        <BallotReview
+          ballot={ballot}
+          scores={scores}
+          dishDone={dishDone}
+          missing={missing}
+          complete={complete}
+          confirming={confirming}
+          sending={sending}
+          error={error}
+          onAsk={() => setConfirming(true)}
+          onCancel={() => setConfirming(false)}
+          onSend={() => void onSend()}
+        />
+      )}
+      {/* Always reachable from here, however they arrived — a link, the back
+          button, a reload, or the address typed straight in. At the foot, under
+          whichever screen is showing, rather than above it. */}
+      <WaysOnward from="score" />
       </main>
     </>
   );
 }
 
-/** Repeats-allowed: a rating per dish×category bounded to the allowed range. */
-function StepperInputs({
+/** Asking to send, and the confirmation that stands between asking and sending. */
+function SendControls({
+  complete,
+  confirming,
+  sending,
+  onAsk,
+  onCancel,
+  onSend,
+}: {
+  complete: boolean;
+  confirming: boolean;
+  sending: boolean;
+  onAsk: () => void;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const { t } = useTranslation();
+  if (!confirming) {
+    return (
+      <Button block disabled={!complete} onClick={onAsk}>
+        {t('score.send')}
+      </Button>
+    );
+  }
+  return (
+    <div className="pt-confirm" role="group" aria-labelledby="send-confirm-title">
+      <p id="send-confirm-title" className="pt-confirm-title">
+        {t('score.confirmTitle')}
+      </p>
+      <div className="pt-confirm-actions">
+        <Button variant="ghost" onClick={onCancel} disabled={sending}>
+          {t('score.notYet')}
+        </Button>
+        <Button onClick={onSend} disabled={sending}>
+          {sending ? t('score.sending') : t('score.confirmSend')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/** How far through the dishes, by dish — not by individual score. */
+function ProgressRail({
   ballot,
+  dishDone,
+}: {
+  ballot: Ballot;
+  dishDone: (dishId: string) => boolean;
+}) {
+  const remaining = ballot.dishes.filter((d) => !dishDone(d.dishId)).length;
+  return (
+    <ul className={styles.rail} aria-hidden="true">
+      {ballot.dishes.map((dish) => {
+        const done = dishDone(dish.dishId);
+        return (
+          <li
+            key={dish.dishId}
+            className={[
+              styles.railBar,
+              done ? styles.railBarDone : '',
+              // The one still outstanding reads amber: nearly, not merely not-yet.
+              !done && remaining === 1 ? styles.railBarLast : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          />
+        );
+      })}
+    </ul>
+  );
+}
+
+/**
+ * One dish, with a track per category (screen 7).
+ *
+ * Which dish is in the address, so the back control goes to the dish before
+ * rather than out of the app, the ballot can link straight to what is missing,
+ * and a reload puts a participant back where they were.
+ */
+function OneDish({
+  ballot,
+  number,
   scores,
+  dishDone,
+  focusCategory,
+  error,
   onRate,
 }: {
   ballot: Ballot;
+  number: number;
   scores: Record<string, number>;
+  dishDone: (dishId: string) => boolean;
+  focusCategory?: string;
+  error?: string;
   onRate: (dishId: string, categoryId: string, value: number) => void;
 }) {
-  const values = seq(ballot.range.min, ballot.range.max);
+  const { t } = useTranslation();
+  const dish = ballot.dishes[number - 1]!;
+  const last = number === ballot.dishes.length;
+  const focused = useRef(false);
+
+  /*
+   * Arriving from the ballot's "…missing" link lands on the category it named,
+   * with the keyboard already there — otherwise following the link leaves a
+   * participant to find it again themselves.
+   */
+  useEffect(() => {
+    if (!focusCategory || focused.current) return;
+    focused.current = true;
+    const group = document.querySelector<HTMLElement>(`[data-category="${focusCategory}"]`);
+    group?.querySelector<HTMLInputElement>('input[type="radio"]')?.focus();
+    group?.scrollIntoView({ block: 'center' });
+  }, [focusCategory]);
+
   return (
-    <ul className="pt-score-list">
-      {ballot.dishes.map((dish) => (
-        <li key={dish.dishId} className="pt-score-dish">
-          <span className="pt-dish-name">{dish.name}</span>
-          {ballot.categories.map((category) => (
-            <fieldset key={category.id} className="pt-rating">
-              <legend className="pt-rating-legend">{category.name}</legend>
-              <div className="pt-rating-row" role="radiogroup" aria-label={`${dish.name} — ${category.name}`}>
-                {values.map((value) => {
-                  const chosen = scores[key(dish.dishId, category.id)] === value;
-                  return (
-                    <label key={value} className={`pt-rating-value ${chosen ? 'chosen' : ''}`}>
-                      <input
-                        type="radio"
-                        name={key(dish.dishId, category.id)}
-                        value={value}
-                        checked={chosen}
-                        onChange={() => onRate(dish.dishId, category.id, value)}
-                      />
-                      {value}
-                    </label>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ))}
-        </li>
-      ))}
-    </ul>
+    <div className={styles.screen}>
+      <ProgressRail ballot={ballot} dishDone={dishDone} />
+
+      <p className={styles.kicker}>
+        {t('score.dishOf', { number, total: ballot.dishes.length })}
+      </p>
+      <h1 className={styles.dishName}>{dish.name}</h1>
+
+      {error ? (
+        <p className={styles.incomplete} role="alert">
+          <Info size={18} weight="duotone" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+
+      <div className={styles.categories}>
+        {ballot.categories.map((category) => (
+          <div key={category.id} data-category={category.id}>
+            <ScoreTrack
+              categoryName={category.name}
+              groupLabel={`${dish.name} — ${category.name}`}
+              name={key(dish.dishId, category.id)}
+              min={ballot.range.min}
+              max={ballot.range.max}
+              value={scores[key(dish.dishId, category.id)]}
+              onChange={(value) => onRate(dish.dishId, category.id, value)}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.footer}>
+        <Link
+          className={styles.back}
+          to={number === 1 ? '/score' : `/score/${number - 1}`}
+          aria-label={number === 1 ? t('score.backToBallot') : t('score.previousDish')}
+        >
+          <ArrowLeft size={22} weight="duotone" aria-hidden="true" />
+        </Link>
+        <Link className={styles.onward} to={last ? '/score' : `/score/${number + 1}`}>
+          <span>{last ? t('score.reviewBallot') : t('score.nextDish')}</span>
+          <ArrowRight size={20} weight="duotone" aria-hidden="true" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The whole ballot before sending (screen 8).
+ *
+ * Scoring a dish at a time hides what has already been done, and a send button
+ * that is merely disabled says nothing about why. This shows every dish with
+ * what it was given, names the first thing still missing, and links to it.
+ */
+function BallotReview({
+  ballot,
+  scores,
+  dishDone,
+  missing,
+  complete,
+  confirming,
+  sending,
+  error,
+  onAsk,
+  onCancel,
+  onSend,
+}: {
+  ballot: Ballot;
+  scores: Record<string, number>;
+  dishDone: (dishId: string) => boolean;
+  missing?: { dish: { dishId: string; name: string }; category: { id: string; name: string }; position: number };
+  complete: boolean;
+  confirming: boolean;
+  sending: boolean;
+  error?: string;
+  onAsk: () => void;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className={styles.screen}>
+      <ProgressRail ballot={ballot} dishDone={dishDone} />
+      <h1 className={styles.dishName}>{t('score.ballotTitle')}</h1>
+      <p className={styles.dishDescription}>
+        {missing
+          ? t('score.ballotLeadIncomplete', {
+              dish: missing.dish.name,
+              category: missing.category.name,
+            })
+          : t('score.ballotLeadComplete')}
+      </p>
+
+      {error ? (
+        <p className={styles.incomplete} role="alert">
+          <Info size={18} weight="duotone" aria-hidden="true" />
+          <span>{error}</span>
+        </p>
+      ) : null}
+
+      <ul className={styles.ballot} aria-label={t('score.ballotTitle')}>
+        {ballot.dishes.map((dish, i) => {
+          const given = ballot.categories.map((c) => scores[key(dish.dishId, c.id)]);
+          const short = ballot.categories.find(
+            (c) => scores[key(dish.dishId, c.id)] === undefined,
+          );
+          return (
+            <li key={dish.dishId} className={styles.ballotRow}>
+              <span className={styles.ballotDish}>{dish.name}</span>
+              {short ? (
+                <Link
+                  className={styles.missing}
+                  to={`/score/${i + 1}?category=${encodeURIComponent(short.id)}`}
+                >
+                  {t('score.categoryMissing', { category: short.name })}
+                </Link>
+              ) : (
+                <span className={styles.ballotScores}>{given.join(' · ')}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      {missing ? (
+        <p className={styles.incomplete}>
+          <Info size={18} weight="duotone" aria-hidden="true" />
+          <span>{t('score.errorIncomplete')}</span>
+        </p>
+      ) : null}
+
+      <SendControls
+        complete={complete}
+        confirming={confirming}
+        sending={sending}
+        onAsk={onAsk}
+        onCancel={onCancel}
+        onSend={onSend}
+      />
+    </div>
   );
 }
 
@@ -346,18 +615,18 @@ function RankingInputs({
   }
 
   return (
-    <div className="pt-rank-cats">
+    <div>
       {ballot.categories.map((category) => (
-        <section key={category.id} className="pt-rank-cat" aria-label={category.name}>
-          <h2 className="pt-subhead">{category.name}</h2>
-          <ul className="pt-rank-list">
+        <section key={category.id} className={styles.rankCategory} aria-label={category.name}>
+          <h2 className={styles.rankTitle}>{category.name}</h2>
+          <ul className={styles.ballot}>
             {ballot.dishes.map((dish) => {
               const rank = ranks[category.id]?.[dish.dishId];
               return (
-                <li key={dish.dishId} className="pt-rank-row">
-                  <span className="pt-dish-name">{dish.name}</span>
+                <li key={dish.dishId} className={styles.rankRow}>
+                  <span className={styles.rankDish}>{dish.name}</span>
                   <select
-                    className="pt-rank-select"
+                    className={styles.rankSelect}
                     aria-label={t('score.rankFor', { dish: dish.name, category: category.name })}
                     value={rank ?? ''}
                     onChange={(e) => assign(dish.dishId, category.id, Number(e.target.value))}

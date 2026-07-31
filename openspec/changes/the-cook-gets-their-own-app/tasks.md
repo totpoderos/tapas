@@ -46,19 +46,19 @@ The two flattest screens, chosen first: 13 and 14 carry no glass, no accent and 
 
 The largest slice, and the one carrying the accessibility risk of the whole change.
 
-- [ ] 4.1 Write the acceptance feature for the added `taste-and-score` requirements: one dish at a time with the dish in the address, a score chosen as one value from the allowed range and operable by keyboard alone, an unscored category saying so in words, and only an allowed value ever recorded. Confirm it before implementing.
-- [ ] 4.2 Put the dish in the route rather than in component state. Screen 8's link to a missing score has to reach a specific dish and category, and the back control has to go to the previous dish rather than out of the app; both are free with a route param and both need inventing without one.
-- [ ] 4.3 Build the score track as a radio group first — `role="radiogroup"`, one input per step, arrow keys, Home/End — and confirm it is fully operable before any pointer handling exists. This ordering is the point: the keyboard path is the control, and the drag is an addition to it.
-- [ ] 4.4 Layer pointer and touch on top: down anywhere on the track selects the nearest step, dragging updates a transient local value that snaps, release commits through the existing optimistic `save()` with its rollback. The committed value stays the saved one.
-- [ ] 4.5 Handle the wide-range case: above roughly twelve steps, drop the per-step labels and keep the ends. `ballot.range` is host-configurable and has no upper bound worth trusting.
-- [ ] 4.6 Handle the narrow-viewport case: below 360px, drop to end labels regardless. Ten labels across a 320px column is the specific thing the reflow test will catch.
-- [ ] 4.7 Draw the progress rail — it reflects dishes fully scored, not individual values — and the unscored-category treatment: amber outline **and** the words "your turn".
-- [ ] 4.8 Write the acceptance feature for the ballot review: the whole ballot readable before sending, the missing dish and category named, and the way to them offered. Confirm it before implementing.
-- [ ] 4.9 Draw screen 8 (the ballot before sending), including the disabled send and the amber link that jumps to the missing dish with that category ready.
-- [ ] 4.10 Re-dress `RankingInputs` to the new sheet. Its interaction does not change and no new control is designed, but it no longer inherits a re-tint for free now that the app owns its tokens — a strict-ranking contest must not look like the old app.
-- [ ] 4.11 Run the manual pass owed on this slice specifically: keyboard alone, a screen reader, and 200% zoom. The track's steps are narrower than the repo's floor and are the exception written into `participant-app-shell`; an axe pass will not decide that question.
-- [ ] 4.12 EN and ES resources for every new string in this slice.
-- [ ] 4.13 Run the slice verification.
+- [x] 4.1 Write the acceptance feature for the added `taste-and-score` requirements: one dish at a time with the dish in the address, a score chosen as one value from the allowed range and operable by keyboard alone, an unscored category saying so in words, and only an allowed value ever recorded. Confirm it before implementing.
+- [x] 4.2 Put the dish in the route rather than in component state. Screen 8's link to a missing score has to reach a specific dish and category, and the back control has to go to the previous dish rather than out of the app; both are free with a route param and both need inventing without one.
+- [x] 4.3 Build the score track as a radio group first — `role="radiogroup"`, one input per step, arrow keys, Home/End — and confirm it is fully operable before any pointer handling exists. This ordering is the point: the keyboard path is the control, and the drag is an addition to it.
+- [x] 4.4 Layer pointer and touch on top: down anywhere on the track selects the nearest step, dragging updates a transient local value that snaps, release commits through the existing optimistic `save()` with its rollback. The committed value stays the saved one.
+- [x] 4.5 Handle the wide-range case: above roughly twelve steps, drop the per-step labels and keep the ends. `ballot.range` is host-configurable and has no upper bound worth trusting.
+- [x] 4.6 Handle the narrow-viewport case: below 360px, drop to end labels regardless. Ten labels across a 320px column is the specific thing the reflow test will catch.
+- [x] 4.7 Draw the progress rail — it reflects dishes fully scored, not individual values — and the unscored-category treatment: amber outline **and** the words "your turn".
+- [x] 4.8 Write the acceptance feature for the ballot review: the whole ballot readable before sending, the missing dish and category named, and the way to them offered. Confirm it before implementing.
+- [x] 4.9 Draw screen 8 (the ballot before sending), including the disabled send and the amber link that jumps to the missing dish with that category ready.
+- [x] 4.10 Re-dress `RankingInputs` to the new sheet. Its interaction does not change and no new control is designed, but it no longer inherits a re-tint for free now that the app owns its tokens — a strict-ranking contest must not look like the old app.
+- [~] 4.11 Manual pass, **partly done**. Keyboard verified by hand in a real browser: arrow keys move a step, Home/End jump to the ends, focus follows a drag, and the ballot's "missing" link lands with the named category focused. 320px verified. **A screen-reader pass has NOT been done and cannot be faked** — it needs a person with VoiceOver or NVDA, and it is the half of this task that matters most, because the track is a radio group wearing a slider and the announcement is the thing nobody can infer from the markup. Left open deliberately rather than ticked.
+- [x] 4.12 EN and ES resources for every new string in this slice.
+- [x] 4.13 Run the slice verification. Typecheck clean, lint clean, vitest 1962/1962, Playwright 292/292 (Chromium + WebKit), `openspec validate` passing, and both screens driven live in Spanish at 390px and 320px including a real drag.
 
 ## 5. Slice E — sending
 

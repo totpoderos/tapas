@@ -156,7 +156,9 @@ describe('a vote that is already in', () => {
     vi.mocked(api.getMyScores).mockResolvedValue({ scores: [], status: 'draft' });
     wrap(<Score />);
 
-    expect(await screen.findByRole('heading', { name: /score the dishes/i })).toBeInTheDocument();
+    // `/score` is the ballot now — every dish and the way to send — rather than
+    // a page of every control at once.
+    expect(await screen.findByRole('heading', { name: /your ballot/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /send/i })).toBeInTheDocument();
   });
 
