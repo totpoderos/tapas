@@ -45,16 +45,37 @@ function hostWinner(page: Page) {
   return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
 }
 
-/** The participant's winning dish. Today it is drawn the same way as the host's. */
+/**
+ * The participant's winning dish — the h1 itself since the restyle. The two
+ * screens now lead with different things: the host's headline is the word
+ * "Winner" with the dish beneath it, the participant's headline IS the dish,
+ * with "Winner" as a label above and the cook named below. Two locators, because
+ * there are genuinely two drawings; one promise, checked against both.
+ */
 function participantWinner(page: Page) {
-  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+  return page.getByRole('heading', { level: 1 });
 }
 
-/** The dish names on a leaderboard, top to bottom, from whichever app is given. */
+/** The leaderboard's rows, top to bottom, from whichever app is given. */
 async function leaderboardOf(page: Page): Promise<string[]> {
   const rows = page.getByRole('region', { name: 'Leaderboard' }).getByRole('listitem');
   await expect(rows.first()).toBeVisible();
   return (await rows.allInnerTexts()).map((row) => row.replace(/\s+/g, ' ').trim());
+}
+
+/**
+ * The order of the DISHES on a leaderboard, with the furniture around them
+ * discarded.
+ *
+ * The two apps draw a row differently — rank alignment, where the total sits,
+ * what is tinted — and are meant to. What may never differ is which dish comes
+ * where, so that is what this compares. Reading raw row text instead would make
+ * every restyle look like a broken promise, and the first person to see that
+ * failure would rightly stop believing it.
+ */
+async function dishOrderOf(page: Page, dishes: readonly string[]): Promise<string[]> {
+  const rows = await leaderboardOf(page);
+  return rows.map((row) => dishes.find((dish) => row.includes(dish)) ?? `unrecognised: ${row}`);
 }
 
 function content(name: string) {
@@ -181,15 +202,19 @@ test('the host and a participant are shown the same winners, in the same order',
   await page.request.post(`${HOST_WEB}/contests/${contestId}/close`);
   await page.request.post(`${HOST_WEB}/contests/${contestId}/reveal`);
 
+  const dishes = ['ana dish', 'bob dish', 'carmen dish'];
+
   await page.goto(`${HOST_WEB}/results/${contestId}`);
   await expect(hostWinner(page)).toHaveText('ana dish');
-  const hostBoard = await leaderboardOf(page);
+  const hostBoard = await dishOrderOf(page, dishes);
 
   await guestPage.goto(`${PARTICIPANT}/reveal`);
   await expect(participantWinner(guestPage)).toHaveText('ana dish');
-  const participantBoard = await leaderboardOf(guestPage);
+  const participantBoard = await dishOrderOf(guestPage, dishes);
 
+  // Same dishes, same order, on two screens that no longer look alike.
   expect(hostBoard).toEqual(participantBoard);
+  expect(hostBoard).toHaveLength(dishes.length);
   await guest.close();
 });
 

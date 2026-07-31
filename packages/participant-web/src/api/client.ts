@@ -202,7 +202,14 @@ export interface Standing {
 }
 export interface Winner {
   readonly dishId: string;
+  /** The dish, by the name it was submitted under. */
   readonly name: string;
+  /**
+   * Who brought it — a list, because partners share a dish under `per_couple`.
+   * Optional for the same reason it is optional in `@tapas/ui`'s `RevealWinner`:
+   * a payload from before this existed is still a valid result.
+   */
+  readonly cooks?: readonly string[];
 }
 
 /** The revealed results: winners and leaderboards, by dish name. */

@@ -125,7 +125,15 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
   await host.post(`/contests/${contestId}/reveal`);
 
   await page.getByRole('link', { name: /see the results/i }).click();
-  await expect(page.getByRole('heading', { name: /^(winner|joint winners)$/i })).toBeVisible();
+  /*
+   * The winning dish is the h1 on this screen since the restyle, with
+   * "Winner" / "Joint winners" as the label above it. Only Bruno votes here and
+   * he gives every dish the same score, so this contest ties — which is worth
+   * keeping, because two dish names in one headline is the harder thing to fit
+   * in a 320px column.
+   */
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Ana bravas');
+  await expect(page.getByText(/^(winner|joint winners)$/i)).toBeVisible();
 
   expect(await scrollsSideways(page)).toBe(false);
 });

@@ -7,7 +7,7 @@ import { refuseDeletedContest } from './refuse-deleted-contest.js';
 import { requireVoterSession } from './require-voter-session.js';
 import type { ServerDeps } from './server-deps.js';
 import { setVoterCookie } from './session-cookies.js';
-import { toRevealDto } from '../contests/reveal-dto.js';
+import { dishNaming, toRevealDto } from '../contests/reveal-dto.js';
 
 interface ClaimBody {
   readonly participantId: string;
@@ -274,12 +274,16 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
           .code(404)
           .send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
       }
-      const names = new Map(deps.dishes.findByContest(contestId).map((d) => [d.dishId, d.name]));
+      const naming = dishNaming(
+        contest.materialized,
+        deps.dishes.findByContest(contestId),
+        deps.roster.listAll(contestId),
+      );
       const dto = toRevealDto(
         contest.name,
         contest.materialized.categories,
         results.results,
-        (dishId) => names.get(dishId) ?? 'A dish',
+        naming,
       );
       return reply.code(200).send(dto);
     },

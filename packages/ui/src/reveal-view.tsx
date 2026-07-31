@@ -10,7 +10,19 @@ export interface RevealStanding {
 
 export interface RevealWinner {
   readonly dishId: string;
+  /** The dish, by the name it was submitted under. */
   readonly name: string;
+  /**
+   * Who brought it — one cook, or both halves of a couple under `per_couple`
+   * attribution.
+   *
+   * `RevealData` is the shape both apps agree on, so the field is here even
+   * though only the participant's reveal draws it: the host's screen is a
+   * workspace and names dishes, the participant's is the moment of the evening
+   * and names people. Optional because a payload from before this existed is
+   * still a valid result.
+   */
+  readonly cooks?: readonly string[];
 }
 
 /** The revealed results: winners and leaderboards, by dish name. */

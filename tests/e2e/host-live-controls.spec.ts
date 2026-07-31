@@ -3,14 +3,13 @@ import AxeBuilder from '@axe-core/playwright';
 import { hostInvitedBy } from './support/hosts.js';
 
 /**
- * The winning dish's name. It also appears on the leaderboard below, so it needs
- * disambiguating — anchored to the "Winner" heading it sits under rather than to
- * a class name, since the reveal moved into `@tapas/ui` and its styles are
- * module-scoped now. "The winner is named directly beneath the Winner heading"
- * is the actual promise to a screen-reader user, and it survives the move.
+ * The winning dish on the PARTICIPANT's reveal, which is the screen this file
+ * watches light up. Since the participant restyle the dish is the h1 itself —
+ * the host's screen still puts the word "Winner" there, and the two are
+ * deliberately no longer the same drawing.
  */
-function winnerLine(page: Page) {
-  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+function participantWinner(page: Page) {
+  return page.getByRole('heading', { level: 1 });
 }
 
 /**
@@ -110,6 +109,15 @@ test('a host reveals, and a waiting participant sees the results appear', async 
   await guestPage.goto(`${PARTICIPANT}/j/${joinCode}`);
   await guestPage.getByRole('button', { name: 'Ana' }).click();
   await expect(guestPage.getByRole('heading', { name: /your dish, ana/i })).toBeVisible(); // join landed
+  /*
+   * Ana submits her dish, so the winner has the name she gave it. Without this
+   * she still wins — Bob scored her slot highest — but as the API's placeholder
+   * for a dish nobody submitted, and a test that asserted on THAT would be
+   * pinning a placeholder rather than the promise.
+   */
+  await guestPage.request.post(`${PARTICIPANT}/contests/${contestId}/dishes`, {
+    data: { name: 'ana dish' },
+  });
   await guestPage.goto(`${PARTICIPANT}/reveal`);
   await expect(guestPage.getByText(/almost there/i)).toBeVisible();
 
@@ -123,7 +131,9 @@ test('a host reveals, and a waiting participant sees the results appear', async 
   await expect(page.getByText(/results are out/i)).toBeVisible();
 
   // The participant's waiting screen picks up the reveal without reloading.
-  await expect(winnerLine(guestPage)).toBeVisible({ timeout: 10_000 });
+  // Named, not merely present: while it waits the only h1 is "Almost there…",
+  // so asserting on the dish is what proves the results actually arrived.
+  await expect(participantWinner(guestPage)).toHaveText('ana dish', { timeout: 10_000 });
   await guest.close();
 });
 

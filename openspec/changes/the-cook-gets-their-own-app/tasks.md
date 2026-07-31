@@ -88,13 +88,14 @@ The largest slice, and the one carrying the accessibility risk of the whole chan
 
 Depends on `the-reveal-is-ready-to-be-restyled` having landed.
 
-- [ ] 7.1 Write the acceptance feature for the modified `see-the-results`: the overall winner names the cook as well as the dish, and joint winners each name theirs. Confirm it before implementing.
-- [ ] 7.2 Add the cook to the reveal payload beside the dish name, never in place of it. The field appears in the host's payload too because both routes share `toRevealDto`; the host simply does not draw it, and that is not a host redesign.
-- [ ] 7.3 Draw screen 12 on the forked participant copy: the 112px rank numeral, the winning dish as the headline with the cook named beneath, the category panel, the leaderboard, no trophy.
-- [ ] 7.4 Confirm the rendered-screen same-results test from the prior change still passes, and that it would still fail if this restyle changed the order, truncated the leaderboard, or renamed a dish. This slice is the first real exercise of that test.
-- [ ] 7.5 Keep the entrance animation neutralised under reduced motion — the accessibility scans need a stable final frame, and it is one of the four properties the prior change recorded as not re-payable.
-- [ ] 7.6 EN and ES resources for every new string in this slice.
-- [ ] 7.7 Run the slice verification.
+- [x] 7.1 Write the acceptance feature for the modified `see-the-results`: the overall winner names the cook as well as the dish, and joint winners each name theirs. Confirm it before implementing. **A third scenario was needed and is not in this list:** under `per_couple` two partners share one dish, so "the participant who brought it" is two people.
+- [x] 7.2 Add the cook to the reveal payload beside the dish name, never in place of it. `cooks` is a **list**, for the reason in 7.1 — a singular field would make the API choose which half of a couple cooked. Cooks resolve from the MATERIALIZED dish, not the submitted one, so a dish nobody got round to submitting still knows whose it was. **Both routes now build their naming from one `dishNaming` helper** rather than each constructing its own map: two routes describing the same result and agreeing by convention is this repo's recurring defect, and the fix was cheaper than the next occurrence.
+- [x] 7.3 Draw screen 12 on the forked participant copy: the 112px rank numeral, the winning dish as the headline with the cook named beneath, the category panel, the leaderboard, no trophy. The h1 moves from the word "Winner" to the dish itself — which is the fork's whole point, and which moved five test locators across four spec files.
+- [x] 7.4 Confirm the rendered-screen same-results test still passes, **and that it still bites**. Verified by mutation, not by assertion-after-the-fact: reversing the participant leaderboard, truncating it to two rows, and renaming its dishes each failed **both** same-results tests; reverted, both pass. The older test's app-to-app comparison was relaxed from exact row text to **dish order**, which is what the promise is about — rank and total are drawn differently now by design, and a test that failed on furniture would be disbelieved the first time it went red.
+- [x] 7.5 Keep the entrance animation neutralised under reduced motion. Held by the global rule in `tokens.css` and by the existing reduced-motion e2e, which passes unchanged.
+- [x] 7.6 EN and ES resources for every new string in this slice.
+- [x] 7.7 Run the slice verification. Typecheck clean, lint clean, vitest 2017/2017, Playwright 304/304 (Chromium + WebKit), `openspec validate` passing, and the screen driven live in English and Spanish at 390px and 320px.
+- [ ] 7.8 **Not this slice's to fix, found by it:** an unsubmitted dish is named `'A dish'` by the API, in English, and that string reaches the leaderboard on a Spanish reveal. It predates this change — the placeholder has always been in `toRevealDto` — but it is visible on the screen this slice delivers. Fixing it means the API marking the dish unnamed and each app wording it, which touches the host's reveal too.
 
 ## 8. Closing out
 

@@ -30,6 +30,11 @@ Feature: A participant sees the results revealed
     Then they are still told the results are being waited for
     And they can still reach the other steps open to them
 
+  Scenario: The reveal names the cook as well as the dish
+    Given a participant reading the results of a revealed contest
+    Then the winning dish is the headline
+    And the participant who brought it is named beneath it
+
   Scenario: The reveal is keyboard-operable and accessible
     Given a participant viewing a revealed contest's results
     Then the screen has no accessibility violations

@@ -59,14 +59,15 @@ describe('Reveal screen', () => {
 
   /**
    * The winning dish's name, which also appears further down the leaderboard, so
-   * it has to be disambiguated. Anchored to the "Winner" heading it sits under
-   * rather than to a class name — the view moved into `@tapas/ui` and its styles
-   * are module-scoped now, but "the winner is named directly beneath the Winner
-   * heading" is the actual promise to a screen-reader user, and it survives.
+   * it has to be disambiguated. It is the h1 since the restyle — which is itself
+   * the promise this screen makes: the dish that won is the headline, and what a
+   * screen-reader user hears first.
    */
   const findWinnerLine = async (): Promise<HTMLElement> => {
-    const heading = await screen.findByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ });
-    return heading.nextElementSibling as HTMLElement;
+    // Wait for the reveal itself to arrive first: while the screen is still
+    // waiting, the only h1 is "Almost there…", and a bare h1 query would race it.
+    await screen.findByRole('region', { name: 'Leaderboard' });
+    return screen.getByRole('heading', { level: 1 });
   };
 
   it('waits while the contest is not revealed yet', async () => {
@@ -92,6 +93,50 @@ describe('Reveal screen', () => {
     const rows = within(board).getAllByRole('listitem');
     expect(rows[0]).toHaveTextContent('Tortilla');
     expect(rows[2]).toHaveTextContent('Patatas');
+  });
+
+  /*
+   * Screen 12: the dish is the headline and the cook is named beneath it, so
+   * the result names a person as well as a plate. The host's screen leads with
+   * the word "Winner" instead — the two drawings are allowed to differ, and
+   * what may not is which dish won.
+   */
+  it('names the cook beneath the winning dish', async () => {
+    vi.mocked(api.getReveal).mockResolvedValue({
+      ...REVEAL,
+      overall: {
+        winners: [{ dishId: 'D-b', name: 'Tortilla', cooks: ['Iván'] }],
+        standings: REVEAL.overall.standings,
+      },
+    });
+    renderReveal();
+
+    expect(await findWinnerLine()).toHaveTextContent('Tortilla');
+    expect(screen.getByText('brought by Iván')).toBeInTheDocument();
+  });
+
+  it('names both cooks of a dish two people brought', async () => {
+    vi.mocked(api.getReveal).mockResolvedValue({
+      ...REVEAL,
+      overall: {
+        winners: [{ dishId: 'D-b', name: 'Tortilla', cooks: ['Iván', 'Nuria'] }],
+        standings: REVEAL.overall.standings,
+      },
+    });
+    renderReveal();
+    await findWinnerLine();
+
+    expect(screen.getByText('brought by Iván & Nuria')).toBeInTheDocument();
+  });
+
+  it('draws the winner without a cook line when nobody is named', async () => {
+    // The field is optional: a result from before it existed is still a result,
+    // and the dish — which is what the promise is about — is drawn regardless.
+    vi.mocked(api.getReveal).mockResolvedValue(REVEAL); // no `cooks` on its winners
+    renderReveal();
+
+    expect(await findWinnerLine()).toHaveTextContent('Tortilla');
+    expect(screen.queryByText(/brought by/i)).not.toBeInTheDocument();
   });
 
   it('renders joint winners on a tie', async () => {
@@ -191,7 +236,7 @@ describe('Waiting for the reveal', () => {
   it('stops asking how the voting stands once the results are out', async () => {
     vi.mocked(api.getReveal).mockResolvedValue(REVEAL);
     renderReveal();
-    await screen.findByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ });
+    await screen.findByRole('heading', { level: 1, name: 'Tortilla' });
 
     // Who was still voting is a question about a moment that has passed.
     expect(screen.queryByRole('list', { name: 'Who has voted' })).not.toBeInTheDocument();

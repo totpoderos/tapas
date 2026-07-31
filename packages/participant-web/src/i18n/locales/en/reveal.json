@@ -10,6 +10,7 @@
   "goToJoin": "Go to join →",
   "winner": "Winner",
   "jointWinners": "Joint winners",
+  "broughtBy": "brought by {{cooks}}",
   "bestInCategory": "Best in each category",
   "categoryWinnersLabel": "Category winners",
   "leaderboard": "Leaderboard",
