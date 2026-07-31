@@ -6,10 +6,15 @@
   "continue": "Continuar",
   "chooseTitle": "¿Quién eres?",
   "chooseLead": "Elige tu nombre para ocupar tu sitio.",
-  "allTaken": "Ya se han ocupado todos los sitios.",
   "openPlaces": "Sitios libres",
   "errorUnknownCode": "Ese código no es válido. Compruébalo e inténtalo de nuevo.",
   "errorPlaceTaken": "Ese sitio lo acaban de ocupar. Elige otro.",
   "errorGeneric": "Algo salió mal. Inténtalo de nuevo.",
-  "errorJoining": "Algo salió mal al unirte. Inténtalo de nuevo."
+  "errorJoining": "Algo salió mal al unirte. Inténtalo de nuevo.",
+  "tryAgain": "Inténtalo de nuevo",
+  "taken": "ocupado",
+  "refreshNote": "Si alguien ocupa un sitio mientras miras, la lista se actualiza y te lo dice.",
+  "allTakenTitle": "Todos los sitios están ocupados",
+  "allTakenLead": "Todas las personas de la lista de este concurso ya se han unido. Si esperabas un sitio, pregunta al anfitrión — o prueba con otro código.",
+  "tryAnotherCode": "Probar otro código"
 }

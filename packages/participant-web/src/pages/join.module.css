@@ -1,0 +1,220 @@
+/*
+ * Joining: the code, the roster, and the two ways it can go wrong.
+ *
+ * Screens 1–4 of the handoff. The column is vertically centred on the code
+ * screens because there is one thing to do and nothing to scroll to; the roster
+ * screens sit at the top because they are a list that may not fit.
+ */
+
+.centred {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 0 32px;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 10px 0 24px;
+}
+
+/*
+ * The dish count, which is the first thing a cook sees and the only number that
+ * matters before they are in: how many plates are coming. It is decorative in
+ * the accessibility tree — the heading below says the contest's name, and a
+ * screen reader announcing a bare "7" first would be noise.
+ */
+.figure {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 104px;
+  line-height: 0.85;
+  color: var(--brand);
+  text-shadow: 0 14px 34px rgba(140, 47, 57, 0.3);
+}
+
+/* The unknown-code screen keeps the shape and drops the accent: nothing to count. */
+.figureUnknown {
+  color: #c9bfb4;
+  text-shadow: none;
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 44px;
+  line-height: 1.05;
+  font-weight: 600;
+  margin: 0;
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+/* --- the code field, in its glass panel ------------------------------- */
+
+.panel {
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  box-shadow: 0 12px 30px rgba(34, 22, 26, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* The panel borders in the accent when what it holds is wrong. */
+.panelError {
+  border-color: rgba(140, 47, 57, 0.45);
+}
+
+.code {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  font-family: var(--serif);
+  font-size: 28px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-align: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.codeError {
+  border-color: var(--brand);
+}
+
+/*
+ * The message sits INSIDE the panel, attached to the field that was wrong —
+ * not in a banner above a title that no longer applies. That was the old
+ * behaviour and it asked a cook to work out for themselves what it referred to.
+ */
+.fieldError {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--brand-700);
+}
+
+.fieldError svg {
+  flex: none;
+}
+
+/* --- the roster ------------------------------------------------------- */
+
+.places {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.place {
+  width: 100%;
+  min-height: 68px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  font-family: var(--serif);
+  font-size: 26px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  color: var(--ink);
+  box-shadow: 0 10px 24px rgba(34, 22, 26, 0.1);
+  cursor: pointer;
+}
+
+.place:hover:not(:disabled) {
+  border-color: var(--brand-line);
+}
+
+.place:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.placeArrow {
+  color: var(--brand);
+  flex: none;
+}
+
+/*
+ * A place already taken. It stays in the list rather than dropping out, at
+ * reduced opacity with a dashed edge — and carries the word "taken", because
+ * dimming alone is a colour signal and this app does not use those on their own.
+ */
+.taken {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 68px;
+  padding: 0 18px;
+  font-family: var(--serif);
+  font-size: 26px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+  opacity: 0.42;
+}
+
+.tag {
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(34, 22, 26, 0.08);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+/* --- every place taken (screen 4) ------------------------------------- */
+
+/*
+ * Plain rows, not buttons. Nothing here is claimable, so nothing here should
+ * look like it is — the only control on the screen is the way out.
+ */
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rosterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  font-size: 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.footnote {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+}

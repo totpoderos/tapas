@@ -90,7 +90,7 @@ function claimDirectly(db: DatabaseSync, joinCode: string, participantId: string
 }
 
 describeFeature(feature, ({ Scenario }) => {
-  Scenario('The places not yet taken are shown for a valid code', ({ Given, When, Then }) => {
+  Scenario('The whole roster is shown for a valid code', ({ Given, When, Then }) => {
     let app: FastifyInstance;
     let db: DatabaseSync;
     let response: LightMyRequestResponse;
@@ -102,14 +102,86 @@ describeFeature(feature, ({ Scenario }) => {
     When('someone looks up the contest by its join code', async () => {
       response = await app.inject({ method: 'GET', url: '/contests/TAPAS1/places' });
     });
-    Then('the three places are offered as available', () => {
+    Then('all three places are returned, and each is marked open or taken', () => {
       expect(response.statusCode).toBe(200);
-      const names = response
-        .json()
-        .places.map((place: { displayName: string }) => place.displayName);
+      const places = response.json().places as { displayName: string; taken: boolean }[];
+      const names = places.map((place) => place.displayName);
       expect(names).toContain('María');
       expect(names).toContain('Pau');
       expect(names).toContain('Ana');
+      // Nobody has arrived yet, and every place says so rather than leaving it open to guess.
+      expect(places.every((place) => place.taken === false)).toBe(true);
+    });
+  });
+
+  Scenario('A taken place is shown as taken, and is not offered to be claimed', ({
+    Given,
+    When,
+    Then,
+    And,
+  }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let response: LightMyRequestResponse;
+
+    Given('a live contest where "Ana"\'s place is already taken', async () => {
+      ({ app, db } = makeTestApp());
+      publishLiveContest(db, 'TAPAS4');
+      await app.inject({
+        method: 'POST',
+        url: '/contests/TAPAS4/claim',
+        payload: { participantId: 'ana' },
+      });
+    });
+    When('someone looks up the contest by its join code', async () => {
+      response = await app.inject({ method: 'GET', url: '/contests/TAPAS4/places' });
+    });
+    Then('"Ana"\'s place is marked as taken', () => {
+      expect(response.statusCode).toBe(200);
+      const places = response.json().places as { displayName: string; taken: boolean }[];
+      const ana = places.find((place) => place.displayName === 'Ana');
+      expect(ana?.taken).toBe(true);
+      /*
+       * Whether she arrived, and nothing more. No timestamp travels with the
+       * roster: when somebody turned up is a fact about a person, and the screen
+       * that reads this only needs to know the place is gone.
+       */
+      expect(Object.keys(ana ?? {}).sort()).toEqual(['displayName', 'participantId', 'taken']);
+    });
+    And('the places still open are marked as open', () => {
+      const places = response.json().places as { displayName: string; taken: boolean }[];
+      const open = places.filter((place) => !place.taken).map((place) => place.displayName);
+      expect(open).toContain('María');
+      expect(open).toContain('Pau');
+      expect(open).not.toContain('Ana');
+    });
+  });
+
+  Scenario('A contest with no place left still names its roster', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let db: DatabaseSync;
+    let response: LightMyRequestResponse;
+
+    Given('a live contest where every place has been taken', async () => {
+      ({ app, db } = makeTestApp());
+      publishLiveContest(db, 'TAPAS5');
+      for (const id of ['maria', 'pau', 'ana', 'marcos']) {
+        await app.inject({
+          method: 'POST',
+          url: '/contests/TAPAS5/claim',
+          payload: { participantId: id },
+        });
+      }
+    });
+    When('someone looks up the contest by its join code', async () => {
+      response = await app.inject({ method: 'GET', url: '/contests/TAPAS5/places' });
+    });
+    Then('the whole roster is returned, with every place marked as taken', () => {
+      expect(response.statusCode).toBe(200);
+      const places = response.json().places as { displayName: string; taken: boolean }[];
+      // An empty list would be indistinguishable from the wrong contest.
+      expect(places).toHaveLength(4);
+      expect(places.every((place) => place.taken)).toBe(true);
     });
   });
 

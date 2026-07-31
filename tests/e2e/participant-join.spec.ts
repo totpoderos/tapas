@@ -48,13 +48,72 @@ test('a participant joins by choosing their place', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /your dish, ana/i })).toBeVisible();
 });
 
-test('an unrecognised join code is refused', async ({ page }) => {
+test('an unrecognised join code is refused at the field', async ({ page }) => {
   await page.goto(`${PARTICIPANT}/`);
   await page.getByLabel('Join code').fill('ZZZZZZ');
   await page.getByRole('button', { name: 'Continue' }).click();
 
-  await expect(page.getByRole('alert')).toContainText(/isn.t recognised/i);
-  await expect(page.getByLabel('Join code')).toBeVisible();
+  const problem = page.getByRole('alert');
+  await expect(problem).toContainText(/isn.t recognised/i);
+
+  /*
+   * Attached to the field, not floating above a title that still reads "Join
+   * the contest". The field points at the message, which is what a screen
+   * reader follows and what makes "attached" true rather than merely adjacent.
+   */
+  const field = page.getByLabel('Join code');
+  await expect(field).toBeVisible();
+  await expect(field).toHaveAttribute('aria-invalid', 'true');
+  const describedBy = await field.getAttribute('aria-describedby');
+  expect(describedBy).toBeTruthy();
+  await expect(page.locator(`#${describedBy}`)).toContainText(/isn.t recognised/i);
+});
+
+test('a place someone has already taken is shown, and cannot be chosen', async ({ page }) => {
+  const { joinCode, host } = await seedLiveContest('e2e-join-shows-taken@sobremesa.es');
+
+  // Carmen arrives first, through the API — she is not this browser.
+  const carmen = await playwrightRequest.newContext({ baseURL: API });
+  await carmen.post(`/contests/${joinCode}/claim`, { data: { participantId: 'c' } });
+
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+
+  /*
+   * Carmen stays on the roster. Dropping her would leave a cook unable to tell
+   * "somebody already took my name" from "this is the wrong contest" — and the
+   * word has to be there as well as the dimming, because dimming is colour.
+   */
+  await expect(page.getByText('Carmen')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Carmen' })).toHaveCount(0);
+  await expect(page.getByText(/^taken$/i).first()).toBeVisible();
+
+  // The places still open are still open.
+  await expect(page.getByRole('button', { name: 'Ana' })).toBeVisible();
+
+  await carmen.dispose();
+  await host.dispose();
+});
+
+test('a contest with every place taken explains itself', async ({ page }) => {
+  const { joinCode, host } = await seedLiveContest('e2e-join-all-taken@sobremesa.es');
+
+  const others = await playwrightRequest.newContext({ baseURL: API });
+  for (const id of ['a', 'b', 'c', 'd']) {
+    await others.post(`/contests/${joinCode}/claim`, { data: { participantId: id } });
+  }
+
+  await page.goto(`${PARTICIPANT}/j/${joinCode}`);
+
+  await expect(page.getByRole('heading', { name: /every place is taken/i })).toBeVisible();
+  // The roster is named, so a cook can see this is the contest they meant.
+  for (const name of ['Ana', 'Bruno', 'Carmen', 'Diego']) {
+    await expect(page.getByText(name)).toBeVisible();
+  }
+  // And there is a way out rather than a dead end.
+  await expect(page.getByRole('button', { name: /try another code/i })).toBeVisible();
+
+  await others.dispose();
+  await host.dispose();
 });
 
 test('a place taken since the list loaded cannot be claimed', async ({ page }) => {

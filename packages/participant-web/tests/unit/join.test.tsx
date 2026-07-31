@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app';
-import { ApiError, type Identity, type OpenPlaces } from '../../src/api/client';
+import { ApiError, type Identity, type Roster } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
 
@@ -25,11 +25,11 @@ function stubLocalStorage() {
   });
 }
 
-const PLACES: OpenPlaces = {
+const PLACES: Roster = {
   contestId: 'c1',
   places: [
-    { participantId: 'A', displayName: 'Ana' },
-    { participantId: 'B', displayName: 'Bruno' },
+    { participantId: 'A', displayName: 'Ana', taken: false },
+    { participantId: 'B', displayName: 'Bruno', taken: false },
   ],
 };
 const ANA: Identity = { participantId: 'A', contestId: 'c1', displayName: 'Ana' };
@@ -82,7 +82,13 @@ describe('Participant join', () => {
     vi.mocked(api.claimPlace).mockRejectedValue(new ApiError(409, 'PLACE_TAKEN'));
     vi.mocked(api.getPlaces)
       .mockResolvedValueOnce(PLACES)
-      .mockResolvedValueOnce({ contestId: 'c1', places: [{ participantId: 'B', displayName: 'Bruno' }] });
+      .mockResolvedValueOnce({
+        contestId: 'c1',
+        places: [
+          { participantId: 'A', displayName: 'Ana', taken: true },
+          { participantId: 'B', displayName: 'Bruno', taken: false },
+        ],
+      });
     renderAt('/');
 
     await userEvent.type(await screen.findByLabelText('Join code'), 'ABC123');
@@ -90,8 +96,13 @@ describe('Participant join', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Ana' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/just taken/i);
-    // The list refreshed: Ana is gone, Bruno remains.
+    /*
+     * The list refreshed. Ana does not disappear — she stays on the roster,
+     * marked as taken, so the person reading it can see what happened rather
+     * than watching a name vanish. What she stops being is something to press.
+     */
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Ana' })).not.toBeInTheDocument());
+    expect(screen.getByText('Ana')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bruno' })).toBeInTheDocument();
   });
 

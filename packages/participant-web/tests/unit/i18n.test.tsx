@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../src/app';
 import { i18n } from '../../src/i18n';
-import type { OpenPlaces } from '../../src/api/client';
+import type { Roster } from '../../src/api/client';
 
 vi.mock('../../src/api/client', async () => {
   const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
@@ -21,11 +21,11 @@ function stubLocalStorage() {
   });
 }
 
-const PLACES: OpenPlaces = {
+const PLACES: Roster = {
   contestId: 'c1',
   places: [
-    { participantId: 'a', displayName: 'Ana' },
-    { participantId: 'b', displayName: 'Bruno' },
+    { participantId: 'a', displayName: 'Ana', taken: false },
+    { participantId: 'b', displayName: 'Bruno', taken: false },
   ],
 };
 

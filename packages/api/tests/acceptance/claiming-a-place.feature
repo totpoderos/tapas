@@ -1,13 +1,33 @@
 Feature: Claiming a place in a contest
   A contest is published with the participants the host listed. To take part, a
-  person enters the join code, sees the places not yet taken, and claims theirs
-  by name. Claiming links them to that place, so the scoring rules know who they
-  are. Each place can be claimed only once, and only places on the list exist.
+  person enters the join code, sees the whole roster — who is still to arrive and
+  who has already taken their place — and claims theirs by name. Claiming links
+  them to that place, so the scoring rules know who they are. Each place can be
+  claimed only once, and only places on the list exist.
 
-  Scenario: The places not yet taken are shown for a valid code
+  Showing the taken places as well as the open ones is deliberate. It lets a
+  person tell "my name has already been taken" apart from "this is the wrong
+  contest", and it lets a contest with nothing left explain itself. It also means
+  somebody holding a join code learns who has already arrived, which is accepted:
+  those are the names the host listed, they are known to everyone in the room,
+  nothing else about a person is attached, and the code stops working when the
+  contest closes.
+
+  Scenario: The whole roster is shown for a valid code
     Given a live contest whose participants are "María", "Pau" and "Ana"
     When someone looks up the contest by its join code
-    Then the three places are offered as available
+    Then all three places are returned, and each is marked open or taken
+
+  Scenario: A taken place is shown as taken, and is not offered to be claimed
+    Given a live contest where "Ana"'s place is already taken
+    When someone looks up the contest by its join code
+    Then "Ana"'s place is marked as taken
+    And the places still open are marked as open
+
+  Scenario: A contest with no place left still names its roster
+    Given a live contest where every place has been taken
+    When someone looks up the contest by its join code
+    Then the whole roster is returned, with every place marked as taken
 
   Scenario: A participant claims their place
     Given a live contest that includes a place for "Ana"

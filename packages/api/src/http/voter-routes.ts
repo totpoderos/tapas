@@ -69,9 +69,23 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
           .code(404)
           .send({ error: { code: 'JOIN_CODE_NOT_FOUND', message: 'No such join code.' } });
       }
-      const places = deps.roster
-        .listAvailable(contest.id)
-        .map((place) => ({ participantId: place.participantId, displayName: place.displayName }));
+      /*
+       * The WHOLE roster, not only what is still open. A person holding the code
+       * needs to tell "someone already took my name" apart from "this is the
+       * wrong contest", and a contest with nothing left has to be able to explain
+       * itself rather than show an empty list.
+       *
+       * This does mean the code discloses who has already arrived. Accepted, and
+       * bounded: these are the names the host listed and everyone in the room can
+       * see, `claimedAt` is reduced to a boolean so no arrival *times* leak, and
+       * nothing else about a person is attached. Claiming is still refused for a
+       * taken place — the roster widened, the rule did not.
+       */
+      const places = deps.roster.listAll(contest.id).map((place) => ({
+        participantId: place.participantId,
+        displayName: place.displayName,
+        taken: place.claimedAt !== null,
+      }));
       return reply.code(200).send({ contestId: contest.id, places });
     },
   );
