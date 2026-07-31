@@ -20,6 +20,12 @@ Feature: A host runs their live contest
     When they reveal it and confirm
     Then the contest is revealed
 
+  Scenario: The control screen notices a contest that closed itself
+    Given a host watching a contest set to close once everyone has voted
+    When the last participant sends their vote
+    Then the control screen offers to reveal the results
+    And it does not ask the host to close a contest that is already closed
+
   Scenario: Closing is confirmed before it runs
     Given a host viewing their live contest
     When they choose to close but cancel the confirmation

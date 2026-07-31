@@ -42,10 +42,14 @@ function content(name: string) {
 }
 
 /** Signs the host in through the app (:5173, first-party cookie) and returns their id + join code, live. */
-async function hostWithLiveContest(page: Page, email: string): Promise<{ contestId: string; joinCode: string }> {
+async function hostWithLiveContest(
+  page: Page,
+  email: string,
+  draft = content('Balcony Cook-off'),
+): Promise<{ contestId: string; joinCode: string }> {
   await hostInvitedBy(email, PASSWORD);
   await page.request.post(`${HOST_WEB}/auth/login`, { data: { email, password: PASSWORD } });
-  const created = await page.request.post(`${HOST_WEB}/drafts`, { data: content('Balcony Cook-off') });
+  const created = await page.request.post(`${HOST_WEB}/drafts`, { data: draft });
   const published = await page.request.post(`${HOST_WEB}/drafts/${(await created.json()).id}/publish`);
   const body = await published.json();
   return { contestId: body.id as string, joinCode: body.joinCode as string };
@@ -125,6 +129,72 @@ test('a host reveals, and a waiting participant sees the results appear', async 
   // The participant's waiting screen picks up the reveal without reloading.
   await expect(winnerLine(guestPage)).toBeVisible({ timeout: 10_000 });
   await guest.close();
+});
+
+/**
+ * The reported journey: everyone votes, so the contest closes itself, and the
+ * host is left looking at a panel that still thinks it is live. Their only way
+ * through was to press "Close voting", be told the contest could not be closed,
+ * and carry on from the error — which reads as a broken app at the one moment
+ * everybody in the room is waiting on.
+ */
+test('the control room notices a contest that closed itself', async ({ page }) => {
+  // `all_sent` is the DEFAULT close rule, which is why this is the common case
+  // rather than an exotic one. The rest of this file opts out of it on purpose.
+  const closesItself = { ...content('Balcony Cook-off'), closeRule: { when: 'all_sent' } };
+  const { contestId, joinCode } = await hostWithLiveContest(
+    page,
+    'e2e-live-autoclose@sobremesa.es',
+    closesItself,
+  );
+
+  /*
+   * All three claim BEFORE anyone sends. `all_sent` means "everyone who claimed
+   * a place", so a single voter in an otherwise empty room closes the contest on
+   * their own — which is a correct reading of the rule and not the case worth
+   * testing here.
+   */
+  const cooks = new Map<string, APIRequestContext>();
+  for (const id of ['ana', 'bob', 'carmen']) {
+    const ctx = await playwrightRequest.newContext({ baseURL: API });
+    await ctx.post(`/contests/${joinCode}/claim`, { data: { participantId: id } });
+    await ctx.post(`/contests/${contestId}/dishes`, { data: { name: `${id} dish` } });
+    cooks.set(id, ctx);
+  }
+  /** Scores every dish but their own and sends. */
+  const sends = async (id: string) => {
+    const ctx = cooks.get(id)!;
+    for (const other of ['ana', 'bob', 'carmen'].filter((who) => who !== id)) {
+      await ctx.post(`/contests/${contestId}/scores`, {
+        data: { dishId: `D-${other}`, categoryId: 'taste', value: 4 },
+      });
+    }
+    await ctx.post(`/contests/${contestId}/send-vote`);
+  };
+
+  // Two of the three send; one is still scoring, so the contest stays live.
+  await sends('bob');
+  await sends('carmen');
+
+  await page.goto(`${HOST_WEB}/contest/${contestId}`);
+  await expect(page.getByRole('button', { name: 'Close voting' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Reveal results' })).toBeDisabled();
+
+  // The last one sends — and nobody presses anything on the host's screen.
+  await sends('ana');
+
+  // The panel catches up on its own poll: revealing becomes takeable, closing
+  // stops being offered, and no error was ever shown.
+  await expect(page.getByRole('button', { name: 'Reveal results' })).toBeEnabled({
+    timeout: 15_000,
+  });
+  await expect(page.getByRole('button', { name: 'Close voting' })).toBeDisabled();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+
+  // And revealing from here works, with no close in between.
+  await page.getByRole('button', { name: 'Reveal results' }).click();
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Reveal results' }).click();
+  await expect(page.getByText(/results are out/i)).toBeVisible();
 });
 
 test('the control room is keyboard-operable and has no accessibility violations', async ({ page }) => {
