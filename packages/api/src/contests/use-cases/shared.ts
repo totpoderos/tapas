@@ -150,3 +150,46 @@ export interface Tally {
 export type GetTallyResult =
   | { readonly ok: true; readonly tally: Tally }
   | { readonly ok: false; readonly error: GetTallyError };
+
+export type GetTurnoutErrorCode = 'CONTEST_NOT_FOUND';
+
+export interface GetTurnoutError {
+  readonly code: GetTurnoutErrorCode;
+  readonly message: string;
+}
+
+export interface GetTurnoutDeps {
+  readonly contests: ContestRepository;
+  readonly roster: RosterRepository;
+  readonly voteSessions: VoteSessionRepository;
+}
+
+/**
+ * One participant, as another participant may see them while waiting.
+ *
+ * Two fields and no third. `sent` is deliberately a boolean rather than a
+ * status: a vote is either in or it is not, and how far someone has got —
+ * whether they have started, how many dishes they have scored, what they gave —
+ * is that person's business and is not derivable from anything here.
+ */
+export interface TurnoutParticipant {
+  readonly participantId: string;
+  readonly displayName: string;
+  readonly sent: boolean;
+}
+
+export interface Turnout {
+  readonly votesIn: number;
+  /**
+   * Every place the host listed, claimed or not — the same denominator the dish
+   * screen counts against. A place nobody took can never produce a vote, so
+   * counting only the claimed ones would read "everyone has voted" while the
+   * reveal does not come, with nothing on screen to explain why.
+   */
+  readonly votesExpected: number;
+  readonly participants: readonly TurnoutParticipant[];
+}
+
+export type GetTurnoutResult =
+  | { readonly ok: true; readonly turnout: Turnout }
+  | { readonly ok: false; readonly error: GetTurnoutError };

@@ -54,6 +54,7 @@ import { DeleteContest } from './contests/use-cases/delete-contest.js';
 import { SqliteUnitOfWork } from './db/unit-of-work.js';
 import { cookieTransportFor } from './http/session-cookies.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
+import { GetTurnout } from './contests/use-cases/get-turnout.js';
 import { RandomJoinCodeGenerator } from './contests/join-code-generator.js';
 import { SubmitDish } from './dishes/use-cases/submit-dish.js';
 import { GetBallot } from './scoring/use-cases/get-ballot.js';
@@ -177,6 +178,7 @@ export function buildProductionDeps(
       unitOfWork: new SqliteUnitOfWork(db),
     }),
     getTally: new GetTally({ contests, roster, voteSessions }),
+    getTurnout: new GetTurnout({ contests, roster, voteSessions }),
     clock,
     drafts,
     contests,

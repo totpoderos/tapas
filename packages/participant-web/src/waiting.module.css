@@ -1,0 +1,135 @@
+/*
+ * Waiting for the reveal (screen 11).
+ *
+ * The longest a participant stands on any one screen, and until now the emptiest
+ * — an animated dot and two lines. It keeps the quiet: no glass panel around the
+ * heading, nothing to press. What it adds is the room itself, so the wait has
+ * something true to look at rather than only something to look at.
+ */
+
+.waiting {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 32px 0 24px;
+}
+
+/*
+ * The hourglass turns rather than pulses: a slow half-turn reads as time
+ * passing, where a pulse reads as an alert about something that has not
+ * happened. Neutralised under `prefers-reduced-motion` by the global rule in
+ * tokens.css, which leaves it upright and legible.
+ */
+/*
+ * `inline-flex` + `align-self` are not styling here, they are the animation:
+ * as a stretched flex item this span is the full width of the column, and
+ * rotating it swings the icon on a 335px arc across the screen instead of
+ * turning it in place. Shrinking the box to the glyph puts the origin back
+ * where the eye expects it.
+ */
+.glass {
+  display: inline-flex;
+  align-self: flex-start;
+  color: var(--amber-700);
+  line-height: 0;
+  animation: turn 4s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes turn {
+  0%,
+  40% {
+    transform: rotate(0deg);
+  }
+  50%,
+  90% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1.08;
+  font-weight: 600;
+  margin: 0;
+}
+
+.note {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 34ch;
+}
+
+/* "3 of 5 votes in" — the one number worth reading at a glance. */
+.count {
+  margin: 8px 0 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.roster {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+  background: var(--glass);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 13px 0;
+}
+
+.row + .row {
+  border-top: 1px solid var(--line);
+}
+
+/*
+ * Muted AND labelled. The dimming is the glance; the words are the answer. On
+ * its own, a fainter row says only that something is different about this
+ * person, which is worse than saying nothing.
+ */
+.rowWaiting .name {
+  color: var(--ink-2);
+}
+
+.name {
+  font-family: var(--serif);
+  font-size: 19px;
+  min-width: 0;
+}
+
+.tagIn,
+.tagWaiting {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.tagIn {
+  background: var(--brand-soft);
+  color: var(--brand-700);
+}
+
+.tagWaiting {
+  background: var(--amber-tint);
+  color: var(--amber-700);
+}

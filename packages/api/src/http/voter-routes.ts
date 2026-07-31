@@ -212,6 +212,46 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
+  /*
+   * How the voting stands, for a participant waiting on the reveal: how many
+   * votes are in out of how many are expected, and who has still to vote.
+   *
+   * Three limits, all of them deliberate:
+   *
+   * 1. **Participant-authenticated**, on the same token that gates the ballot.
+   *    It is not open to a join code — holding the code gets you the roster
+   *    (see `/places`), not what anyone has done with their vote.
+   * 2. **Contest-scoped twice over.** `requireVoterSession` refuses (403) when
+   *    the address names a contest the token is not for, and the read itself
+   *    then goes by `voterSession.contestId` rather than by the parameter. So a
+   *    participant cannot reach another contest's turnout by editing an address,
+   *    and could not be answered about the wrong room even if the guard changed.
+   * 3. **Sent or not sent, and nothing else.** Enforced in `GetTurnout` rather
+   *    than by dropping fields here — see the reasoning there.
+   *
+   * The waiting screen polls this. It does so on a slower timer than the reveal
+   * poll (6s against 2s) because a venue is many phones behind one address and
+   * the global limit is per-IP: who is still voting does not change from second
+   * to second, and this read should not be the thing that exhausts the ceiling.
+   */
+  app.get<{ Params: { contestId: string } }>(
+    '/contests/:contestId/turnout',
+    { preHandler: voterSession },
+    async (request, reply) => {
+      if (!request.voterSession) return reply.code(401).send(notSignedIn);
+
+      // Having a token is not enough: the place it names has to still be on the
+      // roster, exactly as `/me` requires. A place removed since the token was
+      // issued is someone who did not take part.
+      const place = deps.roster.find(request.voterSession.contestId, request.voterSession.id);
+      if (!place) return reply.code(401).send(notSignedIn);
+
+      const turnout = deps.getTurnout.execute(request.voterSession.contestId);
+      if (!turnout.ok) return reply.code(404).send({ error: turnout.error });
+      return reply.code(200).send(turnout.turnout);
+    },
+  );
+
   // The participant view of a revealed contest — held back (409) until the host
   // reveals, which the app polls on. Distinct from the host's `/results`.
   app.get<{ Params: { contestId: string } }>(

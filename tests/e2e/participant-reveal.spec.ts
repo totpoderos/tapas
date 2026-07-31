@@ -110,6 +110,38 @@ test('the reveal appears when the host triggers it, without reloading', async ({
   await expect(winnerLine(page)).toHaveText('Ana paella', { timeout: 10_000 });
 });
 
+test('waiting says how the voting stands', async ({ page }) => {
+  // Bob has sent; Ana (the browser) and Carmen have not. Carmen never scored.
+  await seedVotedAndClosed(page, 'e2e-reveal-turnout@sobremesa.es');
+
+  await page.goto(`${PARTICIPANT}/reveal`);
+  await expect(page.getByText('1 of 3 votes in')).toBeVisible();
+
+  const roster = page.getByRole('list', { name: 'Who has voted' });
+  await expect(roster.getByRole('listitem')).toHaveCount(3);
+  // In words, not by colour alone — this is read across a table in bad light.
+  await expect(roster.getByRole('listitem').filter({ hasText: 'Bob' })).toContainText('in');
+  await expect(roster.getByRole('listitem').filter({ hasText: 'Carmen' })).toContainText('still voting');
+
+  const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
+  expect(results.violations).toEqual([]);
+});
+
+test('waiting still works when how the voting stands cannot be read', async ({ page }) => {
+  await seedVotedAndClosed(page, 'e2e-reveal-turnout-down@sobremesa.es');
+
+  // The one read this slice adds, failing — everything else untouched.
+  await page.route('**/turnout', (route) => route.fulfill({ status: 500, body: '{}' }));
+
+  await page.goto(`${PARTICIPANT}/reveal`);
+  await expect(page.getByText(/almost there/i)).toBeVisible();
+  await expect(page.getByText(/the moment the host reveals/i)).toBeVisible();
+  // No roster, no error, and still not a dead end.
+  await expect(page.getByRole('list', { name: 'Who has voted' })).toHaveCount(0);
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByRole('navigation', { name: 'Go to' })).toBeVisible();
+});
+
 test('the reveal is accessible and honours reduced motion', async ({ page }) => {
   const { contestId, host } = await seedVotedAndClosed(page, 'e2e-reveal-a11y@sobremesa.es');
   await host.post(`/contests/${contestId}/reveal`);

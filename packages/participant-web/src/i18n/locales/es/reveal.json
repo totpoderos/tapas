@@ -1,6 +1,10 @@
 {
   "waitingLead": "Ya casi…",
   "waitingNote": "Los resultados aparecen en cuanto el anfitrión los revela.",
+  "votesIn": "{{in}} de {{expected}} votos enviados",
+  "whoIsIn": "Quién ha votado",
+  "voteIn": "enviado",
+  "stillVoting": "aún votando",
   "joinFirstTitle": "Únete primero",
   "joinFirstLead": "Tu plato y las puntuaciones que diste siguen ahí. Vuelve a unirte y podrás continuar donde lo dejaste.",
   "goToJoin": "Ir a unirse →",

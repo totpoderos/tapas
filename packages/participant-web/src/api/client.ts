@@ -228,3 +228,40 @@ export async function getReveal(contestId: string): Promise<Reveal | null> {
   if (!response.ok) throw await errorFrom(response);
   return (await response.json()) as Reveal;
 }
+
+/** One participant, while the room waits: their name, and whether their vote is in. */
+export interface TurnoutParticipant {
+  readonly participantId: string;
+  readonly displayName: string;
+  readonly sent: boolean;
+}
+
+/** How the voting stands: how many are in, out of how many, and who is who. */
+export interface Turnout {
+  readonly votesIn: number;
+  readonly votesExpected: number;
+  readonly participants: readonly TurnoutParticipant[];
+}
+
+/**
+ * Reads how the voting stands, or `null` where it cannot be read.
+ *
+ * Null rather than a throw, and deliberately: this is an addition to the
+ * waiting screen, not the reason for it. A participant waiting for a reveal
+ * must still be told they are waiting for a reveal if this fails — turning a
+ * failed extra into an error screen would take away the thing that was already
+ * working. Contest-deleted is the one exception, because that ends the wait.
+ */
+export async function getTurnout(contestId: string): Promise<Turnout | null> {
+  try {
+    const response = await send(`/contests/${encodeURIComponent(contestId)}/turnout`, 'GET');
+    if (!response.ok) {
+      if (response.status === 410) throw await errorFrom(response);
+      return null;
+    }
+    return (await response.json()) as Turnout;
+  } catch (caught) {
+    if (isContestDeleted(caught)) throw caught;
+    return null; // offline, blocked, malformed — the wait carries on regardless
+  }
+}
