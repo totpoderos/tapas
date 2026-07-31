@@ -16,8 +16,8 @@
   "waiting": "Cuando estén todos los platos, llega la hora de puntuar.",
   "scoreLink": "Puntuar los platos →",
   "goneTitle": "Este concurso ya no existe",
-  "goneLead": "El anfitrión lo eliminó. No hay nada para lo que apuntar un plato.",
-  "signedOutTitle": "Ya no has iniciado sesión",
-  "signedOutLead": "Tu sesión terminó, así que no se pudo guardar tu plato. Únete de nuevo para continuar.",
-  "goToJoin": "Ir a unirte"
+  "goneLead": "El anfitrión lo eliminó, y los platos se fueron con él. No hiciste nada mal.",
+  "signedOutTitle": "Únete primero",
+  "signedOutLead": "Tu plato y las puntuaciones que diste siguen ahí. Vuelve a unirte y podrás continuar donde lo dejaste.",
+  "goToJoin": "Ir a unirse →"
 }

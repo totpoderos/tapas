@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { RevealView } from '../reveal-view';
+import { Nav } from '../nav';
+import { PlainScreen } from '../plain-screen';
 import { WaysOnward } from '../ways-onward';
 import { ApiError, getReveal, isContestDeleted, type Reveal as RevealData } from '../api/client';
 
@@ -59,39 +60,40 @@ export function Reveal() {
     };
   }, [contestId]);
 
-  return (
-    <main id="main" className="pt-main">
-      <div className="pt-brand">
-        <span className="dot" aria-hidden="true" />
-        <b>{t('common.brand')}</b>
-      </div>
+  // The two dead ends, flat and headerless — see score.tsx for the reasoning.
+  if (state.kind === 'need-join') {
+    return (
+      <PlainScreen
+        kind="signedOut"
+        title={t('reveal.joinFirstTitle')}
+        lead={t('reveal.joinFirstLead')}
+        actionLabel={t('reveal.goToJoin')}
+        actionTo="/"
+      />
+    );
+  }
+  if (state.kind === 'gone') {
+    return (
+      <PlainScreen
+        kind="gone"
+        title={t('reveal.goneTitle')}
+        lead={t('reveal.goneLead')}
+        actionLabel={t('common.joinAnother', 'Join another contest')}
+        actionTo="/"
+      />
+    );
+  }
 
+  return (
+    <>
+      <Nav />
+      <main id="main" className="pt-main">
       {(state.kind === 'loading' || state.kind === 'waiting') && (
         <div className="pt-waiting" role="status" aria-live="polite">
           <div className="pt-waiting-dot" aria-hidden="true" />
           <p className="pt-you">{t('reveal.waitingLead')}</p>
           <p className="pt-note">{t('reveal.waitingNote')}</p>
         </div>
-      )}
-
-      {state.kind === 'need-join' && (
-        <>
-          <h1 className="pt-title">{t('reveal.joinFirstTitle')}</h1>
-          <p className="pt-lead">{t('reveal.joinFirstLead')}</p>
-          <Link to="/" className="pt-note">
-            {t('reveal.goToJoin')}
-          </Link>
-        </>
-      )}
-
-      {state.kind === 'gone' && (
-        <>
-          <h1 className="pt-title">{t('reveal.goneTitle')}</h1>
-          <p className="pt-lead">{t('reveal.goneLead')}</p>
-          <Link to="/" className="pt-note">
-            {t('reveal.goToJoin')}
-          </Link>
-        </>
       )}
 
       {state.kind === 'error' && (
@@ -105,8 +107,10 @@ export function Reveal() {
       {state.kind === 'revealed' && <RevealView reveal={state.reveal} />}
 
       {/* Including while it waits: that is where a participant spends longest,
-          and where there was otherwise nothing on the page at all. */}
-      {state.kind !== 'need-join' && state.kind !== 'gone' && <WaysOnward from="reveal" />}
-    </main>
+          and where there was otherwise nothing on the page at all. The two
+          dead-end states return early now, so no guard is needed. */}
+      <WaysOnward from="reveal" />
+      </main>
+    </>
   );
 }

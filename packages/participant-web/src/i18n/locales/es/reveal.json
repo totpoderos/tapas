@@ -2,8 +2,8 @@
   "waitingLead": "Ya casi…",
   "waitingNote": "Los resultados aparecen en cuanto el anfitrión los revela.",
   "joinFirstTitle": "Únete primero",
-  "joinFirstLead": "Tienes que unirte al concurso antes de poder ver los resultados.",
-  "goToJoin": "Ir a unirte",
+  "joinFirstLead": "Tu plato y las puntuaciones que diste siguen ahí. Vuelve a unirte y podrás continuar donde lo dejaste.",
+  "goToJoin": "Ir a unirse →",
   "winner": "Ganador",
   "jointWinners": "Ganadores ex aequo",
   "bestInCategory": "Lo mejor de cada categoría",
@@ -11,5 +11,5 @@
   "leaderboard": "Clasificación",
   "errorLoad": "No se pudieron cargar los resultados. Inténtalo de nuevo.",
   "goneTitle": "Este concurso ya no existe",
-  "goneLead": "El anfitrión lo eliminó. No hay resultados que mostrar."
+  "goneLead": "El anfitrión lo eliminó, así que no habrá resultados. No hiciste nada mal."
 }

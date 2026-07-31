@@ -2,30 +2,19 @@
 #root {
   min-height: 100dvh;
 }
+/*
+ * The header is a sibling of this, not a child, so the column is the viewport
+ * less the header — otherwise every screen scrolls by exactly the header's
+ * height. Staying a full-height flex column is what lets the ways onward pin
+ * themselves to the foot with `margin-top: auto`.
+ */
 .pt-main {
   max-width: 460px;
   margin: 0 auto;
-  padding: 28px 20px 48px;
-  min-height: 100dvh;
+  padding: 22px 20px 32px;
+  min-height: calc(100dvh - 58px);
   display: flex;
   flex-direction: column;
-}
-.pt-brand {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 28px;
-}
-.pt-brand .dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--saffron);
-  box-shadow: 0 0 0 3px var(--saffron-soft);
-}
-.pt-brand b {
-  font-family: var(--serif);
-  font-size: 20px;
 }
 .pt-title {
   font-size: 28px;
@@ -327,30 +316,3 @@
   margin: 0 0 4px;
 }
 
-/* The ways on from wherever a participant is. Compact and at the foot of the
-   flow: this app is one column at ≤460px and has to survive 320px reflow. */
-.pt-ways {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 28px 0 8px;
-}
-.pt-way {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: var(--surface);
-  color: var(--ink-2);
-  text-decoration: none;
-  font-weight: 600;
-}
-.pt-way:hover {
-  color: var(--ink);
-  border-color: var(--line-strong);
-}

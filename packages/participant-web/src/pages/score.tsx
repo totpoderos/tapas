@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@tapas/ui';
+import { Nav } from '../nav';
+import { PlainScreen } from '../plain-screen';
 import { WaysOnward } from '../ways-onward';
 import { ApiError, getBallot, getMyScores, isContestDeleted, isSignedOut, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
@@ -131,35 +133,39 @@ export function Score() {
   const total = ballot ? ballot.dishes.length * ballot.categories.length : 0;
   const complete = total > 0 && Object.keys(scores).length === total;
 
-  return (
-    <main id="main" className="pt-main">
-      <div className="pt-brand">
-        <span className="dot" aria-hidden="true" />
-        <b>{t('common.brand')}</b>
-      </div>
+  // Two dead ends, drawn flat and without the header: nothing here is operable
+  // except the way out, so nothing else is offered.
+  if (state.kind === 'need-join') {
+    return (
+      <PlainScreen
+        kind="signedOut"
+        title={t('score.joinFirstTitle')}
+        lead={t('score.joinFirstLead')}
+        actionLabel={t('score.goToJoin')}
+        actionTo="/"
+      />
+    );
+  }
+  if (state.kind === 'gone') {
+    return (
+      <PlainScreen
+        kind="gone"
+        title={t('score.goneTitle')}
+        lead={t('score.goneLead')}
+        actionLabel={t('common.joinAnother', 'Join another contest')}
+        actionTo="/"
+      />
+    );
+  }
 
+  return (
+    <>
+      <Nav />
+      <main id="main" className="pt-main">
       {state.kind === 'loading' && (
         <p role="status" className="pt-note">
           {t('score.loadingBallot')}
         </p>
-      )}
-      {state.kind === 'need-join' && (
-        <>
-          <h1 className="pt-title">{t('score.joinFirstTitle')}</h1>
-          <p className="pt-lead">{t('score.joinFirstLead')}</p>
-          <Link to="/" className="pt-note">
-            {t('score.goToJoin')}
-          </Link>
-        </>
-      )}
-      {state.kind === 'gone' && (
-        <>
-          <h1 className="pt-title">{t('score.goneTitle')}</h1>
-          <p className="pt-lead">{t('score.goneLead')}</p>
-          <Link to="/" className="pt-note">
-            {t('score.goToJoin')}
-          </Link>
-        </>
       )}
       {state.kind === 'error' && (
         <p role="alert" className="pt-note">
@@ -190,10 +196,10 @@ export function Score() {
       )}
 
       {/* Always reachable from here, however they arrived — a link, the back
-          button, a reload, or the address typed straight in. */}
-      {state.kind !== 'need-join' && state.kind !== 'gone' && (
-        <WaysOnward from="score" />
-      )}
+          button, a reload, or the address typed straight in. The two states
+          that used to be excluded here now return early as flat screens, so
+          there is nothing left to exclude. */}
+      <WaysOnward from="score" />
 
       {ballot && (
         <>
@@ -243,7 +249,8 @@ export function Score() {
           )}
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 
