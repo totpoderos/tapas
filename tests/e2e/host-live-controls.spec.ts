@@ -28,8 +28,9 @@ function content(name: string) {
     name,
     attribution: 'per_person',
     antiBias: 'none',
-    // Host-triggered close, so the contest stays live until the host closes it
-    // (the default `all_sent` would auto-close the moment the first voter sends).
+    // Host-triggered close, so the contest stays live until the host closes it.
+    // The default `all_sent` would close it once every place had sent, and these
+    // tests want a contest that is still running with only some votes in.
     closeRule: { when: 'host_trigger' },
     scoring: { categories: [{ id: 'taste', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
@@ -159,10 +160,15 @@ test('the control room notices a contest that closed itself', async ({ page }) =
   );
 
   /*
-   * All three claim BEFORE anyone sends. `all_sent` means "everyone who claimed
-   * a place", so a single voter in an otherwise empty room closes the contest on
-   * their own — which is a correct reading of the rule and not the case worth
-   * testing here.
+   * All three claim before anyone sends, so the sequence is the one this test is
+   * about: a full room where the last person to finish is what closes the
+   * contest.
+   *
+   * `all_sent` used to mean "everyone who has claimed a place so far", which let
+   * the first voter close the contest for everybody — the lockout fixed in
+   * `the-contest-waits-for-everyone`. It now means every place on the roster, so
+   * an unclaimed place holds the contest open on its own; that case has its own
+   * coverage in `closing-a-contest.feature` and in `participant-score.spec.ts`.
    */
   const cooks = new Map<string, APIRequestContext>();
   for (const id of ['ana', 'bob', 'carmen']) {

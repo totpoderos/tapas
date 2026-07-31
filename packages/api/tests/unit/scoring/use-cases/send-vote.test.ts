@@ -138,7 +138,10 @@ describe('SendVote', () => {
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_CLOSED');
   });
 
-  it('auto-closes once every claimed participant has sent, under an all_sent rule', () => {
+  // Both places are claimed here and both send, so the contest closes. What it
+  // must NOT do is close on the first send — see `closing-a-contest.feature` for
+  // the unclaimed-place case, which is the one that locked people out.
+  it('auto-closes once every place has sent, under an all_sent rule', () => {
     const { saveScore, sendVote, contests } = makeEnv({ when: 'all_sent' });
     saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
     saveScore.execute('contest-1', 'ana', {

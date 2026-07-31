@@ -30,8 +30,8 @@ function content(
     name,
     attribution: options.attribution ?? 'per_person',
     antiBias: 'none',
-    // The default `all_sent` would close the contest the moment the last voter
-    // sends, and these tests are about a contest still running.
+    // The default `all_sent` would close the contest once every place had sent,
+    // and these tests are about a contest still running.
     closeRule: { when: 'host_trigger' },
     scoring: {
       categories: Array.from({ length: options.categories ?? 1 }, (_, i) => ({
