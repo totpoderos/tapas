@@ -48,7 +48,7 @@ async function joinAsBrunoAndOpenScoring(page: Page, joinCode: string): Promise<
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
   await expect(page.getByRole('heading', { name: /your dish, bruno/i })).toBeVisible();
-  await page.getByRole('link', { name: /score the dishes/i }).click();
+  await page.getByRole('link', { name: 'Your scores' }).click();
   await expect(page.getByRole('heading', { name: 'Rank the dishes' })).toBeVisible();
 }
 

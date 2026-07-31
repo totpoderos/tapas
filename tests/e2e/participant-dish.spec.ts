@@ -112,3 +112,38 @@ test('submitting a dish is keyboard-operable and has no accessibility violations
 
   await expect(page.getByRole('list', { name: 'Dishes submitted' }).getByText('Gazpacho')).toBeVisible();
 });
+
+test('the dishes say how many are in, out of how many are coming', async ({ page }) => {
+  const { joinCode, contestId } = await seedLiveContest('e2e-dish-count@sobremesa.es');
+  await otherCookSubmits(joinCode, contestId, 'c', 'Tortilla');
+  await otherCookSubmits(joinCode, contestId, 'd', 'Gazpacho');
+
+  await joinAs(page, joinCode, 'Ana');
+
+  /*
+   * Four places on this roster, two dishes in. "Two dishes are in" on its own
+   * does not tell a cook whether to keep waiting; against the number expected
+   * it does — which is why `expected` had to come from the API rather than being
+   * inferred from the length of a list that only holds what has arrived.
+   */
+  await expect(page.getByRole('heading', { name: /2 of 4 in/i })).toBeVisible();
+});
+
+test("a saved dish is confirmed in the reader's own language", async ({ page }) => {
+  const { joinCode } = await seedLiveContest('e2e-dish-lang@sobremesa.es');
+  await joinAs(page, joinCode, 'Ana');
+
+  await page.getByRole('radio', { name: 'Español' }).check();
+  await expect(page.getByRole('heading', { name: /^Tu plato, Ana$/ })).toBeVisible();
+
+  await page.getByLabel('Nombre del plato').fill('Patatas bravas');
+  await page.getByRole('button', { name: 'Enviar plato' }).click();
+
+  /*
+   * This line was a bare English string that never went through `t()`, so a cook
+   * reading in Spanish was told in English that their dish was in. Everything
+   * else on the screen was translated, which is what made it easy to miss.
+   */
+  await expect(page.getByRole('status')).toContainText('Guardado');
+  await expect(page.getByRole('status')).not.toContainText('Saved');
+});

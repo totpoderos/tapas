@@ -75,7 +75,7 @@ describe('when the participant is no longer signed in', () => {
   afterEach(() => vi.clearAllMocks());
 
   it('tells a cook their session ended instead of inviting a pointless retry', async () => {
-    vi.mocked(api.getDishes).mockResolvedValue([]);
+    vi.mocked(api.getDishes).mockResolvedValue({ dishes: [], expected: 2 });
     vi.mocked(api.submitDish).mockRejectedValue(signedOut());
     const { container } = wrap(<YourDish identity={IDENTITY} />);
 
@@ -95,7 +95,7 @@ describe('when the participant is no longer signed in', () => {
   // The branch must not swallow real failures — that would trade one misleading
   // message for another.
   it('still reports a genuine save failure as one, with a retry that makes sense', async () => {
-    vi.mocked(api.getDishes).mockResolvedValue([]);
+    vi.mocked(api.getDishes).mockResolvedValue({ dishes: [], expected: 2 });
     vi.mocked(api.submitDish).mockRejectedValue(brokeSomehow());
     wrap(<YourDish identity={IDENTITY} />);
 

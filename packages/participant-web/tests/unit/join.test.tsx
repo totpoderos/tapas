@@ -48,7 +48,7 @@ describe('Participant join', () => {
     vi.mocked(api.getMe).mockReset().mockResolvedValue(null);
     vi.mocked(api.getPlaces).mockReset().mockResolvedValue(PLACES);
     vi.mocked(api.claimPlace).mockReset().mockResolvedValue(ANA);
-    vi.mocked(api.getDishes).mockReset().mockResolvedValue([]);
+    vi.mocked(api.getDishes).mockReset().mockResolvedValue({ dishes: [], expected: 2 });
   });
   afterEach(() => vi.clearAllMocks());
 

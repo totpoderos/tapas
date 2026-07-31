@@ -150,9 +150,19 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: voterSession },
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
-      return reply
-        .code(200)
-        .send({ dishes: deps.dishes.findByContest(request.voterSession.contestId) });
+      /*
+       * `expected` is how many dishes the contest is waiting for — one per place
+       * on the roster. Without it the screen can say what has arrived but not
+       * whether that is nearly everyone or barely anyone, which is the thing a
+       * cook standing in the room actually wants to know.
+       *
+       * It is a count and only a count. Who has not submitted is not said here;
+       * a dish that is not in is simply absent from the list, as before.
+       */
+      return reply.code(200).send({
+        dishes: deps.dishes.findByContest(request.voterSession.contestId),
+        expected: deps.roster.listAll(request.voterSession.contestId).length,
+      });
     },
   );
 

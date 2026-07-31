@@ -8,16 +8,16 @@
   "submit": "Submit dish",
   "errorNameRequired": "Give your dish a name.",
   "errorSave": "Your dish couldn’t be saved. Please try again.",
-  "dishesSoFar": "Dishes so far",
   "dishesLabel": "Dishes submitted",
   "loadingDishes": "Loading…",
   "noDishes": "No dishes yet. Be the first.",
   "yours": "Yours",
   "waiting": "When the dishes are in, it’s time to score.",
-  "scoreLink": "Score the dishes →",
   "goneTitle": "This contest is gone",
   "goneLead": "The host deleted it, so the dishes went with it. Nothing you did was wrong.",
   "signedOutTitle": "Join first",
   "signedOutLead": "Your dish and any scores you gave are still there. Join again and you can carry on where you left off.",
-  "goToJoin": "Go to join →"
+  "goToJoin": "Go to join →",
+  "savedConfirmation": "Saved — your dish is in.",
+  "countIn": "{{submitted}} of {{expected}} in"
 }

@@ -1,9 +1,11 @@
 Feature: A participant submits their dish
   After joining, a cook registers the dish they brought — a name, and optionally
-  a description — and can see the dishes submitted so far. Submitting again
-  revises their one dish rather than adding a second; a dish must have a name.
-  The screen is mobile-first, fully keyboard-operable, and meets accessibility
-  standards (WCAG 2.1 AA).
+  a description — and can see the dishes submitted so far, and how many are still
+  to come. Submitting again revises their one dish rather than adding a second; a
+  dish must have a name. Everything the screen says, including the confirmation
+  that a dish is saved, is said in the language the cook is reading. The screen is
+  mobile-first, fully keyboard-operable, and meets accessibility standards
+  (WCAG 2.1 AA).
 
   Scenario: A cook submits their dish
     Given a participant who has joined a contest
@@ -26,6 +28,16 @@ Feature: A participant submits their dish
     Given a participant in a contest where another cook has already submitted a dish
     When they open the app
     Then they see that dish among those submitted
+
+  Scenario: The dishes say how many are in, out of how many are coming
+    Given a participant in a contest of five cooks where two dishes are in
+    When they open the app
+    Then they are told two of five are in
+
+  Scenario: A saved dish is confirmed in the reader's own language
+    Given a participant reading the app in Spanish
+    When they submit their dish
+    Then the confirmation that it is saved is in Spanish too
 
   Scenario: Submitting a dish is keyboard-operable and accessible
     Given a participant who has joined a contest
