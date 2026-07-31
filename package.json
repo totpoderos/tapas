@@ -30,7 +30,7 @@
     "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "^1.62.0",
     "@testing-library/dom": "^10.4.0",
-    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
