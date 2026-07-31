@@ -200,6 +200,51 @@ describeFeature(feature, ({ Scenario }) => {
     },
   );
 
+  /*
+   * The case nobody had asked about, and the one that cost an evening: everyone
+   * who has CLAIMED has sent, but a place on the roster is still open. The rule
+   * used to be written against the claimed set alone, so the first participant
+   * to finish closed the contest — and a closed contest refuses scores and
+   * dishes, so anybody who had not arrived yet was locked out for good.
+   */
+  Scenario(
+    'A contest does not close while a place is still unclaimed',
+    ({ Given, When, Then, And }) => {
+      let app: FastifyInstance;
+      let hostJar: CookieJar;
+      let contestId: string;
+      let joinCode: string;
+      let response: LightMyRequestResponse;
+
+      Given(
+        'a live contest that closes once everyone has sent their vote, where everyone who joined has sent but a place is still open',
+        async () => {
+          ({ app } = makeTestApp());
+          hostJar = await signedInHost(app, 'ana@example.com');
+          contestId = await publishLiveContest(app, hostJar, { when: 'all_sent' });
+          joinCode = await joinCodeOf(app, hostJar, contestId);
+          // Ana arrives first and votes. Bob has not even claimed his place yet.
+          const anaCookie = await claimCookie(app, joinCode, 'ana');
+          await sendCompleteVote(app, contestId, anaCookie, 'D-bob');
+        },
+      );
+      When('anyone checks the contest', async () => {
+        response = await request(app, hostJar, { method: 'GET', url: `/contests/${contestId}` });
+      });
+      Then('the contest is still live', () => {
+        expect(response.json().status).toBe('live');
+      });
+      And('the participant who arrives afterwards can still score and send', async () => {
+        const bobCookie = await claimCookie(app, joinCode, 'bob');
+        const sent = await sendCompleteVote(app, contestId, bobCookie, 'D-ana');
+        expect(sent.statusCode).toBe(200);
+        // And now that every place has sent, it closes on its own after all.
+        const after = await request(app, hostJar, { method: 'GET', url: `/contests/${contestId}` });
+        expect(after.json().status).toBe('closed');
+      });
+    },
+  );
+
   Scenario(
     'A contest closes automatically once its scheduled time arrives',
     ({ Given, When, Then }) => {
