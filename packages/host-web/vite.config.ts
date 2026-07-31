@@ -19,8 +19,18 @@ const proxy = {
   '/setup': { target: apiTarget, changeOrigin: true },
 };
 
+/*
+ * `host: true` binds the dev server to every interface rather than to localhost,
+ * so another device on the same network can open it — usually to drive a contest
+ * from a laptop while a phone plays the participant side, which is the only way
+ * to see both halves of an evening at once.
+ *
+ * See participant-web's config for the fuller note: this is a development
+ * convenience, it inherits whatever the local network is, and it is not a
+ * production path.
+ */
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, proxy },
+  server: { port: 5173, host: true, proxy },
   preview: { port: 4173, proxy },
 });
