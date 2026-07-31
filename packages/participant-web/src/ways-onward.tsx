@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import styles from './ways-onward.module.css';
 
 /** The steps a joined participant can be on. */
 export type Step = 'dish' | 'score' | 'reveal';
@@ -41,9 +42,9 @@ export function WaysOnward({ from }: { from: Step }) {
   const others = ORDER.filter((step) => step !== from);
 
   return (
-    <nav className="pt-ways" aria-label={t('common.waysOnward.label', 'Go to')}>
+    <nav className={styles.ways} aria-label={t('common.waysOnward.label', 'Go to')}>
       {others.map((step) => (
-        <Link key={step} to={PATH[step]} className="pt-way">
+        <Link key={step} to={PATH[step]} className={styles.way}>
           {t(LABEL[step][0], LABEL[step][1])}
         </Link>
       ))}

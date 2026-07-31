@@ -1,0 +1,46 @@
+/*
+ * The ways onward, pinned to the foot of whatever screen they sit under.
+ *
+ * They were pill-shaped buttons competing with the screen's own primary action.
+ * The handoff makes them quiet links under a rule instead: they are always
+ * available and rarely the thing you came for, and a control that shouts on
+ * every screen stops being read on any of them.
+ *
+ * `margin-top: auto` is what pins them — the screens are flex columns at full
+ * viewport height, so this pushes the block to the bottom on a short screen and
+ * lets it sit under the content on a long one.
+ */
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.way {
+  display: inline-flex;
+  align-items: center;
+  /*
+   * 44px of target on a 15px link. The height is bought with padding rather
+   * than a border so the row still reads as text, which is the point of the
+   * change — but a thumb at a venue does not care how quiet it looks.
+   */
+  min-height: 44px;
+  font-size: 15px;
+  color: var(--ink-2);
+  text-decoration: none;
+}
+
+.way:hover {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.way:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}

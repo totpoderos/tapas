@@ -2,8 +2,8 @@
   "waitingLead": "Almost there…",
   "waitingNote": "The results appear the moment the host reveals them.",
   "joinFirstTitle": "Join first",
-  "joinFirstLead": "You need to join the contest before you can see the results.",
-  "goToJoin": "Go to join",
+  "joinFirstLead": "Your dish and any scores you gave are still there. Join again and you can carry on where you left off.",
+  "goToJoin": "Go to join →",
   "winner": "Winner",
   "jointWinners": "Joint winners",
   "bestInCategory": "Best in each category",
@@ -11,5 +11,5 @@
   "leaderboard": "Leaderboard",
   "errorLoad": "The results couldn’t be loaded. Please try again.",
   "goneTitle": "This contest is gone",
-  "goneLead": "The host deleted it. There are no results to show."
+  "goneLead": "The host deleted it, so there are no results to come. Nothing you did was wrong."
 }

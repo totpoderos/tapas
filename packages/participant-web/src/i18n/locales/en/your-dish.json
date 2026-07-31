@@ -16,8 +16,8 @@
   "waiting": "When the dishes are in, it’s time to score.",
   "scoreLink": "Score the dishes →",
   "goneTitle": "This contest is gone",
-  "goneLead": "The host deleted it. There is nothing to enter a dish for.",
-  "signedOutTitle": "You’re no longer signed in",
-  "signedOutLead": "Your session ended, so your dish couldn’t be saved. Join again to carry on.",
-  "goToJoin": "Go to join"
+  "goneLead": "The host deleted it, so the dishes went with it. Nothing you did was wrong.",
+  "signedOutTitle": "Join first",
+  "signedOutLead": "Your dish and any scores you gave are still there. Join again and you can carry on where you left off.",
+  "goToJoin": "Go to join →"
 }
