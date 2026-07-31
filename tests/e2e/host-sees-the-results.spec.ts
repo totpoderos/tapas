@@ -9,27 +9,49 @@ import AxeBuilder from '@axe-core/playwright';
 import { hostInvitedBy } from './support/hosts.js';
 
 /**
- * Implements tests/e2e/host-sees-the-results.feature. The host reaches their own
- * results screen on :5173 and sees the very same reveal a participant sees on
- * :5174 — one shared `RevealView` behind two different reads, which is the point
- * of the change: the two screens cannot drift apart.
+ * Implements tests/e2e/host-sees-the-results.feature. The host reads their
+ * results on :5173 and a participant reads theirs on :5174, and the two are told
+ * the same thing.
+ *
+ * This used to be true by construction: one `RevealView` drew both screens, so
+ * the comparison could not fail for the reason it was written. The two apps have
+ * since been separated — they are different products with different visual
+ * languages — and the promise in `host-sees-the-results` now rests on these
+ * tests instead of on the two screens being the same object.
  */
 const API = 'http://localhost:3100';
 const HOST_WEB = 'http://localhost:5173';
 const PARTICIPANT = 'http://localhost:5174';
 const PASSWORD = 'Str0ng!Passw0rd';
 
-/**
- * The winning dish's name, which also appears on the leaderboard below — anchored
- * to the heading it sits under rather than to a class name, since the reveal view
- * is module-scoped now.
+/*
+ * Reading the winner and the leaderboard off each app.
+ *
+ * There are two of each on purpose. The two apps no longer share a component,
+ * so a single helper pointed at both would be testing that they still happen to
+ * produce the same markup — which is not what `host-sees-the-results` promises
+ * and is precisely what stops being true when the participant app is restyled.
+ * Each extractor reaches for its own app's screen; the assertion then compares
+ * two facts obtained independently rather than one selector run twice.
+ *
+ * When a restyle moves something, fix the extractor for that app. If fixing it
+ * makes the comparison pass again, the promise held. If it cannot be fixed
+ * because the fact is no longer on the screen, the promise broke, and that is
+ * the report this test exists to make.
  */
-function winnerLine(page: Page) {
+
+/** The host's winning dish: the line under the "Winner" / "Joint winners" heading. */
+function hostWinner(page: Page) {
   return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
 }
 
-/** The leaderboard's dish names, top to bottom. */
-async function leaderboard(page: Page): Promise<string[]> {
+/** The participant's winning dish. Today it is drawn the same way as the host's. */
+function participantWinner(page: Page) {
+  return page.getByRole('heading', { level: 1, name: /^(Winner|Joint winners)$/ }).locator('+ *');
+}
+
+/** The dish names on a leaderboard, top to bottom, from whichever app is given. */
+async function leaderboardOf(page: Page): Promise<string[]> {
   const rows = page.getByRole('region', { name: 'Leaderboard' }).getByRole('listitem');
   await expect(rows.first()).toBeVisible();
   return (await rows.allInnerTexts()).map((row) => row.replace(/\s+/g, ' ').trim());
@@ -131,7 +153,7 @@ test('a host reaches the results from the contest and sees the winners', async (
   await page.goto(`${HOST_WEB}/contest/${contestId}`);
   await page.getByRole('link', { name: 'See the results' }).click();
 
-  await expect(winnerLine(page)).toHaveText('ana dish');
+  await expect(hostWinner(page)).toHaveText('ana dish');
   await expect(page.getByRole('region', { name: 'Leaderboard' }).getByRole('listitem')).toHaveCount(
     3,
   );
@@ -160,14 +182,73 @@ test('the host and a participant are shown the same winners, in the same order',
   await page.request.post(`${HOST_WEB}/contests/${contestId}/reveal`);
 
   await page.goto(`${HOST_WEB}/results/${contestId}`);
-  await expect(winnerLine(page)).toHaveText('ana dish');
-  const hostBoard = await leaderboard(page);
+  await expect(hostWinner(page)).toHaveText('ana dish');
+  const hostBoard = await leaderboardOf(page);
 
   await guestPage.goto(`${PARTICIPANT}/reveal`);
-  await expect(winnerLine(guestPage)).toHaveText('ana dish');
-  const participantBoard = await leaderboard(guestPage);
+  await expect(participantWinner(guestPage)).toHaveText('ana dish');
+  const participantBoard = await leaderboardOf(guestPage);
 
   expect(hostBoard).toEqual(participantBoard);
+  await guest.close();
+});
+
+/**
+ * The same promise, checked so that it survives the two screens looking nothing
+ * alike — which is what the participant restyle is about to make them.
+ *
+ * Comparing the two screens to each other, as the test above does, answers "do
+ * they agree?" but not "which one is wrong?", and it quietly assumes the same
+ * reading works on both. This one measures each screen against the results
+ * themselves, separately. Neither app is the reference for the other; agreement
+ * follows from each being faithful, and a failure names the app that drifted.
+ *
+ * It also deliberately reads the leaderboard by containment rather than by exact
+ * row text: rank and total are drawn differently in the two apps as soon as
+ * either is restyled, and the promise is about the order of the dishes, not
+ * about the furniture around them.
+ */
+test('each screen is faithful to the results on its own, however it is drawn', async ({
+  page,
+  browser,
+}) => {
+  const { contestId, joinCode } = await publishContest(page, 'e2e-host-results-drawn@sobremesa.es');
+  await bobAndCarmenVote(joinCode, contestId);
+
+  const guest = await browser.newContext();
+  const guestPage = await guest.newPage();
+  await guestPage.goto(`${PARTICIPANT}/j/${joinCode}`);
+  await guestPage.getByRole('button', { name: 'Ana' }).click();
+  await expect(guestPage.getByRole('heading', { name: /your dish, ana/i })).toBeVisible();
+  await guestPage.request.post(`${PARTICIPANT}/contests/${contestId}/dishes`, {
+    data: { name: 'ana dish' },
+  });
+
+  await page.request.post(`${HOST_WEB}/contests/${contestId}/close`);
+  await page.request.post(`${HOST_WEB}/contests/${contestId}/reveal`);
+
+  // The outcome itself, which neither screen gets to define.
+  const revealed = await (
+    await page.request.get(`${HOST_WEB}/contests/${contestId}/winners`)
+  ).json();
+  const winner: string = revealed.overall.winners
+    .map((w: { name: string }) => w.name)
+    .join(' & ');
+  const order: string[] = revealed.overall.standings.map((s: { name: string }) => s.name);
+  expect(order.length).toBeGreaterThan(1); // a one-dish board could not show an order at all
+
+  await page.goto(`${HOST_WEB}/results/${contestId}`);
+  await expect(hostWinner(page)).toHaveText(winner);
+  const hostBoard = await leaderboardOf(page);
+  expect(hostBoard).toHaveLength(order.length);
+  order.forEach((dish, i) => expect(hostBoard[i]).toContain(dish));
+
+  await guestPage.goto(`${PARTICIPANT}/reveal`);
+  await expect(participantWinner(guestPage)).toHaveText(winner);
+  const participantBoard = await leaderboardOf(guestPage);
+  expect(participantBoard).toHaveLength(order.length);
+  order.forEach((dish, i) => expect(participantBoard[i]).toContain(dish));
+
   await guest.close();
 });
 
@@ -191,7 +272,7 @@ test('the results screen is keyboard-operable and has no accessibility violation
   // preference and a stable final frame for axe to measure contrast against.
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto(`${HOST_WEB}/results/${contestId}`);
-  await expect(winnerLine(page)).toBeVisible();
+  await expect(hostWinner(page)).toBeVisible();
 
   // The way back is reachable by keyboard.
   await page.keyboard.press('Tab');

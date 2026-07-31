@@ -31,10 +31,20 @@ export interface RevealData {
 const names = (winners: readonly RevealWinner[]) => winners.map((w) => w.name).join(' & ');
 
 /**
- * The reveal, rendered identically for a participant watching and for the host
- * watching along with them. It takes the results as a prop — fetching, polling
- * and routing stay with each app, so the two screens cannot drift apart in what
- * they show (design.md §11C).
+ * The reveal as the HOST draws it. The participant app draws its own copy now
+ * (packages/participant-web/src/reveal-view.tsx) — the two became different
+ * products, so they no longer share a renderer. `RevealData` stays here and is
+ * imported by both: the shape is the thing that has to agree.
+ *
+ * Because one component no longer draws both, "host and participant see the
+ * same results" is no longer true by construction. It is held by a test across
+ * the two rendered screens (tests/e2e/host-sees-the-results.feature). Changing
+ * what this draws — the order of the leaderboard, how many rows it shows, what
+ * a dish is called — will and should fail it.
+ *
+ * Before rewriting any of this, read the four properties at the head of
+ * reveal-view.module.css. They are invisible in a screenshot and were each paid
+ * for once already.
  *
  * Translation keys are given as FULL paths with English defaults: this component
  * resolves them against whichever app renders it, and i18next answers a missing
