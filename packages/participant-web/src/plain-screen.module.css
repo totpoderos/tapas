@@ -1,0 +1,73 @@
+/*
+ * The screens where there is nothing to do: the contest is gone, or the session
+ * is not recognised any more.
+ *
+ * Flat on purpose — no glass, no accent, no gradient. Everywhere else in this
+ * app the vermouth and the glass mean "something is happening here"; on these
+ * two screens nothing is, and dressing them the same way would offer a mood the
+ * screen cannot deliver on. The only thing that is styled to be touched is the
+ * way out, because it is the only thing that works.
+ */
+.plain {
+  /* Overrides the sheet wash: this screen is not part of the evening. */
+  background: #f6f2ec;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 32px 20px 48px;
+  gap: 16px;
+}
+
+.icon {
+  color: rgba(34, 22, 26, 0.4);
+  line-height: 0;
+}
+
+.title {
+  font-family: var(--serif);
+  font-size: 42px;
+  line-height: 1.05;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+.lead {
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--ink-2);
+  margin: 0;
+  max-width: 34ch;
+}
+
+/*
+ * A secondary action, not a primary one. A primary button here would read as
+ * "and now do this", which overstates what is on offer — this is a door, not a
+ * next step.
+ */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 0 22px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 17px;
+  text-decoration: none;
+}
+
+.action:hover {
+  border-color: var(--ink-2);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}

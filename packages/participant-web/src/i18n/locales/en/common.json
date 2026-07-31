@@ -2,12 +2,9 @@
   "brand": "Tapas",
   "skipToContent": "Skip to content",
   "loading": "Loading…",
+  "joinAnother": "Join another contest",
   "language": {
     "label": "Language"
-  },
-  "theme": {
-    "switchToDark": "Switch to dark theme",
-    "switchToLight": "Switch to light theme"
   },
   "waysOnward": {
     "label": "Go to",

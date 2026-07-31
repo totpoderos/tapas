@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
+import { Nav } from '../nav';
 import {
   ApiError,
   claimPlace,
@@ -103,13 +104,19 @@ export function Join() {
     }
   }
 
-  return (
-    <main id="main" className="pt-main">
-      <div className="pt-brand">
-        <span className="dot" aria-hidden="true" />
-        <b>{t('common.brand')}</b>
-      </div>
+  /*
+   * Once joined, the dish screen owns the whole page rather than rendering
+   * inside this one's `<main>`. It is a screen in its own right, and — more to
+   * the point — its dead ends (a deleted contest, a lapsed session) have to be
+   * able to drop the header the way the other screens' do. Nested inside here
+   * they could not.
+   */
+  if (step.name === 'joined') return <YourDish identity={step.identity} />;
 
+  return (
+    <>
+      <Nav />
+      <main id="main" className="pt-main">
       {error ? (
         <div className="pt-alert" role="alert">
           <span aria-hidden="true">✕</span>
@@ -169,7 +176,7 @@ export function Join() {
         </>
       )}
 
-      {step.name === 'joined' && <YourDish identity={step.identity} />}
-    </main>
+      </main>
+    </>
   );
 }

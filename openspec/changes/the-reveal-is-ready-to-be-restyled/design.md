@@ -25,21 +25,30 @@ Four properties were paid for once and must not be re-paid. They are recorded he
 
 ### How the reveal is shared, once the two want to differ
 
-Not decided here — deliberately, because the participant design does not exist and the right answer depends on how far it diverges. What is decided is that the choice is made explicitly, from these three:
+**Decided: C — two copies**, now that there is a design to decide against. The three that were on the table:
 
 - **A — one component, a variant prop.** Cheapest, and right if only accents differ. Wrong the moment the two layouts differ structurally: variant props that accumulate become a component that draws neither screen well.
-- **B — split the shape from the drawing.** The results shape (`RevealData`) and any ordering logic stay shared; each app draws its own. Costs a little duplication in markup, keeps the thing that actually has to agree in one place. The likely answer if the redesign is a real redesign.
-- **C — two copies.** What the anti-drift rule exists to prevent. It should be refused unless the two screens have genuinely become different products, and if it is ever taken, the test below is the only thing left holding the promise.
+- **B — split the shape from the drawing.** The results shape (`RevealData`) and any ordering logic stay shared; each app draws its own.
+- **C — two copies.** What the anti-drift rule exists to prevent. To be refused unless the two screens have genuinely become different products.
 
-Whichever is chosen, the promise must not be resting on it. Hence:
+The "Vermouth glass" handoff makes them different products. The participant reveal leads with a 112px rank numeral, promotes the winning **dish** to the headline and names the cook in a sentence beneath it, drops the trophy, and sits on a palette and type family the host panel does not share — against a host reveal that already draws what its own design asks for and is not changing. A variant prop spanning those two is a component with two disjoint bodies.
 
-### The same-results test rests on the results, not on the renderer
+Note that C as taken here is C-over-B: the *drawing* forks, the **shape does not**. `RevealData` stays in `@tapas/ui` as the one declaration of what a revealed contest is, and both apps keep taking it as a prop. What is duplicated is markup and styling, which is the part that is supposed to differ.
 
-The check compares what the host's API answers with what the participant's API answers for the same revealed contest: the winners, their order, and the names. It passes today, keeps passing under A and B, and is the only thing that would catch C going wrong.
+### What actually holds the promise up, under C
 
-*Alternative considered:* keep asserting through the two screens. Rejected — that is the tautology described above, and it would go on passing through a divergence that had already happened.
+The existing API check — `a-host-sees-the-results.feature.spec.ts`, "The host and the participants see the same results" — compares `/contests/:id/winners` against `/contests/:id/reveal`. It is worth keeping, but it is worth being exact about what it proves. Both routes call the same `toRevealDto`, so it is not testing that two independent computations agree; it is testing that the two routes hand that one builder equivalent arguments. That is a real property (a route could stop resolving dish names the same way) and a narrow one.
+
+What no test in the suite currently sees is the **rendering**. While one component drew both screens, that gap cost nothing. C is precisely the change that opens it: a participant reveal that sorted its leaderboard differently, showed only the top three, or labelled a dish by its cook would contradict `host-sees-the-results` and pass every check that exists.
+
+So the test this change owes is across the two rendered screens, and it is load-bearing rather than belt-and-braces.
+
+*Alternative considered:* rely on the API check alone. Rejected — it is blind to the layer C is about to fork.
+
+*Superseded:* an earlier draft of this change put the new assertion on the two API reads, on the grounds that the screens resolved to one component and so could not fail. That reasoning was right about the screens and wrong about where the tautology lived — it is at `toRevealDto`, one layer below the routes, so moving the assertion onto the routes relocates the problem rather than removing it.
 
 ## Risks / Trade-offs
 
-- **This is groundwork for a design that does not exist.** If the participant redesign turns out to change nothing structural, option A is taken and most of this was insurance. That is an acceptable price for not discovering the coupling halfway through a redesign — but it is why the change deliberately writes no CSS.
-- **A test against two API reads can pass while both are wrong together.** It protects agreement, not correctness; correctness is `reveal-results`' business and is covered there.
+- ~~**This is groundwork for a design that does not exist.**~~ Resolved: the design arrived mid-change, and it is structural. The insurance is being claimed, not written off.
+- **A test against two reads can pass while both are wrong together.** It protects agreement, not correctness; correctness is `reveal-results`' business and is covered there. This holds for the rendered-screen check too.
+- **Two copies drift silently by nature.** The rendered-screen check catches the properties `host-sees-the-results` names — winners, order, dish names — and nothing else. Spacing, wording around the result, and what surrounds it are free to diverge, which is the point; but so is anything the requirement forgot to name. The four properties recorded above are the counterweight, which is why they sit beside the component and not in a commit message.
