@@ -1,0 +1,99 @@
+/*
+ * The EN/ES choice as a segmented control, on native radios so it needs no
+ * script and stays operable by keyboard (arrow keys move within a radio group).
+ *
+ * It replaces `@tapas/ui`'s `LanguageSelect`, which is a <select> fixed to the
+ * corner of the viewport. This one rides in the header instead, because the
+ * handoff gives the header a right-hand slot and a floating control over a
+ * phone screen covers the thing underneath it.
+ */
+.seg {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/*
+ * The legend names the group for assistive technology and is not drawn. The
+ * header is 58px and a legend above the control pushes it to nearly twice that,
+ * which on a 390px phone is a tenth of the screen spent saying "Language" above
+ * two buttons that already read "English" and "Español".
+ *
+ * `internationalization` asks for a *labelled* control, not a visibly labelled
+ * one, and the options name themselves in their own language, which is the
+ * visible labelling. This matches what the shared component already did.
+ */
+.legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  padding: 0;
+}
+
+.opts {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+}
+
+.opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  line-height: 1;
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/*
+ * The input is the control; it is placed under the label rather than removed
+ * from the page, so it keeps its role, its checked state and its focus.
+ */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  margin: 0;
+}
+
+.opt:hover {
+  color: var(--ink);
+}
+
+.opt:has(.input:checked) {
+  background: var(--brand);
+  color: var(--on-brand);
+  font-weight: 600;
+}
+
+.opt:has(.input:focus-visible) {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Once a participant has joined, the header's right-hand side also carries who
+ * they are or how far along they are, so the choice narrows to its two codes.
+ * The accessible name stays the full language either way — see the component.
+ */
+.compact .opt {
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

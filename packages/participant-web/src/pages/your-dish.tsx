@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { Button, FormField } from '@tapas/ui';
+import { Nav } from '../nav';
+import { PlainScreen } from '../plain-screen';
 import { WaysOnward } from '../ways-onward';
 import { getDishes, isContestDeleted, isSignedOut, submitDish, type Dish, type Identity } from '../api/client';
 
@@ -78,27 +80,32 @@ export function YourDish({ identity }: { identity: Identity }) {
 
   if (signedOut) {
     return (
-      <section className="pt-dish">
-        <h1 className="pt-title">{t('yourDish.signedOutTitle')}</h1>
-        <p className="pt-lead">{t('yourDish.signedOutLead')}</p>
-        <Link to="/" className="pt-note">
-          {t('yourDish.goToJoin')}
-        </Link>
-      </section>
+      <PlainScreen
+        kind="signedOut"
+        title={t('yourDish.signedOutTitle')}
+        lead={t('yourDish.signedOutLead')}
+        actionLabel={t('yourDish.goToJoin')}
+        actionTo="/"
+      />
     );
   }
 
   if (gone) {
     return (
-      <section className="pt-dish">
-        <h1 className="pt-title">{t('yourDish.goneTitle')}</h1>
-        <p className="pt-lead">{t('yourDish.goneLead')}</p>
-      </section>
+      <PlainScreen
+        kind="gone"
+        title={t('yourDish.goneTitle')}
+        lead={t('yourDish.goneLead')}
+        actionLabel={t('common.joinAnother', 'Join another contest')}
+        actionTo="/"
+      />
     );
   }
 
   return (
-    <section className="pt-dish">
+    <>
+      <Nav context={identity.displayName} />
+      <main id="main" className="pt-main">
       <h1 className="pt-title">{t('yourDish.title', { name: identity.displayName })}</h1>
       <p className="pt-lead">{t('yourDish.lead')}</p>
 
@@ -152,6 +159,7 @@ export function YourDish({ identity }: { identity: Identity }) {
         {t('yourDish.scoreLink')}
       </Link>
       <WaysOnward from="dish" />
-    </section>
+      </main>
+    </>
   );
 }

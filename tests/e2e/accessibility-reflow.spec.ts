@@ -121,15 +121,18 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
   expect(await scrollsSideways(page)).toBe(false);
 });
 
-test('the join screen reflows with the language and theme controls mounted', async ({ page }) => {
-  // The two shared controls are fixed to the top-right corner. At 320px they must
-  // still fit without pushing the document sideways, and the screen's own heading
-  // must remain readable rather than hidden underneath them.
+test('the join screen reflows with the language control in the header', async ({ page }) => {
+  // The control now rides in the header beside the brand rather than floating in
+  // the corner, so at 320px it shares a row with the wordmark. It must still fit
+  // without pushing the document sideways, and must not crowd the heading out.
+  //
+  // There is no theme control any more: the participant app is light only.
   await page.setViewportSize(NARROW);
   await page.goto(PARTICIPANT);
 
   await expect(page.getByRole('heading', { name: 'Join the contest' })).toBeVisible();
-  await expect(page.getByLabel('Language')).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'English' })).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Español' })).toBeVisible();
 
   expect(await scrollsSideways(page)).toBe(false);
 });
