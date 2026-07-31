@@ -45,7 +45,7 @@ jobs:
           [ -z "$ref" ] && ref='${{ github.ref_name }}'
           echo "version=$ref" >> "$GITHUB_OUTPUT"
           echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: packages/${{ matrix.service }}/Dockerfile
