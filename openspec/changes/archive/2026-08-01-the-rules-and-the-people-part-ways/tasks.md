@@ -63,4 +63,4 @@
 
 - [x] 7.1 ~~Rebase onto `the-panel-gets-a-modern-shell`~~ — not needed. *That change's code had already shipped to `main`; its two open tasks are a manual accessibility pass and the archive, neither of which touches a file. Branched off `main` directly, so `sidebar.tsx` had no divergence to reconcile.*
 - [x] 7.2 Branch, commit and open the PR. *`feat/the-rules-and-the-people-part-ways` → PR #149.*
-- [ ] 7.3 Sync the delta spec into `openspec/specs/prepare-a-contest/` and archive the change.
+- [x] 7.3 Sync the delta spec into `openspec/specs/prepare-a-contest/` and archive the change. *Merged as PR #149; `prepare-a-contest` is a capability in `openspec/specs/` with all 9 requirements.*
