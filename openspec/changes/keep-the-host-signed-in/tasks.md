@@ -48,7 +48,7 @@
 
 ## 4. Landing it
 
-- [ ] 4.1 Branch, commit, PR.
+- [x] 4.1 Branch, commit, PR.
 - [ ] 4.2 Once merged: sync the delta into `openspec/specs/host-authentication`
       and archive the change.
 - [ ] 4.3 Raise the two follow-ups the design leaves open: cross-tab
