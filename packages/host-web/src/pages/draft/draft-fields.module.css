@@ -1,0 +1,91 @@
+/*
+ * The field primitives both sections of a contest being prepared use.
+ *
+ * Composed into each section's own module rather than duplicated, so a text input
+ * on the rules and one on the participants are the same input — which is the whole
+ * point of the two sections looking like one screen split in half.
+ */
+
+/* Each section heads itself, under the contest's own name on the workspace. */
+.sectionHeading {
+  margin-bottom: 2px;
+}
+.sectionTitle {
+  font: 400 22px/1.2 var(--serif);
+  margin: 0 0 4px;
+}
+.sectionLead {
+  margin: 0;
+  font: 400 14px var(--sans);
+  color: var(--ink-2);
+}
+
+.group {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+}
+.group:last-of-type {
+  margin-bottom: 0;
+}
+.legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font: 400 19px var(--serif);
+  color: var(--ink);
+}
+.cardHint {
+  margin: -6px 0 12px;
+  font: 400 13px var(--sans);
+  color: var(--ink-2);
+}
+
+.addRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.input {
+  flex: 1;
+  min-width: 8rem;
+  min-height: 44px;
+  padding: 11px 13px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  /* 16px, so iOS does not zoom the page when it takes focus. */
+  font: 400 16px var(--sans);
+}
+.select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 16px var(--sans);
+}
+.empty {
+  margin: 12px 0 0;
+  font: 400 14px var(--sans);
+  color: var(--ink-2);
+}
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.chipRemove:hover {
+  background: var(--line);
+  color: var(--ink);
+}

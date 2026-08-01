@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink } from 'react-router';
+import { Link } from 'react-router';
 import { useSession } from '../auth/session';
 import { countByState, useContests } from '../contests/contests-provider';
 import { STATE_MARK, type ContestState } from '../contests/contest-state';
@@ -237,7 +237,12 @@ function ContestScope({
   );
 }
 
-/** Inside a draft: the one thing there is to do with it before it can go live. */
+/**
+ * Inside a contest being prepared: the two sections it is settled in.
+ *
+ * Plain ways in rather than numbered steps, because a draft is worked on in any
+ * order — numbering would promise a sequence nothing enforces.
+ */
 function DraftScope({
   nav,
   draft,
@@ -253,8 +258,11 @@ function DraftScope({
         <span className={styles.scopeName}>{draft?.name ?? t('shell.thisDraft')}</span>
         <span className={styles.scopeNote}>{t('shell.notPublished')}</span>
       </span>
-      <Way to={`/review/${nav.draftId}`} current={nav.current === 'review'}>
-        {t('shell.reviewDraft')}
+      <Way to={`/review/${nav.draftId}`} current={nav.current === 'rules'}>
+        {t('shell.draftRules')}
+      </Way>
+      <Way to={`/review/${nav.draftId}/people`} current={nav.current === 'people'}>
+        {t('shell.draftParticipants')}
       </Way>
     </>
   );
@@ -280,9 +288,15 @@ function Footer({ isAdministrator }: { isAdministrator: boolean }) {
  * One way in: a link, 44px tall, marked with `aria-current` when it is where the
  * host already is.
  *
- * Which one is current is passed in rather than left to `NavLink`'s own matching,
+ * Which one is current is passed in rather than left to the router's own matching,
  * because several ways in share an address — `/` and its state filters differ
  * only by a query string, which router matching ignores.
+ *
+ * A plain `Link`, for that same reason. `NavLink` was here, and it marked itself
+ * `aria-current="page"` whenever the address merely *started* with its own — so on
+ * a draft's participants the way to its rules was announced as the current one
+ * too, and on the contest list all four state filters were. Nothing here ever read
+ * `NavLink`'s active state, so the only thing it contributed was that.
  */
 function Way({
   to,
@@ -301,7 +315,7 @@ function Way({
   readonly children: ReactNode;
 }) {
   return (
-    <NavLink
+    <Link
       to={to}
       className={`${styles.way} ${current ? styles.currentWay : ''}`}
       aria-current={current ? 'page' : undefined}
@@ -314,6 +328,6 @@ function Way({
       <span className={styles.wayLabel}>{children}</span>
       {badge && <span className={styles.badge}>{badge}</span>}
       {count !== undefined && <span className={styles.count}>{count}</span>}
-    </NavLink>
+    </Link>
   );
 }

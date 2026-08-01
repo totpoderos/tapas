@@ -115,6 +115,84 @@ describe('The panel shell', () => {
     );
   });
 
+  /*
+   * A contest being prepared is settled in two sections, so the navigation offers
+   * both under its name. Which one is current is derived from the address, and the
+   * shorter route pattern must not claim the longer path — get that wrong and the
+   * wrong section is marked, silently, with nothing failing.
+   */
+  it('offers both sections of a contest being prepared', async () => {
+    renderAt(`/review/${DRAFT.id}`);
+
+    const nav = await screen.findByRole('navigation', { name: 'Panel navigation' });
+    expect(within(nav).getByRole('link', { name: 'Rules' })).toHaveAttribute(
+      'href',
+      `/review/${DRAFT.id}`,
+    );
+    expect(within(nav).getByRole('link', { name: 'Participants & pairing' })).toHaveAttribute(
+      'href',
+      `/review/${DRAFT.id}/people`,
+    );
+    expect(within(nav).getByText(/not published/)).toBeInTheDocument();
+  });
+
+  it('marks the rules when the host is on them', async () => {
+    renderAt(`/review/${DRAFT.id}`);
+
+    const nav = await screen.findByRole('navigation', { name: 'Panel navigation' });
+    expect(within(nav).getByRole('link', { name: 'Rules' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      within(nav).getByRole('link', { name: 'Participants & pairing' }),
+    ).not.toHaveAttribute('aria-current');
+  });
+
+  it('marks the participants when the host is on them', async () => {
+    renderAt(`/review/${DRAFT.id}/people`);
+
+    const nav = await screen.findByRole('navigation', { name: 'Panel navigation' });
+    expect(within(nav).getByRole('link', { name: 'Participants & pairing' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(within(nav).getByRole('link', { name: 'Rules' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('names the section in the header, under the contest', async () => {
+    renderAt(`/review/${DRAFT.id}/people`);
+
+    await screen.findByRole('navigation', { name: 'Panel navigation' });
+    // Twice: the way in, and the breadcrumb naming where the host is.
+    expect(screen.getAllByText('Participants & pairing')).toHaveLength(2);
+  });
+
+  /*
+   * A key that no longer exists is echoed back by i18next as its own name, so the
+   * header read "shell.reviewDraft" where it should have named the section. Nothing
+   * failed — the string was simply the wrong string, and no test looked at the
+   * header at all. This looks, on every surface, for anything shaped like a key.
+   */
+  it('never shows a translation key where a translation should be', async () => {
+    for (const path of [
+      '/',
+      '/chat',
+      '/new',
+      `/contest/${LIVE.id}`,
+      `/log/${LIVE.id}`,
+      `/review/${DRAFT.id}`,
+      `/review/${DRAFT.id}/people`,
+    ]) {
+      const { unmount } = renderAt(path);
+      await screen.findByRole('navigation', { name: 'Panel navigation' });
+      expect(document.body.textContent).not.toMatch(
+        /\b(shell|common|home|reviewDraft|contestControl|auditLog|newContest)\.[a-zA-Z]/,
+      );
+      unmount();
+    }
+  });
+
   it('counts the host’s contests by state', async () => {
     renderAt('/');
 

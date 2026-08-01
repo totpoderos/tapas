@@ -8,7 +8,9 @@ import { Claim } from './pages/claim';
 import { People } from './pages/people';
 import { Home } from './pages/home';
 import { NewContest } from './pages/new-contest';
-import { ReviewDraft } from './pages/review-draft';
+import { DraftWorkspace } from './pages/draft/draft-workspace';
+import { DraftRules } from './pages/draft/draft-rules';
+import { DraftParticipants } from './pages/draft/draft-participants';
 import { Chat } from './pages/chat';
 import { AuditLog } from './pages/audit-log';
 import { ContestControl } from './pages/contest-control';
@@ -87,8 +89,17 @@ export function App() {
       <Route path="/new" element={host(<NewContest />)} />
       {/* `/review/:id`, not `/drafts/:id`: the dev/preview proxy forwards
           `/drafts/*` to the API, so a browsable route there would be proxied
-          away on a direct load or reload. The API reads still use `/drafts`. */}
-      <Route path="/review/:id" element={host(<ReviewDraft />)} />
+          away on a direct load or reload. The API reads still use `/drafts`.
+
+          A layout route with two children: a contest being prepared is settled in
+          two sections, and the workspace above them holds the draft so moving
+          between them costs nothing. The rules are the index, so every existing
+          link to `/review/:id` — the contest list, the assistant, the redirect
+          after saving a new contest — keeps working and lands on them. */}
+      <Route path="/review/:id" element={host(<DraftWorkspace />)}>
+        <Route index element={<DraftRules />} />
+        <Route path="people" element={<DraftParticipants />} />
+      </Route>
       {/* `/people`, not `/admin`: that prefix forwards to the API, as `/invites`
           and `/setup` do, so a browsable route there would be proxied away on a
           direct load or reload. No role guard here on purpose — the server

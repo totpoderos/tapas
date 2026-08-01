@@ -87,7 +87,10 @@ function HostCrumbs({ nav }: { nav: Exclude<PanelNav, { kind: 'admin' }> }) {
 
   const surface =
     nav.kind === 'draft'
-      ? t('shell.reviewDraft')
+      ? // A contest being prepared is settled in two sections, so the breadcrumb
+        // names the one the host is on rather than the draft as a whole — which
+        // the crumb before it already does.
+        t(nav.current === 'people' ? 'shell.draftParticipants' : 'shell.draftRules')
       : nav.current === 'log'
         ? t('shell.activityLog')
         : nav.current === 'results'
