@@ -8,10 +8,6 @@
     "closed": "Closed",
     "revealed": "Revealed"
   },
-  "attribution": {
-    "per_person": "Per person",
-    "per_couple": "Per couple"
-  },
   "language": {
     "label": "Language"
   },
@@ -19,11 +15,11 @@
     "switchToDark": "Switch to dark theme",
     "switchToLight": "Switch to light theme"
   },
-  "antiBias": {
-    "none": "No restriction",
-    "couples": "Couples can’t score each other",
-    "arbitrary_pairs": "Chosen pairs can’t score each other"
-  },
   "on": "On",
-  "off": "Off"
+  "off": "Off",
+  "format": {
+    "solo": "Everyone on their own",
+    "solo_with_partners": "Everyone on their own, partners kept apart",
+    "couples": "Couples cook together"
+  }
 }

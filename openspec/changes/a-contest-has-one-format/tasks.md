@@ -29,13 +29,13 @@ easier to review that way.
 
 ## 3. The panel asks one question
 
-- [ ] 3.1 Rewrite `packages/host-web/tests/unit/draft-sections.test.tsx` (and the `new-contest` / `people` tests where they touch these fields): one format choice on the rules section, no barred-pairs card, the partner select absent / optional / required per format, and pairings surviving a change of format. Leave failing.
-- [ ] 3.2 In `draft-rules.tsx`, replace the two `fieldset`s with one `formatLegend` group of three `Choice` cards, each carrying the label and the help sentence from design §5.
-- [ ] 3.3 In `draft-participants.tsx`, delete the barred-pairs `Card`, the `AddPair` component and the `Callout`. Gate the partner select on the format, and mark a participant as wanting a partner only under `couples`.
-- [ ] 3.4 In `draft-editor.tsx`, replace `attribution`/`antiBias` state with `format`; drop `barredPairs`, `barPair`, `liftPair` and every `noScoreWith` path. Keep pairings when the format changes.
-- [ ] 3.5 Update the publish checklist: report participants without a partner only under `couples`; drop the wording that ties it to per-couple attribution.
-- [ ] 3.6 Rewrite the EN and ES `review-draft.json` and `new-contest.json` keys — add the format legend, the three labels and their help; delete `attributionLegend`, `antiBias*`, `barred*`, `pairOne`, `pairOther`, `pairChoose`, `barPair`, `liftBar`, `noBarredPairs`. Grep every consumer of a deleted key before deleting it (i18next echoes a missing key silently).
-- [ ] 3.7 Update `contest-control.tsx` and its locale files, where a live contest reports its rules. Green slice 3's tests.
+- [x] 3.1 Rewrite `packages/host-web/tests/unit/draft-sections.test.tsx` (and the `new-contest` / `people` tests where they touch these fields): one format choice on the rules section, no barred-pairs card, the partner select absent / optional / required per format, and pairings surviving a change of format. Leave failing.
+- [x] 3.2 In `draft-rules.tsx`, replace the two `fieldset`s with one `formatLegend` group of three `Choice` cards, each carrying the label and the help sentence from design §5.
+- [x] 3.3 In `draft-participants.tsx`, delete the barred-pairs `Card`, the `AddPair` component and the `Callout`. Gate the partner select on the format, and mark a participant as wanting a partner only under `couples`.
+- [x] 3.4 In `draft-editor.tsx`, replace `attribution`/`antiBias` state with `format`; drop `barredPairs`, `barPair`, `liftPair` and every `noScoreWith` path. Keep pairings when the format changes.
+- [x] 3.5 Update the publish checklist: report participants without a partner only under `couples`; drop the wording that ties it to per-couple attribution.
+- [x] 3.6 Rewrite the EN and ES `review-draft.json` and `new-contest.json` keys — add the format legend, the three labels and their help; delete `attributionLegend`, `antiBias*`, `barred*`, `pairOne`, `pairOther`, `pairChoose`, `barPair`, `liftBar`, `noBarredPairs`. Grep every consumer of a deleted key before deleting it (i18next echoes a missing key silently).
+- [x] 3.7 Update `contest-control.tsx` and its locale files, where a live contest reports its rules. Green slice 3's tests.
 
 ## 4. The followers
 

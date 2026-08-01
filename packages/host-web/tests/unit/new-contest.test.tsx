@@ -50,8 +50,7 @@ describe('New contest form', () => {
     renderForm();
 
     await userEvent.type(screen.getByLabelText('Contest name'), 'Summer Tapas');
-    await userEvent.click(screen.getByLabelText('Each couple is scored together'));
-    await userEvent.click(screen.getByLabelText('Couples cannot score each other'));
+    await userEvent.click(screen.getByRole('radio', { name: 'Couples cook together' }));
     // Categories are chips now: added and removed, not edited in place.
     await userEvent.type(screen.getByLabelText('New category name'), 'Presentation');
     await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
@@ -62,8 +61,7 @@ describe('New contest form', () => {
     const content = vi.mocked(api.createDraft).mock.calls[0]![0] as DraftContent;
     expect(content).toMatchObject({
       name: 'Summer Tapas',
-      attribution: 'per_couple',
-      antiBias: 'couples',
+      format: 'couples',
       scoring: {
         categories: [
           { id: 'c1', name: 'Taste' },
@@ -91,13 +89,13 @@ describe('New contest form', () => {
     renderForm();
 
     await userEvent.type(screen.getByLabelText('Contest name'), 'Summer Tapas');
-    await userEvent.click(screen.getByLabelText('Each couple is scored together'));
+    await userEvent.click(screen.getByRole('radio', { name: 'Couples cook together' }));
     await userEvent.click(screen.getByRole('button', { name: /^Next/ }));
 
     // Saved first: going on can never mean going on without having saved.
     expect(api.createDraft).toHaveBeenCalledTimes(1);
     const content = vi.mocked(api.createDraft).mock.calls[0]![0] as DraftContent;
-    expect(content).toMatchObject({ name: 'Summer Tapas', attribution: 'per_couple' });
+    expect(content).toMatchObject({ name: 'Summer Tapas', format: 'couples' });
     // And on the people of *that* contest — the id the API just handed back.
     expect(
       await screen.findByRole('heading', { name: 'Participants & pairing' }),

@@ -36,8 +36,7 @@
   "activityFailed": "No se pudo cargar la actividad reciente.",
   "rulesTitle": "Reglas en vigor",
   "rules": {
-    "attribution": "Atribución",
-    "antiBias": "Antisesgo",
+    "format": "Formato",
     "categories": "Categorías",
     "scoreRange": "Rango de puntuación",
     "band": "{{min}}–{{max}}",

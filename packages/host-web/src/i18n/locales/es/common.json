@@ -8,10 +8,6 @@
     "closed": "Cerrado",
     "revealed": "Revelado"
   },
-  "attribution": {
-    "per_person": "Por persona",
-    "per_couple": "Por pareja"
-  },
   "language": {
     "label": "Idioma"
   },
@@ -19,11 +15,11 @@
     "switchToDark": "Cambiar al tema oscuro",
     "switchToLight": "Cambiar al tema claro"
   },
-  "antiBias": {
-    "none": "Sin restricción",
-    "couples": "Las parejas no pueden puntuarse entre sí",
-    "arbitrary_pairs": "Las parejas elegidas no pueden puntuarse entre sí"
-  },
   "on": "Sí",
-  "off": "No"
+  "off": "No",
+  "format": {
+    "solo": "Cada cual por su cuenta",
+    "solo_with_partners": "Cada cual por su cuenta, sin puntuar a su pareja",
+    "couples": "Las parejas cocinan juntas"
+  }
 }

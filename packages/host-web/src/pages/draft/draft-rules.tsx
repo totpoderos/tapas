@@ -1,23 +1,24 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Card, FormField } from '@tapas/ui';
-import type { AntiBias, Attribution } from '../../api/client';
+import type { ContestFormat } from '../../api/client';
 import { useDraftEditor } from './draft-editor';
 import styles from './draft-rules.module.css';
 
-const ATTRIBUTION: readonly { value: Attribution; labelKey: string }[] = [
-  { value: 'per_person', labelKey: 'attributionPerPerson' },
-  { value: 'per_couple', labelKey: 'attributionPerCouple' },
-];
-const ANTI_BIAS: readonly { value: AntiBias; labelKey: string }[] = [
-  { value: 'none', labelKey: 'antiBiasNone' },
-  { value: 'couples', labelKey: 'antiBiasCouples' },
-  { value: 'arbitrary_pairs', labelKey: 'antiBiasArbitrary' },
+/**
+ * The three contests there are. One question, three answers — and each answer is
+ * offered as what happens under it rather than as the name of a rule, because a
+ * host should not have to work out what a setting does to their evening.
+ */
+const FORMATS: readonly { value: ContestFormat; key: string }[] = [
+  { value: 'solo', key: 'formatSolo' },
+  { value: 'solo_with_partners', key: 'formatSoloWithPartners' },
+  { value: 'couples', key: 'formatCouples' },
 ];
 
 /**
- * The rules of a contest being prepared: what it is called, how its dishes are
- * attributed, what guards against bias, and what it is scored on.
+ * The rules of a contest being prepared: what it is called, what kind of contest
+ * it is, and what it is scored on.
  *
  * Fields only. The draft itself, the saving and the publishing belong to the
  * workspace above, which is what lets a host change something here, go to the
@@ -52,34 +53,18 @@ export function DraftRules() {
 
       <Card>
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>{t('reviewDraft.attributionLegend')}</legend>
+          <legend className={styles.legend}>{t('reviewDraft.formatLegend')}</legend>
           <div className={styles.choices}>
-            {ATTRIBUTION.map((option) => (
+            {FORMATS.map((option) => (
               <Choice
                 key={option.value}
-                name="attribution"
+                name="format"
                 value={option.value}
-                checked={editor.attribution === option.value}
-                onChoose={() => editor.setAttribution(option.value)}
+                checked={editor.format === option.value}
+                onChoose={() => editor.setFormat(option.value)}
+                help={t(`reviewDraft.${option.key}Help`)}
               >
-                {t(`reviewDraft.${option.labelKey}`)}
-              </Choice>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className={styles.group}>
-          <legend className={styles.legend}>{t('reviewDraft.antiBiasLegend')}</legend>
-          <div className={styles.choices}>
-            {ANTI_BIAS.map((option) => (
-              <Choice
-                key={option.value}
-                name="anti-bias"
-                value={option.value}
-                checked={editor.antiBias === option.value}
-                onChoose={() => editor.setAntiBias(option.value)}
-              >
-                {t(`reviewDraft.${option.labelKey}`)}
+                {t(`reviewDraft.${option.key}`)}
               </Choice>
             ))}
           </div>
@@ -180,24 +165,51 @@ export function DraftRules() {
  * One choice, drawn as the design's card but a real radio underneath — the same
  * treatment the rule space uses, so setting a contest up and changing it later look
  * and behave alike.
+ *
+ * `help` is a description rather than part of the label: a screen reader announces
+ * the choice by its short name and then reads what it means, instead of reading a
+ * sentence where a name was expected.
  */
 function Choice({
   name,
   value,
   checked,
   onChoose,
+  help,
   children,
 }: {
   readonly name: string;
   readonly value: string;
   readonly checked: boolean;
   readonly onChoose: () => void;
+  readonly help?: string;
   readonly children: ReactNode;
 }) {
+  const labelId = `${name}-${value}-label`;
+  const helpId = help ? `${name}-${value}-help` : undefined;
   return (
+    // Named by the short label and *described* by the help, rather than labelled
+    // by the whole card: the wrapping label would otherwise make the accessible
+    // name the label and the explanation run together, so a screen reader would
+    // read a sentence where a choice's name belongs.
     <label className={`${styles.choiceCard} ${checked ? styles.chosen : ''}`}>
-      <input type="radio" name={name} value={value} checked={checked} onChange={onChoose} />
-      {children}
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChoose}
+        aria-labelledby={labelId}
+        aria-describedby={helpId}
+      />
+      <span id={labelId} className={styles.choiceLabel}>
+        {children}
+      </span>
+      {help ? (
+        <span id={helpId} className={styles.choiceHelp}>
+          {help}
+        </span>
+      ) : null}
     </label>
   );
 }

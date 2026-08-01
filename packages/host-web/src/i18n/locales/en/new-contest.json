@@ -2,13 +2,6 @@
   "title": "New contest",
   "lead": "Set it up now and save it as a draft — it won’t go live until you publish it.",
   "contestName": "Contest name",
-  "attributionLegend": "How dishes are attributed",
-  "attributionPerPerson": "Each person is scored on their own",
-  "attributionPerCouple": "Each couple is scored together",
-  "antiBiasLegend": "Guarding against bias",
-  "antiBiasNone": "No restriction",
-  "antiBiasCouples": "Couples cannot score each other",
-  "antiBiasArbitrary": "Chosen pairs cannot score each other",
   "scoringLegend": "Scoring",
   "scoringHint": "What each dish is judged on, and the score band.",
   "categoriesLabel": "Scoring categories",
@@ -28,5 +21,12 @@
   "next": "Next — add the people",
   "cancel": "Cancel",
   "newCategoryLabel": "New category name",
-  "removeNamedCategory": "Remove category {{name}}"
+  "removeNamedCategory": "Remove category {{name}}",
+  "formatLegend": "What kind of contest is this?",
+  "formatSolo": "Everyone on their own",
+  "formatSoloHelp": "Each person cooks their own dish and scores every other dish.",
+  "formatSoloWithPartners": "Everyone on their own, partners kept apart",
+  "formatSoloWithPartnersHelp": "Each person cooks their own dish. Anyone with a partner doesn’t score their partner’s dish.",
+  "formatCouples": "Couples cook together",
+  "formatCouplesHelp": "Each couple cooks one dish. Nobody scores their own couple’s dish, and everyone needs a partner."
 }

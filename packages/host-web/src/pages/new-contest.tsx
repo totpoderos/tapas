@@ -4,8 +4,7 @@ import { Link, useNavigate } from 'react-router';
 import { Button, Callout, Card, FormField } from '@tapas/ui';
 import {
   createDraft,
-  type Attribution,
-  type AntiBias,
+  type ContestFormat,
   type DraftContent,
   type ScoreRange,
 } from '../api/client';
@@ -21,20 +20,16 @@ interface Row {
 /** A stable id so the header's Save button can name the form it submits. */
 const FORM_ID = 'new-contest-form';
 
-const ATTRIBUTION: readonly { value: Attribution; labelKey: string }[] = [
-  { value: 'per_person', labelKey: 'attributionPerPerson' },
-  { value: 'per_couple', labelKey: 'attributionPerCouple' },
+const FORMATS: readonly { value: ContestFormat; key: string }[] = [
+  { value: 'solo', key: 'formatSolo' },
+  { value: 'solo_with_partners', key: 'formatSoloWithPartners' },
+  { value: 'couples', key: 'formatCouples' },
 ];
 
-const ANTI_BIAS: readonly { value: AntiBias; labelKey: string }[] = [
-  { value: 'none', labelKey: 'antiBiasNone' },
-  { value: 'couples', labelKey: 'antiBiasCouples' },
-  { value: 'arbitrary_pairs', labelKey: 'antiBiasArbitrary' },
-];
 
 /**
  * The manual "create a contest" form (design.md §8, form path): the **rules** of a
- * new contest — name, attribution, anti-bias, scoring — saved as a draft.
+ * new contest — name, format, scoring — saved as a draft.
  * Publishing it live is a later step. Only a name is required to save; the rest is
  * refined over time and fully checked at publish.
  *
@@ -59,8 +54,7 @@ export function NewContest() {
   const makeRow = (value = ''): Row => ({ id: `r${nextId.current++}`, value });
 
   const [name, setName] = useState('');
-  const [attribution, setAttribution] = useState<Attribution>('per_person');
-  const [antiBias, setAntiBias] = useState<AntiBias>('none');
+  const [format, setFormat] = useState<ContestFormat>('solo');
   const [categories, setCategories] = useState<Row[]>([makeRow('Taste')]);
   const [categoryDraft, setCategoryDraft] = useState('');
   const [rangeType, setRangeType] = useState<'auto' | 'fixed'>('auto');
@@ -86,8 +80,7 @@ export function NewContest() {
         : { type: 'auto' };
     return {
       name: name.trim(),
-      attribution,
-      antiBias,
+      format,
       scoring: {
         categories: categories
           .map((c) => c.value.trim())
@@ -187,34 +180,18 @@ export function NewContest() {
 
         <Card>
           <fieldset className={styles.group}>
-            <legend className={styles.legend}>{t('newContest.attributionLegend')}</legend>
+            <legend className={styles.legend}>{t('newContest.formatLegend')}</legend>
             <div className={styles.choices}>
-              {ATTRIBUTION.map((option) => (
+              {FORMATS.map((option) => (
                 <Choice
                   key={option.value}
-                  name="attribution"
+                  name="format"
                   value={option.value}
-                  checked={attribution === option.value}
-                  onChoose={() => setAttribution(option.value)}
+                  checked={format === option.value}
+                  onChoose={() => setFormat(option.value)}
+                  help={t(`newContest.${option.key}Help`)}
                 >
-                  {t(`newContest.${option.labelKey}`)}
-                </Choice>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className={styles.group}>
-            <legend className={styles.legend}>{t('newContest.antiBiasLegend')}</legend>
-            <div className={styles.choices}>
-              {ANTI_BIAS.map((option) => (
-                <Choice
-                  key={option.value}
-                  name="anti-bias"
-                  value={option.value}
-                  checked={antiBias === option.value}
-                  onChoose={() => setAntiBias(option.value)}
-                >
-                  {t(`newContest.${option.labelKey}`)}
+                  {t(`newContest.${option.key}`)}
                 </Choice>
               ))}
             </div>
@@ -342,18 +319,41 @@ function Choice({
   value,
   checked,
   onChoose,
+  help,
   children,
 }: {
   readonly name: string;
   readonly value: string;
   readonly checked: boolean;
   readonly onChoose: () => void;
+  readonly help?: string;
   readonly children: ReactNode;
 }) {
+  const labelId = `${name}-${value}-label`;
+  const helpId = help ? `${name}-${value}-help` : undefined;
   return (
+    // Named by the short label and *described* by the help, rather than labelled
+    // by the whole card: the wrapping label would otherwise make the accessible
+    // name the label and the explanation run together, so a screen reader would
+    // read a sentence where a choice's name belongs.
     <label className={`${styles.choiceCard} ${checked ? styles.chosen : ''}`}>
-      <input type="radio" name={name} value={value} checked={checked} onChange={onChoose} />
-      {children}
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={checked}
+        onChange={onChoose}
+        aria-labelledby={labelId}
+        aria-describedby={helpId}
+      />
+      <span id={labelId} className={styles.choiceLabel}>
+        {children}
+      </span>
+      {help ? (
+        <span id={helpId} className={styles.choiceHelp}>
+          {help}
+        </span>
+      ) : null}
     </label>
   );
 }

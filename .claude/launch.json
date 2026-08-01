@@ -4,13 +4,24 @@
     {
       "name": "host-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "@tapas/host-web"],
-      "port": 5173
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@tapas/host-web"
+      ],
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "participant-web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "-w", "@tapas/participant-web"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@tapas/participant-web"
+      ],
       "port": 5174
     }
   ]

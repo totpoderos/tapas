@@ -267,8 +267,8 @@ function PublishChecklist() {
      * pairing first.
      *
      * Anything beyond the count — whether every judge can score something once
-     * attribution, the bias rule, the pairings and the barred pairs are taken
-     * together — is `compile()`'s answer and stays with the server.
+     * the format and the pairings are taken together — is `compile()`'s answer
+     * and stays with the server.
      */
     {
       key: 'people',

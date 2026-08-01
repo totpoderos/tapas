@@ -420,25 +420,18 @@ function Happened({ entry }: { entry: AuditEntry }) {
 /**
  * What the contest is being played by. Read from the contest, because the draft it
  * was published from no longer exists — and each line is omitted when the contest
- * does not record it, rather than guessed. `antiBias` especially: `'none'` is a
- * real choice a host can make, so an unrecorded rule must not read as one.
+ * does not record it, rather than guessed — `format` especially: `'solo'` is a
+ * real choice a host can make, so an unrecorded format must not read as one.
  */
 function RulesInForce({ rules }: { rules: ContestRules }) {
   const { t } = useTranslation();
   const lines: { key: string; label: string; value: string }[] = [];
 
-  if (rules.attribution) {
+  if (rules.format) {
     lines.push({
-      key: 'attribution',
-      label: t('contestControl.rules.attribution'),
-      value: t(`common.attribution.${rules.attribution}`),
-    });
-  }
-  if (rules.antiBias) {
-    lines.push({
-      key: 'antiBias',
-      label: t('contestControl.rules.antiBias'),
-      value: t(`common.antiBias.${rules.antiBias}`),
+      key: 'format',
+      label: t('contestControl.rules.format'),
+      value: t(`common.format.${rules.format}`),
     });
   }
   if (rules.categories.length > 0) {

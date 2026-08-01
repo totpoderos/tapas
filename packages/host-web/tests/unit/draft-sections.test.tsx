@@ -33,8 +33,7 @@ const DRAFT: StoredDraft = {
   updatedAt: '2026-07-20T10:00:00.000Z',
   content: {
     name: 'Summer Tapas',
-    attribution: 'per_couple',
-    antiBias: 'couples',
+    format: 'couples',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: true },
     participants: [
       { id: 'p1', displayName: 'Ana' },
@@ -108,12 +107,11 @@ describe('A contest being prepared, in its two sections', () => {
       await loaded();
 
       expect(screen.getByLabelText('Contest name')).toHaveValue('Summer Tapas');
-      expect(screen.getByRole('radio', { name: 'Each couple is scored together' })).toBeChecked();
-      expect(screen.getByRole('radio', { name: 'Couples cannot score each other' })).toBeChecked();
+      expect(screen.getByRole('radio', { name: 'Couples cook together' })).toBeChecked();
       expect(screen.getByRole('list', { name: 'Scoring categories' })).toHaveTextContent('Taste');
 
       expect(screen.queryByLabelText('Participant 1 name')).not.toBeInTheDocument();
-      expect(screen.queryByRole('list', { name: 'Can’t score each other' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Partner of Ana')).not.toBeInTheDocument();
     });
 
     it('settles the people on the participants, and nothing about the rules', async () => {
@@ -123,11 +121,10 @@ describe('A contest being prepared, in its two sections', () => {
       expect(screen.getByLabelText('Participant 1 name')).toHaveValue('Ana');
       expect(screen.getByLabelText('Participant 2 name')).toHaveValue('Bruno');
       expect(screen.getByLabelText('Partner of Ana')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Bar this pair' })).toBeInTheDocument();
 
       expect(screen.queryByLabelText('Contest name')).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('radio', { name: 'Each couple is scored together' }),
+        screen.queryByRole('radio', { name: 'Couples cook together' }),
       ).not.toBeInTheDocument();
     });
   });
@@ -348,31 +345,68 @@ describe('A contest being prepared, in its two sections', () => {
   });
 
   describe('the rules', () => {
-    it('saves a change to how dishes are attributed and to the bias rule', async () => {
+    it("saves a change to the contest's format", async () => {
       renderDraft(RULES);
       await loaded();
 
-      await userEvent.click(
-        screen.getByRole('radio', { name: 'Each person is scored on their own' }),
-      );
-      await userEvent.click(screen.getByRole('radio', { name: 'No restriction' }));
+      await userEvent.click(screen.getByRole('radio', { name: 'Everyone on their own' }));
       await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
       expect(api.updateDraft).toHaveBeenCalledWith('d1', expect.anything());
-      expect(savedContent().attribution).toBe('per_person');
-      expect(savedContent().antiBias).toBe('none');
+      expect(savedContent().format).toBe('solo');
       expect(await screen.findByText('Saved.')).toBeInTheDocument();
     });
 
-    it('does not ask about pairing when each person is scored on their own', async () => {
+    it('asks one question about the format, not two', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      // Three answers to one question. A second group about bias would be the
+      // grid this change exists to remove.
+      const formats = screen.getByRole('group', { name: 'What kind of contest is this?' });
+      expect(within(formats).getAllByRole('radio')).toHaveLength(3);
+      expect(screen.queryByText(/Guarding against bias/)).not.toBeInTheDocument();
+    });
+
+    it('says what each format means, not just what it is called', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      expect(
+        screen.getByText('Each person cooks their own dish and scores every other dish.'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Each couple cooks one dish. Nobody scores their own couple’s dish, and everyone needs a partner.',
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it('does not ask about pairing when everyone is on their own', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      await userEvent.click(screen.getByRole('radio', { name: 'Everyone on their own' }));
+      await goTo('Participants & pairing');
+
+      // A partner would do nothing under this format, so it is not asked for.
+      expect(await screen.findByLabelText('Participant 1 name')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Partner of Ana')).not.toBeInTheDocument();
+      expect(screen.queryByText(/without a partner/)).not.toBeInTheDocument();
+    });
+
+    it('offers a partner without insisting on one when partners are kept apart', async () => {
       renderDraft(RULES);
       await loaded();
 
       await userEvent.click(
-        screen.getByRole('radio', { name: 'Each person is scored on their own' }),
+        screen.getByRole('radio', { name: 'Everyone on their own, partners kept apart' }),
       );
+      await goTo('Participants & pairing');
 
-      // Pairing is beside the point, so nobody is short of anything.
+      expect(await screen.findByLabelText('Partner of Ana')).toBeInTheDocument();
+      // Offered, but nobody is short of anything for leaving it alone.
+      expect(screen.queryByText('needs a partner')).not.toBeInTheDocument();
       expect(screen.queryByText(/without a partner/)).not.toBeInTheDocument();
     });
 
@@ -399,7 +433,7 @@ describe('A contest being prepared, in its two sections', () => {
       expect(savedContent().participants?.map((p) => p.displayName)).toEqual(['Ana']);
     });
 
-    it('pairs two participants as a couple', async () => {
+    it('pairs two participants as partners', async () => {
       renderDraft(PEOPLE);
       await loaded();
 
@@ -411,11 +445,11 @@ describe('A contest being prepared, in its two sections', () => {
       expect(ps.find((p) => p.id === 'p2')?.partnerId).toBe('p1'); // reciprocal
     });
 
-    it('marks who still needs a partner, when scoring is per couple', async () => {
+    it('marks who still needs a partner, when couples cook together', async () => {
       renderDraft(PEOPLE);
       await loaded();
 
-      // Neither is paired, and the draft is scored per couple.
+      // Neither is paired, and the draft is one where couples cook together.
       expect(screen.getAllByText('needs a partner')).toHaveLength(2);
       // Said in both places on purpose: on the checklist, and in the panel where the
       // host sees it without scrolling.
@@ -426,126 +460,66 @@ describe('A contest being prepared, in its two sections', () => {
       expect(screen.queryByText('needs a partner')).not.toBeInTheDocument();
     });
 
-    /*
-     * The rule is offered as "chosen pairs cannot score each other" and used to write
-     * one direction only, so barring Núria from scoring Pau left Pau free to score
-     * Núria. Pairing was already reciprocal; barring is now too.
-     */
-    it('bars a pair from scoring each other, both ways', async () => {
-      renderDraft(PEOPLE);
+    it('does not mark anybody as wanting a partner under the other formats', async () => {
+      renderDraft(RULES);
       await loaded();
-
-      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
-      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
-      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-
-      const ps = savedContent().participants ?? [];
-      expect(ps.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
-      expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
-    });
-
-    it('lists a barred pair once, not once per person', async () => {
-      renderDraft(PEOPLE);
-      await loaded();
-
-      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
-      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
-      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
-
-      const pairs = screen.getByRole('list', { name: 'Can’t score each other' });
-      expect(within(pairs).getAllByRole('listitem')).toHaveLength(1);
-    });
-
-    it('lifts a bar from both sides', async () => {
-      renderDraft(PEOPLE);
-      await loaded();
-
-      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
-      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
-      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
       await userEvent.click(
-        screen.getByRole('button', { name: 'Let Ana and Bruno score each other again' }),
-      );
-      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-
-      const ps = savedContent().participants ?? [];
-      expect(ps.find((p) => p.id === 'p1')?.noScoreWith ?? []).toEqual([]);
-      expect(ps.find((p) => p.id === 'p2')?.noScoreWith ?? []).toEqual([]);
-    });
-
-    /*
-     * A contest guards against bias one way, not several, and the compiler reads
-     * these pairs only under "chosen pairs cannot score each other". Under any
-     * other rule a host could bar a pair, see it listed, save it, publish, and have
-     * it do nothing — with nothing on the screen saying so. The fixture's rule is
-     * "couples", so this is exactly that case.
-     */
-    it('says barred pairs are idle when the contest guards against bias another way', async () => {
-      renderDraft(PEOPLE);
-      await loaded();
-
-      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
-      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
-      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
-
-      // Listed, and said to be doing nothing — not hidden, and not silently inert.
-      expect(screen.getByRole('list', { name: 'Can’t score each other' })).toHaveTextContent('Ana');
-      expect(screen.getByText(/Not in force for this contest/)).toBeInTheDocument();
-      // And told which rule would put them in force.
-      expect(screen.getByText(/Chosen pairs cannot score each other/)).toBeInTheDocument();
-    });
-
-    it('does not say they are idle when the contest bars chosen pairs', async () => {
-      renderDraft(PEOPLE);
-      await loaded();
-      await goTo('Rules');
-      await userEvent.click(
-        await screen.findByRole('radio', { name: 'Chosen pairs cannot score each other' }),
+        screen.getByRole('radio', { name: 'Everyone on their own, partners kept apart' }),
       );
       await goTo('Participants & pairing');
 
-      expect(await screen.findByLabelText('One')).toBeInTheDocument();
+      // Having no partner is a choice under this format, not a fault, so it is
+      // neither marked on the row nor counted as something still missing.
+      expect(await screen.findByLabelText('Partner of Ana')).toBeInTheDocument();
+      expect(screen.queryByText('needs a partner')).not.toBeInTheDocument();
+      expect(screen.queryByText(/without a partner/)).not.toBeInTheDocument();
+    });
+
+    /*
+     * A partner recorded under a format that has no use for it is not a rule that
+     * failed to apply — it is a roster fact, and throwing it away would lose work
+     * the host did. Changing the format away and back has to leave it intact.
+     */
+    it('keeps a pairing through a change of format', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+      await userEvent.selectOptions(screen.getByLabelText('Partner of Ana'), 'p2');
+
+      await goTo('Rules');
+      await userEvent.click(await screen.findByRole('radio', { name: 'Everyone on their own' }));
+      await userEvent.click(screen.getByRole('radio', { name: 'Couples cook together' }));
+      await goTo('Participants & pairing');
+
+      expect(await screen.findByLabelText('Partner of Ana')).toHaveValue('p2');
+      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+      const ps = savedContent().participants ?? [];
+      expect(ps.find((p) => p.id === 'p1')?.partnerId).toBe('p2');
+      expect(ps.find((p) => p.id === 'p2')?.partnerId).toBe('p1');
+    });
+
+    it('counts couples only where couples mean something', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+      expect(screen.getByText('2 people · 0 couples')).toBeInTheDocument();
+
+      await goTo('Rules');
+      await userEvent.click(await screen.findByRole('radio', { name: 'Everyone on their own' }));
+      await goTo('Participants & pairing');
+
+      // "0 couples" under a format that pairs nobody is a fact about a rule the
+      // contest does not have.
+      expect(await screen.findByText('2 people')).toBeInTheDocument();
+      expect(screen.queryByText(/couples/)).not.toBeInTheDocument();
+    });
+
+    it('offers nowhere to bar a pair by hand', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+
+      // A partner is the only way two people are kept apart now.
+      expect(screen.queryByRole('button', { name: 'Bar this pair' })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Can’t score each other/)).not.toBeInTheDocument();
       expect(screen.queryByText(/Not in force for this contest/)).not.toBeInTheDocument();
-    });
-
-    it('keeps an idle pair, so choosing the rule puts it in force', async () => {
-      renderDraft(PEOPLE);
-      await loaded();
-
-      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
-      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
-      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
-      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-
-      // Recorded even while idle: nothing the host entered is thrown away.
-      const ps = savedContent().participants ?? [];
-      expect(ps.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
-      expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
-    });
-
-    it('shows a half-bar left by an older draft as the pair it was meant to be', async () => {
-      // One direction only, the way this screen used to write it.
-      vi.mocked(api.getDraft).mockResolvedValue({
-        ...DRAFT,
-        content: {
-          ...DRAFT.content,
-          participants: [
-            { id: 'p1', displayName: 'Ana', noScoreWith: ['p2'] },
-            { id: 'p2', displayName: 'Bruno' },
-          ],
-        },
-      });
-      renderDraft(PEOPLE);
-      await loaded();
-
-      const pairs = screen.getByRole('list', { name: 'Can’t score each other' });
-      expect(within(pairs).getAllByRole('listitem')).toHaveLength(1);
-
-      // And saving makes it mutual for good.
-      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
-      const ps = savedContent().participants ?? [];
-      expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
     });
   });
 

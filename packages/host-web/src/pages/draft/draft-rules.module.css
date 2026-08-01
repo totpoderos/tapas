@@ -30,15 +30,29 @@
   gap: 8px;
 }
 .choiceCard {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 10px;
+  column-gap: 10px;
   min-height: 44px;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: var(--radius-control);
   font: 400 15px var(--sans);
   cursor: pointer;
+}
+/* What the choice means, under its name rather than beside it. */
+.choiceHelp {
+  grid-column: 2;
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font: 400 13px/1.45 var(--sans);
+}
+/* The chosen card is emphasised; its explanation stays plain, so the card does
+   not shout a whole sentence at whoever picked it. */
+.choiceCard.chosen .choiceHelp {
+  color: var(--ink-soft);
+  font-weight: 400;
 }
 .choiceCard.chosen {
   border-color: var(--brand-line);

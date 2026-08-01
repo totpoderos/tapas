@@ -7,9 +7,6 @@
 .sectionLead {
   composes: sectionLead from './draft-fields.module.css';
 }
-.cardHint {
-  composes: cardHint from './draft-fields.module.css';
-}
 .addRow {
   composes: addRow from './draft-fields.module.css';
 }
@@ -21,9 +18,6 @@
 }
 .empty {
   composes: empty from './draft-fields.module.css';
-}
-.chipRemove {
-  composes: chipRemove from './draft-fields.module.css';
 }
 
 /* Who is taking part, and who they are paired with. */
@@ -61,38 +55,3 @@
   color: var(--pending);
 }
 
-/* A rule recorded but not applied: said above the pairs it is about. */
-.notInForce {
-  margin-bottom: 14px;
-}
-
-/* Pairs barred from scoring each other. */
-.pairs {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.pair {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 8px 8px 12px;
-  background: var(--surface-2);
-  border-radius: var(--radius-control);
-  font: 400 14px var(--sans);
-}
-.addPair {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-}
-.pairPick {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}

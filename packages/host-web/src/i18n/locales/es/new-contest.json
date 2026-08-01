@@ -2,13 +2,6 @@
   "title": "Nuevo concurso",
   "lead": "Configúralo ahora y guárdalo como borrador — no estará en curso hasta que lo publiques.",
   "contestName": "Nombre del concurso",
-  "attributionLegend": "Cómo se atribuyen los platos",
-  "attributionPerPerson": "Cada persona se puntúa por separado",
-  "attributionPerCouple": "Cada pareja se puntúa junta",
-  "antiBiasLegend": "Protección contra el sesgo",
-  "antiBiasNone": "Sin restricción",
-  "antiBiasCouples": "Las parejas no pueden puntuarse entre sí",
-  "antiBiasArbitrary": "Las parejas elegidas no pueden puntuarse entre sí",
   "scoringLegend": "Puntuación",
   "scoringHint": "En qué se juzga cada plato y el rango de puntuación.",
   "categoriesLabel": "Categorías de puntuación",
@@ -28,5 +21,12 @@
   "next": "Siguiente — añadir a la gente",
   "cancel": "Cancelar",
   "newCategoryLabel": "Nombre de la nueva categoría",
-  "removeNamedCategory": "Quitar la categoría {{name}}"
+  "removeNamedCategory": "Quitar la categoría {{name}}",
+  "formatLegend": "¿Qué tipo de concurso es?",
+  "formatSolo": "Cada cual por su cuenta",
+  "formatSoloHelp": "Cada persona cocina su plato y puntúa todos los demás.",
+  "formatSoloWithPartners": "Cada cual por su cuenta, sin puntuar a su pareja",
+  "formatSoloWithPartnersHelp": "Cada persona cocina su plato. Quien tenga pareja no puntúa el plato de su pareja.",
+  "formatCouples": "Las parejas cocinan juntas",
+  "formatCouplesHelp": "Cada pareja cocina un plato. Nadie puntúa el plato de su propia pareja, y todo el mundo necesita pareja."
 }
