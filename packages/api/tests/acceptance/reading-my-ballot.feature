@@ -12,6 +12,12 @@ Feature: Reading my ballot
     And their partner's dish is not on it
     And the dishes they may score are on it, with the categories and their score range
 
+  Scenario: A dish nobody named is called by its cook on the ballot too
+    Given a live contest where one cook never named their dish
+    When another participant reads their ballot
+    Then that dish is called by the name of the cook whose it is
+    And it is called the same thing when the results are revealed
+
   Scenario: Reading a ballot requires having claimed a place
     Given a live contest
     When a ballot is requested with no participant token

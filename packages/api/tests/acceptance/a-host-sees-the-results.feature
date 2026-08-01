@@ -38,3 +38,8 @@ Feature: A host sees the results
     When its host and a participant who took part each read the results
     Then the same dishes are named as winners
     And the leaderboard is in the same order for both
+
+  Scenario: Both call a dish nobody named the same thing
+    Given a revealed contest where one cook never named their dish
+    When the host and a participant each read the results
+    Then that dish is called by the same name on both

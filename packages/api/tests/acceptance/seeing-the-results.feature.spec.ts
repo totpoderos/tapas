@@ -202,6 +202,49 @@ async function sharedDishContest(app: FastifyInstance) {
   return { contestId, ana };
 }
 
+/**
+ * Ana names her dish; Bob never gets round to naming his. Both are scored, so
+ * both are on the leaderboard — which is the situation that used to put the
+ * English string `A dish` on a Spanish reveal.
+ */
+async function contestWithAnUnnamedDish(app: FastifyInstance, hostEmail: string) {
+  const { host, contestId, joinCode } = await publish(app, hostEmail, content());
+  const ana = await claim(app, joinCode, 'ana');
+  const bob = await claim(app, joinCode, 'bob');
+  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Patatas bravas' } });
+  // Bob submits nothing at all. His dish slot exists regardless — the roster
+  // gives every place one — so it is scored and it reaches the leaderboard.
+  for (const [jar, dishId] of [[ana, 'D-bob'], [bob, 'D-ana']] as const) {
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value: 4 } });
+    expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  }
+  await closeAndReveal(app, host, contestId);
+  return { contestId, ana, host };
+}
+
+/** `per_couple`, and the shared dish is the one nobody names. */
+async function coupleWithAnUnnamedDish(app: FastifyInstance) {
+  const couples: DraftContent = {
+    ...content(),
+    attribution: 'per_couple',
+    participants: [
+      { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
+      { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
+      { id: 'carol', displayName: 'Carol' },
+    ],
+  };
+  const { host, contestId, joinCode } = await publish(app, 'couple-unnamed@x.es', couples);
+  const ana = await claim(app, joinCode, 'ana');
+  const carol = await claim(app, joinCode, 'carol');
+  await request(app, carol, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Gazpacho' } });
+  for (const [jar, dishId] of [[carol, 'D-ana-bob'], [ana, 'D-carol']] as const) {
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value: 5 } });
+    expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  }
+  await closeAndReveal(app, host, contestId);
+  return { contestId, ana };
+}
+
 interface RevealWinner {
   dishId: string;
   name: string;
@@ -319,6 +362,59 @@ describeFeature(feature, ({ Scenario }) => {
       expect(reveal.overall.winners).toEqual([
         { dishId: 'D-ana-bob', name: 'Tortilla for two', cooks: ['Ana', 'Bob'] },
       ]);
+    });
+  });
+
+  Scenario('A dish nobody named is called by the cook whose it is', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let contestId: string;
+    let reveal: Reveal;
+
+    Given('a revealed contest where one cook never named their dish', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, ana } = await contestWithAnUnnamedDish(app, 'unnamed@x.es'));
+    });
+    When('a participant who took part reads the results', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(response.statusCode).toBe(200);
+      reveal = response.json();
+    });
+    Then('that dish is called by the name of the cook whose it is', () => {
+      const bobs = reveal.overall.standings.find((standing) => standing.dishId === 'D-bob');
+      expect(bobs?.name).toBe('Bob');
+    });
+    And('nothing on the results describes it in words instead', () => {
+      /*
+       * The point of the change, and the thing a name assertion alone would not
+       * catch: no phrase written into the API, in any language, anywhere in the
+       * payload. A name is data and reads the same to every reader; a phrase
+       * would have to be translated and would arrive in the wrong language.
+       */
+      expect(JSON.stringify(reveal)).not.toMatch(/a dish|not named|sin nombre|unnamed/i);
+    });
+  });
+
+  Scenario('A dish two people brought and never named takes both their names', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let contestId: string;
+    let reveal: Reveal;
+
+    Given('a revealed contest where partners shared a dish and never named it', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, ana } = await coupleWithAnUnnamedDish(app));
+    });
+    When('a participant who took part reads the results', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(response.statusCode).toBe(200);
+      reveal = response.json();
+    });
+    Then('that dish is called by both their names', () => {
+      // Naming one of them would be the API choosing which half of a couple
+      // cooked — the same reason `cooks` is a list rather than a field.
+      const shared = reveal.overall.standings.find((standing) => standing.dishId === 'D-ana-bob');
+      expect(shared?.name).toBe('Ana & Bob');
     });
   });
 
