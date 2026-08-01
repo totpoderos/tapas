@@ -136,4 +136,4 @@ live smoke check) before opening the PR.
 
   `npm audit fix` "resolves" it by bumping that package from **1.19.15 to 2.0.12** — a major version, inside somebody else's dependency tree, overriding what the SDK asked for. That is a larger risk than the advisory it answers, so it was **tried, inspected and reverted** rather than taken quietly. The lockfile is unchanged. The call belongs to whoever owns the MCP surface; the alternative is to wait for `@modelcontextprotocol/sdk` to move its own floor.
 - [ ] 12.2 Manual pass: keyboard-only through all eight surfaces, screen-reader on the shell, 200% zoom, both themes, EN and ES.
-- [ ] 12.3 `openspec validate the-panel-gets-a-modern-shell --strict`, then sync the specs and archive the change.
+- [x] 12.3 `openspec validate the-panel-gets-a-modern-shell --strict`, then sync the specs and archive the change.

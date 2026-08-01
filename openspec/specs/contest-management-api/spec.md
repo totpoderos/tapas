@@ -72,6 +72,13 @@ A host SHALL be able to list, rename, and discard their own drafts through the A
 ### Requirement: A host can list all of their contests over the API
 A host SHALL be able to list all of their own contests through the API in one place — drafts still being prepared and published contests alike — each marked with the state it is in (being prepared, live, closed, or revealed). Listing SHALL return only that host's contests.
 
+Each listed contest SHALL also carry enough to be read without opening it:
+- its rules in brief — how dishes are attributed, and how many scoring categories it has;
+- its join code, once it has one;
+- how its voting is progressing — how many people have claimed a place, how many are still scoring, and how many have sent their vote.
+
+A contest still being prepared has no join code and no progress, and SHALL report none rather than zeroes, so that "nobody has voted yet" and "voting has not started" are told apart. Rules a draft has not been given yet SHALL likewise report none. Listing SHALL remain one request: reading the list SHALL NOT require a further request per contest.
+
 #### Scenario: A host sees their contests across every state, each marked with its state
 - **WHEN** a signed-in host who is preparing one contest, has a live contest, and has a revealed contest lists their contests
 - **THEN** all three contests are listed
@@ -81,9 +88,31 @@ A host SHALL be able to list all of their own contests through the API in one pl
 - **WHEN** a signed-in host whose contest has had its voting closed lists their contests
 - **THEN** that contest is marked as closed
 
+#### Scenario: A live contest is listed with its progress
+- **WHEN** a signed-in host lists their contests, and their live contest has eighteen people who claimed a place, of whom thirteen have sent their vote and five are still scoring
+- **THEN** that contest is listed as having eighteen claimed, thirteen sent, and five still scoring
+
+#### Scenario: A live contest is listed with its rules in brief and its join code
+- **WHEN** a signed-in host lists their contests, and their live contest scores each person on their own across four categories
+- **THEN** that contest is listed as scoring each person on their own, with four categories
+- **AND** it is listed with the join code participants use for it
+
+#### Scenario: A contest being prepared reports no join code and no progress
+- **WHEN** a signed-in host lists their contests and one of them is still being prepared
+- **THEN** that contest is listed with no join code and no progress
+- **AND** it is not listed as having nobody claimed and nobody voted
+
+#### Scenario: Listing the whole list takes one request
+- **WHEN** a signed-in host with several contests lists them
+- **THEN** the progress and rules of every contest arrive with that one answer
+
 #### Scenario: A host only sees their own contests
 - **WHEN** a host with a contest, alongside a second host with their own contest, lists their contests through the API
 - **THEN** only the requesting host's contest is listed
+
+#### Scenario: Another host's progress is not disclosed
+- **WHEN** a host lists their contests while a second host has a live contest with votes in it
+- **THEN** nothing about the second host's contest, its join code or its progress is included
 
 #### Scenario: Listing contests requires being signed in
 - **WHEN** listing contests is attempted through the API with no one signed in
@@ -92,9 +121,23 @@ A host SHALL be able to list all of their own contests through the API in one pl
 ### Requirement: A host can read their own contest over the API
 A host SHALL be able to read a contest they own through the API.
 
+The read SHALL report the rules the contest is being played by, so that a host running it can see what it was published with without opening the draft it came from — which no longer exists. That includes how dishes are attributed, which same-side scoring is barred to guard against bias, what the contest is judged on, the score band, and whether a score may be used more than once in a category.
+
+The anti-bias rule SHALL be reported from what the contest recorded at publish, not reconstructed from the compiled constraint view. The compiler consumes that rule into the set of dishes each judge may score, so the compiled view holds its consequence and not the rule: a contest where couples cannot score each other and one where chosen pairs cannot are indistinguishable once compiled. A contest published before the rule was recorded SHALL report that it does not say, rather than a guess.
+
 #### Scenario: A host reads their own published contest through the API
 - **WHEN** a host who has published a contest reads that contest through the API
 - **THEN** the contest's details are returned
+
+#### Scenario: The read reports the rules the contest is being played by
+- **WHEN** a host reads a contest they published to score each person on their own, barring couples from scoring each other, judged on three categories from one to ten with each score used once
+- **THEN** the read reports each person on their own, and couples barred from scoring each other
+- **AND** it reports the three categories, the band from one to ten, and that a score is used only once in a category
+
+#### Scenario: A contest that never recorded its anti-bias rule says so
+- **WHEN** a host reads a contest published before the anti-bias rule was recorded
+- **THEN** the read reports that the contest does not say which same-side scoring is barred
+- **AND** it does not report a rule inferred from the compiled view
 
 ### Requirement: A host can find their own contest by name over the API
 A host SHALL be able to find their own contests by name through the API, so they can refer to a contest the way they say it rather than by an internal id. Matching SHALL be exact but case-insensitive (a partial name SHALL NOT match, so a name cannot resolve to the wrong contest). Because a name is not unique, all matches SHALL be returned. Finding SHALL search only the requesting host's own contests, and SHALL be refused when no one is signed in.
