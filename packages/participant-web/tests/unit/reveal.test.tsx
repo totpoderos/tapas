@@ -242,6 +242,31 @@ describe('Waiting for the reveal', () => {
     expect(screen.queryByRole('list', { name: 'Who has voted' })).not.toBeInTheDocument();
   });
 
+  /*
+   * The one screen in the app with no header (handoff, screen 12) — the rank
+   * numeral gets the whole top of the phone.
+   *
+   * The wait is asserted alongside it, because the pair is the promise: the
+   * exception is worth exactly one screen. Dropping the header everywhere would
+   * have taken the language control off the screen a participant spends longest
+   * on, and `internationalization` is amended to say precisely this much.
+   */
+  it('gives the numeral the top of the screen, and only once the results are out', async () => {
+    renderReveal();
+    expect(await screen.findByText(/almost there/i)).toBeInTheDocument();
+    expect(screen.getByRole('banner')).toBeInTheDocument();
+  });
+
+  it('drops the header when the results arrive, keeping the ways onward', async () => {
+    vi.mocked(api.getReveal).mockResolvedValue(REVEAL);
+    renderReveal();
+    await screen.findByRole('heading', { level: 1, name: 'Tortilla' });
+
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
+    // The bar is not part of the header, and is not what was dropped.
+    expect(screen.getByRole('navigation', { name: 'Go to' })).toBeInTheDocument();
+  });
+
   it('has no accessibility violations while waiting', async () => {
     const { container } = renderReveal();
     await screen.findByRole('list', { name: 'Who has voted' });

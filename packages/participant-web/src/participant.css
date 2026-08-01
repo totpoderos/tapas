@@ -30,6 +30,16 @@
 .pt-barred {
   padding-bottom: calc(var(--bar-height) + 16px);
 }
+
+/*
+ * The revealed results, which carry no header (screen 12). The 58px above is
+ * the header's height, subtracted so the column is the viewport less the
+ * header; with no header there is nothing to subtract, and leaving it would
+ * leave the screen 58px short of the phone.
+ */
+.pt-headless {
+  min-height: 100dvh;
+}
 .pt-title {
   font-size: 28px;
   margin: 0 0 8px;

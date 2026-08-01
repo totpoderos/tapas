@@ -34,7 +34,7 @@ A participant is at a venue for one evening on a phone they did not configure fo
 
 ### Requirement: Every screen carries the same frame
 
-Every participant screen SHALL carry the same header, naming the product and — once a participant has joined — where they are.
+Every participant screen SHALL carry the same header, naming the product and — once a participant has joined — where they are. The revealed results SHALL be the one exception: that screen carries no header, so its rank numeral has the whole top of the phone. The wait before it is not an exception and keeps its header.
 
 Every screen a joined participant can reach SHALL carry the same ways onward, in the same place: one bar, held within reach at the foot of the screen wherever the screen is scrolled to, naming all three steps at once. The bar SHALL mark which step the participant is on, and SHALL NOT mark it by colour alone. A screen reached before joining, and a screen from which there is nowhere left to go, SHALL carry no bar.
 
@@ -42,8 +42,13 @@ Holding the ways onward in reach is the requirement, not decoration: a cook is s
 
 #### Scenario: The header is on every screen
 
-- **WHEN** a participant is on any screen of the app
+- **WHEN** a participant is on any screen of the app but the revealed results
 - **THEN** the same header is there
+
+#### Scenario: The revealed results give the numeral the top of the screen
+
+- **WHEN** a participant is shown the revealed results
+- **THEN** there is no header above them
 
 #### Scenario: A joined participant is never without the ways onward
 
