@@ -76,6 +76,17 @@ Feature: A host gets a contest ready to go live
     And it is still a contest being prepared
     And they are still on its participants and pairing
 
+  Scenario: Pairs barred under a rule the contest does not use are said to be idle
+    Given a signed-in host looking at the participants and pairing of a contest being prepared where couples cannot score each other
+    When they bar two of the participants from scoring each other
+    Then the pair is listed as barred
+    And they are told those pairs are not in force for this contest
+    And they are told which rule would put them in force
+
+  Scenario: Barred pairs are in force when the contest bars chosen pairs
+    Given a signed-in host looking at the participants and pairing of a contest being prepared where chosen pairs cannot score each other
+    Then the pairs barred from scoring each other are not said to be idle
+
   Scenario: Both sections are free of accessibility violations
     Given a signed-in host looking at a contest being prepared with people on it
     When they move through each of its two sections using only the keyboard

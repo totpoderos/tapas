@@ -231,6 +231,39 @@ test('lifting a bar lifts it both ways', async ({ page }) => {
   expect(saved.participants?.find((p) => p.id === 'p2')?.noScoreWith ?? []).toEqual([]);
 });
 
+test('barred pairs say so when the contest guards against bias another way', async ({ page }) => {
+  // The compiler reads these pairs only under "chosen pairs cannot score each
+  // other". Under any other rule a host could bar a pair, see it listed, save,
+  // publish, and have it do nothing — with the screen saying nothing.
+  const id = await hostWithDraft(page, 'e2e-review-idlebar@sobremesa.es');
+
+  await page.goto(`/review/${id}`);
+  await page.getByLabel('Couples cannot score each other').check();
+  await goToSection(page, 'Participants & pairing');
+
+  await page.getByLabel('One').selectOption({ label: 'Ana' });
+  await page.getByLabel('The other').selectOption({ label: 'Bruno' });
+  await page.getByRole('button', { name: 'Bar this pair' }).click();
+
+  // Listed, and said to be idle — not hidden, and not silently inert.
+  const pairs = page.getByRole('list', { name: 'Can’t score each other' });
+  await expect(pairs.getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByText(/Not in force for this contest/)).toBeVisible();
+  await expect(page.getByText(/Chosen pairs cannot score each other/).first()).toBeVisible();
+
+  // Kept, so choosing the rule puts it in force without re-entering it.
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+  const { content: saved } = await storedDraft(page.request, id);
+  expect(saved.participants?.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
+
+  await goToSection(page, 'Rules');
+  await page.getByLabel('Chosen pairs cannot score each other').check();
+  await goToSection(page, 'Participants & pairing');
+  await expect(pairs.getByRole('listitem')).toHaveCount(1);
+  await expect(page.getByText(/Not in force for this contest/)).toHaveCount(0);
+});
+
 /* ── Saving and publishing, from either section ─────────────────────────────── */
 
 test('saving and publishing are in the panel’s header, on both sections', async ({ page }) => {

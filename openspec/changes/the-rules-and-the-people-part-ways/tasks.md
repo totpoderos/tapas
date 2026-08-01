@@ -51,6 +51,14 @@
 - [x] 8.6 Move the participant assertions out of `new-contest.test.tsx` and `host-create-contest.spec.ts` — the participants section already covers them — and add the handover ones.
 - [x] 8.7 Full local gate again, plus a live look at the form and the handover.
 
+## 9. A rule recorded but not applied says so
+
+*Found while answering a review question: the barred-pairs card is editable under every anti-bias rule, but the compiler reads `noScoreWith` only under "chosen pairs cannot score each other" (`packages/domain/src/compile.ts`). A host on any other rule could bar a pair, see it listed, save, publish — and have it do nothing silently.*
+
+- [x] 9.1 Add the scenarios to `tests/e2e/host-draft-review.feature` and the requirement to the delta spec.
+- [x] 9.2 Say it on the card when `antiBias !== 'arbitrary_pairs'`: not in force, and which rule would put it in force. Keep the pairs listed and editable — they are stored either way, so choosing that rule brings them into force without re-entering.
+- [x] 9.3 Strings in both languages; unit and browser coverage for both states; full local gate and a live look.
+
 ## 7. Landing it
 
 - [x] 7.1 ~~Rebase onto `the-panel-gets-a-modern-shell`~~ — not needed. *That change's code had already shipped to `main`; its two open tasks are a manual accessibility pass and the archive, neither of which touches a file. Branched off `main` directly, so `sidebar.tsx` had no divergence to reconcile.*

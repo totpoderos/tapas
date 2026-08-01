@@ -79,6 +79,24 @@ The publish checklist describes the whole contest being prepared and not one sec
 - **AND** it is still a contest being prepared
 - **AND** they are still on the section they were on
 
+### Requirement: A rule that is being recorded but not applied says so
+A contest guards against bias in one way, not several: it may bar couples, or bar chosen pairs, or bar nobody. Pairs barred from scoring each other are therefore only applied when the contest bars **chosen pairs**. Where a host can record such pairs under a contest that guards against bias another way, they SHALL be told plainly that those pairs are not in force and which rule would put them in force. The pairs SHALL still be listed and still be editable, so that nothing a host recorded is lost or hidden, and choosing the other rule brings them into force.
+
+#### Scenario: Pairs recorded under a contest that bars couples are said to be idle
+- **WHEN** a signed-in host bars two participants from scoring each other, in a contest being prepared where couples cannot score each other
+- **THEN** the pair is listed as barred
+- **AND** they are told those pairs are not in force for this contest
+- **AND** they are told which rule would put them in force
+
+#### Scenario: The same pairs are not said to be idle when the contest bars chosen pairs
+- **WHEN** a signed-in host looks at the barred pairs of a contest being prepared where chosen pairs cannot score each other
+- **THEN** they are not told anything is out of force
+
+#### Scenario: An idle pair is kept, not discarded
+- **WHEN** a signed-in host bars two participants in a contest being prepared where couples cannot score each other, and saves
+- **THEN** the pair is still recorded against the contest being prepared
+- **AND** choosing that chosen pairs cannot score each other puts it in force without it having to be entered again
+
 ### Requirement: Creating a contest settles its rules and hands over to its people
 The form that starts a contest SHALL be the first of the two sections and SHALL NOT ask who is taking part, so that the same people are not asked for twice. It SHALL offer both a way to save and stop and a way to go on to the participants and pairing of the contest it just saved. Going on SHALL save first, so the host never carries unsaved rules into the next section.
 

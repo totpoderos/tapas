@@ -61,6 +61,11 @@
   color: var(--pending);
 }
 
+/* A rule recorded but not applied: said above the pairs it is about. */
+.notInForce {
+  margin-bottom: 14px;
+}
+
 /* Pairs barred from scoring each other. */
 .pairs {
   list-style: none;

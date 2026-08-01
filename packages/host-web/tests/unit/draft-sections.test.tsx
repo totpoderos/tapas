@@ -415,6 +415,56 @@ describe('A contest being prepared, in its two sections', () => {
       expect(ps.find((p) => p.id === 'p2')?.noScoreWith ?? []).toEqual([]);
     });
 
+    /*
+     * A contest guards against bias one way, not several, and the compiler reads
+     * these pairs only under "chosen pairs cannot score each other". Under any
+     * other rule a host could bar a pair, see it listed, save it, publish, and have
+     * it do nothing — with nothing on the screen saying so. The fixture's rule is
+     * "couples", so this is exactly that case.
+     */
+    it('says barred pairs are idle when the contest guards against bias another way', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+
+      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
+      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
+      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
+
+      // Listed, and said to be doing nothing — not hidden, and not silently inert.
+      expect(screen.getByRole('list', { name: 'Can’t score each other' })).toHaveTextContent('Ana');
+      expect(screen.getByText(/Not in force for this contest/)).toBeInTheDocument();
+      // And told which rule would put them in force.
+      expect(screen.getByText(/Chosen pairs cannot score each other/)).toBeInTheDocument();
+    });
+
+    it('does not say they are idle when the contest bars chosen pairs', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+      await goTo('Rules');
+      await userEvent.click(
+        await screen.findByRole('radio', { name: 'Chosen pairs cannot score each other' }),
+      );
+      await goTo('Participants & pairing');
+
+      expect(await screen.findByLabelText('One')).toBeInTheDocument();
+      expect(screen.queryByText(/Not in force for this contest/)).not.toBeInTheDocument();
+    });
+
+    it('keeps an idle pair, so choosing the rule puts it in force', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+
+      await userEvent.selectOptions(screen.getByLabelText('One'), 'p1');
+      await userEvent.selectOptions(screen.getByLabelText('The other'), 'p2');
+      await userEvent.click(screen.getByRole('button', { name: 'Bar this pair' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      // Recorded even while idle: nothing the host entered is thrown away.
+      const ps = savedContent().participants ?? [];
+      expect(ps.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
+      expect(ps.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
+    });
+
     it('shows a half-bar left by an older draft as the pair it was meant to be', async () => {
       // One direction only, the way this screen used to write it.
       vi.mocked(api.getDraft).mockResolvedValue({

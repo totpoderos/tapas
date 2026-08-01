@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Card } from '@tapas/ui';
+import { Button, Callout, Card } from '@tapas/ui';
 import { useDraftEditor, type EditPerson } from './draft-editor';
 import styles from './draft-participants.module.css';
 
@@ -109,6 +109,24 @@ export function DraftParticipants() {
 
       <Card title={t('reviewDraft.barredTitle')} level={3}>
         <p className={styles.cardHint}>{t('reviewDraft.barredHint')}</p>
+        {/*
+          A contest guards against bias one way, not several — the compiler reads
+          these pairs only when the rule is "chosen pairs cannot score each other"
+          (`compile.ts`, where the no-score map is built under that rule alone).
+          Under any other rule a host could bar a pair, watch it appear in the list,
+          save it, publish, and have it do nothing, with the screen saying nothing.
+
+          Said rather than hidden, and the pairs stay editable: they are kept in the
+          draft either way, so choosing the other rule puts them in force without
+          anybody having to enter them again.
+        */}
+        {editor.antiBias !== 'arbitrary_pairs' ? (
+          <div className={styles.notInForce}>
+            <Callout tone="saffron" title={t('reviewDraft.barredNotInForceTitle')}>
+              <p>{t('reviewDraft.barredNotInForceBody')}</p>
+            </Callout>
+          </div>
+        ) : null}
         {editor.barredPairs.length === 0 ? (
           <p className={styles.empty}>{t('reviewDraft.noBarredPairs')}</p>
         ) : (

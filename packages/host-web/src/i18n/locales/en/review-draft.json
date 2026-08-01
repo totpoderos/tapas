@@ -58,6 +58,8 @@
   "newCategoryLabel": "New category name",
   "barredTitle": "Can’t score each other",
   "barredHint": "Chosen pairs, on top of the couple rule. Barring works both ways.",
+  "barredNotInForceTitle": "Not in force for this contest",
+  "barredNotInForceBody": "These pairs are only applied when the contest guards against bias by barring chosen pairs. Choose “Chosen pairs cannot score each other” on its rules to put them in force — they are kept until then.",
   "noBarredPairs": "No pairs are barred.",
   "pairOne": "One",
   "pairOther": "The other",
