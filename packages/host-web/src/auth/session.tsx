@@ -100,6 +100,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // screen's job, and this is the only place both outcomes are visible.
         return 'account-ready';
       }
+      // Asked here for the same reason sign-in asks: the invited role is not
+      // knowable until the account exists, and leaving it at its default draws
+      // the first administrator — who arrives by this path and no other — as a
+      // host, on a contest list that is not their work.
+      setIsAdministrator((await whoAmI())?.role === 'admin');
       setStatus('authenticated');
       return 'signed-in';
     },
