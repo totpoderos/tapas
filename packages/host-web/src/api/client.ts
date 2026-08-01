@@ -19,20 +19,78 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Where a refusal means "wrong password", not "your session aged out". Renewing
+ * for a refused sign-in would fire a refresh at every typo, and renewing for a
+ * refused renewal would recurse into itself.
+ */
+const NEVER_RENEWED_FOR = new Set(['/auth/login', '/auth/refresh']);
+
+/**
+ * The renewal in flight, if there is one — shared by everybody who finds the
+ * session aged out while it runs.
+ *
+ * This is a correctness device, not a saving. The API revokes a refresh token
+ * as it spends it, so a second renewal raised in the same moment presents
+ * something already revoked, is refused, and ends the session it was raised to
+ * save. Any screen that asks for two things at once would find that.
+ *
+ * Module scope rather than React state: one renewal per tab is the requirement,
+ * and a screen outside the session provider (accepting an invitation) has to
+ * share the same one. The slot is cleared when the renewal settles, so the next
+ * expiry starts a fresh one.
+ *
+ * Two tabs still have a promise each and a cookie jar between them, so one can
+ * lose its token to the other — closing that needs cross-tab coordination, and
+ * is its own change.
+ */
+let renewal: Promise<boolean> | null = null;
+
+/** Spends the refresh cookie for a fresh session. Answers whether it worked; never throws. */
+function renewSession(): Promise<boolean> {
+  renewal ??= send('/auth/refresh', 'POST')
+    .then(
+      (response) => response.ok,
+      () => false,
+    )
+    .finally(() => {
+      renewal = null;
+    });
+  return renewal;
+}
+
+/**
+ * Every call the app makes goes through here, which is why the renewal lives
+ * here: it covers the read that decides who is signed in on a reload — the one
+ * whose refusal used to put a working host on the sign-in screen — without any
+ * caller knowing, or being able to forget.
+ *
+ * `alreadyRenewed` bounds it to one attempt per call. A 401 that is not about
+ * expiry — work that is not this host's to do, an account whose standing
+ * changed — would otherwise renew and retry until the refresh token died.
+ */
 async function send(
   path: string,
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   body?: unknown,
   extraHeaders?: Record<string, string>,
+  alreadyRenewed = false,
 ): Promise<Response> {
   const headers: Record<string, string> = { ...extraHeaders };
   if (body !== undefined) headers['content-type'] = 'application/json';
-  return fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  if (response.status !== 401 || alreadyRenewed || NEVER_RENEWED_FOR.has(path)) return response;
+  // A refused renewal is the session being over: the API clears both cookies as
+  // it refuses, so the refusal is handed back and the app's own paths take it
+  // to sign-in from here.
+  if (!(await renewSession())) return response;
+  return send(path, method, body, extraHeaders, true);
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
