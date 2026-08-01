@@ -22,6 +22,8 @@ vi.mock('../../src/api/client', async () => {
     readInvitation: vi.fn(),
     acceptInvitation: vi.fn(),
     isDeploymentUnclaimed: vi.fn(),
+    listHostAccounts: vi.fn(),
+    listInvitations: vi.fn(),
   };
 });
 import * as api from '../../src/api/client';
@@ -43,6 +45,8 @@ describe('Accepting an invitation', () => {
     vi.mocked(api.whoAmI).mockResolvedValue(null);
     vi.mocked(api.isDeploymentUnclaimed).mockResolvedValue(false);
     vi.mocked(api.listContests).mockResolvedValue([]);
+    vi.mocked(api.listHostAccounts).mockResolvedValue([]);
+    vi.mocked(api.listInvitations).mockResolvedValue([]);
     vi.mocked(api.readInvitation).mockReset();
     vi.mocked(api.acceptInvitation).mockReset();
     vi.mocked(api.signIn).mockReset();
@@ -70,6 +74,27 @@ describe('Accepting an invitation', () => {
     expect(api.acceptInvitation).toHaveBeenCalledWith(TOKEN, 'Str0ng!Passw0rd');
     expect(api.signIn).toHaveBeenCalledWith('nuevo@sobremesa.es', 'Str0ng!Passw0rd');
     expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();
+  });
+
+  it('lands an administrator on the people, not on a host dashboard', async () => {
+    // The invited role only becomes visible once the account exists, so the
+    // session has to ask again after the sign-in that follows accepting —
+    // otherwise the first administrator, arriving from the claim link, is drawn
+    // as a host and sent to a contest list that is not their work.
+    vi.mocked(api.readInvitation).mockResolvedValue({ email: 'jefa@sobremesa.es' });
+    vi.mocked(api.acceptInvitation).mockResolvedValue();
+    vi.mocked(api.signIn).mockResolvedValue();
+    vi.mocked(api.whoAmI)
+      .mockResolvedValueOnce(null) // nobody is signed in when the link is opened
+      .mockResolvedValue({ hostId: 'host-1', role: 'admin' });
+    renderAt(`/accept-invite/${TOKEN}`);
+
+    await screen.findByText(/jefa@sobremesa\.es/);
+    await userEvent.type(screen.getByLabelText('Password'), 'Str0ng!Passw0rd');
+    await userEvent.click(screen.getByRole('button', { name: 'Set password' }));
+
+    expect(await screen.findByRole('heading', { name: 'People' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Your contests' })).not.toBeInTheDocument();
   });
 
   it('refuses a weak password on the field, leaving the link usable', async () => {
