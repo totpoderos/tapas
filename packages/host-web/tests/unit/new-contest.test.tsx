@@ -5,26 +5,34 @@ import { axe, toHaveNoViolations } from 'jest-axe';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NewContest } from '../../src/pages/new-contest';
 import { WithPanelSlots } from './support/panel-slots';
+import { WithContests } from './support/with-contests';
 import type { DraftContent } from '../../src/api/client';
 
 expect.extend(toHaveNoViolations);
 
 vi.mock('../../src/api/client', async () => {
-  const actual = await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
-  return { ...actual, createDraft: vi.fn() };
+  const actual =
+    await vi.importActual<typeof import('../../src/api/client')>('../../src/api/client');
+  // The form tells the shared list about the contest it just made, so the panel
+  // can name it on the section it hands over to.
+  return { ...actual, createDraft: vi.fn(), listContests: vi.fn() };
 });
 import * as api from '../../src/api/client';
 
-/** Renders the form at /new with a stub list page, so a save can navigate to "/". */
+/** Renders the form at /new with stubs for both places a save can go. */
 function renderForm() {
   return render(
     <MemoryRouter initialEntries={['/new']}>
-      <WithPanelSlots>
-        <Routes>
-          <Route path="/new" element={<NewContest />} />
-          <Route path="/" element={<h1>Your contests</h1>} />
-        </Routes>
-      </WithPanelSlots>
+      <WithContests>
+        <WithPanelSlots>
+          <Routes>
+            <Route path="/new" element={<NewContest />} />
+            <Route path="/" element={<h1>Your contests</h1>} />
+            {/* Where Next lands: the people this form no longer asks for. */}
+            <Route path="/review/:id/people" element={<h1>Participants & pairing</h1>} />
+          </Routes>
+        </WithPanelSlots>
+      </WithContests>
     </MemoryRouter>,
   );
 }
@@ -48,11 +56,6 @@ describe('New contest form', () => {
     await userEvent.type(screen.getByLabelText('New category name'), 'Presentation');
     await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
 
-    await userEvent.type(screen.getByLabelText('New participant name'), 'Ana');
-    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
-    await userEvent.type(screen.getByLabelText('New participant name'), 'Bruno');
-    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
-
     await userEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
 
     expect(api.createDraft).toHaveBeenCalledTimes(1);
@@ -69,12 +72,46 @@ describe('New contest form', () => {
         range: { type: 'auto' },
         uniquePerCategory: true,
       },
-      participants: [
-        { id: 'p1', displayName: 'Ana' },
-        { id: 'p2', displayName: 'Bruno' },
-      ],
     });
+    // Who is taking part belongs to the other section, so none is sent from here.
+    expect(content.participants).toBeUndefined();
     expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();
+  });
+
+  it('does not ask who is taking part', async () => {
+    renderForm();
+
+    // The other section's question, asked once rather than twice.
+    expect(screen.queryByLabelText('New participant name')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Participant 1 name')).not.toBeInTheDocument();
+  });
+
+  it('saves and goes on to the people of the contest it just saved', async () => {
+    renderForm();
+
+    await userEvent.type(screen.getByLabelText('Contest name'), 'Summer Tapas');
+    await userEvent.click(screen.getByLabelText('Each couple is scored together'));
+    await userEvent.click(screen.getByRole('button', { name: /^Next/ }));
+
+    // Saved first: going on can never mean going on without having saved.
+    expect(api.createDraft).toHaveBeenCalledTimes(1);
+    const content = vi.mocked(api.createDraft).mock.calls[0]![0] as DraftContent;
+    expect(content).toMatchObject({ name: 'Summer Tapas', attribution: 'per_couple' });
+    // And on the people of *that* contest — the id the API just handed back.
+    expect(
+      await screen.findByRole('heading', { name: 'Participants & pairing' }),
+    ).toBeInTheDocument();
+  });
+
+  it('refuses to go on without a name, exactly as saving does', async () => {
+    renderForm();
+
+    await userEvent.click(screen.getByRole('button', { name: /^Next/ }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/name is required/i);
+    expect(api.createDraft).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'New contest' })).toBeInTheDocument();
   });
 
   it('captures a fixed score range when chosen', async () => {
@@ -100,17 +137,6 @@ describe('New contest form', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/name is required/i);
     expect(api.createDraft).not.toHaveBeenCalled();
     expect(screen.getByRole('heading', { name: 'New contest' })).toBeInTheDocument();
-  });
-
-  it('lets a host remove a participant they added', async () => {
-    renderForm();
-
-    await userEvent.type(screen.getByLabelText('New participant name'), 'Ana');
-    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
-    expect(screen.getByLabelText('Participant 1 name')).toHaveValue('Ana');
-
-    await userEvent.click(screen.getByRole('button', { name: 'Remove participant Ana' }));
-    expect(screen.queryByLabelText('Participant 1 name')).not.toBeInTheDocument();
   });
 
   it('takes a category back off', async () => {
@@ -159,14 +185,16 @@ describe('New contest form', () => {
     renderForm();
 
     await userEvent.type(screen.getByLabelText('Contest name'), 'Doomed Feast');
-    await userEvent.type(screen.getByLabelText('New participant name'), 'Ana');
-    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    await userEvent.type(screen.getByLabelText('New category name'), 'Presentation');
+    await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
     await userEvent.click(screen.getByRole('button', { name: 'Save as draft' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/couldn’t be saved/i);
     // Nothing thrown away: a failed save must not cost the host their typing.
     expect(screen.getByLabelText('Contest name')).toHaveValue('Doomed Feast');
-    expect(screen.getByLabelText('Participant 1 name')).toHaveValue('Ana');
+    expect(screen.getByRole('list', { name: 'Scoring categories' })).toHaveTextContent(
+      'Presentation',
+    );
   });
 
   it('has no accessibility violations', async () => {

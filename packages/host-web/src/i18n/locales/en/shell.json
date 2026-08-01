@@ -40,8 +40,6 @@
   },
   "tallyKeepingUp": "Tally updating every few seconds",
   "steps": {
-    "setUp": "Set it up",
-    "reviewAndPublish": "Review & publish",
     "afterSaving": "— after saving"
   },
   "onlyANameIsRequired": "Only a name is required to save. Everything else is checked when you publish."

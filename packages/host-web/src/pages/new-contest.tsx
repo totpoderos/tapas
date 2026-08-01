@@ -9,6 +9,7 @@ import {
   type DraftContent,
   type ScoreRange,
 } from '../api/client';
+import { useContests } from '../contests/contests-provider';
 import { PanelActions } from '../shell/panel-actions';
 import styles from './new-contest.module.css';
 
@@ -32,18 +33,28 @@ const ANTI_BIAS: readonly { value: AntiBias; labelKey: string }[] = [
 ];
 
 /**
- * The manual "create a contest" form (design.md §8, form path). It captures the
- * rule space — name, attribution, anti-bias, scoring, participants — and saves a
- * draft; publishing it live is a later step. Only a name is required to save; the
- * rest is refined over time and fully checked at publish. Couple pairing and
- * per-pair exclusions are handled in draft review, not here.
+ * The manual "create a contest" form (design.md §8, form path): the **rules** of a
+ * new contest — name, attribution, anti-bias, scoring — saved as a draft.
+ * Publishing it live is a later step. Only a name is required to save; the rest is
+ * refined over time and fully checked at publish.
  *
- * No chrome of its own: the panel says where this is, and Save and Cancel go in the
+ * Who is taking part is not asked for here. A contest is prepared in two sections
+ * and this form is the first of them, so it hands over to the second rather than
+ * asking for the same people twice and leaving two answers to reconcile. Pairing
+ * and per-pair exclusions were always the other section's; the roster now joins
+ * them.
+ *
+ * Two ways on, differing only in where they leave the host: *Save as draft* at
+ * their contest list, *Next* on the new contest's participants. Both save, and
+ * both are refused the same way when there is no name.
+ *
+ * No chrome of its own: the panel says where this is, and the actions go in the
  * panel's header where the actions for a whole surface belong.
  */
 export function NewContest() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { refresh: refreshContests } = useContests();
   const nextId = useRef(0);
   const makeRow = (value = ''): Row => ({ id: `r${nextId.current++}`, value });
 
@@ -56,19 +67,10 @@ export function NewContest() {
   const [rangeMin, setRangeMin] = useState('1');
   const [rangeMax, setRangeMax] = useState('10');
   const [uniquePerCategory, setUniquePerCategory] = useState(true);
-  const [participants, setParticipants] = useState<Row[]>([]);
-  const [participantDraft, setParticipantDraft] = useState('');
-
   const [nameError, setNameError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | undefined>();
-  const [submitting, setSubmitting] = useState(false);
-
-  function addParticipant() {
-    const value = participantDraft.trim();
-    if (!value) return;
-    setParticipants((rows) => [...rows, makeRow(value)]);
-    setParticipantDraft('');
-  }
+  /** Which way on is in flight, so only that button says it is working. */
+  const [saving, setSaving] = useState<'list' | 'people' | null>(null);
 
   function addCategory() {
     const value = categoryDraft.trim();
@@ -94,40 +96,66 @@ export function NewContest() {
         range,
         uniquePerCategory,
       },
-      participants: participants.map((p, i) => ({ id: `p${i + 1}`, displayName: p.value })),
     };
   }
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
+  /**
+   * Saves the contest and goes on: to the host's contests, or to the new
+   * contest's own participants and pairing.
+   *
+   * One routine for both ways on, so a nameless contest is refused identically
+   * whichever was pressed — and so going on can never mean going on without
+   * having saved. `createDraft` returns the id, which is what makes the second
+   * destination reachable at all.
+   */
+  async function save(then: 'list' | 'people') {
     setFormError(undefined);
     if (!name.trim()) {
       setNameError(t('newContest.nameRequired'));
       return;
     }
     setNameError(undefined);
-    setSubmitting(true);
+    setSaving(then);
     try {
-      await createDraft(buildContent());
-      navigate('/'); // back to the contest list, where it now shows as a draft
+      const id = await createDraft(buildContent());
+      // The panel names the contest a host is inside from the shared list, which
+      // has never heard of this one. Without this the people open under a sidebar
+      // calling their contest "This draft". Only on the way to the people: the
+      // provider already refetches on arriving at the list, and refreshing here
+      // too would fetch the same list twice.
+      if (then === 'people') refreshContests();
+      // The list, where it now shows as a draft — or straight to the people, which
+      // is the next thing this form no longer asks for.
+      navigate(then === 'people' ? `/review/${id}/people` : '/');
     } catch {
       setFormError(t('newContest.saveError'));
-      setSubmitting(false);
+      setSaving(null);
     }
+  }
+
+  function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    // Enter in a field saves and stops, exactly as it did before this form gained
+    // a way onward. Going on is a deliberate press, not an accident of the keyboard.
+    void save('list');
   }
 
   return (
     <main id="main">
       {/*
-        Save and Cancel go to the panel's header. The Save button is outside the
-        form in the DOM once portalled, so it names the form it belongs to.
+        The actions go to the panel's header. The Save button is outside the form
+        in the DOM once portalled, so it names the form it belongs to — and it
+        stays the submit, which keeps Enter meaning what it has always meant here.
       */}
       <PanelActions>
         <Link to="/" className={styles.cancel}>
           {t('newContest.cancel')}
         </Link>
-        <Button type="submit" form={FORM_ID} disabled={submitting}>
-          {submitting ? t('newContest.saving') : t('newContest.saveDraft')}
+        <Button type="submit" form={FORM_ID} variant="ghost" disabled={saving !== null}>
+          {saving === 'list' ? t('newContest.saving') : t('newContest.saveDraft')}
+        </Button>
+        <Button onClick={() => void save('people')} disabled={saving !== null}>
+          {saving === 'people' ? t('newContest.saving') : t('newContest.next')}
         </Button>
       </PanelActions>
 
@@ -293,69 +321,6 @@ export function NewContest() {
           </label>
         </Card>
 
-        <div className={styles.wide}>
-          <Card>
-            <fieldset className={styles.group}>
-              <legend className={styles.legend}>{t('newContest.participantsLegend')}</legend>
-              <p className={styles.groupHint}>{t('newContest.participantsHint')}</p>
-
-              <div className={styles.addRow}>
-                <input
-                  className={styles.input}
-                  aria-label={t('newContest.newParticipantLabel')}
-                  value={participantDraft}
-                  onChange={(e) => setParticipantDraft(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addParticipant();
-                    }
-                  }}
-                />
-                <Button variant="ghost" onClick={addParticipant}>
-                  {t('newContest.add')}
-                </Button>
-              </div>
-
-              {participants.length === 0 ? (
-                <p className={styles.empty}>{t('newContest.participantsEmpty')}</p>
-              ) : (
-                /* Editable rows, unlike the categories above: the design does not
-                   show participants on this screen, draft review keeps their names
-                   editable, and a person's name is longer and easier to mistype. */
-                <ul className={styles.rows} aria-label={t('newContest.participantsLabel')}>
-                  {participants.map((participant, index) => (
-                    <li key={participant.id} className={styles.row}>
-                      <input
-                        className={styles.input}
-                        aria-label={t('newContest.participantNameLabel', { n: index + 1 })}
-                        value={participant.value}
-                        onChange={(e) =>
-                          setParticipants((rows) =>
-                            rows.map((r) =>
-                              r.id === participant.id ? { ...r, value: e.target.value } : r,
-                            ),
-                          )
-                        }
-                      />
-                      <Button
-                        variant="ghost"
-                        aria-label={t('newContest.removeParticipant', {
-                          name: participant.value || index + 1,
-                        })}
-                        onClick={() =>
-                          setParticipants((rows) => rows.filter((r) => r.id !== participant.id))
-                        }
-                      >
-                        {t('newContest.remove')}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </fieldset>
-          </Card>
-        </div>
       </form>
     </main>
   );

@@ -79,6 +79,42 @@ The publish checklist describes the whole contest being prepared and not one sec
 - **AND** it is still a contest being prepared
 - **AND** they are still on the section they were on
 
+### Requirement: Creating a contest settles its rules and hands over to its people
+The form that starts a contest SHALL be the first of the two sections and SHALL NOT ask who is taking part, so that the same people are not asked for twice. It SHALL offer both a way to save and stop and a way to go on to the participants and pairing of the contest it just saved. Going on SHALL save first, so the host never carries unsaved rules into the next section.
+
+#### Scenario: The form does not ask who is taking part
+- **WHEN** a signed-in host is starting a new contest
+- **THEN** there is nowhere on the form to add a participant
+
+#### Scenario: Going on saves the contest and lands on its people
+- **WHEN** a signed-in host names a new contest, chooses how it is scored, and chooses to go on to the people
+- **THEN** the contest is saved as a contest being prepared
+- **AND** they are on its participants and pairing
+- **AND** what they chose on the form is what the contest being prepared says
+
+#### Scenario: Saving and stopping leaves the host at their contests
+- **WHEN** a signed-in host names a new contest and saves it as a draft
+- **THEN** they are back at their list of contests
+- **AND** the contest is there, marked as being prepared
+
+#### Scenario: Going on is refused without a name, exactly as saving is
+- **WHEN** a signed-in host tries to go on to the people without naming the contest
+- **THEN** they are told a name is required
+- **AND** nothing is saved and they stay on the form
+
+### Requirement: The two sections are named the same from the first form onwards
+While a contest is being set up, the panel SHALL name the same two sections it names once the contest is saved — its rules and its participants and pairing — marking the rules as the step the host is on and the participants as the one that follows saving. A host SHALL therefore meet one pair of names, not two.
+
+#### Scenario: The panel names both steps while the contest is being set up
+- **WHEN** a signed-in host is starting a new contest
+- **THEN** the panel names its rules as the step they are on
+- **AND** it names its participants and pairing as the step that follows saving
+
+#### Scenario: The step that cannot be reached yet is not offered as if it were
+- **WHEN** a signed-in host is starting a new contest they have not saved
+- **THEN** the way to its participants and pairing is shown as not available yet
+- **AND** it cannot be taken
+
 ### Requirement: Both sections are accessible and read in either language
 Each section SHALL be operable by keyboard alone with focus always visible, SHALL be free of accessibility violations, and SHALL read in whichever language the host has chosen, leaving the contest's own name and the participants' names as they were written.
 

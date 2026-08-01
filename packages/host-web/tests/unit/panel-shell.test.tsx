@@ -160,6 +160,25 @@ describe('The panel shell', () => {
     expect(within(nav).getByRole('link', { name: 'Rules' })).not.toHaveAttribute('aria-current');
   });
 
+  /*
+   * The steps a contest is set up in are the two sections it is then prepared in,
+   * under the same names — so a host meets one pair of names from the first form
+   * through to publishing rather than a second vocabulary for the same screens.
+   */
+  it('names the two sections as the steps of setting a contest up', async () => {
+    renderAt('/new');
+
+    const nav = await screen.findByRole('navigation', { name: 'Panel navigation' });
+    expect(within(nav).getByText('Rules')).toBeInTheDocument();
+    expect(within(nav).getByText('Participants & pairing')).toBeInTheDocument();
+    // The second is drawn and said to be unreachable, not quietly missing: there is
+    // nobody to add to a contest that has not been saved.
+    expect(within(nav).getByText(/after saving/)).toBeInTheDocument();
+    expect(
+      within(nav).queryByRole('link', { name: 'Participants & pairing' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('names the section in the header, under the contest', async () => {
     renderAt(`/review/${DRAFT.id}/people`);
 

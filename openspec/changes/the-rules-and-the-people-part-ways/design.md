@@ -66,6 +66,37 @@ This is a better home for it than the aside was. Barring a pair is primary work 
 
 `DraftScope` then draws two `Way`s where it drew one. The existing `shell.reviewDraft` string ("Rules & participants" / "Reglas y participantes") is replaced by `shell.draftRules` and `shell.draftParticipants` in both languages.
 
+### The create form hands the people over rather than asking for them
+
+**Added after review.** With a section of its own for participants, `/new` asking
+for them as well is the same question in two places — and a host who answers it in
+both has to have the answers reconciled. The form keeps the rules and drops the
+roster.
+
+The header becomes **Cancel · Save as draft · Next**. Both save; they differ in
+where they leave the host — *Save as draft* at their contest list, *Next* on the
+new contest's participants and pairing. `Next` therefore needs the id the API
+returns from `createDraft`, which it already returns and the form already
+discarded. Both go through the same validation, so a nameless contest is refused
+identically whichever is pressed.
+
+*Alternative considered:* `Next` alone, with saving implied. Rejected — the sidebar
+note promises "only a name is required to save", and a host who wants to name a
+contest and stop should not have to go forward to do it.
+
+The step names change with it: *Set it up* / *Review & publish* become **Rules** /
+**Participants & pairing**, the two sections' own names. A host now meets one pair
+of names from the first form through to publishing, instead of two vocabularies for
+the same two screens. *Review & publish* was already the weaker of the two, because
+publishing is a button on both sections rather than a screen of its own.
+
+One thing this deliberately does not do: the **assistant** still extracts a whole
+draft from a chat message, participants included, and that keeps working — those
+people appear on the participants section as they always did. Only the form stops
+asking. Two paths that agree until one diverges is this repo's recurring bug shape,
+so it is worth saying plainly that this divergence is the intended one: the form is
+a step in a sequence, the assistant is a single shot at the whole thing.
+
 ### A refused save has to say so where the host is standing
 
 **Found while implementing.** The name is typed on the rules, and `onSave` refused a

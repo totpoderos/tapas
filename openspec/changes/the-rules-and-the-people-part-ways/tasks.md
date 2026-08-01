@@ -39,6 +39,18 @@
 - [x] 6.4 `openspec validate the-rules-and-the-people-part-ways --strict`.
 - [x] 6.5 Live look: seed a draft, open both sections in the browser, change something on each, save once, confirm both changes stored, then publish and land in the control room.
 
+## 8. The form that starts a contest hands the people over
+
+*Added after review of PR #149: with a section of its own for participants, the create form asking for them too is the same question twice.*
+
+- [x] 8.1 Extend `tests/e2e/host-create-contest.feature` — no participants on the form, Next saves and lands on the people, Save as draft saves and stops, Next refused without a name, the panel names the two steps. **Confirmed with the user before implementing.**
+- [x] 8.2 Remove the participants card, its state and its handlers from `new-contest.tsx`; `buildContent()` stops emitting a roster.
+- [x] 8.3 Add **Next** beside *Save as draft*: both validate and save, `createDraft`'s returned id routes Next to `/review/:id/people` and Save as draft to `/`.
+- [x] 8.4 Rename the sidebar's steps in `NewContestScope` to the two sections' own names, reusing `shell.draftRules` / `shell.draftParticipants`.
+- [x] 8.5 Remove the now-unused `newContest.participants*` strings from both languages and add the one for Next; check nothing else reads them.
+- [x] 8.6 Move the participant assertions out of `new-contest.test.tsx` and `host-create-contest.spec.ts` — the participants section already covers them — and add the handover ones.
+- [x] 8.7 Full local gate again, plus a live look at the form and the handover.
+
 ## 7. Landing it
 
 - [x] 7.1 ~~Rebase onto `the-panel-gets-a-modern-shell`~~ — not needed. *That change's code had already shipped to `main`; its two open tasks are a manual accessibility pass and the archive, neither of which touches a file. Branched off `main` directly, so `sidebar.tsx` had no divergence to reconcile.*

@@ -11,12 +11,13 @@ One screen is not merely off-design, it is hard to work in. Preparing a contest 
 - **Edits carry across the two sections, and one save stores them all.** Moving from Rules to Participants does not save, does not warn, and does not lose anything: the draft is read once on the way in and held while the host works on either section. Saving from either writes the whole thing.
 - **Saving, publishing and the publish checklist stay on both.** The checklist describes the whole draft, not one section of it, so it belongs wherever the host is standing; and a host who has just finished the roster should not have to navigate somewhere else to go live. What the draft still needs also keeps its place in the navigation, where it is visible without scrolling.
 - **Publishing from either section leaves from the same place.** A published contest still lands in its control room with its join code waiting.
+- **The form that starts a contest stops asking who is taking part, and hands over instead.** With a section of its own for the people, the create form asking for them too is the same question twice — and the answers then have to be reconciled. It keeps the rules, gains a **Next** that saves and goes straight to the new contest's participants and pairing, and keeps *Save as draft* for a host who is done for now. The panel's two steps take the two sections' own names, so a host meets one pair of names from the first form onwards rather than two.
 - Both sections read in English and Spanish, are operable by keyboard, and are held to the same axe-core gate as the screen they replace.
 
 Not included, deliberately:
 
 - **A "Review & publish" third section.** The mockup's four-step sidebar belongs to the *new contest* wizard, which this change does not build. Splitting publishing off would put a screen between a ready draft and going live for no gain.
-- **Splitting the new-contest form.** Creating a contest stays one form and keeps its two honest steps in the sidebar.
+- **Splitting the new-contest form.** Creating a contest stays one form. It sheds its participants and gains a way onward, but its rules are not split further into the mockup's separate *Name* and *Rules* steps.
 - **Rules and Participants ways-in for a published contest.** A live contest's rules are read-only and the control room already shows them, as "Rules in force". These sections exist for a draft.
 - Any change to what a draft *is*, to the API that stores it, or to what publishing checks.
 
