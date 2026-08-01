@@ -20,6 +20,10 @@ maps an aged-out session to an explanation, so the work simply fails.
   performance one: the API revokes a refresh token as it spends it, so a second
   simultaneous renewal presents a token that has just been revoked and would end
   the session it was meant to save.
+- A host with the app open in more than one window renews one window at a time.
+  The windows share the means of renewing, so side-by-side renewals leave all of
+  them signed out — measured, not predicted. A browser-wide lock is what makes
+  the per-window one sufficient.
 - A renewal that is genuinely refused — the seven days are up, or the session was
   signed out elsewhere — still lands the host on sign-in, as it does today.
 

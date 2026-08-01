@@ -121,3 +121,101 @@ describe('When the session has aged out', () => {
     expect(renewalsCalled()).toBe(1);
   });
 });
+
+describe('When another tab is renewing at the same moment', () => {
+  beforeEach(() => vi.unstubAllGlobals());
+  afterEach(() => vi.unstubAllGlobals());
+
+  /**
+   * The promise slot only spans one tab. Two tabs renewing together were
+   * measured signing *both* of themselves out: the winner is given fresh
+   * cookies, the loser is refused — and the API clears both cookies as it
+   * refuses, into a jar the tabs share. The loser's refusal wipes the winner's
+   * new session.
+   *
+   * A browser-wide lock is the same single-flight hoisted out of module scope,
+   * so the second tab renews after the first rather than beside it — and by
+   * then the cookie it presents is the fresh one, so it is never refused and
+   * nothing is cleared.
+   */
+  it('takes the renewal under a browser-wide lock', async () => {
+    const order: string[] = [];
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: async (name: string, work: () => Promise<boolean>) => {
+          order.push(`held:${name}`);
+          const outcome = await work();
+          order.push('released');
+          return outcome;
+        },
+      },
+    });
+    const contests = inTurn(agedOut, () => ok([]));
+    serve((url) => {
+      if (url === '/auth/refresh') {
+        order.push('renewing');
+        return ok({ hostId: 'h1', role: 'host' });
+      }
+      return contests();
+    });
+
+    await expect(listContests()).resolves.toEqual([]);
+
+    // The renewal happens inside the lock, not merely near it.
+    expect(order).toEqual(['held:tapas-host-session-renewal', 'renewing', 'released']);
+  });
+
+  it('does not renew again when the tab it waited for already did', async () => {
+    /*
+     * Measured against a real API, and it is why taking turns is not the whole
+     * fix. Two tabs queue; both renewals are answered 200; the second rotation
+     * revokes the session the first was just given, and the first tab's retry —
+     * carrying the access token from its own renewal — is refused.
+     *
+     * The tab that waited must therefore notice that the wait was the point,
+     * and renew nothing.
+     */
+    localStorage.setItem('tapas-host-session-renewed', 'before');
+    vi.stubGlobal('navigator', {
+      locks: {
+        request: async (_name: string, work: () => Promise<boolean>) => {
+          // While this tab queued, the other one renewed and left its mark.
+          localStorage.setItem('tapas-host-session-renewed', 'after');
+          return work();
+        },
+      },
+    });
+    const contests = inTurn(agedOut, () => ok([]));
+    serve((url) => (url === '/auth/refresh' ? ok({}) : contests()));
+
+    // The work still gets done — on the cookies the other tab put in the jar.
+    await expect(listContests()).resolves.toEqual([]);
+    expect(renewalsCalled()).toBe(0);
+  });
+
+  it('renews when the mark is unchanged, and leaves a new one for the other tabs', async () => {
+    localStorage.setItem('tapas-host-session-renewed', 'unchanged');
+    vi.stubGlobal('navigator', {
+      locks: { request: (_name: string, work: () => Promise<boolean>) => work() },
+    });
+    const contests = inTurn(agedOut, () => ok([]));
+    serve((url) => (url === '/auth/refresh' ? ok({}) : contests()));
+
+    await expect(listContests()).resolves.toEqual([]);
+    expect(renewalsCalled()).toBe(1);
+    // Without this the next tab to queue would renew again, which is the whole
+    // defect this pair of tests exists for.
+    expect(localStorage.getItem('tapas-host-session-renewed')).not.toBe('unchanged');
+  });
+
+  it('still renews where the browser offers no such lock', async () => {
+    // Nothing here depends on the lock existing: an older browser keeps the
+    // per-tab single-flight and the behaviour it had.
+    vi.stubGlobal('navigator', {});
+    const contests = inTurn(agedOut, () => ok([]));
+    serve((url) => (url === '/auth/refresh' ? ok({ hostId: 'h1', role: 'host' }) : contests()));
+
+    await expect(listContests()).resolves.toEqual([]);
+    expect(renewalsCalled()).toBe(1);
+  });
+});

@@ -71,10 +71,32 @@ browser tab, not one per component tree. A ref inside the provider would give a
 second renewal to anything rendered outside it, which is where the accept-invite
 screen lives.
 
-*Not addressed: two tabs.* They have separate JavaScript and a shared cookie
-jar, so both can renew and one loses its token. That is a real hole, and closing
-it needs cross-tab coordination (a `BroadcastChannel` or a lock in
-`localStorage`) that is a change of its own. Noted as a risk, not fixed here.
+### A Web Lock over that, and a mark the tabs leave each other
+
+A promise in one tab's memory says nothing to another tab, and the two share a
+cookie jar. `navigator.locks.request` is the same single-flight in browser scope
+rather than module scope, so the renewal is taken one tab at a time — and a mark
+in `localStorage`, written on every successful renewal, is how the tab that
+waited learns it no longer needs to renew at all.
+
+Both parts are load-bearing, and it took measuring to find out why. The lock
+alone still lost a session: a *serialised* second rotation revokes the token the
+first tab was about to retry with. The mark alone would be a check with no
+atomicity between the looking and the acting. See the risk below for the wire
+logs on either side of it.
+
+The module slot stays underneath both. It answers the common case — one tab,
+several requests — without going near the lock manager, and it is the whole
+mechanism where Web Locks or storage are unavailable.
+
+*Alternative — `BroadcastChannel`, or a lock built in `localStorage`.* Rejected.
+Both mean writing the mutual exclusion by hand, including its timeouts and its
+crashed-tab recovery, which is exactly what the lock manager already does
+correctly.
+
+All of this was scoped out when the design was written, and pulled back in after
+the two-tab case was measured rather than reasoned about — twice, since the
+first fix for it was also reasoned about rather than measured.
 
 ### Retry the original request once, and only once
 
@@ -114,17 +136,43 @@ excluded by path.
   Both tabs end up signed out, not one. Measured, not reasoned: winner renewed
   200, then its very next request was 401 and it could not renew again.
 
-  This is not a regression — today both tabs are signed out at fifteen minutes
-  regardless, so the change is still strictly an improvement, and a single tab
-  (the ordinary case, and the reported defect) is fixed outright. But the honest
-  statement is "two tabs still lose the session, just as they do today", not
-  "one tab survives".
+  **Closed, in this change — but not by the lock alone.** The first attempt was
+  a Web Lock and nothing else, on the reasoning that a serialised second renewal
+  would present the fresh cookie, succeed, and cost only a redundant rotation
+  this section called harmless. Measured again, that was wrong, and in an
+  instructive way. The wire log of two tabs renewing under the lock:
 
-  The fix is cross-tab mutual exclusion, and the Web Locks API
-  (`navigator.locks.request`) gives it directly — the same single-flight shape,
-  hoisted from module scope to browser scope. Left out of this change on
-  purpose, and only because it deserves its own tests rather than because it is
-  hard.
+  ```
+  A /auth/me      -> 401
+  A /auth/refresh -> 200     (revokes jti1, issues jti2)
+  B /auth/refresh -> 200     (revokes jti2, issues jti3)
+  A /auth/me      -> 401     (A's retry still carries jti2)
+  ```
+
+  Neither renewal was refused. The damage was the *redundant* one: access and
+  refresh share a `jti`, and every rotation revokes the previous session, so B's
+  unnecessary renewal invalidated the token A had just been given and was about
+  to retry with. Taking turns moved the casualty; it did not remove one.
+
+  What closes it is not renewing twice. Each tab notes a mark in `localStorage`
+  when it renews; a tab that waited compares the mark against what it saw before
+  queueing, and a change means another tab already renewed into the jar they
+  share — so it renews nothing and simply retries. The lock is still needed: it
+  is what makes "compare, then act" atomic between tabs.
+
+  The same measurement afterwards:
+
+  ```
+  B /auth/me      -> 401
+  A /auth/me      -> 401
+  B /auth/refresh -> 200     one rotation, total
+  B /auth/me      -> 200
+  A /auth/me      -> 200     A never refreshed; it used B's cookies
+  ```
+
+  A browser with no Web Locks, or no storage to leave the mark in, falls back to
+  the per-tab slot and the two-tab hole. That is the behaviour everything had
+  before this change, so the fallback makes nothing worse.
 
 - **A session now lives as long as the host keeps working** → Rotation issues a
   fresh 7-day refresh token each time, so an active host is never signed out.
@@ -153,5 +201,5 @@ sign-in screen sign in as they do now.
 
 - Should a host whose session truly ended be told so on the sign-in screen,
   rather than silently arriving there? Out of scope here; worth its own change.
-- Cross-tab coordination for the single-flight: worth doing before or after
-  seeing whether hosts actually work in two tabs?
+- None outstanding. The cross-tab question this section once left open was
+  answered by measuring it, and closed in this change.

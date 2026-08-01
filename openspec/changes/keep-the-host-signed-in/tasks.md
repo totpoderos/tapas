@@ -46,6 +46,26 @@
       not a regression (both tabs die at fifteen minutes today) but the risk as
       first written was wrong.
 
+## 5. Closing the two-tab hole
+
+- [x] 5.1 Write the failing test: the renewal is taken *inside* a browser-wide
+      lock, not merely near it — assert the ordering, since a test that only
+      checks the lock was asked for would pass on a lock that wraps nothing.
+- [x] 5.2 Write the fallback test: a browser offering no such lock still renews,
+      on the per-tab slot it had before.
+- [x] 5.3 Take the renewal under `navigator.locks`, keeping the module-level
+      slot underneath it for the single-tab case and for browsers without it.
+- [x] 5.4 Record the requirement in the delta spec, and turn the design's risk
+      from a known hole into what was measured and what closed it.
+- [x] 5.5 Re-verify by hand: two tabs, both renewals scheduled to the same
+      wall-clock instant, and confirm both survive where both died before.
+      **The lock alone did not fix it** — measured, not assumed. Both renewals
+      were answered 200 and the *redundant* one revoked the token the other tab
+      was retrying with, so a tab still lost its session.
+- [x] 5.6 Add the shared mark so a tab that waited renews nothing, and the test
+      that fails without it (asserts zero renewals, not just a working call).
+- [x] 5.7 Re-measure: one rotation total across both tabs, both still signed in.
+
 ## 4. Landing it
 
 - [x] 4.1 Branch, commit, PR.

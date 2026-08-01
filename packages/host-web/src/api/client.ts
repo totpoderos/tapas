@@ -39,20 +39,84 @@ const NEVER_RENEWED_FOR = new Set(['/auth/login', '/auth/refresh']);
  * and a screen outside the session provider (accepting an invitation) has to
  * share the same one. The slot is cleared when the renewal settles, so the next
  * expiry starts a fresh one.
- *
- * Two tabs still have a promise each and a cookie jar between them, so one can
- * lose its token to the other — closing that needs cross-tab coordination, and
- * is its own change.
  */
 let renewal: Promise<boolean> | null = null;
 
+/**
+ * The same exclusion across tabs, which a promise in one tab's memory cannot
+ * give. Two tabs renewing together were measured signing *both* of themselves
+ * out: the winner is given fresh cookies, the loser is refused — and the API
+ * clears both cookies as it refuses, into a jar the two tabs share, so the
+ * loser's refusal wipes the winner's new session.
+ *
+ * Held across the renewal, so the second tab renews after the first rather than
+ * beside it. By then the cookie it presents is the fresh one, so it is not
+ * refused and nothing is cleared. It does spend a second rotation the session
+ * did not need; harmless, since the jar the tabs share ends up holding the
+ * newest token either way.
+ *
+ * Absent in older browsers and in the test environment, where the per-tab slot
+ * above is what there is — which is the behaviour this had before the lock.
+ */
+const RENEWAL_LOCK = 'tapas-host-session-renewal';
+
+async function underRenewalLock(work: () => Promise<boolean>): Promise<boolean> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks) return work();
+  // Awaited rather than returned: the lock manager holds the lock until the
+  // callback's promise settles, but the DOM types describe the callback as
+  // returning a plain value, so what they infer here is a promise of a promise.
+  return await locks.request(RENEWAL_LOCK, work);
+}
+
+/**
+ * What the tabs tell each other: a fresh mark every time one of them renews.
+ *
+ * Taking turns is not enough on its own, which cost a measurement to learn. Two
+ * tabs renewing one after the other are both answered 200 — and the second
+ * rotation revokes the session the first was just given, so the first tab's
+ * retry carries an access token that has stopped being valid and is refused.
+ * Taking turns moved the casualty rather than removing one.
+ *
+ * So a tab that waited compares this mark against what it saw before queueing.
+ * A different mark means another tab has already renewed and its cookies are in
+ * the jar they share — which is the only thing this tab needed.
+ *
+ * Storage that refuses to answer costs a redundant rotation, which is where
+ * this started. It never costs anything in a single tab.
+ */
+const RENEWAL_MARK = 'tapas-host-session-renewed';
+
+function renewalMark(): string {
+  try {
+    return localStorage.getItem(RENEWAL_MARK) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function markRenewed(): void {
+  try {
+    localStorage.setItem(RENEWAL_MARK, globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+  } catch {
+    // Nothing to tell the other tabs with. See above.
+  }
+}
+
 /** Spends the refresh cookie for a fresh session. Answers whether it worked; never throws. */
 function renewSession(): Promise<boolean> {
-  renewal ??= send('/auth/refresh', 'POST')
-    .then(
-      (response) => response.ok,
-      () => false,
-    )
+  const markBeforeQueueing = renewalMark();
+  renewal ??= underRenewalLock(async () => {
+    // Somebody else renewed while this tab waited its turn. Renewing again
+    // would revoke what they were given, and take this tab's own retry with it.
+    if (renewalMark() !== markBeforeQueueing) return true;
+    const response = await send('/auth/refresh', 'POST');
+    if (response.ok) markRenewed();
+    return response.ok;
+  })
+    // A lock that cannot be taken must not become an exception thrown from
+    // whatever ordinary request happened to find the session aged out.
+    .catch(() => false)
     .finally(() => {
       renewal = null;
     });
