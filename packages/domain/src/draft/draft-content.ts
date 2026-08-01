@@ -1,4 +1,4 @@
-import type { AntiBias, Attribution, Person, ScoringConfig } from '../model.js';
+import type { ContestFormat, Person, ScoringConfig } from '../model.js';
 
 /** When a contest stops accepting votes. */
 export type CloseRule = { readonly when: 'all_sent' | 'host_trigger' } | {
@@ -17,8 +17,7 @@ export type RevealStrategy = { readonly when: 'host_trigger' } | { readonly when
 export interface DraftContent {
   readonly name: string;
   readonly theme?: string;
-  readonly attribution?: Attribution;
-  readonly antiBias?: AntiBias;
+  readonly format?: ContestFormat;
   readonly scoring?: ScoringConfig;
   readonly participants?: readonly Person[];
   readonly closeRule?: CloseRule;

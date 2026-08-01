@@ -29,10 +29,9 @@ function ok(draft: ContestDraft): MaterializedContest {
 const cats = [{ id: 'c1', name: 'Taste' }];
 
 describe('compile — golden corpus', () => {
-  it('4 people, 2 couples, per person, couples barred, ranked', () => {
+  it('4 people, 2 couples, on their own with partners kept apart, ranked', () => {
     const contest = ok({
-      attribution: 'per_person',
-      antiBias: 'couples',
+      format: 'solo_with_partners',
       scoring: { categories: cats, range: { type: 'auto' }, uniquePerCategory: true },
       participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
     });
@@ -55,10 +54,9 @@ describe('compile — golden corpus', () => {
     });
   });
 
-  it('3 people, per person, no anti-bias', () => {
+  it('3 people, everyone on their own', () => {
     const contest = ok({
-      attribution: 'per_person',
-      antiBias: 'none',
+      format: 'solo',
       scoring: { categories: cats, range: { type: 'auto' }, uniquePerCategory: false },
       participants: [person('A'), person('B'), person('C')],
     });
@@ -75,21 +73,60 @@ describe('compile — golden corpus', () => {
     });
   });
 
-  it('per couple with a single, couples barred, fixed range', () => {
+  it('3 people with a couple among them, everyone on their own — the partners keep nobody apart', () => {
     const contest = ok({
-      attribution: 'per_couple',
-      antiBias: 'couples',
-      scoring: { categories: cats, range: { type: 'fixed', min: 1, max: 10 }, uniquePerCategory: false },
+      format: 'solo',
+      scoring: { categories: cats, range: { type: 'auto' }, uniquePerCategory: false },
       participants: [person('A', 'B'), person('B', 'A'), person('I')],
     });
 
     expect(serialize(contest)).toEqual({
       dishes: [
-        { id: 'D-A-B', submitters: ['A', 'B'] },
+        { id: 'D-A', submitters: ['A'] },
+        { id: 'D-B', submitters: ['B'] },
         { id: 'D-I', submitters: ['I'] },
       ],
-      allowedVoters: { 'D-A-B': ['I'], 'D-I': ['A', 'B'] },
-      ranges: { A: { min: 1, max: 10 }, B: { min: 1, max: 10 }, I: { min: 1, max: 10 } },
+      // A scores B's dish and B scores A's: under this format a partner is a
+      // roster fact, not an exclusion.
+      allowedVoters: { 'D-A': ['B', 'I'], 'D-B': ['A', 'I'], 'D-I': ['A', 'B'] },
+      ranges: { A: { min: 1, max: 2 }, B: { min: 1, max: 2 }, I: { min: 1, max: 2 } },
+      uniquePerCategory: false,
+    });
+  });
+
+  it('6 people in 3 couples cooking together, fixed range', () => {
+    const contest = ok({
+      format: 'couples',
+      scoring: { categories: cats, range: { type: 'fixed', min: 1, max: 10 }, uniquePerCategory: false },
+      participants: [
+        person('A', 'B'),
+        person('B', 'A'),
+        person('C', 'D'),
+        person('D', 'C'),
+        person('E', 'F'),
+        person('F', 'E'),
+      ],
+    });
+
+    expect(serialize(contest)).toEqual({
+      dishes: [
+        { id: 'D-A-B', submitters: ['A', 'B'] },
+        { id: 'D-C-D', submitters: ['C', 'D'] },
+        { id: 'D-E-F', submitters: ['E', 'F'] },
+      ],
+      allowedVoters: {
+        'D-A-B': ['C', 'D', 'E', 'F'],
+        'D-C-D': ['A', 'B', 'E', 'F'],
+        'D-E-F': ['A', 'B', 'C', 'D'],
+      },
+      ranges: {
+        A: { min: 1, max: 10 },
+        B: { min: 1, max: 10 },
+        C: { min: 1, max: 10 },
+        D: { min: 1, max: 10 },
+        E: { min: 1, max: 10 },
+        F: { min: 1, max: 10 },
+      },
       uniquePerCategory: false,
     });
   });

@@ -9,19 +9,13 @@ import {
 
 // --- helpers ---
 
-function person(id: string, partnerId?: string, noScoreWith?: string[]): Person {
-  return {
-    id,
-    displayName: id,
-    ...(partnerId ? { partnerId } : {}),
-    ...(noScoreWith ? { noScoreWith } : {}),
-  };
+function person(id: string, partnerId?: string): Person {
+  return { id, displayName: id, ...(partnerId ? { partnerId } : {}) };
 }
 
 function makeDraft(over: Partial<ContestDraft> & { participants: Person[] }): ContestDraft {
   return {
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: false },
     ...over,
   };
@@ -39,32 +33,31 @@ function voters(c: MaterializedContest, dishId: string): string[] {
 
 const couples4 = [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')];
 
-// --- attribution ---
+// --- who cooks ---
 
-describe('compile — attribution', () => {
-  it('per_person makes one dish per person', () => {
+describe('compile — who cooks', () => {
+  it('solo makes one dish per person', () => {
     const c = ok(compile(makeDraft({ participants: [person('A'), person('B'), person('C')] })));
     expect(c.dishes).toHaveLength(3);
     expect(c.dishes.every((d) => d.submitterIds.length === 1)).toBe(true);
   });
 
-  it('per_couple makes one dish per couple and one per single', () => {
-    const c = ok(
-      compile(
-        makeDraft({
-          attribution: 'per_couple',
-          participants: [...couples4, person('I'), person('J')],
-        }),
-      ),
-    );
-    expect(c.dishes).toHaveLength(4); // 2 couples + 2 singles
-    const couple = c.dishes.find((d) => d.submitterIds.length === 2);
-    expect(couple?.submitterIds).toHaveLength(2);
+  it('solo_with_partners still makes one dish per person', () => {
+    const c = ok(compile(makeDraft({ format: 'solo_with_partners', participants: couples4 })));
+    expect(c.dishes).toHaveLength(4);
+    expect(c.dishes.every((d) => d.submitterIds.length === 1)).toBe(true);
   });
 
-  it('per_couple with only couples makes half as many dishes', () => {
-    const c = ok(compile(makeDraft({ attribution: 'per_couple', participants: couples4 })));
+  it('a partner under solo changes nothing about who cooks', () => {
+    const c = ok(compile(makeDraft({ participants: couples4 })));
+    expect(c.dishes).toHaveLength(4);
+    expect(c.dishes.every((d) => d.submitterIds.length === 1)).toBe(true);
+  });
+
+  it('couples makes one dish per couple', () => {
+    const c = ok(compile(makeDraft({ format: 'couples', participants: couples4 })));
     expect(c.dishes).toHaveLength(2);
+    expect(c.dishes.every((d) => d.submitterIds.length === 2)).toBe(true);
   });
 
   it('dish ids are unique', () => {
@@ -73,51 +66,60 @@ describe('compile — attribution', () => {
   });
 });
 
-// --- anti-bias ---
+// --- who may score ---
 
-describe('compile — anti-bias none', () => {
+describe('compile — solo', () => {
   it('lets everyone score every dish but their own', () => {
     const c = ok(compile(makeDraft({ participants: [person('A'), person('B'), person('C')] })));
     expect(voters(c, 'D-A')).toEqual(['B', 'C']);
     expect(voters(c, 'D-B')).toEqual(['A', 'C']);
     expect(voters(c, 'D-C')).toEqual(['A', 'B']);
   });
+
+  it('keeps nobody apart even when partners are recorded', () => {
+    const c = ok(compile(makeDraft({ participants: couples4 })));
+    expect(voters(c, 'D-A')).toEqual(['B', 'C', 'D']);
+    expect(voters(c, 'D-B')).toEqual(['A', 'C', 'D']);
+  });
 });
 
-describe('compile — anti-bias couples', () => {
+describe('compile — solo_with_partners', () => {
   it('bars a judge from their partner’s dish', () => {
-    const c = ok(compile(makeDraft({ antiBias: 'couples', participants: couples4 })));
+    const c = ok(compile(makeDraft({ format: 'solo_with_partners', participants: couples4 })));
     expect(voters(c, 'D-A')).toEqual(['C', 'D']); // not A (own) nor B (partner)
     expect(voters(c, 'D-B')).toEqual(['C', 'D']);
   });
 
   it('is symmetric: if A can’t score B’s dish, B can’t score A’s', () => {
-    const c = ok(compile(makeDraft({ antiBias: 'couples', participants: couples4 })));
+    const c = ok(compile(makeDraft({ format: 'solo_with_partners', participants: couples4 })));
     expect(voters(c, 'D-A').includes('B')).toBe(false);
     expect(voters(c, 'D-B').includes('A')).toBe(false);
   });
+
+  it('leaves somebody without a partner scoring everyone else', () => {
+    const c = ok(
+      compile(makeDraft({ format: 'solo_with_partners', participants: [...couples4, person('I')] })),
+    );
+    expect(voters(c, 'D-I')).toEqual(['A', 'B', 'C', 'D']);
+    expect(voters(c, 'D-A')).toEqual(['C', 'D', 'I']);
+  });
 });
 
-describe('compile — anti-bias arbitrary_pairs', () => {
-  it('bars a listed pair mutually, even if declared one-directionally', () => {
-    const c = ok(
-      compile(
-        makeDraft({
-          antiBias: 'arbitrary_pairs',
-          participants: [person('A', undefined, ['C']), person('B'), person('C')],
-        }),
-      ),
-    );
-    expect(voters(c, 'D-A')).toEqual(['B']); // not A (own), not C (barred)
-    expect(voters(c, 'D-C')).toEqual(['B']); // symmetric: not A
-    expect(voters(c, 'D-B')).toEqual(['A', 'C']); // B unaffected
+describe('compile — couples', () => {
+  it('keeps a couple off their own shared dish without a rule of its own', () => {
+    const c = ok(compile(makeDraft({ format: 'couples', participants: couples4 })));
+    expect(voters(c, 'D-A-B')).toEqual(['C', 'D']);
+    expect(voters(c, 'D-C-D')).toEqual(['A', 'B']);
   });
 
-  it('ignores noScoreWith when the mode is not arbitrary_pairs', () => {
+  it('gives both partners exactly the same dishes to score', () => {
     const c = ok(
-      compile(makeDraft({ antiBias: 'none', participants: [person('A', undefined, ['C']), person('B'), person('C')] })),
+      compile(makeDraft({ format: 'couples', participants: [...couples4, person('E', 'F'), person('F', 'E')] })),
     );
-    expect(voters(c, 'D-A')).toEqual(['B', 'C']);
+    const openTo = (voter: string) =>
+      c.dishes.filter((d) => voters(c, d.id).includes(voter)).map((d) => d.id).sort();
+    expect(openTo('A')).toEqual(openTo('B'));
+    expect(openTo('A')).toHaveLength(2);
   });
 });
 
@@ -162,11 +164,21 @@ describe('compile — fixed range', () => {
 
 describe('compile — auto range', () => {
   it('resolves to 1..(dishes the judge can score)', () => {
-    const c = ok(compile(makeDraft({ antiBias: 'couples', participants: [...couples4, person('I'), person('J')] })));
-    // coupled judges are barred from their partner’s dish → score 4 of 6
+    const c = ok(
+      compile(makeDraft({ format: 'solo_with_partners', participants: [...couples4, person('I'), person('J')] })),
+    );
+    // partnered judges are barred from their partner’s dish → score 4 of 6
     expect(c.scoreRangeByVoter.get('A')).toEqual({ min: 1, max: 4 });
-    // singles are barred from none → score 5 of 6
+    // those without a partner are barred from none → score 5 of 6
     expect(c.scoreRangeByVoter.get('I')).toEqual({ min: 1, max: 5 });
+  });
+
+  it('counts dishes, not people, under couples', () => {
+    const c = ok(
+      compile(makeDraft({ format: 'couples', participants: [...couples4, person('E', 'F'), person('F', 'E')] })),
+    );
+    // 3 dishes, of which a judge's own couple's is not one → 2
+    expect(c.scoreRangeByVoter.get('A')).toEqual({ min: 1, max: 2 });
   });
 
   it('works with repeats allowed (auto range, not unique)', () => {
@@ -203,8 +215,29 @@ describe('compile — validation', () => {
     if (!r.ok) expect(r.error.code).toBe('INCONSISTENT_PARTNER');
   });
 
+  it('rejects a couples contest where somebody has no partner', () => {
+    const r = compile(makeDraft({ format: 'couples', participants: [...couples4, person('E')] }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('UNPARTNERED_IN_COUPLES');
+  });
+
+  it('accepts somebody without a partner under the other two formats', () => {
+    for (const format of ['solo', 'solo_with_partners'] as const) {
+      const r = compile(makeDraft({ format, participants: [...couples4, person('E')] }));
+      expect(r.ok).toBe(true);
+    }
+  });
+
   it('rejects a contest where a judge could score nothing', () => {
-    const r = compile(makeDraft({ antiBias: 'couples', participants: [person('A', 'B'), person('B', 'A')] }));
+    const r = compile(
+      makeDraft({ format: 'solo_with_partners', participants: [person('A', 'B'), person('B', 'A')] }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');
+  });
+
+  it('rejects a single couple cooking together, who would have only their own dish', () => {
+    const r = compile(makeDraft({ format: 'couples', participants: [person('A', 'B'), person('B', 'A')] }));
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');
   });
@@ -234,7 +267,7 @@ describe('compile — materialized output', () => {
   });
 
   it('is deterministic — same draft compiles to an identical result', () => {
-    const draft = makeDraft({ antiBias: 'couples', participants: [...couples4, person('I'), person('J')] });
+    const draft = makeDraft({ format: 'solo_with_partners', participants: [...couples4, person('I'), person('J')] });
     expect(compile(draft)).toEqual(compile(draft));
   });
 });

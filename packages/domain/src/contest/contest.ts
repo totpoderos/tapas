@@ -75,11 +75,9 @@ export class Contest {
 
 /** A draft is publishable only once it carries the full rule-space configuration. */
 function toContestDraft(content: DraftContent): ContestDraft | null {
-  if (!content.attribution || !content.antiBias || !content.scoring || !content.participants)
-    return null;
+  if (!content.format || !content.scoring || !content.participants) return null;
   return {
-    attribution: content.attribution,
-    antiBias: content.antiBias,
+    format: content.format,
     scoring: content.scoring,
     participants: content.participants,
   };
