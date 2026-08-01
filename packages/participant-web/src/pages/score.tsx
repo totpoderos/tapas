@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ArrowRight, CheckCircle, Info } from '@phosphor-icons/react/dist/ssr';
@@ -6,7 +6,8 @@ import { ConfirmSheet } from '../confirm-sheet';
 import { Nav } from '../nav';
 import { PlainScreen } from '../plain-screen';
 import { ScoreTrack } from '../score-track';
-import { WaysOnward } from '../ways-onward';
+import { BottomBar, type VoteStanding } from '../bottom-bar';
+import { standingOf } from '../use-vote-standing';
 import styles from './score.module.css';
 import { ApiError, getBallot, getMyScores, isContestDeleted, isSignedOut, saveScore, sendVote, type Ballot, type Score as ScoreEntry } from '../api/client';
 
@@ -167,6 +168,14 @@ export function Score() {
   const total = ballot ? ballot.dishes.length * ballot.categories.length : 0;
   const complete = total > 0 && Object.keys(scores).length === total;
 
+  /*
+   * This screen already holds both facts the mark is made of, so it derives it
+   * rather than reading them a second time through `useVoteStanding`.
+   */
+  const standing: VoteStanding =
+    state.kind === 'sent' ? 'sent' : ballot ? standingOf(ballot.dishes.length, 'draft') : 'none';
+
+
   /** Is every category of this dish scored? What the progress rail is drawn from. */
   const dishDone = (dishId: string) =>
     !!ballot && ballot.categories.every((c) => scores[key(dishId, c.id)] !== undefined);
@@ -238,7 +247,7 @@ export function Score() {
             : undefined
         }
       />
-      <main id="main" className="pt-main">
+      <main id="main" className="pt-main pt-barred">
       {state.kind === 'loading' && (
         <p role="status" className="pt-note">
           {t('score.loadingBallot')}
@@ -280,8 +289,15 @@ export function Score() {
           )}
 
           <p className={styles.sentNote}>{t('score.resultsLater')}</p>
+          {/*
+            The handoff draws this as the primary pill (screen 10), which on a
+            receipt with nothing else to press it is. It stays a LINK — it goes
+            somewhere, so the browser's own back control works and it opens the
+            way any link can.
+          */}
           <Link to="/reveal" className={styles.sentLink}>
-            {t('score.seeResults')}
+            <span>{t('score.seeResults')}</span>
+            <ArrowRight size={20} weight="duotone" aria-hidden="true" />
           </Link>
         </div>
       )}
@@ -340,11 +356,12 @@ export function Score() {
           onSend={() => void onSend()}
         />
       )}
-      {/* Always reachable from here, however they arrived — a link, the back
-          button, a reload, or the address typed straight in. At the foot, under
-          whichever screen is showing, rather than above it. */}
-      <WaysOnward from="score" />
       </main>
+      {/* Always reachable from here, however they arrived — a link, the back
+          button, a reload, or the address typed straight in. Held at the foot of
+          the screen rather than at the bottom of the page, which on a ballot of
+          five dishes is not the same place. */}
+      <BottomBar current="score" standing={standing} />
     </>
   );
 }
@@ -355,11 +372,22 @@ export function Score() {
  * The trigger stays on the screen while the sheet is open rather than being
  * swapped out for it: declining has to put the participant back exactly where
  * they were, and the cheapest way to keep that true is never to have moved.
+ *
+ * It docks above the bar on a fade, with its reason beside it. Two things follow
+ * from that. The send cannot scroll away from a ballot longer than the phone —
+ * which is every ballot of five dishes — and the reason travels WITH it, so a
+ * button that will not work and the sentence explaining why are never separated
+ * by a screenful of list.
+ *
+ * The sheet is a sibling of the rail rather than a child: it is fixed and it
+ * belongs over everything, and nesting it inside another fixed, z-indexed box
+ * would make its stacking depend on that box's.
  */
 function SendControls({
   complete,
   confirming,
   sending,
+  reason,
   onAsk,
   onCancel,
   onSend,
@@ -367,6 +395,7 @@ function SendControls({
   complete: boolean;
   confirming: boolean;
   sending: boolean;
+  reason?: ReactNode;
   onAsk: () => void;
   onCancel: () => void;
   onSend: () => void;
@@ -375,9 +404,20 @@ function SendControls({
   const ask = useRef<HTMLButtonElement>(null);
   return (
     <>
-      <button ref={ask} type="button" className={styles.send} disabled={!complete} onClick={onAsk}>
-        {t('score.send')}
-      </button>
+      <div className={styles.dock}>
+        <div className={styles.dockInner}>
+          {reason}
+          <button
+            ref={ask}
+            type="button"
+            className={styles.send}
+            disabled={!complete}
+            onClick={onAsk}
+          >
+            {t('score.send')}
+          </button>
+        </div>
+      </div>
       {confirming && (
         <ConfirmSheet
           title={t('score.confirmTitle')}
@@ -499,18 +539,25 @@ function OneDish({
         ))}
       </div>
 
-      <div className={styles.footer}>
-        <Link
-          className={styles.back}
-          to={number === 1 ? '/score' : `/score/${number - 1}`}
-          aria-label={number === 1 ? t('score.backToBallot') : t('score.previousDish')}
-        >
-          <ArrowLeft size={22} weight="duotone" aria-hidden="true" />
-        </Link>
-        <Link className={styles.onward} to={last ? '/score' : `/score/${number + 1}`}>
-          <span>{last ? t('score.reviewBallot') : t('score.nextDish')}</span>
-          <ArrowRight size={20} weight="duotone" aria-hidden="true" />
-        </Link>
+      {/*
+        Docked above the bar on a fade, so the way to the next dish and the way
+        to the other steps never compete for the same corner of the thumb's
+        reach — and neither can scroll away from a dish with four categories.
+      */}
+      <div className={styles.dock}>
+        <div className={`${styles.dockInner} ${styles.dockRow}`}>
+          <Link
+            className={styles.back}
+            to={number === 1 ? '/score' : `/score/${number - 1}`}
+            aria-label={number === 1 ? t('score.backToBallot') : t('score.previousDish')}
+          >
+            <ArrowLeft size={22} weight="duotone" aria-hidden="true" />
+          </Link>
+          <Link className={styles.onward} to={last ? '/score' : `/score/${number + 1}`}>
+            <span>{last ? t('score.reviewBallot') : t('score.nextDish')}</span>
+            <ArrowRight size={20} weight="duotone" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -594,17 +641,19 @@ function BallotReview({
         })}
       </ul>
 
-      {missing ? (
-        <p className={styles.incomplete}>
-          <Info size={18} weight="duotone" aria-hidden="true" />
-          <span>{t('score.errorIncomplete')}</span>
-        </p>
-      ) : null}
-
+      {/* The reason the send will not work travels with the send, in the rail. */}
       <SendControls
         complete={complete}
         confirming={confirming}
         sending={sending}
+        reason={
+          missing ? (
+            <p className={styles.incomplete}>
+              <Info size={18} weight="duotone" aria-hidden="true" />
+              <span>{t('score.errorIncomplete')}</span>
+            </p>
+          ) : undefined
+        }
         onAsk={onAsk}
         onCancel={onCancel}
         onSend={onSend}

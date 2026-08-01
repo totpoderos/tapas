@@ -108,6 +108,18 @@
   --radius-card: 16px;
   --radius-control: 12px;
 
+  /*
+   * The bar at the foot. Named here rather than in the bar's own sheet because
+   * two other things measure themselves against it: every screen carrying the
+   * bar has to leave room for it, and the action rail sticks exactly this far
+   * above the viewport floor. A control hidden behind a fixed bar is a defect
+   * that is invisible on a desktop viewport — the one every screen is built on.
+   *
+   * 56px of target plus the handoff's 14px, plus the home indicator's strip on a
+   * phone with no button. `env()` is 0 everywhere else.
+   */
+  --bar-height: calc(88px + env(safe-area-inset-bottom, 0px));
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;

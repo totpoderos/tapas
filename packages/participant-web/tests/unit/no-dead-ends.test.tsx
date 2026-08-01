@@ -56,15 +56,29 @@ describe('a participant is never stranded', () => {
   afterEach(() => vi.clearAllMocks());
 
   describe('the scoring screen', () => {
-    it('offers the dishes and the results while the vote is still a draft', async () => {
+    it('offers every step while the vote is still a draft', async () => {
       vi.mocked(api.getMyScores).mockResolvedValue({ scores: [], status: 'draft' });
       wrap(<Score />);
 
       const nav = await screen.findByRole('navigation', { name: 'Go to' });
-      expect(within(nav).getByRole('link', { name: 'The dishes' })).toBeInTheDocument();
-      expect(within(nav).getByRole('link', { name: 'The results' })).toBeInTheDocument();
-      // Never a link to where you already are.
-      expect(within(nav).queryByRole('link', { name: 'Your scores' })).not.toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: 'Dishes' })).toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: 'Results' })).toBeInTheDocument();
+    });
+
+    /*
+     * The bar offers the step you are on as well as the other two, and says so.
+     * The links used to hide the current step, which meant the row of choices
+     * changed shape as you moved and "you are here" was said only by absence.
+     */
+    it('marks the step the participant is on, and not by colour', async () => {
+      vi.mocked(api.getMyScores).mockResolvedValue({ scores: [], status: 'draft' });
+      wrap(<Score />);
+
+      const nav = await screen.findByRole('navigation', { name: 'Go to' });
+      const here = within(nav).getByRole('link', { current: 'page' });
+      expect(here).toHaveTextContent('Score');
+      // And only one step claims it.
+      expect(within(nav).getAllByRole('link', { current: 'page' })).toHaveLength(1);
     });
 
     it('offers them just the same once the vote has been sent', async () => {
@@ -72,8 +86,8 @@ describe('a participant is never stranded', () => {
       wrap(<Score />);
 
       const nav = await screen.findByRole('navigation', { name: 'Go to' });
-      expect(within(nav).getByRole('link', { name: 'The results' })).toBeInTheDocument();
-      expect(within(nav).getByRole('link', { name: 'The dishes' })).toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: 'Results' })).toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: 'Dishes' })).toBeInTheDocument();
     });
   });
 
@@ -85,22 +99,27 @@ describe('a participant is never stranded', () => {
 
       expect(await screen.findByText(/almost there/i)).toBeInTheDocument();
       const nav = waysOnward();
-      expect(within(nav).getByRole('link', { name: 'Your scores' })).toBeInTheDocument();
-      expect(within(nav).getByRole('link', { name: 'The dishes' })).toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: /Score/ })).toBeInTheDocument();
+      expect(within(nav).getByRole('link', { name: 'Dishes' })).toBeInTheDocument();
     });
 
-    // The English defaults in WaysOnward mean a missing key is invisible in
+    // The English defaults in the bar mean a missing key is invisible in
     // English. Spanish is the case with teeth — the same lesson as the shared
     // reveal view, where only the Spanish assertion caught a missing resource.
     it('is translated, not falling back to the English defaults', async () => {
       await i18n.changeLanguage('es');
-      vi.mocked(api.getReveal).mockResolvedValue(null);
-      wrap(<Reveal />);
+      try {
+        vi.mocked(api.getReveal).mockResolvedValue(null);
+        wrap(<Reveal />);
 
-      const nav = await screen.findByRole('navigation', { name: 'Ir a' });
-      expect(within(nav).getByRole('link', { name: 'Tus puntuaciones' })).toBeInTheDocument();
-      expect(within(nav).getByRole('link', { name: 'Los platos' })).toBeInTheDocument();
-      await i18n.changeLanguage('en');
+        const nav = await screen.findByRole('navigation', { name: 'Ir a' });
+        expect(within(nav).getByRole('link', { name: /Puntuar/ })).toBeInTheDocument();
+        expect(within(nav).getByRole('link', { name: 'Platos' })).toBeInTheDocument();
+      } finally {
+        // In a `finally`, because a failure here used to leak Spanish into every
+        // test after it and report five failures for one defect.
+        await i18n.changeLanguage('en');
+      }
     });
 
     it('has no accessibility violations while waiting', async () => {

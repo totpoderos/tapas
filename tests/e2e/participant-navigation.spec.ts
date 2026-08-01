@@ -96,8 +96,8 @@ test('every step offers the others', async ({ page }) => {
 
   await page.goto(`${PARTICIPANT}/score`);
   const nav = waysOnward(page);
-  await expect(nav.getByRole('link', { name: 'The dishes' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'The results' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Dishes' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Results' })).toBeVisible();
 });
 
 test('waiting for the results is not being stuck', async ({ page }) => {
@@ -108,8 +108,72 @@ test('waiting for the results is not being stuck', async ({ page }) => {
   await expect(page.getByText(/almost there/i)).toBeVisible();
 
   const nav = waysOnward(page);
-  await expect(nav.getByRole('link', { name: 'Your scores' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'The dishes' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: /Score/ })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Dishes' })).toBeVisible();
+});
+
+/**
+ * The reason the ways onward became a bar. The links sat at the bottom of the
+ * DOCUMENT, so on a ballot longer than the phone they were below the fold —
+ * present in the markup, absent to a cook holding a plate. Every locator in
+ * this file passed while that was true, because Playwright scrolls to what it
+ * asserts on. So this one asserts on the VIEWPORT instead.
+ */
+test('the ways onward stay in reach on a long screen', async ({ page }) => {
+  const { joinCode } = await seedContest('e2e-nav-inreach@sobremesa.es');
+  await joinAsBruno(page, joinCode);
+  await page.setViewportSize({ width: 390, height: 640 });
+
+  await page.goto(`${PARTICIPANT}/score`);
+  const nav = waysOnward(page);
+  await expect(nav).toBeVisible();
+
+  /*
+   * Scrolled by the document rather than by the wheel: mobile WebKit has no
+   * `mouse.wheel` at all, and this spec runs on both engines because the
+   * participant app is the one people open on a phone.
+   */
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(nav).toBeInViewport();
+  // And the screen's own action came with it, rather than being scrolled past.
+  await expect(page.getByRole('button', { name: 'Send my vote' })).toBeInViewport();
+});
+
+test('the ways onward say which step you are on', async ({ page }) => {
+  const { joinCode } = await seedContest('e2e-nav-here@sobremesa.es');
+  await joinAsBruno(page, joinCode);
+
+  await page.goto(`${PARTICIPANT}/score`);
+  // `aria-current` rather than the accent colour, which is the mark a phone in
+  // bad light loses first. Playwright's `getByRole` has no `current` option, so
+  // the attribute is asserted directly — which is the point of the scenario.
+  const here = waysOnward(page).locator('[aria-current="page"]');
+  await expect(here).toHaveCount(1);
+  await expect(here).toContainText('Score');
+});
+
+test('the ways onward say how your own vote stands', async ({ page }) => {
+  const { joinCode } = await seedContest('e2e-nav-standing@sobremesa.es');
+  await joinAsBruno(page, joinCode);
+
+  // Two dishes to score and nothing sent: outstanding, said in words.
+  const nav = waysOnward(page);
+  await expect(nav.getByRole('link', { name: /still to send/ })).toBeVisible();
+
+  await page.goto(`${PARTICIPANT}/score`);
+  await scoreAndSend(page);
+  await page.goto(`${PARTICIPANT}/`);
+
+  await expect(nav.getByRole('link', { name: /already sent/ })).toBeVisible();
+  // And nothing there says anything about Ana or Carmen.
+  await expect(nav).not.toContainText(/Ana|Carmen/);
+});
+
+test('a screen with nowhere to go offers no ways onward', async ({ page }) => {
+  await page.goto(`${PARTICIPANT}/score`); // never joined: the session dead end
+
+  await expect(page.getByRole('heading', { name: /join first/i })).toBeVisible();
+  await expect(waysOnward(page)).toHaveCount(0);
 });
 
 // The reported journey, end to end.
@@ -128,7 +192,7 @@ test('going back after voting shows the vote as sent', async ({ page }) => {
   // Going back is respected — not bounced onward to the results again.
   await expect(page.getByText(/vote sent/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send my vote' })).toHaveCount(0);
-  await expect(waysOnward(page).getByRole('link', { name: 'The results' })).toBeVisible();
+  await expect(waysOnward(page).getByRole('link', { name: 'Results' })).toBeVisible();
 });
 
 test('reloading does not lose the way onward', async ({ page }) => {
@@ -142,7 +206,7 @@ test('reloading does not lose the way onward', async ({ page }) => {
   // The state comes from the server, so a reload cannot lose it.
   await expect(page.getByText(/vote sent/i)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send my vote' })).toHaveCount(0);
-  await expect(waysOnward(page).getByRole('link', { name: 'The results' })).toBeVisible();
+  await expect(waysOnward(page).getByRole('link', { name: 'Results' })).toBeVisible();
 });
 
 test('arriving by the address alone is no different', async ({ page }) => {
@@ -151,6 +215,6 @@ test('arriving by the address alone is no different', async ({ page }) => {
 
   await page.goto(`${PARTICIPANT}/score`); // no link followed to get here
   const nav = waysOnward(page);
-  await expect(nav.getByRole('link', { name: 'The dishes' })).toBeVisible();
-  await expect(nav.getByRole('link', { name: 'The results' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Dishes' })).toBeVisible();
+  await expect(nav.getByRole('link', { name: 'Results' })).toBeVisible();
 });

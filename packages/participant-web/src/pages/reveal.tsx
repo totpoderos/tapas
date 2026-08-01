@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { RevealView } from '../reveal-view';
 import { Nav } from '../nav';
 import { PlainScreen } from '../plain-screen';
-import { WaysOnward } from '../ways-onward';
+import { BottomBar } from '../bottom-bar';
+import { useVoteStanding } from '../use-vote-standing';
 import { Waiting } from '../waiting';
 import {
   ApiError,
@@ -48,6 +49,7 @@ export function Reveal() {
   // Undefined until it has been read once, and stays undefined where it cannot
   // be — the screen is built to be complete without it.
   const [turnout, setTurnout] = useState<Turnout | undefined>();
+  const standing = useVoteStanding(contestId);
 
   useEffect(() => {
     if (!contestId) {
@@ -137,8 +139,15 @@ export function Reveal() {
 
   return (
     <>
+      {/*
+        The handoff's screen 12 drops the header entirely and gives the numeral
+        the whole top of the screen. It stays, because `internationalization`
+        requires a language selector on EVERY screen and the header is where this
+        app puts it — the same call `nav.tsx` already made once. Taking a shipped
+        promise away is a change to what the product offers, not a restyle.
+      */}
       <Nav />
-      <main id="main" className="pt-main">
+      <main id="main" className="pt-main pt-barred">
       {waiting && <Waiting turnout={turnout} />}
 
       {state.kind === 'error' && (
@@ -150,12 +159,11 @@ export function Reveal() {
       {/* This app's own reveal. It draws the same results as the host's, and is
           no longer the same component doing it — see reveal-view.tsx. */}
       {state.kind === 'revealed' && <RevealView reveal={state.reveal} />}
-
+      </main>
       {/* Including while it waits: that is where a participant spends longest,
           and where there was otherwise nothing on the page at all. The two
           dead-end states return early now, so no guard is needed. */}
-      <WaysOnward from="reveal" />
-      </main>
+      <BottomBar current="reveal" standing={standing} />
     </>
   );
 }

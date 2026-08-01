@@ -104,7 +104,7 @@ test('a participant scores every open dish and sends their vote', async ({ page 
   const { joinCode } = await seedScorableContest('e2e-score-send@sobremesa.es');
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
 
   await scoreEveryDish(page, '4', 2);
 
@@ -117,7 +117,7 @@ test('only scores within the allowed range are offered', async ({ page }) => {
   const { joinCode } = await seedScorableContest('e2e-score-range@sobremesa.es');
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
 
   await startScoring(page);
   const firstGroup = page.getByRole('radiogroup').first();
@@ -131,7 +131,7 @@ test('a vote cannot be sent until every dish is scored', async ({ page }) => {
   const { joinCode } = await seedScorableContest('e2e-score-incomplete@sobremesa.es');
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
   await expect(page.getByRole('heading', { name: 'Your ballot' })).toBeVisible();
 
   await expect(page.getByRole('button', { name: 'Send my vote' })).toBeDisabled();
@@ -176,7 +176,7 @@ test('a sent vote is locked and cannot be sent again', async ({ page }) => {
   const { joinCode } = await seedScorableContest('e2e-score-locked@sobremesa.es');
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
   await scoreEveryDish(page, '4', 2);
   await page.getByRole('button', { name: 'Send my vote' }).click();
   await page.getByRole('button', { name: 'Yes, send my vote' }).click();
@@ -191,7 +191,7 @@ test('scoring is keyboard-operable and has no accessibility violations', async (
   const { joinCode } = await seedScorableContest('e2e-score-a11y@sobremesa.es');
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
   await startScoring(page);
 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

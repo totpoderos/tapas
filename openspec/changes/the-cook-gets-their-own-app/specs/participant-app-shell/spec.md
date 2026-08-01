@@ -34,7 +34,11 @@ A participant is at a venue for one evening on a phone they did not configure fo
 
 ### Requirement: Every screen carries the same frame
 
-Every participant screen SHALL carry the same header, naming the product and — once a participant has joined — where they are. Every screen a joined participant can reach SHALL carry the same ways onward, in the same place.
+Every participant screen SHALL carry the same header, naming the product and — once a participant has joined — where they are.
+
+Every screen a joined participant can reach SHALL carry the same ways onward, in the same place: one bar, held within reach at the foot of the screen wherever the screen is scrolled to, naming all three steps at once. The bar SHALL mark which step the participant is on, and SHALL NOT mark it by colour alone. A screen reached before joining, and a screen from which there is nowhere left to go, SHALL carry no bar.
+
+Holding the ways onward in reach is the requirement, not decoration: a cook is standing up, one-handed, holding a plate. Ways onward that scroll away are ways onward that are not there.
 
 #### Scenario: The header is on every screen
 
@@ -44,7 +48,48 @@ Every participant screen SHALL carry the same header, naming the product and —
 #### Scenario: A joined participant is never without the ways onward
 
 - **WHEN** a joined participant is on any screen open to them
-- **THEN** the ways onward to the other steps are there, in the same place as on every other screen
+- **THEN** all three steps are offered, in the same place as on every other screen
+
+#### Scenario: The ways onward do not scroll away
+
+- **WHEN** a joined participant scrolls to the bottom of a screen longer than their phone
+- **THEN** the ways onward are still where they were, and the screen's own action is still reachable
+
+#### Scenario: The bar says which step you are on
+
+- **WHEN** a joined participant is on one of the three steps
+- **THEN** that step is marked as the one they are on, by more than its colour
+
+#### Scenario: A screen with nowhere to go carries no bar
+
+- **WHEN** a participant is told the contest is gone, or that they are no longer in it
+- **THEN** the only thing offered is the way out
+
+### Requirement: The ways onward report how the participant's own vote stands
+
+The ways onward SHALL report, at the scoring step, how that participant's own vote stands: that there is something to score and it has not been sent, or that it has been sent. The report SHALL be readable without seeing colour. It SHALL say nothing about anybody else's vote.
+
+This is how a participant learns that scoring has opened. A banner they have to read, on a screen they may not be looking at, is the thing that gets missed in a noisy room.
+
+#### Scenario: There is something to score
+
+- **WHEN** a joined participant has dishes to score and has not sent their vote
+- **THEN** the scoring step is marked as outstanding, in words as well as in colour
+
+#### Scenario: The vote is in
+
+- **WHEN** a participant has sent their vote
+- **THEN** the scoring step is marked as sent, in words as well as in colour
+
+#### Scenario: Nothing to score yet
+
+- **WHEN** there is no dish for a participant to score
+- **THEN** the scoring step carries no mark at all
+
+#### Scenario: The ways onward tell on nobody
+
+- **WHEN** a participant looks at the ways onward
+- **THEN** nothing there says how any other participant's vote stands
 
 ### Requirement: A failure is reported where it happened
 

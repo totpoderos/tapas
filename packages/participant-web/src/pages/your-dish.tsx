@@ -5,7 +5,8 @@ import { Button, FormField } from '@tapas/ui';
 import { Nav } from '../nav';
 import styles from './your-dish.module.css';
 import { PlainScreen } from '../plain-screen';
-import { WaysOnward } from '../ways-onward';
+import { BottomBar } from '../bottom-bar';
+import { useVoteStanding } from '../use-vote-standing';
 import { getDishes, isContestDeleted, isSignedOut, submitDish, type Dish, type Identity } from '../api/client';
 
 /**
@@ -26,6 +27,12 @@ export function YourDish({ identity }: { identity: Identity }) {
   const [busy, setBusy] = useState(false);
   const [gone, setGone] = useState(false);
   const [signedOut, setSignedOut] = useState(false);
+  /*
+   * This screen is where a cook waits, and where the handoff says they should
+   * learn that scoring has opened — from the mark on the bar, not from a banner
+   * on a screen they are not looking at.
+   */
+  const standing = useVoteStanding(identity.contestId);
 
   const mine = dishes?.find((dish) => dish.submitterIds.includes(identity.participantId));
 
@@ -111,7 +118,7 @@ export function YourDish({ identity }: { identity: Identity }) {
   return (
     <>
       <Nav context={identity.displayName} />
-      <main id="main" className="pt-main">
+      <main id="main" className="pt-main pt-barred">
       <div className={styles.screen}>
         <h1 className={styles.title}>{t('yourDish.title', { name: identity.displayName })}</h1>
         <p className={styles.lead}>{t('yourDish.lead')}</p>
@@ -197,10 +204,9 @@ export function YourDish({ identity }: { identity: Identity }) {
           The link that sat beside it is gone — the ways onward already offer it.
         */}
         <p className={styles.note}>{t('yourDish.waiting')}</p>
-
-        <WaysOnward from="dish" />
       </div>
       </main>
+      <BottomBar current="dish" standing={standing} />
     </>
   );
 }
