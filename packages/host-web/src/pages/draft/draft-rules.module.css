@@ -1,0 +1,99 @@
+.sectionHeading {
+  composes: sectionHeading from './draft-fields.module.css';
+}
+.sectionTitle {
+  composes: sectionTitle from './draft-fields.module.css';
+}
+.sectionLead {
+  composes: sectionLead from './draft-fields.module.css';
+}
+.group {
+  composes: group from './draft-fields.module.css';
+}
+.legend {
+  composes: legend from './draft-fields.module.css';
+}
+.addRow {
+  composes: addRow from './draft-fields.module.css';
+}
+.input {
+  composes: input from './draft-fields.module.css';
+}
+.chipRemove {
+  composes: chipRemove from './draft-fields.module.css';
+}
+
+/* Choices, as on the rule space. */
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.choiceCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font: 400 15px var(--sans);
+  cursor: pointer;
+}
+.choiceCard.chosen {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-weight: 600;
+}
+.choiceCard:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.sideBySide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sideBySide .choiceCard {
+  flex: 1;
+  min-width: 12rem;
+}
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-control);
+  font: 400 14px var(--sans);
+  cursor: pointer;
+}
+
+/* What dishes are judged on. */
+.chips {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 6px 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font: 600 14px var(--sans);
+}

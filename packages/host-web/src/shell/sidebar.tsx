@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink } from 'react-router';
+import { Link } from 'react-router';
 import { useSession } from '../auth/session';
 import { countByState, useContests } from '../contests/contests-provider';
 import { STATE_MARK, type ContestState } from '../contests/contest-state';
@@ -95,12 +95,16 @@ function HostWays({ nav }: { nav: Exclude<PanelNav, { kind: 'admin' }> }) {
 /**
  * Setting up a contest: where that sits in getting one going.
  *
- * Two steps, not the mockup's four. The mockup reads "1 Name · 2 Rules · 3
- * Participants · 4 Review & publish" while putting name and rules in one pane, and
- * this app has no wizard — creating is one form, and participants and publishing
- * belong to draft review. Two steps say something true; four would be navigation
- * that does not exist. What the mockup is really doing is showing where you are and
- * making saving feel cheap, and both survive.
+ * Two steps, not the mockup's four — and they are the two sections a contest is
+ * prepared in, under their own names. The mockup reads "1 Name · 2 Rules · 3
+ * Participants · 4 Review & publish" while putting name and rules in one pane, so
+ * its first two steps are one screen; and publishing is a button on both sections
+ * rather than a screen of its own, so its fourth is not a step either. What is left
+ * is exactly the rules and the people, which is what this says.
+ *
+ * The names are the draft's own, deliberately: a host meets one pair of names from
+ * this form through to publishing rather than a second vocabulary for the same two
+ * screens.
  */
 function NewContestScope() {
   const { t } = useTranslation();
@@ -111,15 +115,15 @@ function NewContestScope() {
         <span className={styles.stepNumber} aria-hidden="true">
           1
         </span>
-        <span className={styles.wayLabel}>{t('shell.steps.setUp')}</span>
+        <span className={styles.wayLabel}>{t('shell.draftRules')}</span>
       </span>
-      {/* Drawn, and said to be unreachable: there is nothing to review until the
-          contest has been saved, and a host should be able to see that is next. */}
+      {/* Drawn, and said to be unreachable: there is nobody to add to a contest
+          that has not been saved, and a host should be able to see that is next. */}
       <span className={`${styles.unavailable} ${styles.step}`} aria-disabled="true">
         <span className={styles.stepNumber} aria-hidden="true">
           2
         </span>
-        <span className={styles.wayLabel}>{t('shell.steps.reviewAndPublish')}</span>
+        <span className={styles.wayLabel}>{t('shell.draftParticipants')}</span>
         <span className={styles.unavailableNote}>{t('shell.steps.afterSaving')}</span>
       </span>
       <div className={styles.note}>{t('shell.onlyANameIsRequired')}</div>
@@ -237,7 +241,12 @@ function ContestScope({
   );
 }
 
-/** Inside a draft: the one thing there is to do with it before it can go live. */
+/**
+ * Inside a contest being prepared: the two sections it is settled in.
+ *
+ * Plain ways in rather than numbered steps, because a draft is worked on in any
+ * order — numbering would promise a sequence nothing enforces.
+ */
 function DraftScope({
   nav,
   draft,
@@ -253,8 +262,11 @@ function DraftScope({
         <span className={styles.scopeName}>{draft?.name ?? t('shell.thisDraft')}</span>
         <span className={styles.scopeNote}>{t('shell.notPublished')}</span>
       </span>
-      <Way to={`/review/${nav.draftId}`} current={nav.current === 'review'}>
-        {t('shell.reviewDraft')}
+      <Way to={`/review/${nav.draftId}`} current={nav.current === 'rules'}>
+        {t('shell.draftRules')}
+      </Way>
+      <Way to={`/review/${nav.draftId}/people`} current={nav.current === 'people'}>
+        {t('shell.draftParticipants')}
       </Way>
     </>
   );
@@ -280,9 +292,15 @@ function Footer({ isAdministrator }: { isAdministrator: boolean }) {
  * One way in: a link, 44px tall, marked with `aria-current` when it is where the
  * host already is.
  *
- * Which one is current is passed in rather than left to `NavLink`'s own matching,
+ * Which one is current is passed in rather than left to the router's own matching,
  * because several ways in share an address — `/` and its state filters differ
  * only by a query string, which router matching ignores.
+ *
+ * A plain `Link`, for that same reason. `NavLink` was here, and it marked itself
+ * `aria-current="page"` whenever the address merely *started* with its own — so on
+ * a draft's participants the way to its rules was announced as the current one
+ * too, and on the contest list all four state filters were. Nothing here ever read
+ * `NavLink`'s active state, so the only thing it contributed was that.
  */
 function Way({
   to,
@@ -301,7 +319,7 @@ function Way({
   readonly children: ReactNode;
 }) {
   return (
-    <NavLink
+    <Link
       to={to}
       className={`${styles.way} ${current ? styles.currentWay : ''}`}
       aria-current={current ? 'page' : undefined}
@@ -314,6 +332,6 @@ function Way({
       <span className={styles.wayLabel}>{children}</span>
       {badge && <span className={styles.badge}>{badge}</span>}
       {count !== undefined && <span className={styles.count}>{count}</span>}
-    </NavLink>
+    </Link>
   );
 }

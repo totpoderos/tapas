@@ -24,7 +24,12 @@ export type PanelNav =
       readonly contestId: string;
       readonly current: 'control' | 'log' | 'results';
     }
-  | { readonly kind: 'draft'; readonly draftId: string; readonly current: 'review' };
+  | {
+      readonly kind: 'draft';
+      readonly draftId: string;
+      /** Which of the two sections a contest being prepared is settled in. */
+      readonly current: 'rules' | 'people';
+    };
 
 /**
  * The host routes, each paired with what it makes current. `/people` is absent
@@ -41,7 +46,15 @@ const HOST_ROUTES: readonly { pattern: string; nav: (id: string) => PanelNav }[]
     pattern: '/results/:id',
     nav: (id) => ({ kind: 'contest', contestId: id, current: 'results' }),
   },
-  { pattern: '/review/:id', nav: (id) => ({ kind: 'draft', draftId: id, current: 'review' }) },
+  // The longer pattern first: `matchPath('/review/:id', '/review/abc/people')` does
+  // not match, but the order is what guarantees it — a shorter pattern that did
+  // claim the longer path would mark the wrong section as the one the host is on,
+  // silently and with nothing failing.
+  {
+    pattern: '/review/:id/people',
+    nav: (id) => ({ kind: 'draft', draftId: id, current: 'people' }),
+  },
+  { pattern: '/review/:id', nav: (id) => ({ kind: 'draft', draftId: id, current: 'rules' }) },
 ];
 
 /**

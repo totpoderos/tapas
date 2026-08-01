@@ -26,7 +26,8 @@
   "activityLog": "Registro de actividad",
   "results": "Resultados",
   "resultsAfterReveal": "— tras la revelación",
-  "reviewDraft": "Reglas y participantes",
+  "draftRules": "Reglas",
+  "draftParticipants": "Participantes y parejas",
   "switchContest": "cambiar de concurso",
   "notPublished": "Borrador · sin publicar",
   "thisContest": "Este concurso",
@@ -39,8 +40,6 @@
   },
   "tallyKeepingUp": "El recuento se actualiza cada pocos segundos",
   "steps": {
-    "setUp": "Configúralo",
-    "reviewAndPublish": "Revisar y publicar",
     "afterSaving": "— tras guardar"
   },
   "onlyANameIsRequired": "Solo hace falta un nombre para guardar. Todo lo demás se comprueba al publicar."

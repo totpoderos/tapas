@@ -26,11 +26,14 @@ test('the panel says where setting up sits in getting a contest going', async ({
 
   await page.goto('/new');
   const nav = panel(page);
-  await expect(nav).toContainText('Set it up');
-  await expect(nav).toContainText('Review & publish');
-  // Reviewing is drawn but cannot be reached: there is nothing to review yet.
+  // The two sections a contest is prepared in, under their own names — the same
+  // two it carries once saved, so a host meets one pair of names throughout.
+  await expect(nav).toContainText('Rules');
+  await expect(nav).toContainText('Participants & pairing');
+  // The people are drawn but cannot be reached: there is nobody to add to a
+  // contest that has not been saved yet.
   await expect(nav).toContainText('— after saving');
-  await expect(nav.getByRole('link', { name: /Review/ })).toHaveCount(0);
+  await expect(nav.getByRole('link', { name: /Participants/ })).toHaveCount(0);
 });
 
 test('the panel says only a name is required to save', async ({ page }) => {
@@ -158,7 +161,8 @@ test('the rule space reads in Spanish', async ({ page }) => {
   await page.goto('/new');
   await page.getByLabel('Language').selectOption('es');
 
-  await expect(panel(page, 'Navegación del panel')).toContainText('Configúralo');
+  await expect(panel(page, 'Navegación del panel')).toContainText('Reglas');
+  await expect(panel(page, 'Navegación del panel')).toContainText('Participantes y parejas');
   await expect(panel(page, 'Navegación del panel')).toContainText('Solo hace falta un nombre');
   await expect(page.getByRole('button', { name: 'Guardar como borrador' })).toBeVisible();
 });

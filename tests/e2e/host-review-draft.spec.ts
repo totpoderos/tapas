@@ -76,14 +76,20 @@ test("a host edits a draft's rules and the change persists", async ({ page }) =>
   await signInFreshHost(page.request, 'e2e-review-edit@sobremesa.es');
   const id = await seedDraft(page.request, completeContent('Summer Tapas'));
 
+  // The name is on the rules and the roster is on the participants, and one save
+  // stores both — which is why this still reads as one edit.
   await page.goto(`/review/${id}`);
   await page.getByLabel('Contest name').fill('Summer Tapas Final');
+  await page
+    .getByRole('navigation', { name: 'Panel navigation' })
+    .getByRole('link', { name: 'Participants & pairing', exact: true })
+    .click();
   await page.getByRole('button', { name: 'Remove A' }).click();
   await page.getByRole('button', { name: 'Save changes' }).click();
   await expect(page.getByText('Saved.')).toBeVisible();
 
   // Reopen the draft — the edits were persisted.
-  await page.goto(`/review/${id}`);
+  await page.goto(`/review/${id}/people`);
   await expect(page.getByRole('heading', { name: /Edit .Summer Tapas Final./ })).toBeVisible();
   await expect(page.getByRole('textbox', { name: /Participant \d+ name/ })).toHaveCount(3); // was 4
 });

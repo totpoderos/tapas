@@ -12,6 +12,93 @@ Feature: A host gets a contest ready to go live
   happened, because a change that vanishes into a form with no acknowledgement is a
   change a host will make twice.
 
+  Settling the rules and settling the people are two different jobs, so they are two
+  sections rather than one long screen. They are two views of one contest, not two
+  copies of it: moving between them neither saves nor loses anything, and one save
+  stores whatever was changed on either.
+
+  Scenario: The rules and the people are two sections
+    Given a signed-in host looking at a contest being prepared
+    Then its rules and its participants and pairing are offered as two ways in
+    And the panel names the contest and says it has not been published
+
+  Scenario: Each section holds its own part of the contest
+    Given a signed-in host looking at the rules of a contest being prepared
+    Then they can change what it is called, how dishes are attributed, its anti-bias rule, its scoring categories and its score range
+    And the roster, the pairings and the barred pairs are not on that section
+    When they go to its participants and pairing
+    Then they can add and remove people, pair them, and bar pairs from scoring each other
+    And the contest's name, attribution, anti-bias rule and scoring are not on that section
+
+  Scenario: The panel says which section the host is on
+    Given a signed-in host looking at the participants and pairing of a contest being prepared
+    Then the panel marks that section as the current one
+    And it does not mark the rules as current
+
+  Scenario: An unsaved change survives moving between the sections
+    Given a signed-in host looking at the rules of a contest being prepared
+    When they change its name, go to its participants and pairing, and come back
+    Then the name they typed is still there
+    And they were not asked about unsaved work on the way
+
+  Scenario: Moving between the sections does not save
+    Given a signed-in host looking at the rules of a contest being prepared
+    When they change its name and go to its participants and pairing without saving
+    Then the contest being prepared is still called what it was called before
+
+  Scenario: One save stores a change made on each section
+    Given a signed-in host looking at a contest being prepared
+    When they change its name on its rules, add a person on its participants and pairing, and save once
+    Then the contest being prepared has both the new name and the new person
+    And they are told it was saved
+
+  Scenario: Saving and publishing are offered on both sections
+    Given a signed-in host looking at a contest being prepared
+    Then saving and publishing are offered in the panel's header on its rules
+    And they are offered in the panel's header on its participants and pairing
+
+  Scenario: What is still missing is said on both sections
+    Given a signed-in host looking at a contest being prepared, scored per couple
+    And two of its participants have no partner
+    Then its rules list what is ready and what is not, and say two participants still need a partner
+    And its participants and pairing say the same
+
+  Scenario: A ready contest is published from whichever section the host is on
+    Given a signed-in host looking at the rules of a contest being prepared that is complete
+    When they publish it
+    Then it is live
+    And they are taken to its control room, where its join code is waiting
+
+  Scenario: Publishing an incomplete contest leaves the host where they were
+    Given a signed-in host looking at the participants and pairing of a contest being prepared that is not ready
+    When they try to publish it
+    Then they are told why it cannot go live
+    And it is still a contest being prepared
+    And they are still on its participants and pairing
+
+  Scenario: Pairs barred under a rule the contest does not use are said to be idle
+    Given a signed-in host looking at the participants and pairing of a contest being prepared where couples cannot score each other
+    When they bar two of the participants from scoring each other
+    Then the pair is listed as barred
+    And they are told those pairs are not in force for this contest
+    And they are told which rule would put them in force
+
+  Scenario: Barred pairs are in force when the contest bars chosen pairs
+    Given a signed-in host looking at the participants and pairing of a contest being prepared where chosen pairs cannot score each other
+    Then the pairs barred from scoring each other are not said to be idle
+
+  Scenario: Both sections are free of accessibility violations
+    Given a signed-in host looking at a contest being prepared with people on it
+    When they move through each of its two sections using only the keyboard
+    Then every field and action can be reached and taken, each showing where focus is
+    And neither section has any accessibility violations
+
+  Scenario: Both sections read in Spanish
+    Given a signed-in host looking at a contest being prepared
+    When they switch the language to Spanish
+    Then everything both sections say is in Spanish, including their names in the panel
+    And the contest's name and the participants' names are unchanged
+
   Scenario: The screen says what is still missing before publishing
     Given a signed-in host looking at a contest being prepared, scored per couple
     And two of its participants have no partner

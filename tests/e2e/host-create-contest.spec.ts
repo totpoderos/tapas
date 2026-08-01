@@ -23,17 +23,59 @@ test('a host fills in a new contest and saves it as a draft', async ({ page }) =
   await page.getByLabel('Each couple is scored together').check();
   await page.getByLabel('Couples cannot score each other').check();
 
-  await page.getByLabel('New participant name').fill('Ana');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-  await page.getByLabel('New participant name').fill('Bruno');
-  await page.getByRole('button', { name: 'Add', exact: true }).click();
-
   await page.getByRole('button', { name: 'Save as draft' }).click();
 
   // Lands back on the contest list, with the new contest shown as a draft.
   await expect(page.getByRole('heading', { name: 'Your contests' })).toBeVisible();
   const row = page.getByRole('row').filter({ hasText: 'Summer Tapas' });
   await expect(row).toContainText('Draft');
+});
+
+test('the form does not ask who is taking part', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-create-nopeople@sobremesa.es');
+  await page.goto('/new');
+  await expect(page.getByRole('heading', { name: 'New contest' })).toBeVisible();
+
+  // The other section's question, asked once rather than twice.
+  await expect(page.getByLabel('New participant name')).toHaveCount(0);
+  await expect(page.getByLabel('Participant 1 name')).toHaveCount(0);
+
+  // And the panel says where the people are asked for instead.
+  const nav = page.getByRole('navigation', { name: 'Panel navigation' });
+  await expect(nav).toContainText('Rules');
+  await expect(nav).toContainText('Participants & pairing');
+  await expect(nav).toContainText('after saving');
+});
+
+test('going on saves the contest and lands on its people', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-create-next@sobremesa.es');
+  await page.goto('/new');
+
+  await page.getByLabel('Contest name').fill('Rooftop Rounds');
+  await page.getByLabel('Each couple is scored together').check();
+  await page.getByRole('button', { name: /^Next/ }).click();
+
+  // On the people of the contest it just saved — which is where somebody is added.
+  await expect(page.getByLabel('New participant name')).toBeVisible();
+  await expect(page).toHaveURL(/\/review\/[^/]+\/people$/);
+
+  // And the rules chosen on the form are what the contest being prepared says.
+  await expect(page.getByRole('heading', { name: /Edit .Rooftop Rounds./ })).toBeVisible();
+  const nav = page.getByRole('navigation', { name: 'Panel navigation' });
+  await expect(nav).toContainText('Rooftop Rounds');
+  await expect(nav).toContainText('not published');
+  await page.getByRole('link', { name: 'Rules', exact: true }).click();
+  await expect(page.getByLabel('Each couple is scored together')).toBeChecked();
+});
+
+test('going on is refused without a name, exactly as saving is', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-create-nextnoname@sobremesa.es');
+  await page.goto('/new');
+
+  await page.getByRole('button', { name: /^Next/ }).click();
+
+  await expect(page.getByRole('alert')).toContainText(/name is required/i);
+  await expect(page.getByRole('heading', { name: 'New contest' })).toBeVisible();
 });
 
 test('a contest cannot be saved without a name', async ({ page }) => {
