@@ -66,6 +66,27 @@ describe('Participant join', () => {
     expect(localStorage.getItem('tapas.contestId')).toBe('c1');
   });
 
+  // The field draws the code uppercase, so a lowercase one has to BE uppercase.
+  it('takes a code typed in lowercase', async () => {
+    renderAt('/');
+
+    await userEvent.type(await screen.findByLabelText('Join code'), 'abc123');
+    expect(await screen.findByLabelText('Join code')).toHaveValue('ABC123');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(api.getPlaces).toHaveBeenCalledWith('ABC123');
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Ana' }));
+    expect(api.claimPlace).toHaveBeenCalledWith('ABC123', 'A');
+  });
+
+  it('takes a lowercase code from a join link', async () => {
+    renderAt('/j/abc123');
+
+    await screen.findByRole('button', { name: 'Ana' });
+    expect(api.getPlaces).toHaveBeenCalledWith('ABC123');
+  });
+
   it('refuses an unrecognised code', async () => {
     vi.mocked(api.getPlaces).mockRejectedValue(new ApiError(404, 'JOIN_CODE_NOT_FOUND'));
     renderAt('/');
