@@ -121,7 +121,13 @@ test('the header is on every screen', async ({ page }) => {
   await page.goto(`${PARTICIPANT}/score`);
   await expect(page.getByRole('banner').getByText('Tapas')).toBeVisible();
 
+  /*
+   * The WAIT, not the reveal — the results are not out yet. The revealed
+   * results are the one screen with no header, and they are checked where they
+   * can be seeded properly, in `participant-reveal.spec.ts`.
+   */
   await page.goto(`${PARTICIPANT}/reveal`);
+  await expect(page.getByText(/almost there/i)).toBeVisible();
   await expect(page.getByRole('banner').getByText('Tapas')).toBeVisible();
 });
 

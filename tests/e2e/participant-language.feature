@@ -3,7 +3,9 @@ Feature: Reading the participant app in English or Spanish
   A cook arrives at a venue, opens the link on their own phone, and should be
   able to read it in their language. Every screen of the participant app can be
   read in English or Spanish, chosen from a language selector present on every
-  screen. On a first visit the app follows the browser's preferred language,
+  screen but the revealed results — which carry no header at all, and are read
+  in the language chosen before them. On a first visit the app follows the
+  browser's preferred language,
   falling back to English; once chosen, the choice is remembered across
   navigation and reloads. The document's language attribute is kept in step so
   assistive technology pronounces the page correctly.

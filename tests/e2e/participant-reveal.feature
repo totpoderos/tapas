@@ -38,3 +38,16 @@ Feature: A participant sees the results revealed
   Scenario: The reveal is keyboard-operable and accessible
     Given a participant viewing a revealed contest's results
     Then the screen has no accessibility violations
+
+  Scenario: The revealed results give the numeral the top of the screen
+    Given a participant waiting for the reveal
+    Then the same header names the product, as on every other screen
+    When the host reveals the results
+    Then there is no header above them, and the winning dish is the headline
+    And the ways onward are still there
+
+  Scenario: The results are read in the language chosen before them
+    Given a participant who chose Spanish while waiting for the reveal
+    When the host reveals the results
+    Then the results are read in Spanish
+    And there is no language control on that screen

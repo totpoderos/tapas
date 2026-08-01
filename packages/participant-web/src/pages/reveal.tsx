@@ -89,6 +89,7 @@ export function Reveal() {
    * still voting is a question about a moment that has passed.
    */
   const waiting = state.kind === 'loading' || state.kind === 'waiting';
+  const revealed = state.kind === 'revealed';
   useEffect(() => {
     if (!contestId || !waiting) return;
     let live = true;
@@ -140,14 +141,19 @@ export function Reveal() {
   return (
     <>
       {/*
-        The handoff's screen 12 drops the header entirely and gives the numeral
-        the whole top of the screen. It stays, because `internationalization`
-        requires a language selector on EVERY screen and the header is where this
-        app puts it — the same call `nav.tsx` already made once. Taking a shipped
-        promise away is a change to what the product offers, not a restyle.
+        No header once the results are out (screen 12): the rank numeral gets the
+        whole top of the phone, which is the point of the screen everybody looks
+        at together.
+
+        It goes ONLY then. The wait keeps its header, and that is the whole of
+        why this was affordable: `internationalization` puts the language control
+        in the header, so dropping it everywhere would have taken the control off
+        the screen a participant spends longest on. Here it is off the one screen
+        they reach having already passed four that offer it, with their choice
+        remembered. The exception is written into the spec rather than assumed.
       */}
-      <Nav />
-      <main id="main" className="pt-main pt-barred">
+      {revealed ? null : <Nav />}
+      <main id="main" className={`pt-main pt-barred${revealed ? ' pt-headless' : ''}`}>
       {waiting && <Waiting turnout={turnout} />}
 
       {state.kind === 'error' && (

@@ -21,7 +21,7 @@ Feature: The participant app has a surface of its own
     Given a participant on any screen of the app
     Then nothing there offers to change how the app looks
 
-  Scenario: The header is on every screen
+  Scenario: The header is on every screen but the revealed results
     Given a participant moving between the steps open to them
     Then the same header names the product on each one
 

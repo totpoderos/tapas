@@ -164,3 +164,51 @@ test('the reveal is accessible and honours reduced motion', async ({ page }) => 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   expect(results.violations).toEqual([]);
 });
+
+/**
+ * The one screen in the app with no header (handoff, screen 12): the rank
+ * numeral gets the whole top of the phone, because this is the screen everybody
+ * in the room looks at together.
+ *
+ * The wait is checked in the same test, and deliberately. The exception is worth
+ * exactly one screen — dropping the header everywhere would have taken the
+ * language control off the screen a participant spends longest on, which is the
+ * wait, and `internationalization` is amended to say precisely that.
+ */
+test('the revealed results give the numeral the top of the screen', async ({ page }) => {
+  const { contestId, host } = await seedVotedAndClosed(page, 'e2e-reveal-headless@sobremesa.es');
+
+  await page.goto(`${PARTICIPANT}/reveal`);
+  await expect(page.getByRole('banner').getByText('Tapas')).toBeVisible();
+
+  await host.post(`/contests/${contestId}/reveal`);
+
+  // The screen swaps itself when the poll lands — no reload — and the header goes.
+  await expect(winnerLine(page)).toHaveText('Ana paella');
+  await expect(page.getByRole('banner')).toHaveCount(0);
+  // What replaced it is still there: the ways onward are not part of the header.
+  await expect(page.getByRole('navigation', { name: 'Go to' })).toBeVisible();
+});
+
+/**
+ * The cost of the exception, made explicit rather than left to be discovered.
+ *
+ * The language control lives in the header, so the revealed results have none.
+ * What must still hold is that the choice made before them carries — otherwise
+ * the exception would not be a missing control, it would be a screen a Spanish
+ * reader cannot read.
+ */
+test('the results are read in the language chosen before them', async ({ page }) => {
+  const { contestId, host } = await seedVotedAndClosed(page, 'e2e-reveal-lang@sobremesa.es');
+
+  await page.goto(`${PARTICIPANT}/reveal`);
+  await page.getByRole('radio', { name: 'Español' }).check();
+  await expect(page.getByText(/casi está|falta poco|ya casi/i).first()).toBeVisible();
+
+  await host.post(`/contests/${contestId}/reveal`);
+
+  await expect(winnerLine(page)).toHaveText('Ana paella');
+  // "de Ana" — the Spanish resource, not the English "brought by Ana".
+  await expect(page.getByText('de Ana')).toBeVisible();
+  await expect(page.getByRole('radio', { name: 'Español' })).toHaveCount(0);
+});
