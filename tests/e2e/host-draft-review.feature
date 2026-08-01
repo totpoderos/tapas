@@ -106,6 +106,27 @@ Feature: A host gets a contest ready to go live
     And it says two participants still need a partner
     And the panel says so too, without scrolling
 
+  Scenario: A contest nobody is taking part in is not ready to publish
+    Given a signed-in host looking at a contest being prepared that nobody is taking part in
+    Then the checklist says nobody is taking part yet
+    And it does not say the contest is ready to publish
+
+  Scenario: A contest one person is taking part in says why a second is needed
+    Given a signed-in host looking at a contest being prepared that one person is taking part in
+    Then the checklist says at least two people are needed
+    And it says that is because nobody may score their own dish
+    And it does not say the contest is ready to publish
+
+  Scenario: The people are counted once there are enough of them
+    Given a signed-in host looking at a contest being prepared that two people are taking part in
+    Then the checklist counts the people taking part
+    And it does not list the people as something still missing
+
+  Scenario: A contest just started does not claim to be ready
+    Given a signed-in host who has named a new contest and gone on to its participants and pairing
+    Then nobody is taking part in it yet
+    And the checklist says so, rather than saying it is ready to publish
+
   Scenario: A contest with nothing missing says it is ready
     Given a signed-in host looking at a contest being prepared that is complete
     Then the screen says everything needed is in place

@@ -222,10 +222,16 @@ function DraftAtWork({ draftId }: { readonly draftId: string }) {
  */
 function PublishChecklist() {
   const { t } = useTranslation();
-  const { name, categories, rangeType, rangeMin, rangeMax, unpartnered } = useDraftEditor();
+  const { name, categories, rangeType, rangeMin, rangeMax, people, unpartnered } = useDraftEditor();
 
   const nameSet = name.trim().length > 0;
   const categoryCount = categories.filter((c) => c.name.trim()).length;
+  /*
+   * Counted as the roster is sent, unfiltered — a participant whose name has not
+   * been typed yet is still somebody `buildContent()` writes and `compile()`
+   * counts, so filtering here would make this disagree with what publishing sees.
+   */
+  const peopleCount = people.length;
   const wanting = unpartnered.length;
 
   const items = [
@@ -249,6 +255,30 @@ function PublishChecklist() {
         rangeType === 'auto'
           ? t('reviewDraft.checkRangeAuto')
           : t('reviewDraft.checkRangeFixed', { min: rangeMin, max: rangeMax }),
+    },
+    /*
+     * Two counts are certain refusals, so they can be predicted exactly: nobody at
+     * all is `NO_PARTICIPANTS`, and one person alone gets one dish that nobody may
+     * score — their own — so the only judge can score nothing and
+     * `JUDGE_CANNOT_SCORE_ANY_DISH` follows, whatever the other rules say.
+     *
+     * Above the pairing item on purpose: having people at all comes before whether
+     * they are paired, and a contest with nobody in it should not be told about
+     * pairing first.
+     *
+     * Anything beyond the count — whether every judge can score something once
+     * attribution, the bias rule, the pairings and the barred pairs are taken
+     * together — is `compile()`'s answer and stays with the server.
+     */
+    {
+      key: 'people',
+      ready: peopleCount >= 2,
+      text:
+        peopleCount === 0
+          ? t('reviewDraft.checkNobodyTakingPart')
+          : peopleCount === 1
+            ? t('reviewDraft.checkOnlyOneTakingPart')
+            : t('reviewDraft.checkPeopleTakingPart', { count: peopleCount }),
     },
     ...(wanting > 0
       ? [
