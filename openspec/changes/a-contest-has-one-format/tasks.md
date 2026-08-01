@@ -41,7 +41,7 @@ easier to review that way.
 
 - [x] 4.1 Update the shared DTO in `packages/host-web/src/api/client.ts` and `packages/participant-web/src/api`, and whatever in `packages/ui` names the old fields.
 - [x] 4.2 Update `packages/mcp/src/tool-catalog.ts` and its contract tests so the tool surface exposes `format` and no barred-pairs argument.
-- [ ] 4.3 Update `packages/evals` creation cases (`simple`, `domain`, `adversarial`, `partial-clarify`) and `clarification-match` to the new field. Re-run the eval gate and confirm it still clears its threshold; record the number.
+- [x] 4.3 Update `packages/evals` creation cases (`simple`, `domain`, `adversarial`, `partial-clarify`) and `clarification-match` to the new field. Re-run the eval gate and confirm it still clears its threshold; record the number. **Gate passed** — sv 75.9 / fa 80.7 / mr 85.7 / ff 1.6, recorded in `docs/eval-trajectory.md` as a new baseline (the case set changed, so it is not a v2 delta).
 - [x] 4.4 Update the root `tests/e2e` features and specs that set up a contest (`host-create-contest`, `host-draft-review`, `host-rule-space`, `host-contest-progress`, `participant-*`).
 
 ## 5. Verify and close
