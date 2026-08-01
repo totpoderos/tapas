@@ -69,8 +69,11 @@
 ## 4. Landing it
 
 - [x] 4.1 Branch, commit, PR.
-- [ ] 4.2 Once merged: sync the delta into `openspec/specs/host-authentication`
+- [x] 4.2 Once merged: sync the delta into `openspec/specs/host-authentication`
       and archive the change.
-- [ ] 4.3 Raise the two follow-ups the design leaves open: cross-tab
-      coordination, and telling a host whose session truly ended why they are
-      being asked to sign in.
+- [x] 4.3 Raise the follow-ups the design leaves open. Only one survived: the
+      other, cross-tab coordination, was pulled into this change once measuring
+      showed two windows lost the session outright. What is left is telling a
+      host whose session truly ended why they are being asked to sign in —
+      raised as its own piece of work, since it is a screen with words in two
+      languages.

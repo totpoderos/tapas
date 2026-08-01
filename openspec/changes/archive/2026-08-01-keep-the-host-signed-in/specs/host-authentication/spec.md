@@ -54,20 +54,23 @@ host's session survive a screen that asks for two things at once.
 ### Requirement: A host with the app open more than once keeps one session between them
 
 The app SHALL renew a session one window at a time when a host has it open in
-more than one, and SHALL NOT leave a host signed out of a window that was
-working. Renewing SHALL NOT be abandoned in a browser that offers no way to
-coordinate between windows.
+more than one, and a window that finds another has just renewed SHALL renew
+nothing. No window SHALL be left signed out of work it was doing. Renewing SHALL
+NOT be abandoned in a browser that offers no way to coordinate between windows.
 
-Renewals raised side by side do not merely waste a request. The means of
-renewing is spent as it is used and the windows share one, so the second offers
-something already spent and is refused — and a refusal discards what the first
-was given, leaving every window signed out.
+Taking turns is not by itself enough, and the difference is worth recording
+because it was found by measuring rather than by reasoning. Renewing spends the
+means of renewing and replaces it, and the windows share one — so a second
+renewal, even when it waits its turn and is allowed, discards what the first
+window was just given and leaves that window unable to carry on. The window that
+waited has to notice that the waiting was the point.
 
 #### Scenario: A host working in two windows stays signed in
 
 - **WHEN** a host with the app open in two windows works in both at the moment
   their session ages out
-- **THEN** both windows carry out the work
+- **THEN** the session is renewed once between the two windows
+- **AND** both windows carry out the work
 - **AND** neither window asks them to sign in
 
 ### Requirement: Renewal is attempted once per piece of work
