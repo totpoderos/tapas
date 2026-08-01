@@ -19,20 +19,142 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Where a refusal means "wrong password", not "your session aged out". Renewing
+ * for a refused sign-in would fire a refresh at every typo, and renewing for a
+ * refused renewal would recurse into itself.
+ */
+const NEVER_RENEWED_FOR = new Set(['/auth/login', '/auth/refresh']);
+
+/**
+ * The renewal in flight, if there is one — shared by everybody who finds the
+ * session aged out while it runs.
+ *
+ * This is a correctness device, not a saving. The API revokes a refresh token
+ * as it spends it, so a second renewal raised in the same moment presents
+ * something already revoked, is refused, and ends the session it was raised to
+ * save. Any screen that asks for two things at once would find that.
+ *
+ * Module scope rather than React state: one renewal per tab is the requirement,
+ * and a screen outside the session provider (accepting an invitation) has to
+ * share the same one. The slot is cleared when the renewal settles, so the next
+ * expiry starts a fresh one.
+ */
+let renewal: Promise<boolean> | null = null;
+
+/**
+ * The same exclusion across tabs, which a promise in one tab's memory cannot
+ * give. Two tabs renewing together were measured signing *both* of themselves
+ * out: the winner is given fresh cookies, the loser is refused — and the API
+ * clears both cookies as it refuses, into a jar the two tabs share, so the
+ * loser's refusal wipes the winner's new session.
+ *
+ * Held across the renewal, so the second tab renews after the first rather than
+ * beside it. By then the cookie it presents is the fresh one, so it is not
+ * refused and nothing is cleared. It does spend a second rotation the session
+ * did not need; harmless, since the jar the tabs share ends up holding the
+ * newest token either way.
+ *
+ * Absent in older browsers and in the test environment, where the per-tab slot
+ * above is what there is — which is the behaviour this had before the lock.
+ */
+const RENEWAL_LOCK = 'tapas-host-session-renewal';
+
+async function underRenewalLock(work: () => Promise<boolean>): Promise<boolean> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  if (!locks) return work();
+  // Awaited rather than returned: the lock manager holds the lock until the
+  // callback's promise settles, but the DOM types describe the callback as
+  // returning a plain value, so what they infer here is a promise of a promise.
+  return await locks.request(RENEWAL_LOCK, work);
+}
+
+/**
+ * What the tabs tell each other: a fresh mark every time one of them renews.
+ *
+ * Taking turns is not enough on its own, which cost a measurement to learn. Two
+ * tabs renewing one after the other are both answered 200 — and the second
+ * rotation revokes the session the first was just given, so the first tab's
+ * retry carries an access token that has stopped being valid and is refused.
+ * Taking turns moved the casualty rather than removing one.
+ *
+ * So a tab that waited compares this mark against what it saw before queueing.
+ * A different mark means another tab has already renewed and its cookies are in
+ * the jar they share — which is the only thing this tab needed.
+ *
+ * Storage that refuses to answer costs a redundant rotation, which is where
+ * this started. It never costs anything in a single tab.
+ */
+const RENEWAL_MARK = 'tapas-host-session-renewed';
+
+function renewalMark(): string {
+  try {
+    return localStorage.getItem(RENEWAL_MARK) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+function markRenewed(): void {
+  try {
+    localStorage.setItem(RENEWAL_MARK, globalThis.crypto?.randomUUID?.() ?? String(Date.now()));
+  } catch {
+    // Nothing to tell the other tabs with. See above.
+  }
+}
+
+/** Spends the refresh cookie for a fresh session. Answers whether it worked; never throws. */
+function renewSession(): Promise<boolean> {
+  const markBeforeQueueing = renewalMark();
+  renewal ??= underRenewalLock(async () => {
+    // Somebody else renewed while this tab waited its turn. Renewing again
+    // would revoke what they were given, and take this tab's own retry with it.
+    if (renewalMark() !== markBeforeQueueing) return true;
+    const response = await send('/auth/refresh', 'POST');
+    if (response.ok) markRenewed();
+    return response.ok;
+  })
+    // A lock that cannot be taken must not become an exception thrown from
+    // whatever ordinary request happened to find the session aged out.
+    .catch(() => false)
+    .finally(() => {
+      renewal = null;
+    });
+  return renewal;
+}
+
+/**
+ * Every call the app makes goes through here, which is why the renewal lives
+ * here: it covers the read that decides who is signed in on a reload — the one
+ * whose refusal used to put a working host on the sign-in screen — without any
+ * caller knowing, or being able to forget.
+ *
+ * `alreadyRenewed` bounds it to one attempt per call. A 401 that is not about
+ * expiry — work that is not this host's to do, an account whose standing
+ * changed — would otherwise renew and retry until the refresh token died.
+ */
 async function send(
   path: string,
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   body?: unknown,
   extraHeaders?: Record<string, string>,
+  alreadyRenewed = false,
 ): Promise<Response> {
   const headers: Record<string, string> = { ...extraHeaders };
   if (body !== undefined) headers['content-type'] = 'application/json';
-  return fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method,
     credentials: 'include',
     headers: Object.keys(headers).length > 0 ? headers : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+
+  if (response.status !== 401 || alreadyRenewed || NEVER_RENEWED_FOR.has(path)) return response;
+  // A refused renewal is the session being over: the API clears both cookies as
+  // it refuses, so the refusal is handed back and the app's own paths take it
+  // to sign-in from here.
+  if (!(await renewSession())) return response;
+  return send(path, method, body, extraHeaders, true);
 }
 
 async function errorFrom(response: Response): Promise<ApiError> {
