@@ -17,6 +17,14 @@ import { YourDish } from './your-dish';
 
 const REMEMBERED_CONTEST = 'tapas.contestId';
 
+/*
+ * Codes are uppercase, and the field draws them uppercase — so a code typed in
+ * lowercase LOOKS accepted and is then refused. Fold the case here, where the
+ * code enters the screen (keystrokes and `/j/:code` links alike), so what is
+ * held matches what is shown.
+ */
+const normalise = (raw: string) => raw.trim().toUpperCase();
+
 type Step =
   | { readonly name: 'recognizing' }
   | { readonly name: 'code' }
@@ -34,7 +42,7 @@ export function Join() {
   const { t } = useTranslation();
   const { code: codeParam } = useParams();
   const [step, setStep] = useState<Step>({ name: 'recognizing' });
-  const [code, setCode] = useState(codeParam ?? '');
+  const [code, setCode] = useState(normalise(codeParam ?? ''));
   const [error, setError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
@@ -72,7 +80,7 @@ export function Join() {
         }
       }
       if (codeParam) {
-        await lookUpPlaces(codeParam);
+        await lookUpPlaces(normalise(codeParam));
         return;
       }
       setStep({ name: 'code' });
@@ -81,9 +89,8 @@ export function Join() {
 
   async function onSubmitCode(event: FormEvent) {
     event.preventDefault();
-    const trimmed = code.trim();
-    if (!trimmed || busy) return;
-    await lookUpPlaces(trimmed);
+    if (!code || busy) return;
+    await lookUpPlaces(code);
   }
 
   async function onChoose(place: Place) {
@@ -91,12 +98,12 @@ export function Join() {
     setError(undefined);
     setBusy(true);
     try {
-      const identity = await claimPlace(code.trim(), place.participantId);
+      const identity = await claimPlace(code, place.participantId);
       localStorage.setItem(REMEMBERED_CONTEST, identity.contestId);
       setStep({ name: 'joined', identity });
     } catch (caught) {
       if (caught instanceof ApiError && caught.status === 409) {
-        await lookUpPlaces(code.trim()); // refresh first — the taken place drops off
+        await lookUpPlaces(code); // refresh first — the taken place drops off
         setError(t('join.errorPlaceTaken')); // then announce
       } else {
         setError(t('join.errorJoining'));
@@ -153,7 +160,7 @@ export function Join() {
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? 'join-code-problem' : undefined}
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  onChange={(e) => setCode(normalise(e.target.value))}
                 />
                 {/*
                   Attached to the field that was wrong, inside its own panel —
@@ -166,7 +173,7 @@ export function Join() {
                   </p>
                 ) : null}
               </div>
-              <Button type="submit" block disabled={busy || !code.trim()}>
+              <Button type="submit" block disabled={busy || !code}>
                 {busy ? t('join.checking') : error ? t('join.tryAgain') : t('join.continue')}
               </Button>
             </form>
