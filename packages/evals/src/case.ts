@@ -8,8 +8,7 @@ import { z } from 'zod';
  */
 export const FIELD_NAMES = [
   'name',
-  'attribution',
-  'antiBias',
+  'format',
   'scoring',
   'participants',
   'closeRule',

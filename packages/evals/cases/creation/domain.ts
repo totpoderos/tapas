@@ -3,7 +3,7 @@ import type { EvalCase } from '../../src/case.js';
 /**
  * Domain cases (10) — the rule space the Phase 1 compiler implements
  * (glossary.md, "The rule space"). These are the cases that matter most: they
- * test whether the assistant understands attribution, anti-bias, range
+ * test whether the assistant understands the contest's format, range
  * resolution and uniqueness as *domain concepts*, not just as strings it can
  * copy out of a sentence. Three of them are the named variants — Strict,
  * Permissive and Joint — the same points in the rule space the compiler's
@@ -13,7 +13,7 @@ export const DOMAIN_CASES: EvalCase[] = [
   {
     id: 'domain-variant-strict',
     category: 'domain',
-    note: 'The Strict variant: per_person, couples barred, auto range, unique scores. Every rule-space axis at once.',
+    note: 'The Strict variant: on their own with partners kept apart, auto range, unique scores. Every rule-space axis at once.',
     turns: [
       {
         message:
@@ -21,8 +21,7 @@ export const DOMAIN_CASES: EvalCase[] = [
         expect: {
           fields: {
             name: 'Strict Tapas',
-            attribution: 'per_person',
-            antiBias: 'couples',
+            format: 'solo_with_partners',
             participants: [
               { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
               { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
@@ -44,7 +43,7 @@ export const DOMAIN_CASES: EvalCase[] = [
   {
     id: 'domain-variant-permissive',
     category: 'domain',
-    note: 'The Permissive variant: per_person, couples barred, fixed 1..10, repeats allowed.',
+    note: 'The Permissive variant: on their own with partners kept apart, fixed 1..10, repeats allowed.',
     turns: [
       {
         message:
@@ -52,8 +51,7 @@ export const DOMAIN_CASES: EvalCase[] = [
         expect: {
           fields: {
             name: 'Permissive Tapas',
-            attribution: 'per_person',
-            antiBias: 'couples',
+            format: 'solo_with_partners',
             participants: [
               { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
               { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
@@ -73,7 +71,7 @@ export const DOMAIN_CASES: EvalCase[] = [
   {
     id: 'domain-variant-joint',
     category: 'domain',
-    note: 'The Joint variant: per_couple attribution — the dish belongs to the pair, not the person.',
+    note: 'The Joint variant: couples cook together — the dish belongs to the pair, not the person.',
     turns: [
       {
         message:
@@ -81,8 +79,7 @@ export const DOMAIN_CASES: EvalCase[] = [
         expect: {
           fields: {
             name: 'Joint Tapas',
-            attribution: 'per_couple',
-            antiBias: 'couples',
+            format: 'couples',
             participants: [
               { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
               { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
@@ -118,52 +115,53 @@ export const DOMAIN_CASES: EvalCase[] = [
               uniquePerCategory: true,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },
     ],
   },
   {
-    id: 'domain-arbitrary-pairs',
+    id: 'domain-format-solo-with-some-partners',
     category: 'domain',
-    note: 'arbitrary_pairs: a bar between two people who are not a couple, carried on noScoreWith.',
+    note: 'Partners kept apart with only some people partnered. A contest can keep partners apart without everybody having one — the format is about the rule, not about the roster being complete.',
     turns: [
       {
         message:
-          'Contest called Feud Tapas. Ana (id ana), Bob (id bob) and Carla (id carla) are cooking. Ana and Carla must not score each other — they are not a couple, they simply cannot judge each other fairly. Everyone else can score anyone.',
+          'Contest called Mixed Tapas. Ana (id ana) and Bob (id bob) are a couple; Carla (id carla) is on her own. Everyone cooks their own dish, and partners must not score each other.',
         expect: {
           fields: {
-            name: 'Feud Tapas',
-            antiBias: 'arbitrary_pairs',
-            participants: [
-              { id: 'ana', displayName: 'Ana', noScoreWith: ['carla'] },
-              { id: 'bob', displayName: 'Bob' },
-              { id: 'carla', displayName: 'Carla', noScoreWith: ['ana'] },
-            ],
-          },
-          clarifiesAbout: ['scoring', 'attribution'],
-          absent: [],
-        },
-      },
-    ],
-  },
-  {
-    id: 'domain-per-couple-attribution',
-    category: 'domain',
-    note: 'per_couple stated without the word "couple" being used for the anti-bias rule — attribution and anti-bias must not be conflated.',
-    turns: [
-      {
-        message:
-          'Contest called Pairs Tapas. Ana (id ana) cooks with her partner Bob (id bob), and the dish is credited to them jointly. Anyone may score anyone, including partners.',
-        expect: {
-          fields: {
-            name: 'Pairs Tapas',
-            attribution: 'per_couple',
-            antiBias: 'none',
+            name: 'Mixed Tapas',
+            format: 'solo_with_partners',
             participants: [
               { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
               { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
+              { id: 'carla', displayName: 'Carla' },
+            ],
+          },
+          clarifiesAbout: ['scoring'],
+          absent: [],
+        },
+      },
+    ],
+  },
+  {
+    id: 'domain-format-couples',
+    category: 'domain',
+    note: 'Couples cook together, said without the phrase "score each other" appearing at all. Under this format nobody has to be barred from their partner: the partner\'s dish is their own.',
+    turns: [
+      {
+        message:
+          'Contest called Pairs Tapas. Ana (id ana) cooks with her partner Bob (id bob), and Carla (id carla) with hers, Dan (id dan). Each couple brings one dish between them.',
+        expect: {
+          fields: {
+            name: 'Pairs Tapas',
+            format: 'couples',
+            participants: [
+              { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
+              { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
+              { id: 'carla', displayName: 'Carla', partnerId: 'dan' },
+              { id: 'dan', displayName: 'Dan', partnerId: 'carla' },
             ],
           },
           clarifiesAbout: ['scoring'],
@@ -189,7 +187,7 @@ export const DOMAIN_CASES: EvalCase[] = [
               uniquePerCategory: true,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },
@@ -216,7 +214,7 @@ export const DOMAIN_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },

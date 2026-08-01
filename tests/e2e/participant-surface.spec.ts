@@ -37,8 +37,7 @@ async function accentOf(page: Page): Promise<string> {
 function content(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     closeRule: { when: 'host_trigger' },
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],

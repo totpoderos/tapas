@@ -20,8 +20,7 @@ test('a host fills in a new contest and saves it as a draft', async ({ page }) =
   await page.goto('/new');
 
   await page.getByLabel('Contest name').fill('Summer Tapas');
-  await page.getByLabel('Each couple is scored together').check();
-  await page.getByLabel('Couples cannot score each other').check();
+  await page.getByRole('radio', { name: 'Couples cook together' }).check();
 
   await page.getByRole('button', { name: 'Save as draft' }).click();
 
@@ -52,7 +51,7 @@ test('going on saves the contest and lands on its people', async ({ page }) => {
   await page.goto('/new');
 
   await page.getByLabel('Contest name').fill('Rooftop Rounds');
-  await page.getByLabel('Each couple is scored together').check();
+  await page.getByRole('radio', { name: 'Couples cook together' }).check();
   await page.getByRole('button', { name: /^Next/ }).click();
 
   // On the people of the contest it just saved — which is where somebody is added.
@@ -65,7 +64,7 @@ test('going on saves the contest and lands on its people', async ({ page }) => {
   await expect(nav).toContainText('Rooftop Rounds');
   await expect(nav).toContainText('not published');
   await page.getByRole('link', { name: 'Rules', exact: true }).click();
-  await expect(page.getByLabel('Each couple is scored together')).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Couples cook together' })).toBeChecked();
 });
 
 test('going on is refused without a name, exactly as saving is', async ({ page }) => {

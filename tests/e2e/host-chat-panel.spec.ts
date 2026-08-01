@@ -15,8 +15,7 @@ function completeContent(name: string) {
   const person = (id: string, partnerId: string) => ({ id, displayName: id, partnerId });
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
     participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
   };
@@ -81,8 +80,7 @@ test("the assistant shows a contest's participants by name", async ({ page }) =>
   const created = await page.request.post('/drafts', {
     data: {
       name: 'Tapas Night',
-      attribution: 'per_person',
-      antiBias: 'none',
+      format: 'solo',
       scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
       participants: [
         { id: 'a', displayName: 'Ana' },

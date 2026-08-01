@@ -1,6 +1,6 @@
 Feature: A host creates a contest
   A host starts a new contest from a form: they name it, choose how it is
-  attributed and scored, and guard against bias. Saving keeps it as a draft they
+  scored, and what kind of contest it is. Saving keeps it as a draft they
   can return to — it does not go live until they publish it. A contest cannot be
   saved without a name. The form is fully keyboard-operable and meets
   accessibility standards (WCAG 2.1 AA).

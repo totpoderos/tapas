@@ -24,11 +24,11 @@ Feature: A host gets a contest ready to go live
 
   Scenario: Each section holds its own part of the contest
     Given a signed-in host looking at the rules of a contest being prepared
-    Then they can change what it is called, how dishes are attributed, its anti-bias rule, its scoring categories and its score range
-    And the roster, the pairings and the barred pairs are not on that section
+    Then they can change what it is called, its format, its scoring categories and its score range
+    And the roster and the pairings are not on that section
     When they go to its participants and pairing
-    Then they can add and remove people, pair them, and bar pairs from scoring each other
-    And the contest's name, attribution, anti-bias rule and scoring are not on that section
+    Then they can add and remove people, and pair them
+    And the contest's name, its format and its scoring are not on that section
 
   Scenario: The panel says which section the host is on
     Given a signed-in host looking at the participants and pairing of a contest being prepared
@@ -76,16 +76,14 @@ Feature: A host gets a contest ready to go live
     And it is still a contest being prepared
     And they are still on its participants and pairing
 
-  Scenario: Pairs barred under a rule the contest does not use are said to be idle
-    Given a signed-in host looking at the participants and pairing of a contest being prepared where couples cannot score each other
-    When they bar two of the participants from scoring each other
-    Then the pair is listed as barred
-    And they are told those pairs are not in force for this contest
-    And they are told which rule would put them in force
+  Scenario: A pairing survives a change of format
+    Given a signed-in host looking at the participants and pairing of a contest being prepared
+    When they pair two participants, change the contest's format away and back, and save
+    Then the two are still partners
 
-  Scenario: Barred pairs are in force when the contest bars chosen pairs
-    Given a signed-in host looking at the participants and pairing of a contest being prepared where chosen pairs cannot score each other
-    Then the pairs barred from scoring each other are not said to be idle
+  Scenario: There is nowhere to bar a pair by hand
+    Given a signed-in host looking at the participants and pairing of a contest being prepared
+    Then nothing there offers to bar a pair from scoring each other
 
   Scenario: Both sections are free of accessibility violations
     Given a signed-in host looking at a contest being prepared with people on it

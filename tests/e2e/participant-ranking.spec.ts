@@ -15,8 +15,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function ranking(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
     participants: [
       { id: 'a', displayName: 'Ana' },

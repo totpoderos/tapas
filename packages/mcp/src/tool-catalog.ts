@@ -56,7 +56,7 @@ const getContest: McpTool = {
 const listMyContests: McpTool = {
   name: 'list_my_contests',
   description:
-    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state. Each also carries what it is judged on (attribution and how many scoring categories), its join code, and its progress (how many people have claimed a place, how many are still scoring, and how many have sent their vote). A contest still being prepared has no join code and no progress at all — that means voting has not started, which is NOT the same as nobody having voted yet.",
+    "List all of the host's own contests — both drafts still being prepared and published contests (live, closed, or revealed) — each with its id, name, and current state. Each also carries what it is judged on (its format and how many scoring categories), its join code, and its progress (how many people have claimed a place, how many are still scoring, and how many have sent their vote). A contest still being prepared has no join code and no progress at all — that means voting has not started, which is NOT the same as nobody having voted yet.",
   destructive: false,
   scope: 'host',
   inputSchema: {},
@@ -231,11 +231,10 @@ const personShape = z
     // states, so a model asked for "participants: Juan and Paco" has no id to
     // give. The API assigns one to any participant that arrives without it (see
     // `withParticipantIds`). Supply an existing id to keep referring to the same
-    // person — that is what pairings and `noScoreWith` point at.
+    // person — that is what a partnership points at.
     id: z.string().min(1).optional().describe('Existing participant id; omit for a new participant.'),
     displayName: z.string().min(1),
     partnerId: z.string().min(1).optional(),
-    noScoreWith: z.array(z.string().min(1)).optional(),
   })
   .strict();
 
@@ -253,8 +252,12 @@ const createDraft: McpTool = {
   scope: 'host',
   inputSchema: {
     name: z.string().min(1).describe('The contest name.'),
-    attribution: z.enum(['per_person', 'per_couple']).optional(),
-    antiBias: z.enum(['none', 'couples', 'arbitrary_pairs']).optional(),
+    format: z
+      .enum(['solo', 'solo_with_partners', 'couples'])
+      .optional()
+      .describe(
+        'What kind of contest this is, and the whole of what it says about who cooks and who may not score whom: "solo" — each person cooks their own dish and scores every other; "solo_with_partners" — each person cooks their own dish and whoever has a partner does not score their partner\'s; "couples" — each couple cooks one dish, everybody has a partner, and nobody scores their own couple\'s dish.',
+      ),
     scoring: scoringShape.optional(),
     participants: z.array(personShape).optional(),
     closeRule: whenShape.optional(),

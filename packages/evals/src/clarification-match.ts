@@ -17,8 +17,26 @@ import { FIELD_NAMES, type FieldName } from './case.js';
  */
 const FIELD_KEYWORDS: Record<FieldName, readonly string[]> = {
   name: ['name', 'called', 'title'],
-  attribution: ['attribution', 'credit', 'per person', 'per couple', 'individually', 'as a couple'],
-  antiBias: ['anti-bias', 'antibias', 'bias', 'pair', 'couple', 'partner'],
+  // One field now, so the keywords of the two it replaced are pooled: a
+  // clarification about who cooks and one about who may not score each other
+  // are both asking the same single question.
+  format: [
+    'format',
+    'kind of contest',
+    'attribution',
+    'credit',
+    'per person',
+    'per couple',
+    'individually',
+    'as a couple',
+    'anti-bias',
+    'antibias',
+    'bias',
+    'pair',
+    'couple',
+    'partner',
+    'on their own',
+  ],
   scoring: ['scor', 'score', 'rating', 'rate', 'categor', 'criteria', 'range', 'points'],
   // Stems, not whole words — and the stem has to be the *common* prefix:
   // "participants" and "participate" diverge at the 10th letter, so

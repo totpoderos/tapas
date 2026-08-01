@@ -13,8 +13,8 @@ export interface RevealWinner {
   /** The dish, by the name it was submitted under. */
   readonly name: string;
   /**
-   * Who brought it — one cook, or both halves of a couple under `per_couple`
-   * attribution.
+   * Who brought it — one cook, or both halves of a couple under the `couples`
+   * format.
    *
    * `RevealData` is the shape both apps agree on, so the field is here even
    * though only the participant's reveal draws it: the host's screen is a

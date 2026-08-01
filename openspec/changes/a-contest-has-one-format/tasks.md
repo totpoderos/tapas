@@ -39,10 +39,10 @@ easier to review that way.
 
 ## 4. The followers
 
-- [ ] 4.1 Update the shared DTO in `packages/host-web/src/api/client.ts` and `packages/participant-web/src/api`, and whatever in `packages/ui` names the old fields.
-- [ ] 4.2 Update `packages/mcp/src/tool-catalog.ts` and its contract tests so the tool surface exposes `format` and no barred-pairs argument.
+- [x] 4.1 Update the shared DTO in `packages/host-web/src/api/client.ts` and `packages/participant-web/src/api`, and whatever in `packages/ui` names the old fields.
+- [x] 4.2 Update `packages/mcp/src/tool-catalog.ts` and its contract tests so the tool surface exposes `format` and no barred-pairs argument.
 - [ ] 4.3 Update `packages/evals` creation cases (`simple`, `domain`, `adversarial`, `partial-clarify`) and `clarification-match` to the new field. Re-run the eval gate and confirm it still clears its threshold; record the number.
-- [ ] 4.4 Update the root `tests/e2e` features and specs that set up a contest (`host-create-contest`, `host-draft-review`, `host-rule-space`, `host-contest-progress`, `participant-*`).
+- [x] 4.4 Update the root `tests/e2e` features and specs that set up a contest (`host-create-contest`, `host-draft-review`, `host-rule-space`, `host-contest-progress`, `participant-*`).
 
 ## 5. Verify and close
 

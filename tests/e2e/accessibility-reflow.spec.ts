@@ -23,8 +23,7 @@ const NARROW = { width: 320, height: 512 };
 function repeatsAllowed(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },

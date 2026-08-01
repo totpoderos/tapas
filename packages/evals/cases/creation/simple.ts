@@ -16,7 +16,7 @@ export const SIMPLE_CASES: EvalCase[] = [
         message: 'I want to run a tapas contest called Summer Tapas 2026.',
         expect: {
           fields: { name: 'Summer Tapas 2026' },
-          clarifiesAbout: ['participants', 'scoring', 'attribution'],
+          clarifiesAbout: ['participants', 'scoring', 'format'],
           absent: [],
         },
       },
@@ -39,7 +39,7 @@ export const SIMPLE_CASES: EvalCase[] = [
               { id: 'carla', displayName: 'Carla' },
             ],
           },
-          clarifiesAbout: ['scoring', 'attribution'],
+          clarifiesAbout: ['scoring', 'format'],
           absent: [],
         },
       },
@@ -62,24 +62,24 @@ export const SIMPLE_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },
     ],
   },
   {
-    id: 'simple-attribution-per-person',
+    id: 'simple-format-solo',
     category: 'simple',
-    note: 'Attribution is high-stakes: stated outright here, so it must be extracted rather than asked about.',
+    note: 'The format is high-stakes: stated outright here, so it must be extracted rather than asked about.',
     turns: [
       {
         message:
-          'Contest called Solo Tapas. Ana (id ana) and Bob (id bob) are cooking, and each dish is credited to the individual person who made it.',
+          'Contest called Solo Tapas. Ana (id ana) and Bob (id bob) are cooking, each on their own, and everyone scores every dish but their own.',
         expect: {
           fields: {
             name: 'Solo Tapas',
-            attribution: 'per_person',
+            format: 'solo',
             participants: [
               { id: 'ana', displayName: 'Ana' },
               { id: 'bob', displayName: 'Bob' },
@@ -124,15 +124,15 @@ export const SIMPLE_CASES: EvalCase[] = [
     ],
   },
   {
-    id: 'simple-anti-bias-none',
+    id: 'simple-format-solo-nobody-kept-apart',
     category: 'simple',
-    note: 'antiBias none said explicitly. The baseline "never score your own dish" is not a rule the host chooses, so it must not surface as a field.',
+    note: 'The solo format said as "no restrictions". The baseline "never score your own dish" is not a rule the host chooses, so it must not surface as anything extra.',
     turns: [
       {
         message:
-          'Contest called Open Tapas. There are no restrictions on who may score whom — anyone can score anyone.',
+          'Contest called Open Tapas. Everyone cooks their own dish and there are no restrictions on who may score whom — anyone can score anyone.',
         expect: {
-          fields: { name: 'Open Tapas', antiBias: 'none' },
+          fields: { name: 'Open Tapas', format: 'solo' },
           clarifiesAbout: ['participants', 'scoring'],
           absent: [],
         },
@@ -156,7 +156,7 @@ export const SIMPLE_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },

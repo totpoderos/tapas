@@ -31,10 +31,10 @@ describe('scoreTurn', () => {
   it('compares only the expected fields that actually appeared', () => {
     const counts = scoreTurn(
       outcome({ fields: { name: 'Summer Tapas' } }),
-      expectation({ fields: { name: 'Summer Tapas', attribution: 'per_person' } }),
+      expectation({ fields: { name: 'Summer Tapas', format: 'solo' } }),
     );
 
-    // attribution never arrived — that is a recall miss, not an accuracy miss.
+    // the format never arrived — that is a recall miss, not an accuracy miss.
     expect(counts.fieldsCompared).toBe(1);
     expect(counts.fieldsCorrect).toBe(1);
   });
@@ -79,8 +79,8 @@ describe('scoreTurn', () => {
 
   it('counts an explicitly forbidden field as a false field', () => {
     const counts = scoreTurn(
-      outcome({ fields: { name: 'Trick Tapas', attribution: 'per_couple' } }),
-      expectation({ fields: { name: 'Trick Tapas' }, absent: ['attribution'] }),
+      outcome({ fields: { name: 'Trick Tapas', format: 'couples' } }),
+      expectation({ fields: { name: 'Trick Tapas' }, absent: ['format'] }),
     );
 
     expect(counts.falseFields).toBe(1);

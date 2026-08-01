@@ -31,8 +31,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function content(name: string, { uniquePerCategory = true } = {}) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     closeRule: { when: 'host_trigger' },
     scoring: {
       categories: [
