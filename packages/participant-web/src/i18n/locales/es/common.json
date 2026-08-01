@@ -6,10 +6,13 @@
   "language": {
     "label": "Idioma"
   },
-  "waysOnward": {
+  "bar": {
     "label": "Ir a",
-    "dish": "Los platos",
-    "score": "Tus puntuaciones",
-    "reveal": "Los resultados"
+    "dish": "Platos",
+    "score": "Puntuar",
+    "reveal": "Resultados",
+    "stillToSend": "sin enviar",
+    "withStanding": "{{step}} — {{standing}}",
+    "voteSent": "ya enviado"
   }
 }

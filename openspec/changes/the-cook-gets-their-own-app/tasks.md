@@ -1,6 +1,8 @@
 # Tasks
 
-Seven slices, A–G, each one ATDD loop and one PR. Every slice writes its `.feature` first and gets it confirmed before any implementation, and every slice ends on the same verification: unit tests, the full vitest run, typecheck, lint, `openspec validate`, and a live smoke test against a running app.
+Eight slices, A–H, each one ATDD loop and one PR. Every slice writes its `.feature` first and gets it confirmed before any implementation, and every slice ends on the same verification: unit tests, the full vitest run, typecheck, lint, `openspec validate`, and a live smoke test against a running app.
+
+Slice H was not in the original plan. The handoff was refined after G landed, and the refinement moves the ways onward off the foot of the page and into a fixed bar — which is a change to a requirement, not a restyle, so it gets a slice rather than a patch.
 
 **Blocked on `the-reveal-is-ready-to-be-restyled`.** That change forks the reveal into two copies and puts a rendered-screen test under the same-results promise. Slice G restyles the copy it leaves behind; the rest of the slices do not touch the reveal and need not wait.
 
@@ -97,9 +99,28 @@ Depends on `the-reveal-is-ready-to-be-restyled` having landed.
 - [x] 7.7 Run the slice verification. Typecheck clean, lint clean, vitest 2017/2017, Playwright 304/304 (Chromium + WebKit), `openspec validate` passing, and the screen driven live in English and Spanish at 390px and 320px.
 - [ ] 7.8 **Not this slice's to fix, found by it:** an unsubmitted dish is named `'A dish'` by the API, in English, and that string reaches the leaderboard on a Spanish reveal. It predates this change — the placeholder has always been in `toRevealDto` — but it is visible on the screen this slice delivers. Fixing it means the API marking the dish unnamed and each app wording it, which touches the host's reveal too.
 
-## 8. Closing out
+## 8. Slice H — the bar
 
-- [ ] 8.1 Security review of the two disclosures together, now that both are built: the roster of taken places, and per-participant voting progress before the reveal.
-- [ ] 8.2 Confirm the boundary held — no participant-shaped component ended up in `@tapas/ui`, and the host panel is drawn exactly as it was before this change began.
-- [ ] 8.3 Check the built bundle against the baseline taken in 1.8.
-- [ ] 8.4 Run the full accessibility pass across all fourteen screens: axe hard-gating, the 320px reflow test, and the manual keyboard and screen-reader checklist.
+The handoff was refined after slice G landed, and one thing in it is not a restyle: **the ways onward stop being links at the foot of the page and become a bar held in the thumb arc**. Everything else in this slice follows from that — where a screen's own action can sit, how much room a page leaves at its bottom, and how a participant learns that scoring has opened.
+
+- [x] 8.1 Write the acceptance feature for the modified `participant-app-shell`: the ways onward hold their place on a screen longer than the phone, they name all three steps and mark the one you are on by more than colour, they report how your own vote stands and tell on nobody, and a screen with nowhere to go carries none of it. Confirm it before implementing.
+- [x] 8.2 Build the bar as its own component, replacing `ways-onward.tsx`: three steps, fixed at the foot, 56px targets in an 88px bar with `env(safe-area-inset-bottom)` under it. The current step carries `aria-current="page"`, the accent colour **and** a 3px underline — the spec forbids colour alone, and the colour is the part a phone in bad light loses first.
+- [x] 8.3 Give the scoring step its status mark: sent, outstanding, or nothing. Not a bare dot — the two states are different SHAPES (a filled dot, a tick), and the words are on the step's accessible name. **The words started as hidden text inside the link and had to move to an `aria-label`:** an accessible name joins its inline parts with no separator and trims each one first, so "Score" and "still to send" became "Scorestill to send" — in every engine, whatever whitespace was written in. The name still opens with the visible label, so it is a superset of what is on screen rather than a replacement (WCAG 2.5.3).
+- [x] 8.4 Read that status once per screen where the screen does not already know it. The score screen derives it from the ballot it has already loaded; the dish and results screens read it on mount and **never poll it** — the results screen is already spending two timers against a rate limit a whole venue shares (see 6.5), and a badge is not worth a third.
+- [x] 8.5 Fail the status read silently. A badge that cannot be read is a badge that is not drawn; it must never be the reason a screen shows an error, for the same reason `getTurnout` answers `null` (6.7).
+- [x] 8.6 Dock the screens' own actions above the bar on a fade: the back-and-next rail while scoring one dish, and the send action with its reason on the ballot. Neither may scroll away and neither may sit under the bar.
+- [x] 8.7 Give every screen that carries the bar the room for it. **The rail is STICKY, not fixed, and that is a correction the live pass forced.** Fixed took it out of the flow, so the page had to be told how much room to leave — and no constant is right: the send rail carries a sentence that wraps to two lines at 320px and vanishes once the ballot is complete. The first version reserved 78px and the ballot's last row disappeared behind it. Sticky reserves exactly its own height while still pinning itself the bar's height above the floor, so nothing has to agree about a number and `--rail-height` is gone. **The fade's stops moved from percentages to pixels for the same reason:** at 40% of a rail's height the ground was still half transparent and the panel underneath showed through the back button.
+- [x] 8.7b Only the bar needs reserved room, then. `.pt-barred` on the three joined screens; the join flow and the two dead ends carry neither the class nor the bar.
+- [x] 8.8 Dress screen 10's "See the results" as the primary pill the handoff draws. It stays a **link** — it goes somewhere, and the e2e finds it by role.
+- [ ] 8.9 **Not done, and deliberately:** the handoff drops the header from screen 12 entirely. `internationalization` requires a language selector on every screen, and `nav.tsx` already declined to drop it once for exactly this reason. Taking it away is a change to what the product offers, not a restyle. The reveal keeps its header.
+- [x] 8.10 EN and ES resources for every new string in this slice. The step labels shorten ("The dishes" → "Dishes"), which moves locators in `participant-navigation.spec.ts` and `no-dead-ends.test.tsx` — the accessible name follows the visible one rather than the reverse.
+- [x] 8.11 Retire `ways-onward.tsx`, its stylesheet and its resources, per the sheet-shrinks decision (5.7).
+- [x] 8.12 Run the slice verification. Typecheck clean, lint clean, vitest 2048/2048, Playwright 315/315 (Chromium + WebKit), `openspec validate` passing, and every screen driven live against a seeded five-place contest at 390px and 320px — including a ballot long enough to scroll, which is the only way to see whether the bar is really held.
+- [x] 8.13 **A WebKit-only failure, caught by the matrix and not by review:** the in-reach scenario scrolled with `page.mouse.wheel`, which mobile WebKit does not support at all. Scrolled by the document instead. The same shape as the tab-order defect slice E found — a spec that is green on Chromium and cannot run on the engine every phone at a venue uses.
+
+## 9. Closing out
+
+- [ ] 9.1 Security review of the two disclosures together, now that both are built: the roster of taken places, and per-participant voting progress before the reveal.
+- [ ] 9.2 Confirm the boundary held — no participant-shaped component ended up in `@tapas/ui`, and the host panel is drawn exactly as it was before this change began.
+- [ ] 9.3 Check the built bundle against the baseline taken in 1.8.
+- [ ] 9.4 Run the full accessibility pass across all fourteen screens: axe hard-gating, the 320px reflow test, and the manual keyboard and screen-reader checklist.

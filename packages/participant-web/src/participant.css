@@ -5,8 +5,8 @@
 /*
  * The header is a sibling of this, not a child, so the column is the viewport
  * less the header — otherwise every screen scrolls by exactly the header's
- * height. Staying a full-height flex column is what lets the ways onward pin
- * themselves to the foot with `margin-top: auto`.
+ * height. Staying a full-height flex column is what lets a screen push its own
+ * content apart with `margin-top: auto`.
  */
 .pt-main {
   max-width: 460px;
@@ -15,6 +15,20 @@
   min-height: calc(100dvh - 58px);
   display: flex;
   flex-direction: column;
+}
+
+/*
+ * A screen that carries the bar leaves room for it. The bar is fixed, so it is
+ * out of the flow and would otherwise sit on top of whatever the screen ends
+ * with — which on a phone is the last row of a roster or the last line of a
+ * receipt, and on the desktop viewport this is all built on, nothing at all.
+ *
+ * Not folded into `.pt-main`: the join screens and the two dead ends carry no
+ * bar, and 100px of empty page under a screen with one button on it is its own
+ * kind of wrong.
+ */
+.pt-barred {
+  padding-bottom: calc(var(--bar-height) + 16px);
 }
 .pt-title {
   font-size: 28px;

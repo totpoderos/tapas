@@ -90,7 +90,7 @@ test('scoring reflows to a narrow screen and stays operable', async ({ page }) =
 
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
   await expect(page.getByRole('heading', { name: 'Your ballot' })).toBeVisible();
 
   expect(await scrollsSideways(page)).toBe(false);
@@ -115,7 +115,7 @@ test('the reveal reflows to a narrow screen and still announces the winner', asy
   // Join and vote, then the host closes and reveals.
   await page.goto(`${PARTICIPANT}/j/${joinCode}`);
   await page.getByRole('button', { name: 'Bruno' }).click();
-  await page.getByRole('link', { name: 'Your scores' }).click();
+  await page.getByRole('navigation', { name: 'Go to' }).getByRole('link', { name: /^Score/ }).click();
   await scoreEveryDishNarrow(page, '5');
   await page.getByRole('button', { name: 'Send my vote' }).click();
   await page.getByRole('button', { name: 'Yes, send my vote' }).click();

@@ -74,14 +74,64 @@
   gap: 16px;
 }
 
-/* --- moving between dishes -------------------------------------------- */
+/* --- the docked action rail -------------------------------------------
+ *
+ * The screen's own action — moving between dishes, or sending — held on a fade
+ * directly above the ways onward. Fixed, for the same reason the bar is: a
+ * ballot of five dishes and a dish with four categories are both longer than the
+ * phone, and an action at the bottom of the DOCUMENT is an action a cook has to
+ * go looking for while holding a plate.
+ *
+ * The two never overlap because the rail's bottom is the bar's height exactly,
+ * and the screens that carry a rail claim room for both (`.pt-railed`).
+ */
+.dock {
+  /*
+   * STICKY, not fixed, and that distinction is the whole of this rule.
+   *
+   * Fixed took the rail out of the flow, which meant the page underneath had to
+   * be told how much room to leave — and no constant is right, because the send
+   * rail carries a sentence that wraps to two lines at 320px and to none at all
+   * once the ballot is complete. The first version reserved 78px and the last
+   * row of the ballot disappeared behind it.
+   *
+   * Sticky keeps the rail in the flow, so it reserves exactly its own height at
+   * the end of the content, while pinning itself the bar's height above the
+   * viewport floor for as long as there is anything below it. Nothing has to
+   * agree about a number.
+   */
+  position: sticky;
+  bottom: var(--bar-height);
+  z-index: 15;
+  /* Full-bleed out of the column's 20px gutter, as the handoff draws it. */
+  margin: 0 -20px;
+  /*
+   * A fade, not an edge: a hard line here would read as the page having ended.
+   *
+   * The stops are in PIXELS rather than percentages, and that is the fix for
+   * what percentages did. At 40% of a rail's height the ground was still half
+   * transparent, so the panel scrolling underneath showed through the back
+   * button — and the height varies with the rail, so no percentage was right
+   * for both. In pixels the fade is over by 24px, which is exactly where the
+   * controls start, whatever the rail is carrying.
+   */
+  background: linear-gradient(180deg, rgba(246, 242, 236, 0) 0px, rgb(248, 244, 238) 24px);
+  pointer-events: none;
+}
 
-.footer {
+.dockInner {
+  padding: 24px 20px 10px;
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* The fade is decoration and lets taps through; the controls do not. */
+  pointer-events: auto;
+}
+
+.dockRow {
+  flex-direction: row;
   align-items: center;
   gap: 12px;
-  margin-top: auto;
-  padding-top: 20px;
 }
 
 .back {
@@ -313,14 +363,37 @@
   margin: 0;
 }
 
+/*
+ * The one thing to press on a screen that is otherwise a receipt, so the handoff
+ * draws it as the primary pill (screen 10) rather than as the quiet link it was.
+ * It is dressed exactly as `.onward` because it does the same job; it is not
+ * docked, because there is no second action for it to compete with and a
+ * receipt is not something you act on in a hurry.
+ */
 .sentLink {
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
+  justify-content: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 20px;
+  border-radius: var(--radius-pill);
+  background: var(--brand);
+  color: var(--on-brand);
+  font-family: var(--serif);
   font-size: 17px;
   font-weight: 600;
-  color: var(--brand);
+  text-decoration: none;
+  box-shadow: var(--shadow-primary);
+}
+
+.sentLink:hover {
+  background: var(--brand-600);
+}
+
+.sentLink:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
 }
 
 /*

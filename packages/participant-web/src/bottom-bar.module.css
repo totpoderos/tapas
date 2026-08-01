@@ -1,0 +1,139 @@
+/*
+ * The ways onward, held at the foot of the screen (handoff, implementation note
+ * 1). Fixed rather than pinned: `margin-top: auto` put them at the bottom of the
+ * DOCUMENT, which on a screen longer than the phone is not the bottom of
+ * anything a thumb can reach.
+ */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  /*
+   * Frosted, like every other touchable surface in this app. The fallback where
+   * `backdrop-filter` is unsupported is the flat cream underneath and nothing
+   * else changes — but the alpha is high enough (0.92) that the bar is opaque
+   * ENOUGH to read against scrolling content either way, which the glass panels
+   * elsewhere do not have to be.
+   */
+  background: rgba(252, 249, 244, 0.92);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -10px 30px rgba(34, 22, 26, 0.1);
+}
+
+/*
+ * The bar spans the phone; its contents keep the column's own measure, so on a
+ * wide viewport the three steps sit under the content rather than stretching
+ * across a desk monitor.
+ */
+.steps {
+  max-width: 460px;
+  margin: 0 auto;
+  padding: 0 8px;
+  /*
+   * The home indicator's strip on a phone with no button, plus the handoff's
+   * 14px. `env()` is 0 on everything else, so this is 88px tall there.
+   */
+  padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  /* The floor the spec sets, met by the target rather than by the glyph. */
+  min-height: 56px;
+  padding: 8px 4px 0;
+  text-decoration: none;
+  /*
+   * 6:1 on the bar's blended ground. A step is never dimmed below legibility to
+   * mean "not yet" — the destination's own copy does that, and a label nobody
+   * can read is not a milder way of saying something, it is a missing label.
+   */
+  color: rgba(34, 22, 26, 0.78);
+}
+
+.step:hover {
+  color: var(--brand);
+}
+
+.step:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: -3px;
+  border-radius: var(--radius-control);
+}
+
+.stepHere {
+  color: var(--brand);
+}
+
+.label {
+  font-size: 13px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.stepHere .label {
+  font-weight: 600;
+}
+
+/*
+ * The second carrier of "you are here", and the one that survives a phone in
+ * bad light. Drawn on every step at the same size so nothing shifts as the
+ * current step moves; only the colour changes.
+ */
+.rule {
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.stepHere .rule {
+  background: var(--brand);
+}
+
+/* --- the standing of the participant's own vote ------------------------ */
+
+.mark {
+  position: relative;
+  line-height: 0;
+}
+
+/*
+ * Amber, and a DOT — the shape is the signal for anyone who cannot tell it from
+ * the tick by colour. The ring is the bar's own ground, so the badge reads as
+ * sitting on top of the icon rather than being part of it.
+ */
+.dot {
+  position: absolute;
+  top: -1px;
+  right: -5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--amber);
+  box-shadow: 0 0 0 2px #faf6f0;
+}
+
+.tick {
+  position: absolute;
+  top: -3px;
+  right: -7px;
+  color: var(--brand);
+  background: #faf6f0;
+  border-radius: 999px;
+}
+
+/*
+ * The same two states in words are on the step's `aria-label`, not in a hidden
+ * span here — see `nameWithStanding`. Hidden text beside the label joins it
+ * without a separator, in every engine, and produced the name "Scorestill to
+ * send".
+ */

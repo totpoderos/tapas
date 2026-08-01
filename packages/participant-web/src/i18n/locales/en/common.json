@@ -6,10 +6,13 @@
   "language": {
     "label": "Language"
   },
-  "waysOnward": {
+  "bar": {
     "label": "Go to",
-    "dish": "The dishes",
-    "score": "Your scores",
-    "reveal": "The results"
+    "dish": "Dishes",
+    "score": "Score",
+    "reveal": "Results",
+    "stillToSend": "still to send",
+    "withStanding": "{{step}} — {{standing}}",
+    "voteSent": "already sent"
   }
 }
