@@ -99,8 +99,50 @@ describe('dishNaming', () => {
       [{ participantId: 'carol', displayName: 'Carol' }],
     );
 
-    expect(named.nameOf('D-carol')).toBe('A dish');
+    // And is called by her, rather than by an English phrase written into the
+    // API that would reach a Spanish reveal untranslated.
+    expect(named.nameOf('D-carol')).toBe('Carol');
     expect(named.cooksOf('D-carol')).toEqual(['Carol']);
+  });
+
+  it('calls a dish two people brought and never named by both their names', () => {
+    const named = dishNaming(
+      materialized([{ id: 'D-ana-bob', submitterIds: ['ana', 'bob'] }]),
+      [],
+      [
+        { participantId: 'ana', displayName: 'Ana' },
+        { participantId: 'bob', displayName: 'Bob' },
+      ],
+    );
+
+    // Joined the way the reveal already joins cooks for its "brought by" line.
+    expect(named.nameOf('D-ana-bob')).toBe('Ana & Bob');
+  });
+
+  /*
+   * The last resort, and the only one left. A dish with neither a submitted
+   * name nor a cook on the roster has nothing to be called — a dash carries no
+   * language, so there is no string here that can arrive in the wrong one.
+   */
+  it('falls back to a dash where there is neither a name nor a cook', () => {
+    const named = dishNaming(
+      materialized([{ id: 'D-ghost', submitterIds: ['ghost'] }]),
+      [],
+      [],
+    );
+
+    expect(named.nameOf('D-ghost')).toBe('\u2014');
+  });
+
+  // A submitted name always wins: this fallback is for the absence of one.
+  it('prefers the name the cook gave over the cook', () => {
+    const named = dishNaming(
+      materialized([{ id: 'D-carol', submitterIds: ['carol'] }]),
+      [{ dishId: 'D-carol', name: 'Tortilla' }],
+      [{ participantId: 'carol', displayName: 'Carol' }],
+    );
+
+    expect(named.nameOf('D-carol')).toBe('Tortilla');
   });
 
   it('names nobody for a dish whose cook is not on the roster', () => {

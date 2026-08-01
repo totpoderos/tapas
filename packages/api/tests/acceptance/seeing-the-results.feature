@@ -25,6 +25,17 @@ Feature: A participant sees the results
     When a participant who took part reads the results
     Then the dish they shared names both of them
 
+  Scenario: A dish nobody named is called by the cook whose it is
+    Given a revealed contest where one cook never named their dish
+    When a participant who took part reads the results
+    Then that dish is called by the name of the cook whose it is
+    And nothing on the results describes it in words instead
+
+  Scenario: A dish two people brought and never named takes both their names
+    Given a revealed contest where partners shared a dish and never named it
+    When a participant who took part reads the results
+    Then that dish is called by both their names
+
   Scenario: The results are held back until the contest is revealed
     Given a contest that has been fully voted and closed but not revealed
     When a participant who took part reads the results

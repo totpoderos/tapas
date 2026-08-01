@@ -45,27 +45,46 @@ const dishesRepo = {
   find: () => undefined,
 };
 
+/*
+ * The roster is here for one reason: a dish nobody named is called by the cook
+ * whose it is, so the names have to be resolvable. Nothing else about the
+ * roster reaches the ballot.
+ */
+const rosterRepo = {
+  listAll: () => [
+    { contestId: 'c1', participantId: 'C', displayName: 'Carmen', claimedAt: null },
+    { contestId: 'c1', participantId: 'D', displayName: 'Diego', claimedAt: null },
+  ],
+};
+
+const ballotFor = (contests: FakeContestRepository, contestId: string, voterId: string) =>
+  new GetBallot({ contests, dishes: dishesRepo as never, roster: rosterRepo as never }).execute(
+    contestId,
+    voterId,
+  );
+
 describe('GetBallot', () => {
   it('returns only the dishes open to the voter, with names, categories, range, and mode', () => {
     const contests = new FakeContestRepository();
     contests.insert(contestWith(materialized));
 
-    const result = new GetBallot({ contests, dishes: dishesRepo as never }).execute('c1', 'A');
+    const result = ballotFor(contests, 'c1', 'A');
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const { ballot } = result;
     expect(ballot.dishes.map((d) => d.dishId).sort()).toEqual(['D-C', 'D-D']);
-    // Submitted names are used; an unsubmitted open dish falls back to a placeholder.
+    // Submitted names are used; a dish nobody named is called by its cook —
+    // the same thing the reveal calls it, because it is the same function.
     expect(ballot.dishes.find((d) => d.dishId === 'D-C')?.name).toBe('Tortilla');
-    expect(ballot.dishes.find((d) => d.dishId === 'D-D')?.name).toMatch(/not named yet/i);
+    expect(ballot.dishes.find((d) => d.dishId === 'D-D')?.name).toBe('Diego');
     expect(ballot.range).toEqual({ min: 1, max: 5 });
     expect(ballot.categories).toEqual([{ id: 'c1', name: 'Taste' }]);
     expect(ballot.uniquePerCategory).toBe(false);
   });
 
   it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
-    const result = new GetBallot({ contests: new FakeContestRepository(), dishes: dishesRepo as never }).execute('nope', 'A');
+    const result = ballotFor(new FakeContestRepository(), 'nope', 'A');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('CONTEST_NOT_FOUND');
   });

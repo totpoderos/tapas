@@ -131,6 +131,31 @@ async function playContest(app: FastifyInstance, opts: PlayOptions) {
   return { contestId, host, ana };
 }
 
+/**
+ * The same contest, except Bob never names his dish. Both dishes are still
+ * scored and both reach the leaderboards, so both screens have to call Bob's
+ * something — and they have to call it the same thing.
+ */
+async function contestWithAnUnnamedDish(app: FastifyInstance) {
+  const host = await signIn(app, 'both-unnamed@x.es');
+  const created = await request(app, host, { method: 'POST', url: '/drafts', payload: content() });
+  const published = await request(app, host, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
+  const contestId = published.json().id as string;
+  const joinCode = published.json().joinCode as string;
+
+  const ana = await claim(app, joinCode, 'ana');
+  const bob = await claim(app, joinCode, 'bob');
+  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Patatas bravas' } });
+  // Bob submits nothing; his dish slot exists from the roster regardless.
+  for (const [jar, dishId] of [[ana, 'D-bob'], [bob, 'D-ana']] as const) {
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value: 4 } });
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` });
+  }
+  await request(app, host, { method: 'POST', url: `/contests/${contestId}/close` });
+  await request(app, host, { method: 'POST', url: `/contests/${contestId}/reveal` });
+  return { contestId, host, ana };
+}
+
 interface Standing {
   dishId: string;
   name: string;
@@ -303,6 +328,41 @@ describeFeature(feature, ({ Scenario }) => {
       expect(hostReveal.categories.map((c) => c.standings)).toEqual(
         participantReveal.categories.map((c) => c.standings),
       );
+    });
+  });
+
+  Scenario('Both call a dish nobody named the same thing', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let host: CookieJar;
+    let ana: CookieJar;
+    let contestId: string;
+    let hostReveal: Reveal;
+    let participantReveal: Reveal;
+
+    Given('a revealed contest where one cook never named their dish', async () => {
+      ({ app } = makeTestApp());
+      ({ contestId, host, ana } = await contestWithAnUnnamedDish(app));
+    });
+    When('the host and a participant each read the results', async () => {
+      const hostResponse = await request(app, host, { method: 'GET', url: `/contests/${contestId}/winners` });
+      const participantResponse = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(hostResponse.statusCode).toBe(200);
+      expect(participantResponse.statusCode).toBe(200);
+      hostReveal = hostResponse.json();
+      participantReveal = participantResponse.json();
+    });
+    Then('that dish is called by the same name on both', () => {
+      /*
+       * Both build their naming from `dishNaming`, so this holds by
+       * construction rather than by coincidence. It is asserted anyway: the two
+       * routes agreeing by convention until one is edited is precisely the
+       * defect this repo keeps finding, and it is what the shared function
+       * exists to prevent rather than to make untestable.
+       */
+      const nameOn = (reveal: Reveal) =>
+        reveal.overall.standings.find((standing) => standing.dishId === 'D-bob')?.name;
+      expect(nameOn(hostReveal)).toBe('Bob');
+      expect(nameOn(participantReveal)).toBe('Bob');
     });
   });
 });

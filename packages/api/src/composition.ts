@@ -188,7 +188,7 @@ export function buildProductionDeps(
     dishes,
     saveScore: new SaveScore({ contests, voteSessions, ids, clock }),
     getMyScores: new GetMyScores({ voteSessions }),
-    getBallot: new GetBallot({ contests, dishes }),
+    getBallot: new GetBallot({ contests, dishes, roster }),
     sendVote: new SendVote({ contests, voteSessions, roster, clock }),
     voteSessions,
     issuePat: new IssuePat({ pats, ids, clock }),

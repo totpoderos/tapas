@@ -97,7 +97,7 @@ Depends on `the-reveal-is-ready-to-be-restyled` having landed.
 - [x] 7.5 Keep the entrance animation neutralised under reduced motion. Held by the global rule in `tokens.css` and by the existing reduced-motion e2e, which passes unchanged.
 - [x] 7.6 EN and ES resources for every new string in this slice.
 - [x] 7.7 Run the slice verification. Typecheck clean, lint clean, vitest 2017/2017, Playwright 304/304 (Chromium + WebKit), `openspec validate` passing, and the screen driven live in English and Spanish at 390px and 320px.
-- [ ] 7.8 **Not this slice's to fix, found by it:** an unsubmitted dish is named `'A dish'` by the API, in English, and that string reaches the leaderboard on a Spanish reveal. It predates this change — the placeholder has always been in `toRevealDto` — but it is visible on the screen this slice delivers. Fixing it means the API marking the dish unnamed and each app wording it, which touches the host's reveal too.
+- [x] 7.8 **Not this slice's to fix, found by it — and now fixed in `a-dish-nobody-named-is-called-by-its-cook`, which calls such a dish by the cook whose it is rather than wording a placeholder in each app:** an unsubmitted dish is named `'A dish'` by the API, in English, and that string reaches the leaderboard on a Spanish reveal. It predates this change — the placeholder has always been in `toRevealDto` — but it is visible on the screen this slice delivers. Fixing it means the API marking the dish unnamed and each app wording it, which touches the host's reveal too.
 
 ## 8. Slice H — the bar
 
@@ -125,7 +125,7 @@ The handoff was refined after slice G landed, and one thing in it is not a resty
 
 ## 9. Closing out
 
-- [ ] 9.1 Security review of the two disclosures together, now that both are built: the roster of taken places, and per-participant voting progress before the reveal.
+- [ ] 9.1 Security review of the **three** disclosures together, now that all are built: the roster of taken places, per-participant voting progress before the reveal, and — added by `a-dish-nobody-named-is-called-by-its-cook` — a cook who never named their dish being named on the leaderboard in its place. The third is not new information (a voter can already list every dish with its submitters, and the roster is public to anyone holding the join code, so the place with no dish is derivable by subtraction) but it does turn derivable into legible, which is a real difference in a room.
 - [ ] 9.2 Confirm the boundary held — no participant-shaped component ended up in `@tapas/ui`, and the host panel is drawn exactly as it was before this change began.
 - [ ] 9.3 Check the built bundle against the baseline taken in 1.8.
 - [ ] 9.4 Run the full accessibility pass across all fourteen screens: axe hard-gating, the 320px reflow test, and the manual keyboard and screen-reader checklist.

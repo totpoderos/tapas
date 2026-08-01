@@ -22,6 +22,15 @@ export interface RevealWinner {
   readonly cooks: readonly string[];
 }
 
+/**
+ * What a dish nobody named is called: whose it is.
+ *
+ * The em-dash is the last resort and the only one left — a dish with no
+ * submitted name AND no cook on the roster has genuinely nothing to be called,
+ * and a dash carries no language to get wrong. Unreachable with consistent data.
+ */
+const whoseItIs = (cooks: readonly string[]): string => (cooks.length > 0 ? cooks.join(' & ') : '—');
+
 /** What a dish is called and who brought it. */
 export interface DishNaming {
   readonly nameOf: (dishId: DishId) => string;
@@ -55,7 +64,21 @@ export function dishNaming(
     ]),
   );
   return {
-    nameOf: (dishId) => names.get(dishId) ?? 'A dish',
+    /*
+     * A dish nobody named is called by the cook whose it is.
+     *
+     * It used to be called `A dish`, which is English written into the API and
+     * therefore English on a Spanish participant's reveal, sitting between
+     * dishes that are in Spanish. A person's name cannot go wrong that way:
+     * `internationalization` already requires that what people typed is never
+     * translated, so a name reads the same to every reader. Any phrase — "Sin
+     * nombre", "Marta's dish" — would need wording in each language and would
+     * be the same defect one layer down.
+     *
+     * Joined the way `RevealView` already joins cooks for its "brought by"
+     * line, rather than inventing a second convention for the same list.
+     */
+    nameOf: (dishId) => names.get(dishId) ?? whoseItIs(cooks.get(dishId) ?? []),
     cooksOf: (dishId) => cooks.get(dishId) ?? [],
   };
 }

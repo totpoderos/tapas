@@ -41,6 +41,14 @@ export function RevealView({ reveal }: { reveal: RevealData }) {
   const { t } = useTranslation();
   const joint = reveal.overall.winners.length > 1;
   const cooks = cooksOf(reveal.overall.winners);
+  const headline = names(reveal.overall.winners);
+  /*
+   * A dish nobody named is called by the cook whose it is, so on that one
+   * result the headline is already the cook and "brought by Marta" underneath
+   * it says the same thing twice. The API's answer is right either way; it is
+   * only the drawing that would read oddly.
+   */
+  const cookLine = cooks.length > 0 && cooks.join(' & ') !== headline;
 
   return (
     <div className={styles.reveal} aria-live="polite">
@@ -64,9 +72,9 @@ export function RevealView({ reveal }: { reveal: RevealData }) {
         * "Winner" in this position; on a phone at the table, the name of the
         * thing that won is what everyone is waiting to read.
         */}
-      <h1 className={styles.title}>{names(reveal.overall.winners)}</h1>
+      <h1 className={styles.title}>{headline}</h1>
 
-      {cooks.length > 0 && (
+      {cookLine && (
         <p className={styles.cook}>
           {t('reveal.broughtBy', 'brought by {{cooks}}', { cooks: cooks.join(' & ') })}
         </p>

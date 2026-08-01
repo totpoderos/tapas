@@ -54,6 +54,24 @@ async function liveContest(app: FastifyInstance): Promise<string> {
   return published.json().joinCode;
 }
 
+/**
+ * A plain per-person contest where one cook — Bruno — never names their dish,
+ * so a voter's ballot has to call it something. The couples-barred shape above
+ * is the wrong seed for this: it removes half the roster from every ballot.
+ */
+function simpleContent(): DraftContent {
+  return {
+    name: 'Summer Tapas',
+    attribution: 'per_person',
+    antiBias: 'none',
+    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
+    participants: [
+      { id: 'ana', displayName: 'Ana' },
+      { id: 'bruno', displayName: 'Bruno' },
+    ],
+  };
+}
+
 interface Ballot {
   contestId: string;
   dishes: { dishId: string; name: string }[];
@@ -96,6 +114,61 @@ describeFeature(feature, ({ Scenario }) => {
       expect(ballot.dishes.map((d) => d.dishId).sort()).toEqual(['D-C', 'D-D']);
       expect(ballot.categories.map((c) => c.name)).toContain('Taste');
       expect(ballot.range).toEqual({ min: 1, max: 2 });
+    });
+  });
+
+  Scenario('A dish nobody named is called by its cook on the ballot too', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let ana: CookieJar;
+    let bruno: CookieJar;
+    let host: CookieJar;
+    let contestId: string;
+    let ballot: Ballot;
+
+    Given('a live contest where one cook never named their dish', async () => {
+      ({ app } = makeTestApp());
+      host = new CookieJar();
+      await seedHost(app, 'ballot-unnamed@x.es', STRONG_PASSWORD);
+      await request(app, host, { method: 'POST', url: '/auth/login', payload: { email: 'ballot-unnamed@x.es', password: STRONG_PASSWORD } });
+      const created = await request(app, host, { method: 'POST', url: '/drafts', payload: simpleContent() });
+      const published = await request(app, host, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
+      const joinCode = published.json().joinCode as string;
+      contestId = published.json().id as string;
+
+      ana = new CookieJar();
+      await request(app, ana, { method: 'POST', url: `/contests/${joinCode}/claim`, payload: { participantId: 'ana' } });
+      await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Patatas bravas' } });
+      // Bruno takes his place and submits nothing.
+      bruno = new CookieJar();
+      await request(app, bruno, { method: 'POST', url: `/contests/${joinCode}/claim`, payload: { participantId: 'bruno' } });
+    });
+    When('another participant reads their ballot', async () => {
+      const response = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/ballot` });
+      expect(response.statusCode).toBe(200);
+      ballot = response.json();
+    });
+    Then('that dish is called by the name of the cook whose it is', () => {
+      expect(ballot.dishes.find((dish) => dish.dishId === 'D-bruno')?.name).toBe('Bruno');
+    });
+    And('it is called the same thing when the results are revealed', async () => {
+      /*
+       * The promise, and the reason the ballot stopped keeping a placeholder of
+       * its own: it said `A dish (not named yet)` where the reveal said `A
+       * dish`, so the same dish had two names on two screens a participant
+       * moves between. Both reads go through one naming function now, and this
+       * is the test that would fail if either grew a second one.
+       */
+      for (const [jar, dishId] of [[ana, 'D-bruno'], [bruno, 'D-ana']] as const) {
+        await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'c1', value: 4 } });
+        expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+      }
+      await request(app, host, { method: 'POST', url: `/contests/${contestId}/close` });
+      await request(app, host, { method: 'POST', url: `/contests/${contestId}/reveal` });
+
+      const revealed = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
+      expect(revealed.statusCode).toBe(200);
+      const standings = revealed.json().overall.standings as { dishId: string; name: string }[];
+      expect(standings.find((standing) => standing.dishId === 'D-bruno')?.name).toBe('Bruno');
     });
   });
 
