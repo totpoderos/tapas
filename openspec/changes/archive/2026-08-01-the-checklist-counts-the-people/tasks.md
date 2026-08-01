@@ -23,5 +23,5 @@
 
 ## 5. Landing it
 
-- [ ] 5.1 Branch, commit, PR, merge.
-- [ ] 5.2 Sync the delta into `openspec/specs/prepare-a-contest/` and archive the change.
+- [x] 5.1 Branch, commit, PR, merge. *PR #151.*
+- [x] 5.2 Sync the delta into `openspec/specs/prepare-a-contest/` and archive the change.
