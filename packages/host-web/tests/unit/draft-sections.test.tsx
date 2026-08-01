@@ -222,6 +222,65 @@ describe('A contest being prepared, in its two sections', () => {
       expect(checklist).toHaveTextContent('2 participants without a partner');
     });
 
+    /*
+     * Two counts are certain refusals — nobody at all, and one person alone, who
+     * gets one dish and may not score their own. Before this the checklist said
+     * nothing about people, so a contest with an empty roster read "Everything
+     * needed is in place" and was then refused by the server. That is the first
+     * thing a host sees after the form that starts a contest hands them over.
+     */
+    it('says nobody is taking part, and does not call the contest ready', async () => {
+      vi.mocked(api.getDraft).mockResolvedValue({
+        ...DRAFT,
+        content: { ...DRAFT.content, participants: [] },
+      });
+      renderDraft(RULES);
+      await loaded();
+
+      const checklist = screen.getByRole('region', { name: 'Publish checklist' });
+      expect(checklist).toHaveTextContent('Nobody is taking part yet');
+      expect(checklist).not.toHaveTextContent('Everything needed is in place');
+    });
+
+    it('says why a second person is needed when only one is taking part', async () => {
+      vi.mocked(api.getDraft).mockResolvedValue({
+        ...DRAFT,
+        content: { ...DRAFT.content, participants: [{ id: 'p1', displayName: 'Ana' }] },
+      });
+      renderDraft(RULES);
+      await loaded();
+
+      const checklist = screen.getByRole('region', { name: 'Publish checklist' });
+      expect(checklist).toHaveTextContent('at least two are needed');
+      // The reason, not just the rule: otherwise a host wonders if it is for pairs.
+      expect(checklist).toHaveTextContent('nobody may score their own dish');
+      expect(checklist).not.toHaveTextContent('Everything needed is in place');
+    });
+
+    it('counts the people once there are enough of them', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      const checklist = screen.getByRole('region', { name: 'Publish checklist' });
+      expect(checklist).toHaveTextContent('2 people taking part');
+      expect(checklist).not.toHaveTextContent('Nobody is taking part');
+    });
+
+    it('counts a participant whose name has not been typed yet', async () => {
+      renderDraft(PEOPLE);
+      await loaded();
+
+      // Sent by buildContent() and counted by the compiler, so counted here too —
+      // filtering would make the checklist disagree with what publishing sees.
+      await userEvent.type(await screen.findByLabelText('New participant name'), 'Carla');
+      await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+      await userEvent.clear(screen.getByLabelText('Participant 3 name'));
+
+      expect(screen.getByRole('region', { name: 'Publish checklist' })).toHaveTextContent(
+        '3 people taking part',
+      );
+    });
+
     it('publishes from the rules and lands in the control room', async () => {
       renderDraft(RULES);
       await loaded();

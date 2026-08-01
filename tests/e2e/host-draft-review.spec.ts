@@ -153,6 +153,47 @@ test('what is still missing is said on both sections, and in the panel', async (
   await expect(panel(page)).toContainText('Before publishing');
 });
 
+test('the checklist counts the people, and does not call an empty contest ready', async ({
+  page,
+}) => {
+  // Nobody at all, and one person alone, are both certain refusals — the one
+  // person gets one dish and may not score their own. The checklist used to say
+  // nothing about people, so an empty contest read "Everything needed is in place"
+  // and was then refused by the server.
+  const id = await hostWithDraft(page, 'e2e-review-count@sobremesa.es', 'per_person', 2);
+  const checklist = page.getByRole('region', { name: 'Publish checklist' });
+
+  await page.goto(`/review/${id}/people`);
+  await expect(checklist).toContainText('2 people taking part');
+
+  await page.getByRole('button', { name: 'Remove Bruno' }).click();
+  await expect(checklist).toContainText('at least two are needed');
+  await expect(checklist).toContainText('nobody may score their own dish');
+  await expect(checklist).not.toContainText('Everything needed is in place');
+
+  await page.getByRole('button', { name: 'Remove Ana' }).click();
+  await expect(checklist).toContainText('Nobody is taking part yet');
+  await expect(checklist).not.toContainText('Everything needed is in place');
+});
+
+test('a contest just started does not claim to be ready', async ({ page }) => {
+  // The form that starts a contest hands the host to an empty roster, which is
+  // where a green checklist would be seen first and be most misleading.
+  await hostInvitedBy('e2e-review-fresh@sobremesa.es', PASSWORD);
+  await page.request.post('/auth/login', {
+    data: { email: 'e2e-review-fresh@sobremesa.es', password: PASSWORD },
+  });
+
+  await page.goto('/new');
+  await page.getByLabel('Contest name').fill('Fresh Start');
+  await page.getByRole('button', { name: /^Next/ }).click();
+
+  await expect(page.getByLabel('New participant name')).toBeVisible();
+  const checklist = page.getByRole('region', { name: 'Publish checklist' });
+  await expect(checklist).toContainText('Nobody is taking part yet');
+  await expect(checklist).not.toContainText('Everything needed is in place');
+});
+
 test('a participant without a partner is marked where they are', async ({ page }) => {
   const id = await hostWithDraft(page, 'e2e-review-marked@sobremesa.es');
 
