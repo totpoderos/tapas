@@ -6,7 +6,7 @@ Feature: Publishing a contest
   published.
 
   Scenario: A host publishes a complete draft
-    Given a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, scored per person with couples barred
+    Given a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart
     When the host publishes the draft
     Then the draft becomes a live contest named "Summer Tapas 2026"
     And a join code is issued for the contest
@@ -26,13 +26,25 @@ Feature: Publishing a contest
     And no contest is created
 
   Scenario: A draft that leaves a judge unable to score cannot be published
-    Given a host with a draft for a single couple, scored per person with couples barred
+    Given a host with a draft for a single couple, where everyone is on their own with partners kept apart
     When the host tries to publish the draft
     Then publishing is rejected because a judge could score nothing
     And no contest is created
 
+  Scenario: A contest for couples cannot be published while somebody has no partner
+    Given a host with a draft where couples cook together, for 5 people of whom 4 are 2 couples and 1 has no partner
+    When the host tries to publish the draft
+    Then publishing is rejected because a participant has no partner
+    And no contest is created
+
+  Scenario: A contest for couples publishes once everybody is partnered
+    Given a host with a complete draft named "Two by Two" for 6 people in 3 couples, where couples cook together
+    When the host publishes the draft
+    Then the contest goes live
+    And each couple has one dish between them
+
   Scenario: A host cannot publish another host's draft
-    Given a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, scored per person with couples barred
+    Given a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart
     And another host
     When the other host tries to publish the draft
     Then publishing is rejected because the draft is not theirs

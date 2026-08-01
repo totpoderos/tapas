@@ -31,8 +31,7 @@ const SECRET = 'test-secret-that-is-at-least-32-characters';
 function twoJudgesContent(): DraftContent {
   return {
     name: 'Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },
@@ -49,8 +48,7 @@ function twoJudgesContent(): DraftContent {
 function threeJudgesContent(): DraftContent {
   return {
     name: 'Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },
@@ -68,8 +66,7 @@ function threeJudgesContent(): DraftContent {
 function rankingContent(): DraftContent {
   return {
     name: 'Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'auto' },

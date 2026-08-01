@@ -14,8 +14,8 @@ export interface RevealWinner {
   /**
    * Who brought it — so the result names a person as well as a plate.
    *
-   * A LIST, because a dish can genuinely have more than one cook: under
-   * `per_couple` attribution partners share a dish, and a singular field would
+   * A LIST, because a dish can genuinely have more than one cook: under the
+   * `couples` format partners share a dish, and a singular field would
    * force this to pick one of two people who cooked together. It never replaces
    * `name`; a dish is identified to both audiences by what it was called.
    */

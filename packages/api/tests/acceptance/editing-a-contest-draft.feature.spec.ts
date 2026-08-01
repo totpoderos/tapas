@@ -18,8 +18,7 @@ const PID: Record<string, string> = { Ana: 'ana', Bob: 'bob', Carmen: 'carmen', 
 function content(name: string, over: Partial<DraftContent> = {}): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [],
     ...over,
@@ -65,44 +64,76 @@ function editDraft(app: FastifyInstance, jar: CookieJar, id: string, c: DraftCon
   return req(app, jar, { method: 'PUT', url: `/drafts/${id}`, payload: c });
 }
 
+/** An edit sent as the wire would carry it, so the boundary can be asked to refuse it. */
+function editDraftRaw(app: FastifyInstance, jar: CookieJar, id: string, payload: object) {
+  return req(app, jar, { method: 'PUT', url: `/drafts/${id}`, payload });
+}
+
 function getDraft(app: FastifyInstance, jar: CookieJar, id: string) {
   return req(app, jar, { method: 'GET', url: `/drafts/${id}` });
 }
 
 describeFeature(feature, ({ Scenario }) => {
-  Scenario('A host changes how dishes are attributed', ({ Given, When, Then }) => {
+  Scenario("A host changes the contest's format", ({ Given, When, Then }) => {
     let app: FastifyInstance;
     let jar: CookieJar;
     let id: string;
 
-    Given('a host preparing a draft named "Tapas Night" scored per person', async () => {
+    Given('a host preparing a draft named "Tapas Night" where everyone is on their own', async () => {
       ({ app } = makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
-      id = await createDraft(app, jar, content('Tapas Night', { attribution: 'per_person' }));
+      id = await createDraft(app, jar, content('Tapas Night', { format: 'solo' }));
     });
-    When('the host revises the draft to be scored per couple', async () => {
-      await editDraft(app, jar, id, content('Tapas Night', { attribution: 'per_couple' }));
+    When('the host revises the draft so that couples cook together', async () => {
+      await editDraft(app, jar, id, content('Tapas Night', { format: 'couples' }));
     });
-    Then('the draft is scored per couple', async () => {
-      expect((await getDraft(app, jar, id)).json().content.attribution).toBe('per_couple');
+    Then('the draft is one where couples cook together', async () => {
+      expect((await getDraft(app, jar, id)).json().content.format).toBe('couples');
     });
   });
 
-  Scenario('A host changes the anti-bias pairing', ({ Given, When, Then }) => {
+  Scenario('A host changes the format back to one where nobody is kept apart', ({ Given, When, Then }) => {
     let app: FastifyInstance;
     let jar: CookieJar;
     let id: string;
 
-    Given('a host preparing a draft named "Tapas Night" with couples barred from scoring each other', async () => {
+    Given('a host preparing a draft named "Tapas Night" where everyone is on their own with partners kept apart', async () => {
       ({ app } = makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
-      id = await createDraft(app, jar, content('Tapas Night', { antiBias: 'couples' }));
+      id = await createDraft(app, jar, content('Tapas Night', { format: 'solo_with_partners' }));
     });
-    When('the host revises the draft so that no one is barred from scoring on account of pairings', async () => {
-      await editDraft(app, jar, id, content('Tapas Night', { antiBias: 'none' }));
+    When('the host revises the draft so that everyone is on their own', async () => {
+      await editDraft(app, jar, id, content('Tapas Night', { format: 'solo' }));
     });
-    Then('no one is barred from scoring on account of pairings', async () => {
-      expect((await getDraft(app, jar, id)).json().content.antiBias).toBe('none');
+    Then('the draft is one where everyone is on their own', async () => {
+      expect((await getDraft(app, jar, id)).json().content.format).toBe('solo');
+    });
+  });
+
+  Scenario('A format the contest cannot have is refused', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let id: string;
+    let response: LightMyRequestResponse;
+
+    Given('a host preparing a draft named "Tapas Night" where everyone is on their own', async () => {
+      ({ app } = makeTestApp());
+      jar = await signedInHost(app, 'ana@example.com');
+      id = await createDraft(app, jar, content('Tapas Night', { format: 'solo' }));
+    });
+    When('the host tries to revise the draft to a format that is not one of the three', async () => {
+      // Not reachable through the typed client, so sent as the wire would carry
+      // it: the boundary has to refuse it, not the type system.
+      response = await editDraftRaw(app, jar, id, {
+        ...content('Tapas Night'),
+        format: 'per_couple',
+      });
+    });
+    Then('the revision is rejected because the format is not one the contest can have', () => {
+      expect(response.statusCode).toBe(400);
+    });
+    And('the draft is still one where everyone is on their own', async () => {
+      expect((await getDraft(app, jar, id)).json().content.format).toBe('solo');
     });
   });
 
@@ -160,7 +191,7 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
-  Scenario('A host pairs participants as couples in their draft', ({ Given, When, Then, And }) => {
+  Scenario('A host pairs participants in their draft', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
     let jar: CookieJar;
     let id: string;
@@ -170,7 +201,7 @@ describeFeature(feature, ({ Scenario }) => {
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { participants: people('Ana', 'Bob', 'Carmen', 'Dan') }));
     });
-    When('the host revises the draft so that Ana and Bob are a couple, and Carmen and Dan are a couple', async () => {
+    When('the host revises the draft so that Ana and Bob are partners, and Carmen and Dan are partners', async () => {
       await editDraft(app, jar, id, content('Tapas Night', {
         participants: [
           { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
@@ -183,39 +214,15 @@ describeFeature(feature, ({ Scenario }) => {
     function partnerOf(participants: { id: string; partnerId?: string }[], id: string): string | undefined {
       return participants.find((p) => p.id === id)?.partnerId;
     }
-    Then('Ana and Bob are recorded as a couple', async () => {
+    Then('Ana and Bob are recorded as partners', async () => {
       const ps = (await getDraft(app, jar, id)).json().content.participants;
       expect(partnerOf(ps, 'ana')).toBe('bob');
       expect(partnerOf(ps, 'bob')).toBe('ana');
     });
-    And('Carmen and Dan are recorded as a couple', async () => {
+    And('Carmen and Dan are recorded as partners', async () => {
       const ps = (await getDraft(app, jar, id)).json().content.participants;
       expect(partnerOf(ps, 'carmen')).toBe('dan');
       expect(partnerOf(ps, 'dan')).toBe('carmen');
-    });
-  });
-
-  Scenario('A host bars one participant from scoring another', ({ Given, When, Then }) => {
-    let app: FastifyInstance;
-    let jar: CookieJar;
-    let id: string;
-
-    Given('a host preparing a draft named "Tapas Night" with Ana and Bob taking part', async () => {
-      ({ app } = makeTestApp());
-      jar = await signedInHost(app, 'ana@example.com');
-      id = await createDraft(app, jar, content('Tapas Night', { participants: people('Ana', 'Bob') }));
-    });
-    When('the host revises the draft so that Ana may not score Bob', async () => {
-      await editDraft(app, jar, id, content('Tapas Night', {
-        participants: [
-          { id: 'ana', displayName: 'Ana', noScoreWith: ['bob'] },
-          { id: 'bob', displayName: 'Bob' },
-        ],
-      }));
-    });
-    Then('Ana is recorded as not scoring Bob', async () => {
-      const ana = (await getDraft(app, jar, id)).json().content.participants.find((p: { id: string }) => p.id === 'ana');
-      expect(ana.noScoreWith).toEqual(['bob']);
     });
   });
 

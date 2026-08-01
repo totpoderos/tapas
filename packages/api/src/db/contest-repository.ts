@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { AntiBias, Attribution, CloseRule, RevealStrategy } from '@tapas/domain';
+import type { CloseRule, ContestFormat, RevealStrategy } from '@tapas/domain';
 import type { StoredContest } from '../contests/stored-contest.js';
 import { deserializeMaterialized, serializeMaterialized } from '../contests/materialized-codec.js';
 
@@ -32,8 +32,7 @@ interface ContestRow {
   created_at: string;
   closed_at: string | null;
   revealed_at: string | null;
-  attribution: string | null;
-  anti_bias: string | null;
+  format: string | null;
 }
 
 function toContest(row: ContestRow): StoredContest {
@@ -44,10 +43,9 @@ function toContest(row: ContestRow): StoredContest {
     joinCode: row.join_code,
     status: row.status as StoredContest['status'],
     materialized: deserializeMaterialized(row.materialized),
-    // Null for a contest published before these were kept — left absent rather
-    // than guessed, so "does not say" stays distinguishable from a real answer.
-    ...(row.attribution === null ? {} : { attribution: row.attribution as Attribution }),
-    ...(row.anti_bias === null ? {} : { antiBias: row.anti_bias as AntiBias }),
+    // Null for a contest that does not record a format — left absent rather than
+    // guessed, so "does not say" stays distinguishable from a real answer.
+    ...(row.format === null ? {} : { format: row.format as ContestFormat }),
     closeRule: JSON.parse(row.close_rule) as CloseRule,
     revealStrategy: JSON.parse(row.reveal_strategy) as RevealStrategy,
     createdAt: row.created_at,
@@ -63,8 +61,8 @@ export class SqliteContestRepository implements ContestRepository {
     this.db
       .prepare(
         `INSERT INTO contests
-           (id, host_id, name, join_code, status, materialized, attribution, anti_bias, close_rule, reveal_strategy, created_at, closed_at, revealed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (id, host_id, name, join_code, status, materialized, format, close_rule, reveal_strategy, created_at, closed_at, revealed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         contest.id,
@@ -73,8 +71,7 @@ export class SqliteContestRepository implements ContestRepository {
         contest.joinCode,
         contest.status,
         serializeMaterialized(contest.materialized),
-        contest.attribution ?? null,
-        contest.antiBias ?? null,
+        contest.format ?? null,
         JSON.stringify(contest.closeRule),
         JSON.stringify(contest.revealStrategy),
         contest.createdAt,

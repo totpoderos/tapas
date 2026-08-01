@@ -47,8 +47,7 @@ async function request(
 function content(): DraftContent {
   return {
     name: CONTEST_NAME,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     closeRule: { when: 'host_trigger' },
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],

@@ -60,9 +60,7 @@ function draftSummary(draft: StoredDraft): ContestSummary {
     // A draft carries whichever rules it has been given so far, and nothing for
     // the ones it has not. It has no join code and no progress at all: it is not
     // published, which is a different thing from nobody having voted.
-    ...(draft.content.attribution === undefined
-      ? {}
-      : { attribution: draft.content.attribution }),
+    ...(draft.content.format === undefined ? {} : { format: draft.content.format }),
     ...(categories === undefined ? {} : { categoryCount: categories.length }),
   };
 }
@@ -74,7 +72,7 @@ function contestSummary(contest: StoredContest, progress: ContestProgress): Cont
     status: contest.status,
     // The last thing that happened to it, so ordering reflects real activity.
     updatedAt: contest.revealedAt ?? contest.closedAt ?? contest.createdAt,
-    ...(contest.attribution === undefined ? {} : { attribution: contest.attribution }),
+    ...(contest.format === undefined ? {} : { format: contest.format }),
     categoryCount: contest.materialized.categories.length,
     joinCode: contest.joinCode,
     progress,

@@ -18,7 +18,7 @@ const validScoring = {
 describe('guardProposedFields', () => {
   it('drops a high-stakes rule a participant name is trying to set, even tagged host', () => {
     const fields: ExtractedFields = {
-      antiBias: { value: 'none', source: 'host' },
+      format: { value: 'solo', source: 'host' },
       participants: {
         value: [
           { id: 'ana', displayName: 'Ana' },
@@ -30,8 +30,8 @@ describe('guardProposedFields', () => {
 
     const { draft, clarifications } = guardProposedFields(fields, []);
 
-    expect(draft.antiBias).toBeUndefined();
-    expect(clarifications).toEqual([expect.stringContaining('anti-bias')]);
+    expect(draft.format).toBeUndefined();
+    expect(clarifications).toEqual([expect.stringContaining('format')]);
   });
 
   it('keeps the participant name itself — it is data, stored unchanged', () => {
@@ -50,7 +50,7 @@ describe('guardProposedFields', () => {
   it('leaves a rule the host genuinely stated untouched — the block is surgical', () => {
     const fields: ExtractedFields = {
       scoring: validScoring,
-      antiBias: { value: 'none', source: 'host' },
+      format: { value: 'solo', source: 'host' },
       participants: {
         value: [{ id: 'z', displayName: INJECTION_NAME }],
         source: 'host',
@@ -59,8 +59,8 @@ describe('guardProposedFields', () => {
 
     const { draft } = guardProposedFields(fields, []);
 
-    // The injection names only the anti-bias rule, so scoring must survive.
+    // The injection names only the format, so scoring must survive.
     expect(draft.scoring).toEqual(validScoring);
-    expect(draft.antiBias).toBeUndefined();
+    expect(draft.format).toBeUndefined();
   });
 });

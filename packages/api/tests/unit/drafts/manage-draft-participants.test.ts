@@ -96,19 +96,6 @@ describe('RemoveDraftParticipant', () => {
     expect(ana?.partnerId).toBeUndefined();
   });
 
-  it('drops a "may not score" reference to the removed participant', () => {
-    const { current, deps } = workspace(
-      [summary('d1', 'Tapas Night', 'draft')],
-      base([
-        { id: 'a', displayName: 'Ana', noScoreWith: ['b'] },
-        { id: 'b', displayName: 'Bob' },
-      ]),
-    );
-    new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Bob');
-    const ana = current()?.participants?.find((p) => p.id === 'a');
-    expect(ana?.noScoreWith).toEqual([]);
-  });
-
   it('changes nothing when no participant matches', () => {
     const { current, deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],

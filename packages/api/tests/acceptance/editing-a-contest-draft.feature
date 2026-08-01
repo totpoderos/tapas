@@ -1,21 +1,28 @@
 Feature: Editing a contest draft's rules
   While a contest is still a draft, a host can change any of its rules — not just
-  its name: how dishes are attributed, the anti-bias pairings, how it is scored,
-  who is taking part (adding or removing participants), which participants are a
-  couple, and which participants may not score each other. A draft need not be
+  its name: its format, how it is scored, who is taking part (adding or removing
+  participants), and who is paired with whom. The format is the whole of what a
+  contest says about who cooks and who may not score whom, so there is no second
+  rule to set beside it and no pairs to bar by hand. A draft need not be
   complete or valid to be saved this way; only its name is still required, and
   the full rules are checked later, when the host tries to publish. Every change
   is recorded, and a host can only ever edit their own draft.
 
-  Scenario: A host changes how dishes are attributed
-    Given a host preparing a draft named "Tapas Night" scored per person
-    When the host revises the draft to be scored per couple
-    Then the draft is scored per couple
+  Scenario: A host changes the contest's format
+    Given a host preparing a draft named "Tapas Night" where everyone is on their own
+    When the host revises the draft so that couples cook together
+    Then the draft is one where couples cook together
 
-  Scenario: A host changes the anti-bias pairing
-    Given a host preparing a draft named "Tapas Night" with couples barred from scoring each other
-    When the host revises the draft so that no one is barred from scoring on account of pairings
-    Then no one is barred from scoring on account of pairings
+  Scenario: A host changes the format back to one where nobody is kept apart
+    Given a host preparing a draft named "Tapas Night" where everyone is on their own with partners kept apart
+    When the host revises the draft so that everyone is on their own
+    Then the draft is one where everyone is on their own
+
+  Scenario: A format the contest cannot have is refused
+    Given a host preparing a draft named "Tapas Night" where everyone is on their own
+    When the host tries to revise the draft to a format that is not one of the three
+    Then the revision is rejected because the format is not one the contest can have
+    And the draft is still one where everyone is on their own
 
   Scenario: A host changes their draft's scoring and participants
     Given a host preparing a draft named "Tapas Night"
@@ -29,16 +36,11 @@ Feature: Editing a contest draft's rules
     When the host revises the draft to remove Carmen
     Then only Ana and Bob are taking part
 
-  Scenario: A host pairs participants as couples in their draft
+  Scenario: A host pairs participants in their draft
     Given a host preparing a draft named "Tapas Night" with Ana, Bob, Carmen and Dan taking part
-    When the host revises the draft so that Ana and Bob are a couple, and Carmen and Dan are a couple
-    Then Ana and Bob are recorded as a couple
-    And Carmen and Dan are recorded as a couple
-
-  Scenario: A host bars one participant from scoring another
-    Given a host preparing a draft named "Tapas Night" with Ana and Bob taking part
-    When the host revises the draft so that Ana may not score Bob
-    Then Ana is recorded as not scoring Bob
+    When the host revises the draft so that Ana and Bob are partners, and Carmen and Dan are partners
+    Then Ana and Bob are recorded as partners
+    And Carmen and Dan are recorded as partners
 
   Scenario: An edited draft still requires a name
     Given a host preparing a draft named "Tapas Night"

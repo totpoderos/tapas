@@ -224,24 +224,24 @@ describe('ListMyContests — how each contest is going', () => {
         id: 'c1',
         hostId: 'ana',
         status: 'live',
-        attribution: 'per_person',
+        format: 'solo',
         materialized: withCategories(3),
       }),
     );
 
     const summary = listMyContests.execute('ana')[0];
-    expect(summary?.attribution).toBe('per_person');
+    expect(summary?.format).toBe('solo');
     expect(summary?.categoryCount).toBe(3);
     expect(summary?.joinCode).toBe('JOIN-c1');
   });
 
-  it('says nothing about the attribution of a contest that does not record one', () => {
+  it('says nothing about the format of a contest that does not record one', () => {
     const { contests, listMyContests } = makeUseCase();
-    // Published before attribution was kept: unknown, and left unknown rather
+    // A contest that records no format: unknown, and left unknown rather
     // than guessed back out of the compiled dish shapes.
     contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
 
-    expect(listMyContests.execute('ana')[0]).not.toHaveProperty('attribution');
+    expect(listMyContests.execute('ana')[0]).not.toHaveProperty('format');
   });
 
   it('gives a contest being prepared no join code and no progress at all', () => {
@@ -263,7 +263,7 @@ describe('ListMyContests — how each contest is going', () => {
         hostId: 'ana',
         content: {
           name: 'Barrio Supper Club',
-          attribution: 'per_couple',
+          format: 'couples',
           scoring: {
             categories: [
               { id: 'c1', name: 'Taste' },
@@ -277,7 +277,7 @@ describe('ListMyContests — how each contest is going', () => {
     );
 
     const summary = listMyContests.execute('ana')[0];
-    expect(summary?.attribution).toBe('per_couple');
+    expect(summary?.format).toBe('couples');
     expect(summary?.categoryCount).toBe(2);
   });
 
@@ -286,7 +286,7 @@ describe('ListMyContests — how each contest is going', () => {
     drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Just a name' } }));
 
     const summary = listMyContests.execute('ana')[0];
-    expect(summary).not.toHaveProperty('attribution');
+    expect(summary).not.toHaveProperty('format');
     expect(summary).not.toHaveProperty('categoryCount');
   });
 

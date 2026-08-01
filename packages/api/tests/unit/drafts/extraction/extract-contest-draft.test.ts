@@ -11,8 +11,7 @@ describe('ExtractContestDraft', () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
         name: { value: 'Summer Tapas', source: 'host' },
-        attribution: { value: 'per_person', source: 'host' },
-        antiBias: { value: 'couples', source: 'host' },
+        format: { value: 'solo_with_partners', source: 'host' },
         scoring: {
           value: {
             categories: [{ id: 'taste', name: 'Taste' }],
@@ -62,16 +61,16 @@ describe('ExtractContestDraft', () => {
   it('drops a high-stakes field the model defaulted, and adds a clarification instead', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
-        attribution: { value: 'per_person', source: 'llm_default' },
+        format: { value: 'solo', source: 'llm_default' },
         clarifications: [],
       }),
     );
 
     const outcome = await new ExtractContestDraft({ llmClient }).execute('Some tapas contest');
 
-    expect(outcome.draft.attribution).toBeUndefined();
+    expect(outcome.draft.format).toBeUndefined();
     expect(outcome.clarifications).toEqual([
-      "Please specify attribution explicitly — I can't default that for you.",
+      "Please specify the contest format explicitly — I can't default that for you.",
     ]);
   });
 
@@ -116,7 +115,7 @@ describe('ExtractContestDraft', () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
         name: { value: 'Summer Tapas', source: 'host' },
-        attribution: null,
+        format: null,
         participants: { value: null, source: 'llm_extracted' },
         clarifications: [],
       }),

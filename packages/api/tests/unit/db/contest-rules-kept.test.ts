@@ -45,38 +45,33 @@ describe('the rules a contest keeps', () => {
     contests = new SqliteContestRepository(db);
   });
 
-  it('reads back both rules a contest was published with', () => {
-    contests.insert(stored({ attribution: 'per_couple', antiBias: 'arbitrary_pairs' }));
+  it('reads back the format a contest was published with', () => {
+    contests.insert(stored({ format: 'couples' }));
 
-    const read = contests.findById('c1');
-    expect(read?.attribution).toBe('per_couple');
-    expect(read?.antiBias).toBe('arbitrary_pairs');
+    expect(contests.findById('c1')?.format).toBe('couples');
   });
 
-  it('says nothing about the rules of a contest that recorded none', () => {
-    // The shape of a row written before the columns existed.
+  it('says nothing about the format of a contest that recorded none', () => {
     contests.insert(stored());
 
     const read = contests.findById('c1');
     expect(read).toBeDefined();
-    expect(read).not.toHaveProperty('attribution');
-    expect(read).not.toHaveProperty('antiBias');
+    expect(read).not.toHaveProperty('format');
   });
 
-  it('does not read "no restriction" into a contest that simply does not say', () => {
+  it('does not read a format into a contest that simply does not say', () => {
     contests.insert(stored());
 
-    // 'none' is a real anti-bias rule a host can choose, so it must never be what
-    // an unrecorded rule looks like — that would tell the host something untrue
+    // 'solo' is a real format a host can choose, so it must never be what an
+    // unrecorded format looks like — that would tell the host something untrue
     // about how their own contest is being scored.
-    expect(contests.findById('c1')?.antiBias).toBeUndefined();
+    expect(contests.findById('c1')?.format).toBeUndefined();
   });
 
-  it('keeps the rules through the host’s whole contest list', () => {
-    contests.insert(stored({ attribution: 'per_person', antiBias: 'couples' }));
+  it('keeps the format through the host’s whole contest list', () => {
+    contests.insert(stored({ format: 'solo_with_partners' }));
 
     const [listed] = contests.findByHost('host-1');
-    expect(listed?.attribution).toBe('per_person');
-    expect(listed?.antiBias).toBe('couples');
+    expect(listed?.format).toBe('solo_with_partners');
   });
 });

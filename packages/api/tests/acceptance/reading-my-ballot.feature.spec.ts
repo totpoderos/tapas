@@ -9,13 +9,12 @@ const feature = await loadFeature(fileURLToPath(new URL('./reading-my-ballot.fea
 
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 
-/** Per-person, couples barred: 4 people in 2 couples. Voter A may score C and D only. */
+/** On their own, partners kept apart: 4 people in 2 couples. Voter A may score C and D only. */
 function completeContent(name: string): DraftContent {
   const person = (id: string, partnerId: string) => ({ id, displayName: id, partnerId });
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
     participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
   };
@@ -45,13 +44,32 @@ async function request(
 }
 
 /** Publishes a live contest as a fresh host and returns its join code. */
-async function liveContest(app: FastifyInstance): Promise<string> {
+async function liveContest(app: FastifyInstance, content: DraftContent = completeContent('Summer Tapas')): Promise<string> {
   const jar = new CookieJar();
-  await seedHost(app, 'host@example.com', STRONG_PASSWORD);
-  await request(app, jar, { method: 'POST', url: '/auth/login', payload: { email: 'host@example.com', password: STRONG_PASSWORD } });
-  const created = await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Summer Tapas') });
+  const email = `host-${content.name.replace(/\W+/g, '-').toLowerCase()}@example.com`;
+  await seedHost(app, email, STRONG_PASSWORD);
+  await request(app, jar, { method: 'POST', url: '/auth/login', payload: { email, password: STRONG_PASSWORD } });
+  const created = await request(app, jar, { method: 'POST', url: '/drafts', payload: content });
   const published = await request(app, jar, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
   return published.json().joinCode;
+}
+
+/** Couples cook together: 6 people in 3 couples, so a judge has two dishes to score. */
+function couplesContent(name: string): DraftContent {
+  const person = (id: string, partnerId: string) => ({ id, displayName: id, partnerId });
+  return {
+    name,
+    format: 'couples',
+    scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
+    participants: [
+      person('A', 'B'),
+      person('B', 'A'),
+      person('C', 'D'),
+      person('D', 'C'),
+      person('E', 'F'),
+      person('F', 'E'),
+    ],
+  };
 }
 
 /**
@@ -62,8 +80,7 @@ async function liveContest(app: FastifyInstance): Promise<string> {
 function simpleContent(): DraftContent {
   return {
     name: 'Summer Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'ana', displayName: 'Ana' },
@@ -87,7 +104,7 @@ describeFeature(feature, ({ Scenario }) => {
     let contestId: string;
     let ballot: Ballot;
 
-    Given('a live contest a participant has joined, scored per person with couples barred', async () => {
+    Given('a live contest a participant has joined, where everyone is on their own with partners kept apart', async () => {
       ({ app } = makeTestApp());
       const joinCode = await liveContest(app);
       voter = new CookieJar();
@@ -114,6 +131,37 @@ describeFeature(feature, ({ Scenario }) => {
       expect(ballot.dishes.map((d) => d.dishId).sort()).toEqual(['D-C', 'D-D']);
       expect(ballot.categories.map((c) => c.name)).toContain('Taste');
       expect(ballot.range).toEqual({ min: 1, max: 2 });
+    });
+  });
+
+  Scenario("A ballot where couples cook together leaves out the couple's one dish", ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let voter: CookieJar;
+    let contestId: string;
+    let ballot: Ballot;
+
+    Given('a live contest a participant has joined, where couples cook together', async () => {
+      ({ app } = makeTestApp());
+      const joinCode = await liveContest(app, couplesContent('Two by Two'));
+      voter = new CookieJar();
+      const claim = await request(app, voter, {
+        method: 'POST',
+        url: `/contests/${joinCode}/claim`,
+        payload: { participantId: 'A' },
+      });
+      expect(claim.statusCode).toBe(201);
+      contestId = claim.json().contestId;
+    });
+    When('that participant reads their ballot', async () => {
+      const response = await request(app, voter, { method: 'GET', url: `/contests/${contestId}/ballot` });
+      expect(response.statusCode).toBe(200);
+      ballot = response.json();
+    });
+    Then('the dish their couple cooked is not on it', () => {
+      expect(ballot.dishes.map((d) => d.dishId)).not.toContain('D-A-B');
+    });
+    And("every other couple's dish is on it", () => {
+      expect(ballot.dishes.map((d) => d.dishId).sort()).toEqual(['D-C-D', 'D-E-F']);
     });
   });
 

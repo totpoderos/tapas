@@ -51,12 +51,11 @@ function person(id: string, partnerId: string) {
   return { id, displayName: id, partnerId };
 }
 
-/** A complete, publishable draft: 4 people in 2 couples, per person, couples barred. */
+/** A complete, publishable draft: 4 people in 2 couples, each on their own, partners kept apart. */
 function completeContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },
@@ -75,8 +74,7 @@ function completeContent(name: string): DraftContent {
 function namesOnlyContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },
@@ -92,8 +90,7 @@ function namesOnlyContent(name: string): DraftContent {
 function singleCoupleContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },
@@ -116,7 +113,7 @@ describeFeature(feature, ({ Scenario }) => {
     let draftId = '';
 
     Given(
-      'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, scored per person with couples barred',
+      'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart',
       () => {
         workspace = makeContestWorkspace();
         draftId = saveDraft(workspace, hostId, completeContent('Summer Tapas 2026'));
@@ -202,7 +199,7 @@ describeFeature(feature, ({ Scenario }) => {
       let publishOutcome: ReturnType<PublishContest['execute']>;
 
       Given(
-        'a host with a draft for a single couple, scored per person with couples barred',
+        'a host with a draft for a single couple, where everyone is on their own with partners kept apart',
         () => {
           workspace = makeContestWorkspace();
           draftId = saveDraft(workspace, hostId, singleCoupleContent('Just us'));
@@ -222,12 +219,83 @@ describeFeature(feature, ({ Scenario }) => {
     },
   );
 
+  Scenario('A contest for couples cannot be published while somebody has no partner', ({ Given, When, Then, And }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let result: ReturnType<ContestWorkspace['publishContest']['execute']>;
+
+    Given(
+      'a host with a draft where couples cook together, for 5 people of whom 4 are 2 couples and 1 has no partner',
+      () => {
+        workspace = makeContestWorkspace();
+        draftId = saveDraft(workspace, hostId, {
+          ...completeContent('Odd One Out'),
+          format: 'couples',
+          participants: [
+            person('maria', 'pau'),
+            person('pau', 'maria'),
+            person('ana', 'marcos'),
+            person('marcos', 'ana'),
+            { id: 'eva', displayName: 'eva' },
+          ],
+        });
+      },
+    );
+    When('the host tries to publish the draft', () => {
+      result = workspace.publishContest.execute(draftId, hostId);
+    });
+    Then('publishing is rejected because a participant has no partner', () => {
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe('UNPARTNERED_IN_COUPLES');
+    });
+    And('no contest is created', () => {
+      expect(workspace.getContest.execute(draftId)).toBeUndefined();
+    });
+  });
+
+  Scenario('A contest for couples publishes once everybody is partnered', ({ Given, When, Then, And }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+
+    Given(
+      'a host with a complete draft named "Two by Two" for 6 people in 3 couples, where couples cook together',
+      () => {
+        workspace = makeContestWorkspace();
+        draftId = saveDraft(workspace, hostId, {
+          ...completeContent('Two by Two'),
+          format: 'couples',
+          participants: [
+            person('maria', 'pau'),
+            person('pau', 'maria'),
+            person('ana', 'marcos'),
+            person('marcos', 'ana'),
+            person('eva', 'luis'),
+            person('luis', 'eva'),
+          ],
+        });
+      },
+    );
+    When('the host publishes the draft', () => {
+      expect(workspace.publishContest.execute(draftId, hostId).ok).toBe(true);
+    });
+    Then('the contest goes live', () => {
+      expect(workspace.getContest.execute(draftId)?.status).toBe('live');
+    });
+    And('each couple has one dish between them', () => {
+      const dishes = workspace.getContest.execute(draftId)?.materialized.dishes ?? [];
+      expect(dishes).toHaveLength(3);
+      expect(dishes.every((dish) => dish.submitterIds.length === 2)).toBe(true);
+    });
+  });
+
   Scenario("A host cannot publish another host's draft", ({ Given, When, Then, And }) => {
     let workspace: ContestWorkspace;
     let draftId = '';
 
     Given(
-      'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, scored per person with couples barred',
+      'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart',
       () => {
         workspace = makeContestWorkspace();
         draftId = saveDraft(workspace, 'host-1', completeContent('Summer Tapas 2026'));

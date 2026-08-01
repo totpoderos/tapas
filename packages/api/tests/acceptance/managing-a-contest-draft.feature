@@ -6,7 +6,7 @@ Feature: Managing a contest draft
 
   Scenario: A host saves a new draft
     Given a host
-    When the host saves a draft named "Summer Tapas 2026" scored per person with couples barred
+    When the host saves a draft named "Summer Tapas 2026" where everyone is on their own with partners kept apart
     Then the draft is stored
     And the draft appears among the host's drafts
     And the audit log records that the draft was saved by that host

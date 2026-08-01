@@ -4,7 +4,7 @@ import type { AuditRecorder } from '../../audit/audit-recorder.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { StoredDraft } from '../stored-draft.js';
 
-export type DraftFailureCode = 'NAME_REQUIRED' | 'DRAFT_NOT_FOUND';
+export type DraftFailureCode = 'NAME_REQUIRED' | 'UNKNOWN_FORMAT' | 'DRAFT_NOT_FOUND';
 
 export interface DraftFailure {
   readonly code: DraftFailureCode;

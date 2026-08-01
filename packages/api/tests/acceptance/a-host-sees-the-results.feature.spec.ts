@@ -38,8 +38,7 @@ async function request(
 function content(): DraftContent {
   return {
     name: 'Summer Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },

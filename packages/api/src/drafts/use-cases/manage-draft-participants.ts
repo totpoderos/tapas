@@ -81,10 +81,12 @@ export class RemoveDraftParticipant {
 
     const participants: Person[] = existing
       .filter((p) => !removedIds.has(p.id))
+      // Removing somebody clears the partnership that named them, so a draft
+      // never holds a dangling reference. A partner is the only such reference
+      // left, so it is the only one to clear.
       .map((p) => ({
         ...p,
         ...(p.partnerId && removedIds.has(p.partnerId) ? { partnerId: undefined } : {}),
-        ...(p.noScoreWith ? { noScoreWith: p.noScoreWith.filter((n) => !removedIds.has(n)) } : {}),
       }));
     const content: DraftContent = { ...resolved.content, participants };
     const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);

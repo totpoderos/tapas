@@ -25,9 +25,9 @@ Feature: Merging a host's reply into a partial contest draft
     Then the merged draft still includes the contest name
 
   Scenario: The assistant may not default a high-stakes field while merging
-    Given a merge attempt that defaults the attribution field without the host having said so
+    Given a merge attempt that defaults the contest's format without the host having said so
     When the reply is merged
-    Then the attribution field is dropped from the draft
+    Then the format is dropped from the draft
     And a clarification asks the host to specify it
 
   Scenario: Merging a reply requires being signed in

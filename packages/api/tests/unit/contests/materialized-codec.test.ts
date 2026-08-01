@@ -9,8 +9,7 @@ function person(id: string, partnerId: string) {
 describe('materialized codec', () => {
   it('round-trips a compiled contest (Maps/Sets survive serialization)', () => {
     const compiled = compile({
-      attribution: 'per_person',
-      antiBias: 'couples',
+      format: 'solo_with_partners',
       scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
       participants: [person('A', 'B'), person('B', 'A'), person('C', 'D'), person('D', 'C')],
     });
