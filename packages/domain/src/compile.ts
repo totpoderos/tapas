@@ -10,6 +10,7 @@ import type {
 
 export type CompileErrorCode =
   | 'NO_PARTICIPANTS'
+  | 'NO_CATEGORIES'
   | 'DUPLICATE_PERSON_ID'
   | 'MISSING_PARTNER'
   | 'INCONSISTENT_PARTNER'
@@ -38,6 +39,18 @@ function fail(code: CompileErrorCode, message: string): CompileResult {
 export function compile(draft: ContestDraft): CompileResult {
   const people = draft.participants;
   if (people.length === 0) return fail('NO_PARTICIPANTS', 'A contest needs at least one participant.');
+
+  /*
+   * A contest judged on nothing is not merely empty, it is broken in a way that
+   * only shows at the end: its participants get a ballot with nothing to score,
+   * every dish totals zero, and the reveal names all of them joint winners of a
+   * contest nobody could take part in. A draft with no categories yet is an
+   * ordinary halfway state; a published contest with none is not, which is why
+   * this is checked here and not when the draft is written.
+   */
+  if (draft.scoring.categories.length === 0) {
+    return fail('NO_CATEGORIES', 'A contest needs at least one thing to be judged on.');
+  }
 
   const byId = new Map<PersonId, Person>();
   for (const p of people) {

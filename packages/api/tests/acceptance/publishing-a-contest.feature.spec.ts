@@ -168,6 +168,99 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('A draft that never said what kind of contest it is says so', ({ Given, When, Then, And }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let publishOutcome: ReturnType<PublishContest['execute']>;
+
+    Given(
+      'a host with a draft that has its people and its scoring but never said what kind of contest it is',
+      () => {
+        workspace = makeContestWorkspace();
+        draftId = saveDraft(workspace, hostId, {
+          name: 'Tapas Night',
+          participants: [
+            { id: 'a', displayName: 'Ana' },
+            { id: 'b', displayName: 'Bob' },
+          ],
+          scoring: {
+            categories: [{ id: 'c1', name: 'Taste' }],
+            range: { type: 'fixed', min: 1, max: 5 },
+            uniquePerCategory: false,
+          },
+        });
+      },
+    );
+    When('the host tries to publish the draft', () => {
+      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    });
+    Then('publishing is rejected because the draft does not say what kind of contest it is', () => {
+      expect(publishOutcome.ok).toBe(false);
+      if (publishOutcome.ok) return;
+      expect(publishOutcome.error.message).toContain('what kind of contest it is');
+    });
+    /* The whole point: the scoring is complete, so the refusal must not send the host to it. */
+    And('the refusal does not blame the scoring rules', () => {
+      expect(publishOutcome.ok).toBe(false);
+      if (publishOutcome.ok) return;
+      expect(publishOutcome.error.message).not.toContain('how it is scored');
+    });
+  });
+
+  Scenario('A draft with nobody taking part says so', ({ Given, When, Then }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let publishOutcome: ReturnType<PublishContest['execute']>;
+
+    Given(
+      'a host with a draft that says what kind of contest it is and how it is scored, but has nobody taking part',
+      () => {
+        workspace = makeContestWorkspace();
+        draftId = saveDraft(workspace, hostId, {
+          name: 'Tapas Night',
+          format: 'solo',
+          scoring: {
+            categories: [{ id: 'c1', name: 'Taste' }],
+            range: { type: 'auto' },
+            uniquePerCategory: false,
+          },
+        });
+      },
+    );
+    When('the host tries to publish the draft', () => {
+      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    });
+    Then('publishing is rejected because nobody is taking part', () => {
+      expect(publishOutcome.ok).toBe(false);
+      if (publishOutcome.ok) return;
+      expect(publishOutcome.error.message).toContain('who is taking part');
+    });
+  });
+
+  Scenario('A draft missing more than one thing names them all', ({ Given, When, Then }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let publishOutcome: ReturnType<PublishContest['execute']>;
+
+    Given('a host with a draft that has only a name', () => {
+      workspace = makeContestWorkspace();
+      draftId = saveDraft(workspace, hostId, { name: 'Half-baked' });
+    });
+    When('the host tries to publish the draft', () => {
+      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    });
+    Then('publishing is rejected naming all three of the things it still needs', () => {
+      expect(publishOutcome.ok).toBe(false);
+      if (publishOutcome.ok) return;
+      for (const part of ['what kind of contest it is', 'who is taking part', 'how it is scored']) {
+        expect(publishOutcome.error.message).toContain(part);
+      }
+    });
+  });
+
   Scenario('An incomplete draft cannot be published', ({ Given, When, Then, And }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
@@ -184,6 +277,41 @@ describeFeature(feature, ({ Scenario }) => {
     Then('publishing is rejected because the draft is incomplete', () => {
       expect(publishOutcome.ok).toBe(false);
       if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('INCOMPLETE_DRAFT');
+    });
+    And('no contest is created', () => {
+      expect(workspace.getContest.execute(draftId)).toBeUndefined();
+    });
+  });
+
+  Scenario('A contest judged on nothing cannot be published', ({ Given, When, Then, And }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+    let publishOutcome: ReturnType<PublishContest['execute']>;
+
+    Given(
+      'a host with a draft that says what kind of contest it is and who is taking part, but is judged on nothing',
+      () => {
+        workspace = makeContestWorkspace();
+        draftId = saveDraft(workspace, hostId, {
+          name: 'Judged On Nothing',
+          format: 'solo',
+          participants: [
+            { id: 'a', displayName: 'Ana' },
+            { id: 'b', displayName: 'Bob' },
+          ],
+          scoring: { categories: [], range: { type: 'auto' }, uniquePerCategory: false },
+        });
+      },
+    );
+    When('the host tries to publish the draft', () => {
+      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    });
+    Then('publishing is rejected because the contest is judged on nothing', () => {
+      expect(publishOutcome.ok).toBe(false);
+      if (publishOutcome.ok) return;
+      expect(publishOutcome.error.code).toBe('NO_CATEGORIES');
+      expect(publishOutcome.error.message).toMatch(/judged on/i);
     });
     And('no contest is created', () => {
       expect(workspace.getContest.execute(draftId)).toBeUndefined();

@@ -47,10 +47,7 @@ export class Contest {
   static publish(draft: PublishableDraft, joinCode: string): PublishResult {
     const contestDraft = toContestDraft(draft.content);
     if (!contestDraft) {
-      return {
-        ok: false,
-        error: { code: 'INCOMPLETE_DRAFT', message: 'The draft is missing its scoring rules.' },
-      };
+      return { ok: false, error: { code: 'INCOMPLETE_DRAFT', message: stillNeeded(draft.content) } };
     }
 
     const compiled = compile(contestDraft);
@@ -71,6 +68,33 @@ export class Contest {
       ),
     };
   }
+}
+
+/**
+ * What the draft still has to say before it can be published, in the host's own
+ * terms.
+ *
+ * Three things are required and all three used to be reported as one sentence —
+ * "The draft is missing its scoring rules" — whichever was actually absent. A
+ * contest prepared entirely through the assistant arrives with its people and
+ * its scoring settled and no format at all, and its host was told to go and fix
+ * the scoring, which was already complete. A refusal that names the wrong thing
+ * is worse than a vague one: it sends somebody to work on what is not broken.
+ */
+function stillNeeded(content: DraftContent): string {
+  const missing = [
+    !content.format && 'what kind of contest it is',
+    !content.participants && 'who is taking part',
+    !content.scoring && 'how it is scored',
+  ].filter((part): part is string => typeof part === 'string');
+
+  // "a, b, or c" — the last one joined with "or", because any of them alone is
+  // enough to stop a publish.
+  const said =
+    missing.length <= 1
+      ? (missing[0] ?? 'what it needs')
+      : `${missing.slice(0, -1).join(', ')}, or ${missing[missing.length - 1]}`;
+  return `This contest cannot be published yet — it does not say ${said}.`;
 }
 
 /** A draft is publishable only once it carries the full rule-space configuration. */
