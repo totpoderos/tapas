@@ -221,6 +221,46 @@ test('cancelling the card changes nothing', async ({ page }) => {
   expect(await statusOf(page.request, id)).toBe('live');
 });
 
+/*
+ * A host who reuses a name has to be able to act on the right one. Before the
+ * panel read the shape of an answer, only the three tools known to return
+ * candidates could ask this — a close announced itself as done instead.
+ */
+test('the panel asks which contest is meant when an action names a shared name', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-ambiguous@sobremesa.es');
+  const first = await liveContest(page.request, 'Tapas Night');
+  const second = await liveContest(page.request, 'Tapas Night');
+  await page.goto('/chat');
+  await sendMessage(page, 'close Tapas Night');
+  await page.getByRole('button', { name: 'Yes, do it' }).click();
+
+  await expect(page.getByText(/which one/i)).toBeVisible();
+  const listed = page.getByRole('list', { name: 'Contests' });
+  await expect(listed.getByText('Tapas Night')).toHaveCount(2);
+
+  await expect(page.getByText(/now closed/i)).toHaveCount(0);
+  expect(await statusOf(page.request, first)).toBe('live');
+  expect(await statusOf(page.request, second)).toBe('live');
+});
+
+/*
+ * A mistyped name is not a refused action. One is retyped, the other has to be
+ * dealt with — so the panel says them differently: a quiet note, not an alert
+ * carrying a reason.
+ */
+test('the panel says plainly when an action names no contest at all', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-nomatch@sobremesa.es');
+  const id = await liveContest(page.request, 'Tapas Night');
+  await page.goto('/chat');
+  await sendMessage(page, 'close Sunday Roast');
+  await page.getByRole('button', { name: 'Yes, do it' }).click();
+
+  await expect(page.getByText(/no contest by that name/i)).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText(/now closed/i)).toHaveCount(0);
+  expect(await statusOf(page.request, id)).toBe('live');
+});
+
 test('the chat panel is keyboard-operable and has no accessibility violations', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-a11y@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

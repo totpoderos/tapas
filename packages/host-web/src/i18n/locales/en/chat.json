@@ -31,6 +31,8 @@
   "recapNoCategories": "no categories yet",
   "detailsRecap": "{{name}} ({{status}}) — taking part: {{who}}; scored on: {{cats}}.",
   "nudge": "I didn’t catch that. Try, for example, “list my contests”.",
+  "contestCode": "Code {{code}}",
+  "contestChanged": "Changed {{when}}",
   "severalWhichOne": "Several contests have that name — which one?",
   "severalRecap": "Several contests have that name.",
   "noContestByName": "No contest by that name.",

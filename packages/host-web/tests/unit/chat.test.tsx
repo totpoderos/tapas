@@ -206,6 +206,165 @@ describe('Chat panel', () => {
     expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
   });
 
+  /*
+   * The panel used to pick a rendering from the tool's NAME, so only the three
+   * tools known to answer this way could ask "which one?". Every tool answers
+   * that way now — a close that names a shared name must ask, not announce.
+   */
+  it('asks which one when an action — not just a read — names a shared name', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'close_contest',
+      text: '',
+      result: {
+        candidates: [
+          { id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+          { id: 'c2', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' },
+        ],
+      },
+    });
+    renderChat();
+    await send('close Tapas Night');
+
+    expect(await screen.findByText(/which one/i)).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Contests' })).toBeInTheDocument();
+    // The one thing it must never say: that the contest was closed.
+    expect(screen.queryByText(/now closed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/done/i)).not.toBeInTheDocument();
+  });
+
+  /*
+   * Asking "which one?" is only worth doing if the host can answer. Two rows
+   * both reading "Tapas Night — Live" is the same dead end as not asking, so
+   * each candidate has to carry the thing that tells it apart.
+   */
+  it('gives the host something to tell same-named candidates apart by', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'close_contest',
+      text: '',
+      result: {
+        candidates: [
+          {
+            id: 'c1',
+            name: 'Tapas Night',
+            status: 'live',
+            updatedAt: '2026-01-01T00:00:00.000Z',
+            joinCode: 'AAAA1111',
+          },
+          {
+            id: 'c2',
+            name: 'Tapas Night',
+            status: 'live',
+            updatedAt: '2026-01-02T00:00:00.000Z',
+            joinCode: 'BBBB2222',
+          },
+        ],
+      },
+    });
+    renderChat();
+    await send('close Tapas Night');
+
+    const listed = within(await screen.findByRole('list', { name: 'Contests' }));
+    expect(listed.getByText(/AAAA1111/)).toBeInTheDocument();
+    expect(listed.getByText(/BBBB2222/)).toBeInTheDocument();
+  });
+
+  // A draft has no join code yet, so when it last changed is what separates
+  // this year's "Tapas Night" from last year's.
+  it('falls back to when it last changed for candidates with no join code', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'publish_contest',
+      text: '',
+      result: {
+        candidates: [
+          { id: 'd1', name: 'Tapas Night', status: 'draft', updatedAt: '2020-03-04T00:00:00.000Z' },
+          { id: 'd2', name: 'Tapas Night', status: 'draft', updatedAt: '2021-06-07T00:00:00.000Z' },
+        ],
+      },
+    });
+    renderChat();
+    await send('publish Tapas Night');
+
+    const listed = within(await screen.findByRole('list', { name: 'Contests' }));
+    expect(listed.getByText(/2020/)).toBeInTheDocument();
+    expect(listed.getByText(/2021/)).toBeInTheDocument();
+  });
+
+  /*
+   * A mistyped name and a refused action are different things, and a host acts
+   * on them differently — retype it, or deal with why it could not be done. A
+   * refusal is an alert with its reason; this is a quiet note.
+   */
+  it('says a name matched nothing without dressing it as a failed action', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'close_contest',
+      text: '',
+      result: { candidates: [] },
+    });
+    renderChat();
+    await send('close Sunday Roast');
+
+    expect(await screen.findByText(/no contest by that name/i)).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByText(/now closed/i)).not.toBeInTheDocument();
+  });
+
+  it('says no DRAFT by that name when the tool only ever acts on a draft', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'publish_contest',
+      text: '',
+      result: { candidates: [] },
+    });
+    renderChat();
+    await send('publish Sunday Roast');
+
+    expect(await screen.findByText(/no draft by that name/i)).toBeInTheDocument();
+  });
+
+  /*
+   * The fallback that makes the shape-reading safe to extend: a tool the panel
+   * has never seen still gets a truthful, if terse, report rather than being
+   * mistaken for a shape it resembles.
+   */
+  it('falls back to the plain ticket for a result it does not recognise', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'set_score_range',
+      text: '',
+      result: { min: 1, max: 5 },
+    });
+    renderChat();
+    await send('score it between 1 and 5');
+
+    // The ticket, and the sentence that goes with it — terse, but true.
+    expect(await screen.findByText('✓ set score range — done')).toBeInTheDocument();
+    expect(screen.getByText('Done — set score range.')).toBeInTheDocument();
+  });
+
+  /*
+   * An array of things that are not contests must not be drawn as a contest
+   * list — that would be a screen of "Unnamed contest", which reads as data the
+   * host does not have.
+   */
+  it('does not draw an array of non-contests as a contest list', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'get_results',
+      text: 'Here are the totals.',
+      result: [{ categoryId: 'taste', total: 12 }],
+    });
+    renderChat();
+    await send('results for Tapas Night');
+
+    expect(await screen.findByText('Here are the totals.')).toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Contests' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/unnamed contest/i)).not.toBeInTheDocument();
+  });
+
   it('renders the updated participants after adding one', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({
       kind: 'result',
