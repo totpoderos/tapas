@@ -159,11 +159,38 @@ have been added to one and forgotten in the others, so they are now one
 
 ## 5. Slice E — the assistant is measured on the wider surface
 
-- [ ] 5.1 Extend the host-assistant eval cases to cover each new operation and the by-name addressing, including a case where a name is shared and the right move is to ask
-- [ ] 5.2 Run the eval gate against the configured hosted model and record the trajectory
-- [ ] 5.3 Decide the threshold from what it actually scores, and commit it — a drop in tool-choice accuracy is a finding about the model, not a reason to merge the tools back together
-- [ ] 5.4 Update `design.md` §6 (the tool surface) and the security notes on the widened write surface
-- [ ] 5.5 Full local gate, then PR
+- [x] 5.1 Extend the host-assistant eval cases to cover each new operation and the by-name addressing ~~including a case where a name is shared and the right move is to ask~~ — **rescoped, see below**
+- [x] 5.2 Run the eval gate against the configured hosted model and record the trajectory
+- [x] 5.3 Decide the threshold from what it actually scores, and commit it
+- [x] 5.4 Update the eval docs and the README for a hosted model
+- [x] 5.5 Full local gate, then PR
+
+**5.1 asked for something the eval cannot express.** The eval scores the proposed
+tool call and has no notion of the host's contest inventory. The model cannot
+know a name is shared — and should not: it proposes the call, and the server
+resolves and asks, which is what the confirmation-ordering follow-up built. What
+*is* measurable about by-name addressing is that the model puts a **name** in
+`contest` and never anything id-shaped, so the case became
+`destructive-close-names-not-codes`: the host's message carries a join code and
+the expected call still carries the name.
+
+That is the third task in this change whose premise did not survive contact with
+the design — 3.3, 4.2 and now 5.1. In each case the plan was written before the
+code was read.
+
+**The case set was blind.** It measured 9 of 21 tools; every draft edit from
+Slices C and D was covered by nothing at all, and no test failed to say so. Now
+50 cases, with a guard that every tool in the list appears in at least one case.
+
+**Two of my own cases were defective**, both found by the first run and fixed
+before the recorded one: an adversarial case pinned partial arguments where the
+metric deep-equals the whole object (the model had behaved perfectly), and a
+multi-tool case was ambiguous between two defensible reads. Both runs are
+recorded in the trajectory rather than only the flattering one.
+
+**Thresholds were raised wholesale**, from floors calibrated to a small local
+model that could no longer fail. Set from a single run, and said to be a
+hypothesis rather than a measurement.
 
 ## 6. Close out
 

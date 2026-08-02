@@ -56,8 +56,13 @@ export const MULTI_TOOL_CASES: HostAssistantCaseInput[] = [
   {
     id: 'multi-get-contest-then-tally',
     group: 'multi_tool',
-    note: 'Two reads of the same contest, in order.',
-    message: 'Show me Tapas Night and its current tally.',
+    /*
+     * "Show me X" was ambiguous between the plain read and the details read, and
+     * the model reasonably chose details — so the case measured its taste rather
+     * than its chaining. Asking for the state names the plain read.
+     */
+    note: 'Two reads of the same contest, in order: its state, then its tally.',
+    message: 'What state is Tapas Night in, and what is its current tally?',
     expect: { tools: [{ name: 'get_contest', arguments: { contest: 'Tapas Night' } }, { name: 'get_tally' }] },
   },
   {
@@ -66,5 +71,29 @@ export const MULTI_TOOL_CASES: HostAssistantCaseInput[] = [
     note: 'Publish a draft, then read the contest it became.',
     message: 'Publish Spring Draft and then show me the new contest.',
     expect: { tools: [{ name: 'publish_contest', arguments: { contest: 'Spring Draft' } }, { name: 'get_contest' }] },
+  },
+  {
+    id: 'multi-category-then-publish',
+    group: 'multi_tool',
+    note: 'Settle what it is judged on, then publish it.',
+    message: 'Add Presentation to Tapas Night and then publish it.',
+    expect: {
+      tools: [
+        { name: 'add_category', arguments: { contest: 'Tapas Night', category: 'Presentation' } },
+        { name: 'publish_contest' },
+      ],
+    },
+  },
+  {
+    id: 'multi-pair-then-format',
+    group: 'multi_tool',
+    note: 'Pair two people, then say the contest is for couples — the order a host works in.',
+    message: 'Pair Ana with Bob in Tapas Night, then make it a couples contest.',
+    expect: {
+      tools: [
+        { name: 'set_partner', arguments: { contest: 'Tapas Night', person: 'Ana', partner: 'Bob' } },
+        { name: 'set_format' },
+      ],
+    },
   },
 ];

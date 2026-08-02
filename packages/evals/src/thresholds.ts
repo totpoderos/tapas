@@ -36,15 +36,32 @@ export const CREATION_THRESHOLDS: readonly Threshold[] = [
   { metric: 'falseFieldRate', label: 'False-field rate', kind: 'ceiling', bound: 0.05 },
 ];
 
-/** Host-assistant tool-use eval (`docs/host-assistant-eval-trajectory.md`). */
+/**
+ * Host-assistant tool-use eval (`docs/host-assistant-eval-trajectory.md`).
+ *
+ * Raised wholesale when the assistant moved to a hosted `gemma4:31b-cloud` and
+ * the case set grew to 50. The old floors were calibrated against a small local
+ * model scoring 25-65 on its weakest metrics; against a model that scores 100
+ * they could not fail for any reason short of total collapse, which is a gate
+ * that does not gate.
+ *
+ * Every metric was observed at 1.0 (false-tool at 0.0) on case set
+ * `ae8116223b65`. The floors sit below that with room for a case or two to
+ * wobble — one case is 2% of the set — so a genuine regression blocks and
+ * ordinary variance does not.
+ *
+ * Set from a SINGLE run on this case set. They are floors to hold and raise,
+ * and they want revisiting once a few runs have shown what the real spread is;
+ * a floor set from one observation is a hypothesis, not a measurement.
+ */
 export const HOST_ASSISTANT_THRESHOLDS: readonly Threshold[] = [
-  { metric: 'toolSelectionAccuracy', label: 'Tool-selection accuracy', kind: 'floor', bound: 0.45 },
-  { metric: 'toolArgumentAccuracy', label: 'Tool-argument accuracy', kind: 'floor', bound: 0.8 },
-  { metric: 'clarificationAccuracy', label: 'Clarification accuracy', kind: 'floor', bound: 0.75 },
-  { metric: 'schemaValidity', label: 'Schema validity', kind: 'floor', bound: 0.8 },
-  { metric: 'falseToolRate', label: 'False-tool rate', kind: 'ceiling', bound: 0.1 },
-  { metric: 'chainingCorrectness', label: 'Chaining correctness', kind: 'floor', bound: 0.1 },
-  { metric: 'confirmationSurfacing', label: 'Confirmation surfacing', kind: 'floor', bound: 0.1 },
+  { metric: 'toolSelectionAccuracy', label: 'Tool-selection accuracy', kind: 'floor', bound: 0.9 },
+  { metric: 'toolArgumentAccuracy', label: 'Tool-argument accuracy', kind: 'floor', bound: 0.9 },
+  { metric: 'clarificationAccuracy', label: 'Clarification accuracy', kind: 'floor', bound: 0.9 },
+  { metric: 'schemaValidity', label: 'Schema validity', kind: 'floor', bound: 0.95 },
+  { metric: 'falseToolRate', label: 'False-tool rate', kind: 'ceiling', bound: 0.05 },
+  { metric: 'chainingCorrectness', label: 'Chaining correctness', kind: 'floor', bound: 0.8 },
+  { metric: 'confirmationSurfacing', label: 'Confirmation surfacing', kind: 'floor', bound: 0.9 },
 ];
 
 export const THRESHOLDS_BY_SUITE = {
