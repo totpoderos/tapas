@@ -289,7 +289,50 @@ export function Chat() {
     if (!busy && !pending) inputRef.current?.focus();
   }, [busy, pending]);
 
+  /**
+   * What the assistant answered. One message may ask for several things, so an
+   * answer may be a run of steps — each drawn exactly as it would be on its own,
+   * in the order the host asked for it.
+   */
   function applyTurn(turn: AssistantTurn) {
+    if (turn.kind === 'steps') {
+      /*
+       * Only the last result is drawn in full. Every step of "create Tapas,
+       * judge it on two things, add three people" answers with the whole draft
+       * as it then stood, so drawing each one gives the host six near-identical
+       * cards differing by a line, with the state they actually want buried at
+       * the bottom looking like the five above it. The steps before it say what
+       * they did in a line; the run ends with the contest as it now stands.
+       */
+      /*
+       * Once for the whole run. A step drawn as a ticket skips the branch below
+       * that re-reads the contest list, so without this the panel went on saying
+       * a host had no contests straight after making them one.
+       */
+      if (turn.steps.some((step) => step.kind === 'result')) refreshContests();
+
+      const lastResult = turn.steps.findLastIndex((step) => step.kind === 'result');
+      turn.steps.forEach((step, index) => {
+        if (step.kind === 'result' && index !== lastResult) {
+          add({ kind: 'ticket', text: resultSummary(step.action, step.result, t) });
+          return;
+        }
+        applyTurn(step);
+      });
+      /*
+       * What the run did not get to. A host who asked for six things and had the
+       * run stop at the third must not be left assuming the other three
+       * happened — that silent drop is the whole reason this exists.
+       */
+      if (turn.notReached.length > 0) {
+        const text = t('chat.notReached', {
+          actions: turn.notReached.map((action) => labelFor(action, t)).join(', '),
+        });
+        add({ kind: 'note', text });
+        setHistory((h) => [...h, { role: 'assistant', content: text }]);
+      }
+      return;
+    }
     if (turn.kind === 'reply') {
       // A small model sometimes returns an empty reply; show a nudge rather than
       // a blank bubble, so the host always gets a response.

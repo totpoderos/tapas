@@ -7,6 +7,9 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  * headless). It is never selected in production. It reads the host's latest
  * message and maps a couple of fixed phrasings to a tool call:
  *
+ *   "set up X with A and B, and C and D taking part"
+ *                                       → create_draft + add_category × N + add_participant × N,
+ *                                         all in one completion (a message may ask for several things)
  *   "start a draft called X"            → create_draft { name: "X" }  (reversible)
  *   "close <name>"                      → close_contest { contest }    (destructive)
  *   "list my contests"                  → list_my_contests {}          (reversible)
@@ -25,12 +28,41 @@ const DRAFT_CALLED = /draft called ["']?(.+?)["']?\s*$/i;
 const DETAILS_OF = /(?:details of|who(?:'s| is) (?:in|taking part in))\s+["']?(.+?)["']?\s*$/i;
 const ADD_TO = /\badd\s+["']?(.+?)["']?\s+to\s+["']?(.+?)["']?\s*$/i;
 const REMOVE_FROM = /\bremove\s+["']?(.+?)["']?\s+from\s+["']?(.+?)["']?\s*$/i;
+// "set up <name> judged on <a, b> with <c, d, e> taking part"
+const SET_UP_WITH = /\bset up\s+["']?(.+?)["']?\s+judged on\s+(.+?)\s+with\s+(.+?)\s+taking part/i;
 const FIND_NAMED = /\bfind\b(?:\s+the)?(?:\s+contest)?\s+["']?(.+?)["']?\s*$/i;
 
 export class KeywordStubLLMClient implements LLMClient {
   async complete(request: LLMCompletionRequest): Promise<LLMCompletion> {
     const latest = [...request.messages].reverse().find((message) => message.role === 'user');
     const text = latest?.content ?? '';
+
+    /*
+     * One message asking for several things, which is what a real model proposes
+     * for "create a contest called X, judge it on A and B, with C, D and E
+     * taking part". The stub has to be able to answer with a run of calls or the
+     * E2E can only ever prove the single-call path.
+     */
+    const setUp = SET_UP_WITH.exec(text);
+    if (setUp) {
+      const contest = setUp[1]!.trim();
+      const listed = (part: string | undefined) =>
+        (part ?? '')
+          .split(/,| and /i)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      return {
+        text: '',
+        toolCalls: [
+          { name: 'create_draft', arguments: { name: contest } },
+          ...listed(setUp[2]).map((category) => ({ name: 'add_category', arguments: { contest, category } })),
+          ...listed(setUp[3]).map((participant) => ({
+            name: 'add_participant',
+            arguments: { contest, participant },
+          })),
+        ],
+      };
+    }
 
     const draftMatch = DRAFT_CALLED.exec(text);
     if (draftMatch) {

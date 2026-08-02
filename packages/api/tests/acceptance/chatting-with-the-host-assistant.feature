@@ -6,6 +6,11 @@ Feature: Chatting with the host assistant
   A confirmation only authorises the exact action it was given for. Chatting is
   refused when no one is signed in.
 
+  One message may ask for several things, and all of them happen, in the order
+  they were asked for. Two things end a run early and are said plainly rather
+  than hidden: something irreversible, which is put to the host on its own, and
+  something that could not be done, which stops what would have followed it.
+
   Scenario: The assistant asks for detail when a request is ambiguous
     Given a signed-in host chatting with the assistant
     When they ask for something the assistant cannot act on without more detail
@@ -55,3 +60,41 @@ Feature: Chatting with the host assistant
     Given no one is signed in
     When a message is sent to the assistant
     Then it is refused as not signed in
+
+  # A host writes one message and gets one contest and nothing else — no
+  # categories, no people, and nothing said about the five things that did not
+  # happen. The model proposed all six; only the first was ever carried out.
+  Scenario: One message asking for several things gets all of them
+    Given a signed-in host chatting with the assistant
+    When they ask in one message to create a contest, judge it on two things, and have three people taking part
+    Then the contest exists, judged on both, with all three taking part
+    And every step is reported, in the order it was asked for
+
+  Scenario: A message asking for a single thing is answered as it always was
+    Given a signed-in host chatting with the assistant
+    When they ask for one thing alone
+    Then it is carried out and reported on its own
+
+  # A confirmation approves the action it names. What a message queued behind
+  # that action is not part of what the host agreed to.
+  Scenario: Something irreversible is put to the host on its own, and ends the run
+    Given a signed-in host with a draft ready to publish
+    When they ask in one message to judge it on one more thing and then publish it
+    Then the draft is judged on that thing
+    And the host is asked to confirm publishing
+    And the draft is not published
+
+  Scenario: Nothing asked for after an irreversible action is carried out
+    Given a signed-in host with a draft ready to publish
+    When they ask in one message to publish it and then rename it
+    Then the host is asked to confirm publishing
+    And the draft still has the name it had
+    And what was not reached is named
+
+  # Later steps lean on earlier ones, so running past a failure turns one honest
+  # error into a run of confusing ones.
+  Scenario: A step that cannot be carried out stops the ones after it
+    Given a signed-in host with a draft judged on "Taste"
+    When they ask in one message to judge it on "Taste" again and then on "Presentation"
+    Then the repeat is reported as refused, with its reason
+    And the draft is not judged on "Presentation"

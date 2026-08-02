@@ -83,3 +83,10 @@ Feature: Directing a contest from the chat panel
     When they ask to close the contest and accept the confirmation using only the keyboard
     Then the confirmation card is reachable and focus-managed
     And the screen has no accessibility violations
+
+  # The reported bug, in a browser: one message asking for six things used to
+  # produce a contest and nothing else, with no word about the other five.
+  Scenario: One message asking for several things gets all of them
+    Given a signed-in host with the chat panel open
+    When they ask in one message to set up a contest judged on two things with three people taking part
+    Then the panel shows the contest judged on both, with all three taking part

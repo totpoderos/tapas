@@ -31,8 +31,8 @@ export interface ConfirmRequest {
   readonly confirmationToken: string;
 }
 
-export type AssistantTurn =
-  | { readonly kind: 'reply'; readonly text: string }
+/** One thing the assistant did, or was stopped by. The pieces a run is made of. */
+export type AssistantStep =
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
   | { readonly kind: 'failed'; readonly action: string; readonly message: string }
   | {
@@ -41,6 +41,24 @@ export type AssistantTurn =
       readonly args: Record<string, unknown>;
       readonly confirmationToken: string;
       readonly message: string;
+    };
+
+export type AssistantTurn =
+  | { readonly kind: 'reply'; readonly text: string }
+  | AssistantStep
+  /**
+   * What happened when one message asked for several things: every step in the
+   * order it was asked for, and the names of anything the run did not reach.
+   *
+   * A message asking for one thing still answers with that one step's own shape.
+   * The overwhelmingly common case is left exactly as it was rather than wrapped
+   * in a list of one.
+   */
+  | {
+      readonly kind: 'steps';
+      readonly steps: readonly AssistantStep[];
+      /** Asked for, never attempted — because something before it stopped the run. */
+      readonly notReached: readonly string[];
     };
 
 /** What came back from running a tool: the API accepted it, or refused with a reason. */
@@ -105,17 +123,73 @@ function askToConfirm(secret: string, tool: McpTool, args: Record<string, unknow
   };
 }
 
-/** One conversational turn: the assistant clarifies, runs a reversible action, or asks to confirm. */
+/**
+ * One conversational turn.
+ *
+ * A message may ask for several things. The model proposes an action for each,
+ * in the order the host asked for them, and every one of them is carried out —
+ * this used to take `toolCalls[0]` and discard the rest, so a host who asked for
+ * six things got the first and no word about the other five.
+ *
+ * A run ends early on two things, and says so rather than hiding it: something
+ * irreversible, which is put to the host on its own because a confirmation
+ * approves the action it names and not a queue behind it; and something that
+ * could not be done, because later steps lean on earlier ones and carrying on
+ * turns one honest error into a run of confusing ones.
+ */
 export async function runAssistantMessage(
   messages: readonly LLMMessage[],
   deps: TurnDeps,
 ): Promise<AssistantTurn> {
   const completion = await deps.assistant.respond(messages);
-  const call = completion.toolCalls[0];
-  if (!call) return { kind: 'reply', text: completion.text };
+  const calls = completion.toolCalls;
+  if (calls.length === 0) return { kind: 'reply', text: completion.text };
 
+  // One thing asked for answers in that one step's own shape, exactly as before.
+  if (calls.length === 1) return runOneCall(calls[0]!, completion.text, deps);
+
+  const steps: AssistantStep[] = [];
+  for (const [index, call] of calls.entries()) {
+    const outcome = await runOneCall(call, completion.text, deps);
+    const step = asStep(outcome, call.name);
+    steps.push(step);
+
+    // A result is the only outcome that lets the run go on. A refusal, a
+    // confirmation to give, or a call that could not even be understood all end
+    // it — and whatever came after was never attempted.
+    if (step.kind !== 'result') {
+      return { kind: 'steps', steps, notReached: calls.slice(index + 1).map((rest) => rest.name) };
+    }
+  }
+  return { kind: 'steps', steps, notReached: [] };
+}
+
+/**
+ * A step, from whatever one call answered with.
+ *
+ * `runOneCall` can answer with a plain reply — an unknown tool, or arguments
+ * that did not parse. Alone that is a sentence to the host; inside a run it is
+ * that step failing, and the run stops there.
+ */
+function asStep(turn: AssistantTurn, action: string): AssistantStep {
+  return turn.kind === 'reply' ? { kind: 'failed', action, message: turn.text } : (turn as AssistantStep);
+}
+
+/**
+ * One proposed call, carried out.
+ *
+ * Every step of a run goes through here, so the schema check, the settling of a
+ * name, the destructive gate and the audit provenance are the same whether a
+ * message asked for one thing or six. A second way to run a tool would agree
+ * with this one until the day one of them changed.
+ */
+async function runOneCall(
+  call: { readonly name: string; readonly arguments: Record<string, unknown> },
+  completionText: string,
+  deps: TurnDeps,
+): Promise<AssistantTurn> {
   const tool = TOOLS.get(call.name);
-  if (!tool) return { kind: 'reply', text: completion.text || 'I’m not sure how to help with that yet.' };
+  if (!tool) return { kind: 'reply', text: completionText || 'I’m not sure how to help with that yet.' };
 
   // Check the model's arguments against the tool's own schema before anything
   // acts on them. The MCP server gets this from the SDK; this path has to ask.
@@ -145,7 +219,7 @@ export async function runAssistantMessage(
         return {
           kind: 'result',
           action: tool.name,
-          text: completion.text,
+          text: completionText,
           result: { candidates: resolution.candidates },
         };
       }
@@ -155,7 +229,7 @@ export async function runAssistantMessage(
 
   const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
   if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
-  return { kind: 'result', action: tool.name, text: completion.text, result: outcome.body };
+  return { kind: 'result', action: tool.name, text: completionText, result: outcome.body };
 }
 
 /** Carries out a destructive action once the host confirms it — only with the matching token. */

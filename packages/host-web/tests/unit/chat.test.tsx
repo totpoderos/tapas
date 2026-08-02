@@ -262,6 +262,101 @@ describe('Chat panel', () => {
   });
 
   /*
+   * One message may ask for several things. Before this the panel drew the first
+   * and dropped the rest — and a run of steps fell through to the branch that
+   * assumes a confirmation, opening a card for an action with no name.
+   */
+  it('draws every step of a run, in the order they were asked for', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'steps',
+      notReached: [],
+      steps: [
+        { kind: 'result', action: 'create_draft', text: '', result: { id: 'd1', name: 'Tapas' } },
+        {
+          kind: 'result',
+          action: 'add_category',
+          text: '',
+          result: {
+            details: {
+              id: 'd1',
+              name: 'Tapas',
+              status: 'draft',
+              participants: [],
+              categories: ['Taste'],
+            },
+          },
+        },
+        {
+          kind: 'result',
+          action: 'add_participant',
+          text: '',
+          result: {
+            details: {
+              id: 'd1',
+              name: 'Tapas',
+              status: 'draft',
+              participants: ['Carlos'],
+              categories: ['Taste'],
+            },
+          },
+        },
+      ],
+    });
+    renderChat();
+    await send('create Tapas, judge it on Taste, add Carlos');
+
+    expect(await screen.findByText('Carlos')).toBeInTheDocument();
+    expect(screen.getByText('✓ create draft — done')).toBeInTheDocument();
+    // No confirmation card: a run of results is not something to approve.
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  /*
+   * The silent drop, in its new place. A host who asked for three things and had
+   * the run stop at the second must not be left assuming the third happened.
+   */
+  it('names what the run did not reach', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'steps',
+      notReached: ['rename_contest', 'add_participant'],
+      steps: [
+        { kind: 'result', action: 'add_category', text: '', result: { id: 'd1' } },
+        {
+          kind: 'confirm',
+          action: 'publish_contest',
+          args: { contest: 'Tapas' },
+          confirmationToken: 'tok',
+          message: 'This can’t be undone. Confirm to publish contest.',
+        },
+      ],
+    });
+    renderChat();
+    await send('add Taste, publish it, rename it, add Carlos');
+
+    expect(await screen.findByText(/not done yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/rename contest, add participant/i)).toBeInTheDocument();
+    // And the confirmation the run stopped on is still put to the host.
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+  });
+
+  it('shows a failed step as a refusal and still names what was not reached', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'steps',
+      notReached: ['add_category'],
+      steps: [
+        { kind: 'result', action: 'add_participant', text: '', result: { id: 'd1' } },
+        { kind: 'failed', action: 'add_category', message: 'This contest is already judged on "Taste".' },
+      ],
+    });
+    renderChat();
+    await send('add Carlos, judge it on Taste twice');
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/already judged on/i);
+    expect(screen.getByText(/not done yet/i)).toBeInTheDocument();
+  });
+
+  /*
    * A pairing is invisible without this. `set_partner` answers with the same
    * details it would have answered with before, so a host who asks to pair two
    * people has no sign that it happened.
