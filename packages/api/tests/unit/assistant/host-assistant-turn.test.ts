@@ -54,14 +54,14 @@ describe('runAssistantMessage', () => {
     const turn = await runAssistantMessage(
       [{ role: 'user', content: 'close it' }],
       turnDeps({
-        assistant: assistantReturning({ text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId: 'c1' } }] }),
+        assistant: assistantReturning({ text: '', toolCalls: [{ name: 'close_contest', arguments: { contest: 'Tapas Night' } }] }),
         execute,
       }),
     );
     expect(execute).not.toHaveBeenCalled();
-    expect(turn).toMatchObject({ kind: 'confirm', action: 'close_contest', args: { contestId: 'c1' } });
+    expect(turn).toMatchObject({ kind: 'confirm', action: 'close_contest', args: { contest: 'Tapas Night' } });
     expect((turn as { confirmationToken: string }).confirmationToken).toBe(
-      confirmationTokenFor(SECRET, 'close_contest', { contestId: 'c1' }),
+      confirmationTokenFor(SECRET, 'close_contest', { contest: 'Tapas Night' }),
     );
   });
 });
@@ -69,33 +69,33 @@ describe('runAssistantMessage', () => {
 describe('runConfirmedAction', () => {
   it('executes when the token matches the action', async () => {
     const execute = vi.fn(async () => ({ ok: true, body: { status: 'closed' } }));
-    const token = confirmationTokenFor(SECRET, 'close_contest', { contestId: 'c1' });
+    const token = confirmationTokenFor(SECRET, 'close_contest', { contest: 'Tapas Night' });
     const turn = await runConfirmedAction(
-      { action: 'close_contest', args: { contestId: 'c1' }, confirmationToken: token },
+      { action: 'close_contest', args: { contest: 'Tapas Night' }, confirmationToken: token },
       turnDeps({ assistant: assistantReturning({ text: '', toolCalls: [] }), execute }),
     );
     expect(execute).toHaveBeenCalledWith(
-      { method: 'POST', path: '/contests/c1/close' },
-      { toolName: 'close_contest', toolArgs: { contestId: 'c1' } },
+      { method: 'POST', path: '/contests/by-name/close', body: { contest: 'Tapas Night' } },
+      { toolName: 'close_contest', toolArgs: { contest: 'Tapas Night' } },
     );
     expect(turn).toMatchObject({ kind: 'result', action: 'close_contest' });
   });
 
   it('re-asks (does not execute) when a token issued for another action is reused', async () => {
     const execute = vi.fn();
-    const tokenForC1 = confirmationTokenFor(SECRET, 'close_contest', { contestId: 'c1' });
+    const tokenForFirst = confirmationTokenFor(SECRET, 'close_contest', { contest: 'Tapas Night' });
     const turn = await runConfirmedAction(
-      { action: 'close_contest', args: { contestId: 'c2' }, confirmationToken: tokenForC1 },
+      { action: 'close_contest', args: { contest: 'Sunday Roast' }, confirmationToken: tokenForFirst },
       turnDeps({ assistant: assistantReturning({ text: '', toolCalls: [] }), execute }),
     );
     expect(execute).not.toHaveBeenCalled();
-    expect(turn).toMatchObject({ kind: 'confirm', action: 'close_contest', args: { contestId: 'c2' } });
+    expect(turn).toMatchObject({ kind: 'confirm', action: 'close_contest', args: { contest: 'Sunday Roast' } });
   });
 
   it('rejects a confirmation for something that is not a known destructive tool', async () => {
     await expect(
       runConfirmedAction(
-        { action: 'get_contest', args: { contestId: 'c1' }, confirmationToken: 'x' },
+        { action: 'get_contest', args: { contest: 'Tapas Night' }, confirmationToken: 'x' },
         turnDeps({ assistant: assistantReturning({ text: '', toolCalls: [] }) }),
       ),
     ).rejects.toBeInstanceOf(UnknownActionError);

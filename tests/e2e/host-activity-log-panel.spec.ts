@@ -265,7 +265,7 @@ test('an action the assistant took is told apart from the host’s own', async (
    * because each half worked on its own.
    */
   await page.goto('/chat');
-  await page.getByLabel('Message the assistant').fill(`close contest ${id}`);
+  await page.getByLabel('Message the assistant').fill('close Balcony Cook-off');
   await page.getByRole('button', { name: 'Send' }).click();
   await page.getByRole('button', { name: 'Yes, do it' }).click();
   await expect(page.getByRole('alertdialog')).toHaveCount(0);

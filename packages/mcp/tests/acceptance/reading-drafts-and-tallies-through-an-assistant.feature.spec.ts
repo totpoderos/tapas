@@ -63,8 +63,8 @@ describeFeature(feature, ({ Scenario }) => {
       draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
-    When("the assistant is asked to read that draft with the host's token", async () => {
-      result = await callTool(client, 'get_draft', { draftId });
+    When("the assistant is asked to read that draft by name with the host's token", async () => {
+      result = await callTool(client, 'get_draft', { contest: 'Tapas' });
     });
     Then('the draft is returned', () => {
       expect(result.isError).toBeFalsy();
@@ -74,17 +74,15 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("The assistant reads the live tally of the host's contest", ({ Given, When, Then }) => {
     let client: Client;
-    let contestId: string;
     let result: ToolResult;
 
     Given('a host with a personal access token and a running contest', async () => {
       const api = await startTrackedApi();
       const host = await hostWithPublishedContest(api.app, api.db, 'ana@example.com');
-      contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
-    When("the assistant is asked to read that contest's tally with the host's token", async () => {
-      result = await callTool(client, 'get_tally', { contestId });
+    When("the assistant is asked to read that contest's tally by name with the host's token", async () => {
+      result = await callTool(client, 'get_tally', { contest: 'Tapas' });
     });
     Then('the tally is returned', () => {
       expect(result.isError).toBeFalsy();
@@ -102,15 +100,23 @@ describeFeature(feature, ({ Scenario }) => {
       const api = await startTrackedApi();
       const other = await hostWithDraft(api.app, api.db, 'other@example.com');
       othersDraftId = other.draftId;
+      expect(othersDraftId).toBeTruthy();
       const intruderToken = await hostWithToken(api.app, api.db, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, intruderToken);
     });
-    When("the assistant is asked to read the other host's draft with the first host's token", async () => {
-      result = await callTool(client, 'get_draft', { draftId: othersDraftId });
+    When("the assistant is asked to read the other host's draft by name with the first host's token", async () => {
+      result = await callTool(client, 'get_draft', { contest: 'Tapas' });
     });
-    Then('the request is refused as not allowed', () => {
-      expect(result.isError).toBe(true);
-      expect(firstText(result)).toMatch(/not allowed/i);
+    /*
+     * Not "refused as not allowed", which is what this asserted while drafts were
+     * addressed by id. Only the host's own contests are searched by name, so the
+     * other host's draft is not refused — it is not there. A refusal would have
+     * confirmed that a draft by that name exists, which is the one thing a
+     * different host must not be able to learn from asking.
+     */
+    Then('no draft is found', () => {
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(firstText(result))).toEqual({ candidates: [] });
     });
   });
 });

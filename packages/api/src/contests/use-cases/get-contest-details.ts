@@ -2,10 +2,10 @@ import type { ContestRepository } from '../../db/contest-repository.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { RosterRepository } from '../../db/roster-repository.js';
 import type { ContestDetails, ContestDetailsResult } from '../contest-details.js';
-import type { FindContestsByName } from './find-contests-by-name.js';
+import type { ResolveContestByName } from './resolve-contest-by-name.js';
 
 export interface GetContestDetailsDeps {
-  readonly findContestsByName: FindContestsByName;
+  readonly resolveContestByName: ResolveContestByName;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;
   readonly roster: RosterRepository;
@@ -13,7 +13,7 @@ export interface GetContestDetailsDeps {
 
 /**
  * Reads what is inside one of a host's contests, found by name (design.md §6.1).
- * Resolution is delegated to {@link FindContestsByName} (host-scoped, exact but
+ * Resolution is delegated to {@link ResolveContestByName} (host-scoped, exact but
  * case-insensitive), so this shares one notion of ownership and matching with the
  * other by-name tools. A name is not unique — a host may reuse "Tapas Night" — so
  * a shared name returns the candidates for the host to choose from rather than
@@ -27,11 +27,14 @@ export class GetContestDetails {
   constructor(private readonly deps: GetContestDetailsDeps) {}
 
   execute(hostId: string, name: string): ContestDetailsResult {
-    const matches = this.deps.findContestsByName.execute(hostId, name);
-    const [only] = matches;
-    if (matches.length !== 1 || !only) return { candidates: matches };
+    const resolved = this.deps.resolveContestByName.execute(hostId, name);
+    if (resolved.kind === 'none') return { candidates: [] };
+    if (resolved.kind === 'several') return { candidates: resolved.candidates };
 
-    return { details: only.status === 'draft' ? this.draftDetails(only.id) : this.contestDetails(only.id) };
+    const { contest } = resolved;
+    return {
+      details: contest.status === 'draft' ? this.draftDetails(contest.id) : this.contestDetails(contest.id),
+    };
   }
 
   private draftDetails(id: string): ContestDetails {

@@ -8,7 +8,7 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  * message and maps a couple of fixed phrasings to a tool call:
  *
  *   "start a draft called X"            → create_draft { name: "X" }  (reversible)
- *   "close ... <contest-id>"            → close_contest { contestId }  (destructive)
+ *   "close <name>"                      → close_contest { contest }    (destructive)
  *   "list my contests"                  → list_my_contests {}          (reversible)
  *   "find <name>"                       → find_contest { name }        (reversible)
  *   "details of <name>" / "who's in <name>" → get_contest_details { name } (reversible)
@@ -16,10 +16,11 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  *   "remove <person> from <contest>"    → remove_participant { contest, participant } (destructive)
  *   anything else                       → a plain reply asking to clarify
  *
- * The contest id is read straight out of the message so the E2E, which knows the
- * id it seeded, can steer the stub deterministically.
+ * The contest's NAME is read straight out of the message so the E2E, which knows
+ * the name it seeded, can steer the stub deterministically — the same way the
+ * host does, now that a name is the only way the assistant addresses a contest.
  */
-const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+const CLOSE_NAMED = /\bclose\b(?:\s+(?:my|the))?(?:\s+contest)?\s+["']?(.+?)["']?\s*$/i;
 const DRAFT_CALLED = /draft called ["']?(.+?)["']?\s*$/i;
 const DETAILS_OF = /(?:details of|who(?:'s| is) (?:in|taking part in))\s+["']?(.+?)["']?\s*$/i;
 const ADD_TO = /\badd\s+["']?(.+?)["']?\s+to\s+["']?(.+?)["']?\s*$/i;
@@ -36,9 +37,9 @@ export class KeywordStubLLMClient implements LLMClient {
       return { text: 'Done — I saved your draft.', toolCalls: [{ name: 'create_draft', arguments: { name: draftMatch[1] } }] };
     }
 
-    const idMatch = UUID.exec(text);
-    if (/\bclose\b/i.test(text) && idMatch) {
-      return { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId: idMatch[0] } }] };
+    const closeMatch = CLOSE_NAMED.exec(text);
+    if (closeMatch) {
+      return { text: '', toolCalls: [{ name: 'close_contest', arguments: { contest: closeMatch[1] } }] };
     }
 
     if (/\blist\b/i.test(text) && /contest/i.test(text)) {

@@ -17,8 +17,8 @@ const expectation = (over: Partial<HAExpectation>): HAExpectation => ({
 describe('scoreCase', () => {
   it('credits a correct single-tool selection with the right arguments', () => {
     const counts = scoreCase(
-      outcome({ name: 'get_tally', arguments: { contestId: 'c1' } }),
-      expectation({ tools: [{ name: 'get_tally', arguments: { contestId: 'c1' } }] }),
+      outcome({ name: 'get_tally', arguments: { contest: 'Tapas Night' } }),
+      expectation({ tools: [{ name: 'get_tally', arguments: { contest: 'Tapas Night' } }] }),
       'single_tool',
     );
     expect(counts).toMatchObject({
@@ -34,8 +34,8 @@ describe('scoreCase', () => {
 
   it('counts a wrong tool as a selection miss but not a false tool unless forbidden', () => {
     const counts = scoreCase(
-      outcome({ name: 'get_contest', arguments: { contestId: 'c1' } }),
-      expectation({ tools: [{ name: 'get_tally', arguments: { contestId: 'c1' } }] }),
+      outcome({ name: 'get_contest', arguments: { contest: 'Tapas Night' } }),
+      expectation({ tools: [{ name: 'get_tally', arguments: { contest: 'Tapas Night' } }] }),
       'single_tool',
     );
     expect(counts.selectionHit).toBe(0);
@@ -45,7 +45,7 @@ describe('scoreCase', () => {
   it('flags a proposed tool the case forbids as a false tool', () => {
     const counts = scoreCase(
       outcome(
-        { name: 'get_tally', arguments: { contestId: 'c1' } },
+        { name: 'get_tally', arguments: { contest: 'Tapas Night' } },
         { name: 'publish_contest', arguments: { draftId: 'd1' } },
       ),
       expectation({ tools: [{ name: 'get_tally' }], forbidden: ['publish_contest'] }),
@@ -59,7 +59,7 @@ describe('scoreCase', () => {
     expect(asked).toMatchObject({ clarificationCases: 1, clarificationCorrect: 1 });
 
     const acted = scoreCase(
-      outcome({ name: 'close_contest', arguments: { contestId: 'c1' } }),
+      outcome({ name: 'close_contest', arguments: { contest: 'Tapas Night' } }),
       expectation({ tools: [] }),
       'clarification',
     );
@@ -68,7 +68,7 @@ describe('scoreCase', () => {
 
   it('surfaces confirmation only when a destructive tool is proposed without a self-made token', () => {
     const clean = scoreCase(
-      outcome({ name: 'close_contest', arguments: { contestId: 'c1' } }),
+      outcome({ name: 'close_contest', arguments: { contest: 'Tapas Night' } }),
       expectation({ tools: [{ name: 'close_contest' }], mustNotSelfConfirm: true }),
       'destructive',
     );

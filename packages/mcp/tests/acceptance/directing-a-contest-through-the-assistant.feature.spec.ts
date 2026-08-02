@@ -28,7 +28,7 @@ describeFeature(feature, ({ Scenario }) => {
       // The model, given the tools, chooses to close the contest.
       llm = new FakeLLMClient({
         text: '',
-        toolCalls: [{ name: 'close_contest', arguments: { contestId: 'c1' } }],
+        toolCalls: [{ name: 'close_contest', arguments: { contest: 'Tapas Night' } }],
       });
       assistant = new HostAssistant({ llmClient: llm, tools: await hostAssistantTools() });
     });
@@ -36,7 +36,7 @@ describeFeature(feature, ({ Scenario }) => {
       result = await assistant.respond([{ role: 'user', content: 'Please close contest c1.' }]);
     });
     Then('the assistant proposes closing that contest', () => {
-      expect(result.toolCalls).toEqual([{ name: 'close_contest', arguments: { contestId: 'c1' } }]);
+      expect(result.toolCalls).toEqual([{ name: 'close_contest', arguments: { contest: 'Tapas Night' } }]);
     });
   });
 
@@ -85,8 +85,8 @@ describeFeature(feature, ({ Scenario }) => {
         'list_my_contests',
         'publish_contest',
         'remove_participant',
+        'rename_contest',
         'trigger_reveal',
-        'update_draft',
       ]);
       // and the host-assistant instructions lead the conversation
       expect(llm.lastRequest?.messages[0]?.role).toBe('system');

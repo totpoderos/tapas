@@ -44,6 +44,7 @@ import { AddDraftParticipant, RemoveDraftParticipant } from './drafts/use-cases/
 import { UpdateDraft } from './drafts/use-cases/update-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
 import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
+import { ResolveContestByName } from './contests/use-cases/resolve-contest-by-name.js';
 import { GetContest } from './contests/use-cases/get-contest.js';
 import { ListMyContests } from './contests/use-cases/list-my-contests.js';
 import { PublishContest } from './contests/use-cases/publish-contest.js';
@@ -122,6 +123,17 @@ export function buildProductionDeps(
     linkBase: invitationLinkBase,
   });
 
+  /*
+   * Built once and shared. Every host-facing operation addresses a contest by
+   * the name the host said, and the rule for turning that name into one contest
+   * has to be the same rule everywhere — so there is one instance of it, not one
+   * per caller.
+   */
+  const findContestsByName = new FindContestsByName(
+    new ListMyContests({ drafts, contests, roster, voteSessions }),
+  );
+  const resolveContestByName = new ResolveContestByName(findContestsByName);
+
   return {
     tokens,
     sessions,
@@ -133,13 +145,13 @@ export function buildProductionDeps(
     renameDraft: new RenameDraft({ drafts, audit, clock, ids }),
     updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
     addDraftParticipant: new AddDraftParticipant({
-      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests, roster, voteSessions })),
+      resolveContestByName,
       drafts,
       updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
       ids,
     }),
     removeDraftParticipant: new RemoveDraftParticipant({
-      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests, roster, voteSessions })),
+      resolveContestByName,
       drafts,
       updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
       ids,
@@ -157,9 +169,10 @@ export function buildProductionDeps(
     }),
     getContest: new GetContest(contests),
     listMyContests: new ListMyContests({ drafts, contests, roster, voteSessions }),
-    findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests, roster, voteSessions })),
+    findContestsByName,
+    resolveContestByName,
     getContestDetails: new GetContestDetails({
-      findContestsByName: new FindContestsByName(new ListMyContests({ drafts, contests, roster, voteSessions })),
+      resolveContestByName,
       drafts,
       contests,
       roster,

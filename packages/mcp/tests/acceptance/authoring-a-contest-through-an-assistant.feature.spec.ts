@@ -62,7 +62,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(result.isError).toBeFalsy();
       const created = body(result);
       // Read it back through the surface to prove it persisted.
-      const reread = body(await callTool(client, 'get_draft', { draftId: created.id }));
+      const reread = body(await callTool(client, 'get_draft', { contest: 'Summer Tapas' }));
       expect(reread).toMatchObject({ id: created.id });
       expect(JSON.stringify(reread)).toContain('Summer Tapas');
     });
@@ -70,40 +70,38 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('The assistant renames a draft', ({ Given, When, Then }) => {
     let client: Client;
-    let draftId: string;
 
     Given('a host with a saved draft', async () => {
       const api = await startTrackedApi();
       const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
-      draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant renames the draft to "Winter Tapas"', async () => {
-      const result = await callTool(client, 'update_draft', { draftId, name: 'Winter Tapas' });
+      const result = await callTool(client, 'rename_contest', { contest: 'Tapas', name: 'Winter Tapas' });
       expect(result.isError).toBeFalsy();
     });
     Then('the draft\'s name becomes "Winter Tapas"', async () => {
-      expect(JSON.stringify(body(await callTool(client, 'get_draft', { draftId })))).toContain('Winter Tapas');
+      expect(JSON.stringify(body(await callTool(client, 'get_draft', { contest: 'Winter Tapas' })))).toContain(
+        'Winter Tapas',
+      );
     });
   });
 
   Scenario('Publishing a draft must be confirmed', ({ Given, When, Then, And }) => {
     let client: Client;
-    let draftId: string;
     let result: ToolResult;
 
     Given('a host with a complete, publishable draft', async () => {
       const api = await startTrackedApi();
       const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
-      draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to publish the draft without a confirmation', async () => {
-      result = await callTool(client, 'publish_contest', { draftId });
+      result = await callTool(client, 'publish_contest', { contest: 'Tapas' });
     });
     Then('the draft is not published', async () => {
       // Still a draft — it can still be read as one.
-      expect((await callTool(client, 'get_draft', { draftId })).isError).toBeFalsy();
+      expect((await callTool(client, 'get_draft', { contest: 'Tapas' })).isError).toBeFalsy();
     });
     And('the assistant is told the action needs confirming', () => {
       expect(body(result)).toMatchObject({ confirmationRequired: true });
@@ -112,27 +110,25 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A confirmed publish creates a live contest', ({ Given, When, Then }) => {
     let client: Client;
-    let draftId: string;
     let confirmationToken: string;
     let result: ToolResult;
 
     Given('a host with a complete, publishable draft and the confirmation to publish it', async () => {
       const api = await startTrackedApi();
       const host = await hostWithDraft(api.app, api.db, 'ana@example.com');
-      draftId = host.draftId;
       client = await connectAssistant(api.baseUrl, host.token);
-      confirmationToken = body(await callTool(client, 'publish_contest', { draftId }))
+      confirmationToken = body(await callTool(client, 'publish_contest', { contest: 'Tapas' }))
         .confirmationToken as string;
     });
     When('the assistant publishes the draft with that confirmation', async () => {
-      result = await callTool(client, 'publish_contest', { draftId, confirmationToken });
+      result = await callTool(client, 'publish_contest', { contest: 'Tapas', confirmationToken });
     });
     Then('the contest is live', async () => {
       expect(result.isError).toBeFalsy();
       const contest = body(result);
       // Publishing returns the new contest (id + join code); read it back to confirm it is live.
       expect(contest).toHaveProperty('joinCode');
-      const readBack = body(await callTool(client, 'get_contest', { contestId: contest.id }));
+      const readBack = body(await callTool(client, 'get_contest', { contest: 'Tapas' }));
       expect(readBack).toMatchObject({ status: 'live' });
     });
   });

@@ -35,8 +35,8 @@ describe('createConfiguredMcpServer', () => {
       'list_my_contests',
       'publish_contest',
       'remove_participant',
+      'rename_contest',
       'trigger_reveal',
-      'update_draft',
     ]);
     await client.close();
   });

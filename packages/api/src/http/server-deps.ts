@@ -38,6 +38,7 @@ import type { MergeContestDraft } from '../drafts/extraction/merge-contest-draft
 import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { FindContestsByName } from '../contests/use-cases/find-contests-by-name.js';
 import type { GetContestDetails } from '../contests/use-cases/get-contest-details.js';
+import type { ResolveContestByName } from '../contests/use-cases/resolve-contest-by-name.js';
 import type { ListMyContests } from '../contests/use-cases/list-my-contests.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -84,6 +85,8 @@ export interface ServerDeps {
   readonly getContest: GetContest;
   readonly listMyContests: ListMyContests;
   readonly findContestsByName: FindContestsByName;
+  /** The one way a host-facing operation turns the name a host said into one contest. */
+  readonly resolveContestByName: ResolveContestByName;
   readonly getContestDetails: GetContestDetails;
   readonly closeContest: CloseContest;
   readonly revealContest: RevealContest;

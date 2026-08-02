@@ -101,7 +101,7 @@ test('a destructive action waits, and says which action it is', async ({ page })
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
 
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   const asking = page.getByRole('alertdialog');
   await expect(asking).toBeVisible();
@@ -114,7 +114,7 @@ test('agreeing carries it out and says what it left behind', async ({ page }) =>
   await signInFreshHost(page.request, 'e2e-assistant-agrees@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   await page.getByRole('button', { name: 'Yes, do it' }).click();
 
@@ -127,7 +127,7 @@ test('declining leaves everything as it was', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-assistant-declines@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   await page.getByRole('button', { name: 'Cancel' }).click();
 
@@ -138,11 +138,11 @@ test('declining leaves everything as it was', async ({ page }) => {
 
 test('the panel stops calling a contest live once the assistant has closed it', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-assistant-stale@sobremesa.es');
-  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
   await expect(panel(page).getByRole('link', { name: /^Live/ })).toContainText('1');
 
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
   await page.getByRole('button', { name: 'Yes, do it' }).click();
   await expect(page.getByText(/now closed/i)).toBeVisible();
 
@@ -159,7 +159,7 @@ test('what the assistant did is recorded as the assistant’s', async ({ page })
   await signInFreshHost(page.request, 'e2e-assistant-recorded@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
   await page.getByRole('button', { name: 'Yes, do it' }).click();
   await expect(page.getByText(/now closed/i)).toBeVisible();
 
@@ -183,7 +183,7 @@ test('an action that could not be carried out is not dressed as success', async 
   expect((await page.request.post(`/contests/${id}/close`)).ok()).toBe(true);
 
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
   await page.getByRole('button', { name: 'Yes, do it' }).click();
 
   await expect(page.getByRole('alert')).toBeVisible();
@@ -193,9 +193,9 @@ test('an action that could not be carried out is not dressed as success', async 
 
 test('a waiting agreement cannot be cleared out from under itself', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-assistant-held@sobremesa.es');
-  const id = await liveContest(page.request, 'Balcony Cook-off');
+  await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
   await expect(page.getByRole('alertdialog')).toHaveAttribute('aria-modal', 'true');
 
   /*
@@ -218,7 +218,7 @@ test('the assistant is keyboard-operable and free of accessibility violations', 
 
   // Written and sent without a mouse.
   await page.getByLabel('Message the assistant').focus();
-  await page.keyboard.type(`close contest ${id}`);
+  await page.keyboard.type('close Balcony Cook-off');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('alertdialog')).toBeVisible();
 

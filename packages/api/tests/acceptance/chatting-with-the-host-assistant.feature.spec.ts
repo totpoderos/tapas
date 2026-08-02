@@ -177,14 +177,14 @@ describeFeature(feature, ({ Scenario }) => {
     });
     When('an action the assistant tries cannot be carried out', async () => {
       // Publishing a draft that has no scoring rules — the API refuses it.
-      const draft = await request(app, jar, {
+      await request(app, jar, {
         method: 'POST',
         url: '/drafts',
         payload: { name: 'Bare' },
       });
       llm.next = {
         text: '',
-        toolCalls: [{ name: 'publish_contest', arguments: { draftId: draft.json().id } }],
+        toolCalls: [{ name: 'publish_contest', arguments: { contest: 'Bare' } }],
       };
       const proposal = await request(app, jar, {
         method: 'POST',
@@ -221,7 +221,10 @@ describeFeature(feature, ({ Scenario }) => {
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
     });
     When('they ask the assistant to close that contest', async () => {
-      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId } }] };
+      llm.next = {
+        text: '',
+        toolCalls: [{ name: 'close_contest', arguments: { contest: 'Balcony Cook-off' } }],
+      };
       response = await request(app, jar, {
         method: 'POST',
         url: '/assistant/messages',
@@ -250,7 +253,10 @@ describeFeature(feature, ({ Scenario }) => {
       ({ app } = makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
-      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId } }] };
+      llm.next = {
+        text: '',
+        toolCalls: [{ name: 'close_contest', arguments: { contest: 'Balcony Cook-off' } }],
+      };
       const asked = await request(app, jar, {
         method: 'POST',
         url: '/assistant/messages',
@@ -279,9 +285,12 @@ describeFeature(feature, ({ Scenario }) => {
       llm = new ScriptedLLMClient();
       ({ app } = makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
-      const firstId = await liveContest(app, jar, 'First Contest');
+      await liveContest(app, jar, 'First Contest');
       otherContestId = await liveContest(app, jar, 'Second Contest');
-      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId: firstId } }] };
+      llm.next = {
+        text: '',
+        toolCalls: [{ name: 'close_contest', arguments: { contest: 'First Contest' } }],
+      };
       const asked = await request(app, jar, {
         method: 'POST',
         url: '/assistant/messages',
@@ -295,7 +304,11 @@ describeFeature(feature, ({ Scenario }) => {
         method: 'POST',
         url: '/assistant/messages',
         payload: {
-          confirm: { action: 'close_contest', args: { contestId: otherContestId }, confirmationToken: tokenForFirst },
+          confirm: {
+            action: 'close_contest',
+            args: { contest: 'Second Contest' },
+            confirmationToken: tokenForFirst,
+          },
         },
       });
     });
@@ -320,15 +333,23 @@ describeFeature(feature, ({ Scenario }) => {
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('they confirm a destructive action that cannot be carried out', async () => {
-      // A contest that does not exist: the API refuses to close it.
+      /*
+       * A contest that is already closed: the API refuses to close it again.
+       * A name nobody has would no longer do — that is not a failure now, it is
+       * "no contest has that name", which is a different answer with a different
+       * shape and is exactly what the host should be told instead.
+       */
+      const name = 'Already Over';
+      const contestId = await liveContest(app, jar, name);
+      await request(app, jar, { method: 'POST', url: `/contests/${contestId}/close` });
       llm.next = {
         text: '',
-        toolCalls: [{ name: 'close_contest', arguments: { contestId: 'no-such-contest' } }],
+        toolCalls: [{ name: 'close_contest', arguments: { contest: name } }],
       };
       const proposal = await request(app, jar, {
         method: 'POST',
         url: '/assistant/messages',
-        payload: { messages: [{ role: 'user', content: 'Close no-such-contest' }] },
+        payload: { messages: [{ role: 'user', content: `Close ${name}` }] },
       });
       const { action, args, confirmationToken } = proposal.json();
       response = await request(app, jar, {

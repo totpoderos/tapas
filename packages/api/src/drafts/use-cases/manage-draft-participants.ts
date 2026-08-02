@@ -1,12 +1,12 @@
 import type { DraftContent, Person } from '@tapas/domain';
 import type { IdGenerator } from '../../audit/audit-projection.js';
 import type { ContestDetails, ContestDetailsResult } from '../../contests/contest-details.js';
-import type { FindContestsByName } from '../../contests/use-cases/find-contests-by-name.js';
+import type { ResolveContestByName } from '../../contests/use-cases/resolve-contest-by-name.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { UpdateDraft } from './update-draft.js';
 
 export interface ManageDraftParticipantsDeps {
-  readonly findContestsByName: FindContestsByName;
+  readonly resolveContestByName: ResolveContestByName;
   readonly drafts: DraftRepository;
   readonly updateDraft: UpdateDraft;
   readonly ids: IdGenerator;
@@ -24,20 +24,24 @@ function detailsOf(id: string, content: DraftContent): ContestDetails {
 }
 
 /**
- * Resolves a contest name to exactly one of the host's *drafts*. Participant
- * management is for drafts only: once a contest is published its participants are
- * settled (the roster is seeded at publish). A name shared by more than one draft
- * returns the candidates to choose from; a name that matches no draft (including a
- * name that only a published contest or another host has) returns none.
+ * Resolves a contest name to exactly one of the host's *drafts*, then loads it.
+ * Participant management is for drafts only: once a contest is published its
+ * participants are settled (the roster is seeded at publish), which is what
+ * `only: 'draft'` says.
+ *
+ * The name rule itself is not written here — {@link ResolveContestByName} owns
+ * it, so a shared name, a name only another host has, and a name nobody has all
+ * behave the same way here as they do for every other operation.
  */
 function resolveDraft(
   deps: ManageDraftParticipantsDeps,
   hostId: string,
   contestName: string,
 ): { readonly id: string; readonly content: DraftContent } | ContestDetailsResult {
-  const drafts = deps.findContestsByName.execute(hostId, contestName).filter((c) => c.status === 'draft');
-  if (drafts.length !== 1) return { candidates: drafts };
-  const only = deps.drafts.findById(drafts[0]!.id);
+  const resolved = deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
+  if (resolved.kind === 'none') return { candidates: [] };
+  if (resolved.kind === 'several') return { candidates: resolved.candidates };
+  const only = deps.drafts.findById(resolved.contest.id);
   if (!only) return { candidates: [] };
   return { id: only.id, content: only.content };
 }
