@@ -52,16 +52,19 @@ export function ContestControl() {
   const { refresh: refreshContests } = useContests();
 
   // Deleting takes the contest away, so it takes the host back to their list.
-  const { ask: askDelete, dialog: deleteDialog, error: deleteError } = useDeleteContest(() =>
-    navigate('/'),
-  );
+  const {
+    ask: askDelete,
+    dialog: deleteDialog,
+    error: deleteError,
+  } = useDeleteContest(() => navigate('/'));
 
   const load = useCallback(async () => {
     try {
       const [contest, tally] = await Promise.all([getContest(id), getTally(id)]);
       setState({ kind: 'ready', contest, tally });
     } catch (caught) {
-      const missing = caught instanceof ApiError && (caught.status === 404 || caught.status === 403);
+      const missing =
+        caught instanceof ApiError && (caught.status === 404 || caught.status === 403);
       setState(missing ? { kind: 'missing' } : { kind: 'error' });
     }
   }, [id]);
@@ -157,7 +160,9 @@ export function ContestControl() {
       {state.kind === 'ready' && (
         <div className={styles.columns}>
           <div className={styles.main}>
-            {state.contest.status !== 'revealed' && <JoinCode code={state.contest.joinCode} />}
+            {state.contest.status !== 'revealed' && (
+              <JoinCode code={state.contest.joinCode} joinUrl={state.contest.joinUrl} />
+            )}
 
             <Progress tally={state.tally} />
 
@@ -204,8 +209,13 @@ export function ContestControl() {
   );
 }
 
-/** The code people join with, and two ways to hand it over without reading it out. */
-function JoinCode({ code }: { code: string }) {
+/**
+ * The code people join with, and two ways to hand it over without reading it out.
+ *
+ * The scannable one carries the link, so a scan opens the contest ready to join;
+ * the written one carries the code, for everyone the scan does not reach.
+ */
+function JoinCode({ code, joinUrl }: { code: string; joinUrl: string }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [scannable, setScannable] = useState(false);
@@ -256,7 +266,7 @@ function JoinCode({ code }: { code: string }) {
       {/* The code stays printed above either way — a scan yields the code, which
           somebody then types, and a phone without a camera to hand is still stuck
           otherwise. */}
-      <div id={scannableId}>{scannable && <ScannableCode code={code} />}</div>
+      <div id={scannableId}>{scannable && <ScannableCode value={joinUrl} code={code} />}</div>
     </div>
   );
 }
@@ -341,7 +351,11 @@ function Drive({
   return (
     <Card title={t('contestControl.driveTitle')}>
       <div className={styles.drive}>
-        <Button variant="danger" onClick={() => onAsk('close')} disabled={busy || status !== 'live'}>
+        <Button
+          variant="danger"
+          onClick={() => onAsk('close')}
+          disabled={busy || status !== 'live'}
+        >
           {t('contestControl.closeVoting')}
         </Button>
         <Button onClick={() => onAsk('reveal')} disabled={busy || status !== 'closed'}>

@@ -253,6 +253,7 @@ export function buildProductionDeps(
       isDevelopment: env.NODE_ENV === 'development',
       allowedOrigins: [env.HOST_WEB_ORIGIN, env.PARTICIPANT_WEB_ORIGIN],
     },
+    participantWebOrigin: env.PARTICIPANT_WEB_ORIGIN,
     auditLog,
     llmClient,
     assistantConfirmationSecret: env.ASSISTANT_CONFIRMATION_SECRET,

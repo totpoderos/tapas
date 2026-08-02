@@ -37,6 +37,7 @@ const LIVE: ContestDetail = {
   name: 'Summer Tapas',
   status: 'live',
   joinCode: 'ABCD12',
+  joinUrl: 'https://join.sobremesa.es/j/ABCD12',
   rules: RULES,
 };
 // Five places, four of them claimed — the counts read against what they are out of.

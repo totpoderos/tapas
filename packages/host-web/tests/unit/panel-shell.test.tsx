@@ -66,6 +66,7 @@ describe('The panel shell', () => {
       name: LIVE.name,
       status: 'live',
       joinCode: '4KQ-207',
+      joinUrl: 'https://join.sobremesa.es/j/4KQ-207',
       rules: { categories: [], uniquePerCategory: false },
     });
     vi.mocked(api.getTally).mockResolvedValue({

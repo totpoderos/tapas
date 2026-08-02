@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
+import qr from 'qrcode-generator';
 import { hostInvitedBy } from './support/hosts.js';
 
 /**
@@ -7,6 +8,43 @@ import { hostInvitedBy } from './support/hosts.js';
  * host app in a real browser.
  */
 const PASSWORD = 'Str0ng!Passw0rd';
+
+/** Where the participant app answers in this stack — the API is configured with the same. */
+const PARTICIPANT = 'http://localhost:5174';
+
+/**
+ * What the rendered symbol carries, established by re-encoding rather than by
+ * decoding it.
+ *
+ * There is no scanner in this stack, and adding one to raster an SVG would test
+ * an image pipeline rather than the app. Encoding is deterministic, so building
+ * the symbol for a candidate value and comparing the module grids answers the
+ * only question worth asking — "is this the code for that value, exactly?" — and
+ * answers it without a new dependency. It is a comparison, not a decode: it can
+ * confirm a value, and cannot tell you what an unknown symbol says.
+ */
+function encodes(painted: Set<string>, value: string): boolean {
+  const symbol = qr(0, 'M');
+  symbol.addData(value);
+  symbol.make();
+  const count = symbol.getModuleCount();
+  const expected = new Set<string>();
+  for (let row = 0; row < count; row += 1) {
+    for (let column = 0; column < count; column += 1) {
+      if (symbol.isDark(row, column)) expected.add(`${column},${row}`);
+    }
+  }
+  return painted.size === expected.size && [...expected].every((module) => painted.has(module));
+}
+
+/** The module coordinates the shown code actually paints. */
+async function paintedModules(page: Page, joinCode: string): Promise<Set<string>> {
+  const path = await page
+    .getByRole('img', { name: new RegExp(joinCode) })
+    .locator('path')
+    .getAttribute('d');
+  return new Set([...(path ?? '').matchAll(/M(\d+),(\d+)h1v1h-1z/g)].map((m) => `${m[1]},${m[2]}`));
+}
 
 function content(name: string) {
   return {
@@ -47,6 +85,40 @@ test('the host shows the join code as a scannable code', async ({ page }) => {
 
   // Named after the code it stands for, which is what a screen-reader user needs.
   await expect(page.getByRole('img', { name: new RegExp(joinCode) })).toBeVisible();
+});
+
+test('the scannable code carries the way into the contest, not the bare code', async ({ page }) => {
+  const { contestId, joinCode } = await hostWithLiveContest(page, 'e2e-qr-carries@sobremesa.es');
+
+  await page.goto(`/contest/${contestId}`);
+  await page.getByRole('button', { name: 'Show QR' }).click();
+  await expect(page.getByRole('img', { name: new RegExp(joinCode) })).toBeVisible();
+
+  const painted = await paintedModules(page, joinCode);
+  expect(encodes(painted, `${PARTICIPANT}/j/${joinCode}`)).toBe(true);
+  // The old behaviour, asserted as absent: a symbol carrying the code alone
+  // still leaves whoever scanned it looking for the app and typing.
+  expect(encodes(painted, joinCode)).toBe(false);
+});
+
+test('following what the scannable code carries opens the contest ready to join', async ({
+  page,
+}) => {
+  const { contestId, joinCode } = await hostWithLiveContest(page, 'e2e-qr-follow@sobremesa.es');
+
+  await page.goto(`/contest/${contestId}`);
+  await page.getByRole('button', { name: 'Show QR' }).click();
+
+  // Established as what the symbol carries, then followed the way a phone would.
+  const link = `${PARTICIPANT}/j/${joinCode}`;
+  expect(encodes(await paintedModules(page, joinCode), link)).toBe(true);
+
+  await page.goto(link);
+
+  // The places to choose from, with no code entry in the way: the whole point.
+  await expect(page.getByRole('heading', { name: /who are you/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ana' })).toBeVisible();
+  await expect(page.getByLabel('Join code')).toHaveCount(0);
 });
 
 test('the code stays readable beside the scannable version, and copying stays offered', async ({

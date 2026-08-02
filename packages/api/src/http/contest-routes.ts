@@ -297,7 +297,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     if (!closed.ok) {
       return reply.code(CLOSE_CONTEST_ERROR_STATUS[closed.error.code]).send({ error: closed.error });
     }
-    return reply.code(200).send(toContestDto(closed.contest));
+    return reply.code(200).send(toContestDto(closed.contest, deps.participantWebOrigin));
   }
 
   async function performReveal(request: FastifyRequest, reply: FastifyReply, id: string) {
@@ -312,7 +312,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     if (!revealed.ok) {
       return reply.code(REVEAL_CONTEST_ERROR_STATUS[revealed.error.code]).send({ error: revealed.error });
     }
-    return reply.code(200).send(toContestDto(revealed.contest));
+    return reply.code(200).send(toContestDto(revealed.contest, deps.participantWebOrigin));
   }
 
   async function performDelete(
@@ -338,7 +338,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     const contest = owned(request, reply, id);
     if (!contest) return;
     const fresh = ensureContestFresh(contest, { contests: deps.contests, clock: deps.clock });
-    return reply.code(200).send(toContestDto(fresh));
+    return reply.code(200).send(toContestDto(fresh, deps.participantWebOrigin));
   }
 
   async function performResults(request: FastifyRequest, reply: FastifyReply, id: string) {
