@@ -513,6 +513,17 @@ export interface ContestDetail {
   readonly name: string;
   readonly status: 'live' | 'closed' | 'revealed';
   readonly joinCode: string;
+  /**
+   * Where the participant app answers for this contest — the join code's address,
+   * which the panel turns into the scannable code.
+   *
+   * Required, not optional. The API composes it from the participant address the
+   * deployment configures, and the two ship together; a missing link means a
+   * broken deployment, and falling back to encoding the bare code would hide that
+   * behind a scannable code that merely does less than it should — the failure
+   * would reach a venue instead of a build.
+   */
+  readonly joinUrl: string;
   readonly rules: ContestRules;
 }
 
@@ -549,6 +560,7 @@ export async function getContest(id: string): Promise<ContestDetail> {
     name: dto.name,
     status: dto.status,
     joinCode: dto.joinCode,
+    joinUrl: dto.joinUrl,
     rules: {
       ...(dto.format === undefined ? {} : { format: dto.format }),
       categories: dto.materialized.categories,

@@ -138,6 +138,16 @@ export interface ServerDeps {
   readonly hostAccounts: HostAccountRepository;
   readonly securityLog: SecurityEventLog;
   readonly security: SecurityConfig;
+  /**
+   * Where the participant app answers, which is what a contest's join link is
+   * built from.
+   *
+   * The same value already sits inside `security.allowedOrigins`, and is
+   * deliberately NOT read from there: taking it by position would tie every join
+   * link to the order of a CORS list, so reordering that list would point every
+   * scannable code at the host panel instead. Named once, from the environment.
+   */
+  readonly participantWebOrigin: string;
   /** The audit log (a projection of domain events) — read for a contest's activity view. */
   readonly auditLog: AuditLogRepository;
   /** The LLM behind the in-app host assistant (same provider as draft extraction). */
