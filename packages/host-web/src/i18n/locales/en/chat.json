@@ -5,6 +5,8 @@
   "contestsLabel": "Contests",
   "takingPart": "Taking part",
   "noOneYet": "No one yet",
+  "pairedUp": "Paired up",
+  "pair": "{{one}} & {{other}}",
   "scoredOn": "Scored on",
   "noCategoriesYet": "No categories yet",
   "composerLabel": "Message the assistant",

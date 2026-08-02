@@ -114,12 +114,35 @@ What Slice C turned up:
 
 ## 4. Slice D — a draft's format and partners are settled by asking
 
-- [ ] 4.1 Write the acceptance feature for setting the format, pairing two people, and leaving someone without a partner — confirm before implementing
-- [ ] 4.2 `set-format` use case, refusing a format a draft's people cannot satisfy with a reason the host can act on
-- [ ] 4.3 `set-partner` use case: names two people by display name, pairs them both ways, and clears whatever partner either of them had — with unit tests for the one-sided-partnership case the compiler would otherwise reject at publish
-- [ ] 4.4 Resolve a person by display name within the draft with the same three-way answer as a contest name, including the ambiguous-display-name case
-- [ ] 4.5 Routes and the two tools, addressed by contest name
-- [ ] 4.6 Full local gate, then PR
+- [x] 4.1 Write the acceptance feature for setting the format, pairing two people, and leaving someone without a partner — confirm before implementing
+- [x] 4.2 ~~`set-format`, refusing a format a draft's people cannot satisfy~~ — **rescoped, same reason as 3.3**: `UNKNOWN_FORMAT` (a format outside the three) is a shape error the domain already refuses wherever a draft is written; `UNPARTNERED_IN_COUPLES` is coherence, and couples-while-unpaired is an ordinary halfway state a host passes through in the panel too. Settled, with a scenario pinning that publishing refuses it
+- [x] 4.3 `set-partner` use case: names two people by display name, pairs them both ways, and frees whoever either of them leaves — with unit tests for the one-sided-partnership case the compiler would otherwise reject at publish
+- [x] 4.4 Resolve a person by display name within the draft with the same three-way answer as a contest name, including the ambiguous-display-name case
+- [x] 4.5 Routes and the two tools, addressed by contest name
+- [x] 4.6 Full local gate, then PR
+
+The refusals this slice does carry are all about **addressing**, not validation,
+exactly as Slice C's duplicate category was: a name nobody taking part has, a
+name two of them share, and a person named as their own partner. Each is a name
+that fails to address one person, which is the assistant's only way to reach
+them.
+
+The one thing here that is neither addressing nor validation: a partnership is
+set on **both** people at once, and whoever either of them leaves is freed. That
+is the half a host never says out loud, and getting it wrong leaves the draft
+holding a one-sided partnership that publishing rejects as not reciprocal — with
+a reason the host cannot connect to anything they asked for.
+
+**A pairing was invisible.** The details view every draft edit answers with
+carried participants and categories and nothing about who was paired, so
+`set_partner` reported exactly what it would have reported before the host asked
+— the change could not be seen by the one person who wanted it. Details now
+carry the pairs, each named once, and the panel shows them.
+
+Fixing it turned up four copies of the same details builder — one per group of
+draft edits, plus the details read. `pairs` is precisely the field that would
+have been added to one and forgotten in the others, so they are now one
+`draftDetailsOf`.
 
 ## 5. Slice E — the assistant is measured on the wider surface
 

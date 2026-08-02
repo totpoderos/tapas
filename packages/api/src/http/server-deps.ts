@@ -45,6 +45,7 @@ import type {
   SetScoreRange,
   SetScoreUniqueness,
 } from '../drafts/use-cases/shape-draft-scoring.js';
+import type { SetDraftFormat, SetDraftPartner } from '../drafts/use-cases/settle-draft-people.js';
 import type { ListMyContests } from '../contests/use-cases/list-my-contests.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -88,6 +89,8 @@ export interface ServerDeps {
   readonly removeScoringCategory: RemoveScoringCategory;
   readonly setScoreRange: SetScoreRange;
   readonly setScoreUniqueness: SetScoreUniqueness;
+  readonly setDraftFormat: SetDraftFormat;
+  readonly setDraftPartner: SetDraftPartner;
   readonly listHostDrafts: ListHostDrafts;
   readonly extractContestDraft: ExtractContestDraft;
   readonly mergeContestDraft: MergeContestDraft;

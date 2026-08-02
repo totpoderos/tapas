@@ -1,7 +1,7 @@
 import type { ContestRepository } from '../../db/contest-repository.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { RosterRepository } from '../../db/roster-repository.js';
-import type { ContestDetails, ContestDetailsResult } from '../contest-details.js';
+import { draftDetailsOf, type ContestDetails, type ContestDetailsResult } from '../contest-details.js';
 import type { ResolveContestByName } from './resolve-contest-by-name.js';
 
 export interface GetContestDetailsDeps {
@@ -38,15 +38,9 @@ export class GetContestDetails {
   }
 
   private draftDetails(id: string): ContestDetails {
-    const draft = this.deps.drafts.findById(id);
-    const content = draft?.content;
-    return {
-      id,
-      name: content?.name ?? '',
-      status: 'draft',
-      participants: (content?.participants ?? []).map((person) => person.displayName),
-      categories: (content?.scoring?.categories ?? []).map((category) => category.name),
-    };
+    // The same view every draft edit answers with, so a host reading their draft
+    // back sees exactly what a change to it just reported.
+    return draftDetailsOf(id, this.deps.drafts.findById(id)?.content ?? { name: '' });
   }
 
   private contestDetails(id: string): ContestDetails {

@@ -268,6 +268,63 @@ const setScoreUniqueness: McpTool = {
   }),
 };
 
+/**
+ * `set_format` — says what kind of contest one of the host's drafts is. The
+ * format is the whole of what a contest says about who cooks and who may not
+ * score whom, so there is no second rule to set beside it.
+ *
+ * A format the draft's people cannot yet satisfy — couples, while somebody is
+ * still unpaired — is settled rather than refused: that is an ordinary halfway
+ * state, and publishing is what checks it.
+ */
+const setFormat: McpTool = {
+  name: 'set_format',
+  description:
+    'Say what kind of contest one of the host\'s DRAFTS is, found by its name. "solo" — each person cooks their own dish and scores every other; "solo_with_partners" — each person cooks their own dish and whoever has a partner does not score their partner\'s; "couples" — each couple cooks one dish, everybody has a partner, and nobody scores their own couple\'s dish. Setting "couples" before everybody is paired is allowed; publishing is what checks it.',
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    format: z
+      .enum(['solo', 'solo_with_partners', 'couples'])
+      .describe('What kind of contest this is.'),
+  },
+  toRequest: (args) => ({
+    method: 'PUT',
+    path: '/drafts/by-name/format',
+    body: { contest: args.contest, format: args.format },
+  }),
+};
+
+/**
+ * `set_partner` — pairs two of a draft's people, or leaves one of them without a
+ * partner. Always on both people at once: a partnership only one of them knows
+ * about is a draft publishing rejects as not reciprocal.
+ *
+ * People are named the way the host says them. A name nobody has, and a name two
+ * people share, are both refused with a reason rather than guessed at.
+ */
+const setPartner: McpTool = {
+  name: 'set_partner',
+  description:
+    "Pair two of the people taking part in one of the host's contest DRAFTS, by their display names, or leave somebody without a partner by omitting `partner`. The pairing is set on BOTH people, and whoever either of them was previously paired with is left without a partner. Refused if nobody taking part has that name, if more than one person does (ask the host which), or if the two names are the same person.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    person: z.string().min(1).describe('The display name of the person whose partner is being set.'),
+    partner: z
+      .string()
+      .optional()
+      .describe('The display name of their partner. Omit to leave the person without one.'),
+  },
+  toRequest: (args) => ({
+    method: 'PUT',
+    path: '/drafts/by-name/partner',
+    body: { contest: args.contest, person: args.person, partner: args.partner ?? null },
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -502,6 +559,8 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   removeCategory,
   setScoreRange,
   setScoreUniqueness,
+  setFormat,
+  setPartner,
   getDraft,
   getTally,
   closeContest,

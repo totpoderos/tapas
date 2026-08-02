@@ -5,6 +5,8 @@
   "contestsLabel": "Concursos",
   "takingPart": "Participan",
   "noOneYet": "Nadie todavía",
+  "pairedUp": "Emparejados",
+  "pair": "{{one}} y {{other}}",
   "scoredOn": "Se puntúa en",
   "noCategoriesYet": "Ninguna categoría todavía",
   "composerLabel": "Escribe al asistente",
