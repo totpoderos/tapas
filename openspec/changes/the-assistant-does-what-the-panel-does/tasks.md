@@ -35,12 +35,22 @@ Two things Slice A turned up that were not foreseen:
 
 Not scheduled: needs a decision, since it changes the confirmation flow's shape.
 
-- [ ] 1b.1 Decide whether a destructive tool should resolve its name *before*
-      issuing a confirmation, so the host is never asked to confirm an ambiguous
-      name. Doing so means the adapter makes a resolving call before the
-      confirming one, and the confirmation would need to bind the resolved
-      contest rather than the name it was asked about — otherwise the name can
-      resolve differently between the challenge and the confirmation.
+- [x] 1b.1 **Settled: the name is resolved before the challenge.** A destructive
+      tool now asks the API whether its contest name is one contest before the
+      host is asked to approve anything, on both paths, through one shared pair
+      of helpers in the catalogue (`resolutionRequestFor` / `readResolution`).
+      The question is asked the way that tool addresses a contest — `addresses:
+      'draft'` for the operations only a draft accepts — so the settling and the
+      doing cannot disagree.
+
+      **Not done: binding the resolved contest into the confirmation.** That
+      would send the confirmed call to a different route than the unconfirmed
+      one and put internal ids back into a protocol Slice A spent its whole
+      length taking them out of. The residual is narrow and deliberate: between
+      being challenged and confirming, a host could rename that contest and
+      create another with the same name, and the confirmed action would land on
+      the new one. It takes deliberate action mid-confirmation, and nothing acts
+      on more than one contest either way.
 
 ## 2. Slice B — the panel renders by result shape
 

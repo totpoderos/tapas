@@ -19,6 +19,17 @@ export interface McpTool {
   readonly description: string;
   readonly destructive: boolean;
   readonly scope: 'host' | 'voter' | 'public';
+  /**
+   * What the tool's `contest` argument may name. `'draft'` for the operations
+   * only a draft accepts, so that a published contest of the same name is
+   * neither a target nor a rival candidate.
+   *
+   * Read when a destructive action's name is settled before the host is asked to
+   * approve it — the question has to be asked the same way the operation itself
+   * would answer it, or the two could disagree about whether the name is one
+   * contest.
+   */
+  readonly addresses?: 'draft';
   readonly inputSchema: ZodRawShape;
   toRequest(args: Record<string, unknown>): ApiRequest;
 }
@@ -160,6 +171,7 @@ const addParticipant: McpTool = {
  */
 const removeParticipant: McpTool = {
   name: 'remove_participant',
+  addresses: 'draft',
   description:
     "Remove a participant, by their display name, from one of the host's contest DRAFTS (found by the contest's name). Returns the draft's updated participant list.",
   destructive: true,
@@ -206,6 +218,7 @@ const addCategory: McpTool = {
  */
 const removeCategory: McpTool = {
   name: 'remove_category',
+  addresses: 'draft',
   description:
     "Stop one of the host's contest DRAFTS being judged on something, found by the contest's name and the category's name. Refused if the contest is not judged on it. This takes away something the host set up, so it must be confirmed.",
   destructive: true,
@@ -462,6 +475,7 @@ const renameContest: McpTool = {
  */
 const publishContest: McpTool = {
   name: 'publish_contest',
+  addresses: 'draft',
   description:
     'Publish one of the host\'s drafts into a live contest, running the rule compiler. This cannot be undone.',
   destructive: true,
@@ -596,4 +610,42 @@ export function parseToolArguments(
     .map((issue) => `${issue.path.join('.') || '(root)'}: ${issue.message}`)
     .join('; ');
   return { ok: false, message: detail };
+}
+
+/**
+ * The request that asks whether a destructive tool's contest name is one
+ * contest, or `null` when the tool names no contest and there is nothing to
+ * settle.
+ *
+ * A host must never be asked to approve something that is not yet one thing.
+ * Without this, a destructive tool was challenged straight from its arguments,
+ * so "close Tapas Night" when the host has two of them put a confirmation card
+ * in front of them and only revealed the ambiguity *after* they agreed — a
+ * question asked before anybody could answer it.
+ *
+ * The question is asked the way the tool itself addresses a contest, `addresses`
+ * and all, so the settling and the doing cannot disagree about whether the name
+ * is one contest.
+ */
+export function resolutionRequestFor(tool: McpTool, args: Record<string, unknown>): ApiRequest | null {
+  const contest = args.contest;
+  if (typeof contest !== 'string' || contest.trim() === '') return null;
+  const only = tool.addresses === 'draft' ? '&only=draft' : '';
+  return { method: 'GET', path: `/contests?name=${encodeURIComponent(contest)}${only}` };
+}
+
+/**
+ * Reads that answer. `'one'` is the only state in which a destructive action can
+ * be put to the host; anything else is theirs to settle first, and the summaries
+ * are what they settle it with.
+ *
+ * An answer that is not a list at all is treated as unresolved rather than
+ * assumed to be one contest — the safe side of a question about something
+ * irreversible.
+ */
+export function readResolution(
+  body: unknown,
+): { readonly kind: 'one' } | { readonly kind: 'unresolved'; readonly candidates: readonly unknown[] } {
+  if (!Array.isArray(body)) return { kind: 'unresolved', candidates: [] };
+  return body.length === 1 ? { kind: 'one' } : { kind: 'unresolved', candidates: body };
 }

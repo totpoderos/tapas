@@ -4,6 +4,8 @@ import {
   confirmationTokenFor,
   isValidConfirmation,
   parseToolArguments,
+  readResolution,
+  resolutionRequestFor,
   type ApiRequest,
   type HostAssistant,
   type McpTool,
@@ -126,7 +128,30 @@ export async function runAssistantMessage(
     };
   }
 
-  if (tool.destructive) return askToConfirm(deps.confirmationSecret, tool, parsed.args);
+  if (tool.destructive) {
+    /*
+     * Settle which contest they mean before putting a confirmation card in front
+     * of them. A name two of their contests share is a choice to make, not an
+     * approval to give — the card would name an action that is not yet one
+     * action. Answered as an ordinary result so the panel shows the candidates
+     * the way it shows them for any other unresolved name.
+     */
+    const probe = resolutionRequestFor(tool, parsed.args);
+    if (probe) {
+      const found = await deps.execute(probe, { toolName: tool.name, toolArgs: parsed.args });
+      if (!found.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(found.body) };
+      const resolution = readResolution(found.body);
+      if (resolution.kind === 'unresolved') {
+        return {
+          kind: 'result',
+          action: tool.name,
+          text: completion.text,
+          result: { candidates: resolution.candidates },
+        };
+      }
+    }
+    return askToConfirm(deps.confirmationSecret, tool, parsed.args);
+  }
 
   const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
   if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };

@@ -232,8 +232,10 @@ test('the panel asks which contest is meant when an action names a shared name',
   const second = await liveContest(page.request, 'Tapas Night');
   await page.goto('/chat');
   await sendMessage(page, 'close Tapas Night');
-  await page.getByRole('button', { name: 'Yes, do it' }).click();
 
+  // No confirmation card at all: the name is settled first, so what comes back
+  // is the choice to make rather than an approval to give.
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(page.getByText(/which one/i)).toBeVisible();
   const listed = page.getByRole('list', { name: 'Contests' });
   await expect(listed.getByText('Tapas Night')).toHaveCount(2);
@@ -253,8 +255,8 @@ test('the panel says plainly when an action names no contest at all', async ({ p
   const id = await liveContest(page.request, 'Tapas Night');
   await page.goto('/chat');
   await sendMessage(page, 'close Sunday Roast');
-  await page.getByRole('button', { name: 'Yes, do it' }).click();
 
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
   await expect(page.getByText(/no contest by that name/i)).toBeVisible();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByText(/now closed/i)).toHaveCount(0);

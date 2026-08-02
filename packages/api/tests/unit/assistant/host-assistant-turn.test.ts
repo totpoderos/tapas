@@ -50,7 +50,12 @@ describe('runAssistantMessage', () => {
   });
 
   it('does not execute a destructive tool — it asks to confirm with an action-bound token', async () => {
-    const execute = vi.fn();
+    // The one call it does make is the read that settles which contest is meant;
+    // the action itself is not attempted.
+    const execute = vi.fn(async () => ({
+      ok: true,
+      body: [{ id: 'c1', name: 'Tapas Night', status: 'live', updatedAt: '2026-01-01T00:00:00.000Z' }],
+    }));
     const turn = await runAssistantMessage(
       [{ role: 'user', content: 'close it' }],
       turnDeps({
@@ -58,7 +63,11 @@ describe('runAssistantMessage', () => {
         execute,
       }),
     );
-    expect(execute).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      { method: 'GET', path: '/contests?name=Tapas%20Night' },
+      expect.anything(),
+    );
     expect(turn).toMatchObject({ kind: 'confirm', action: 'close_contest', args: { contest: 'Tapas Night' } });
     expect((turn as { confirmationToken: string }).confirmationToken).toBe(
       confirmationTokenFor(SECRET, 'close_contest', { contest: 'Tapas Night' }),
