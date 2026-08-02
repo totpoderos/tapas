@@ -46,8 +46,8 @@ easier to review that way.
 
 ## 5. Verify and close
 
-- [ ] 5.1 Repo-wide grep for `attribution`, `antiBias`, `anti_bias`, `arbitrary_pairs`, `per_couple`, `per_person`, `noScoreWith` — every hit outside `openspec/changes/archive` must be gone. A surviving name is a half-applied rename.
-- [ ] 5.2 Full check: unit tests, full vitest, typecheck, lint, `openspec validate a-contest-has-one-format --strict`.
-- [ ] 5.3 Seed a contest of each of the three formats locally and walk it by hand — host sets it up, participants join, submit, score, results — confirming the ballots exclude exactly what the format says.
-- [ ] 5.4 Playwright E2E including the axe-core a11y gate; confirm the format radio group is keyboard-operable and its choices are announced with their help text.
+- [x] 5.1 Repo-wide grep for `attribution`, `antiBias`, `anti_bias`, `arbitrary_pairs`, `per_couple`, `per_person`, `noScoreWith` — every hit outside `openspec/changes/archive` must be gone. A surviving name is a half-applied rename.
+- [x] 5.2 Full check: unit tests, full vitest, typecheck, lint, `openspec validate a-contest-has-one-format --strict`.
+- [x] 5.3 Seed a contest of each of the three formats locally and walk it by hand — host sets it up, participants join, submit, score, results — confirming the ballots exclude exactly what the format says. **All three walked, every ballot exact**, plus the couples-with-an-unpartnered-participant publish refusal.
+- [x] 5.4 Playwright E2E including the axe-core a11y gate; confirm the format radio group is keyboard-operable and its choices are announced with their help text. **329/330** — the one failure (`participant-dish` → “a cook submits their dish and sees it as theirs”) is a pre-existing timing flake under combined-project load: this change touched only that file's seed field, and it passes 3/3 in isolation and 65/65 in a WebKit-only run.
 - [ ] 5.5 Sync the delta specs into `openspec/specs/` and archive the change.
