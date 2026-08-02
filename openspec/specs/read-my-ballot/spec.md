@@ -5,16 +5,22 @@ TBD - created by archiving change tapas-contest-app. Update Purpose after archiv
 ## Requirements
 ### Requirement: A participant reads the ballot of what they may score
 
-A participant who has claimed a place SHALL be able to read their ballot: the dishes open to them — with their own dish and any anti-bias exclusions already removed — together with the contest's categories, the score range that applies to them, and whether each category must be a strict ranking. The ballot is derived from the compiled constraint view, so it never offers a dish the participant may not score. Reading a ballot SHALL be refused when the requester has not claimed a place.
+A participant who has claimed a place SHALL be able to read their ballot: the dishes open to them — with their own dish, and their partner's where the contest's format keeps partners apart, already removed — together with the contest's categories, the score range that applies to them, and whether each category must be a strict ranking. The ballot is derived from the compiled constraint view, so it never offers a dish the participant may not score. Reading a ballot SHALL be refused when the requester has not claimed a place.
 
 A dish SHALL be called on the ballot exactly what it is called in the results — including a dish nobody named, which SHALL be called by the name of the cook whose it is. A participant scores a dish on one screen and reads its total on another; a dish that changes its name in between is a dish they cannot follow.
 
 #### Scenario: A voter's ballot lists only the dishes open to them
 
-- **WHEN** a participant in a per-person, couples-barred contest reads their ballot
+- **WHEN** a participant in a contest where everyone is on their own with partners kept apart reads their ballot
 - **THEN** their own dish is not on it
 - **AND** their partner's dish is not on it
 - **AND** the dishes they may score are on it, together with the categories and their score range
+
+#### Scenario: A ballot where couples cook together leaves out the couple's one dish
+
+- **WHEN** a participant in a contest where couples cook together reads their ballot
+- **THEN** the dish their couple cooked is not on it
+- **AND** every other couple's dish is on it
 
 #### Scenario: A dish nobody named is called by its cook on the ballot too
 

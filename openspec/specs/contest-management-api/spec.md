@@ -12,16 +12,23 @@ A signed-in host SHALL be able to save a draft and publish it into a live contes
 - **AND** a participant can join that contest with the code
 
 ### Requirement: A host can edit a draft's rules over the API
-While a contest is still a draft, a host SHALL be able to change any of its rules through the API — how dishes are attributed, the anti-bias pairings, the scoring, who is taking part (adding or removing participants), which participants are a couple, and which participants may not score each other — not only its name. A draft need not be complete or valid to be saved this way; only its name is required (the full rules are checked at publish). Editing SHALL only ever change the host's own draft, and SHALL be refused when no one is signed in.
+While a contest is still a draft, a host SHALL be able to change any of its rules through the API — its format, its scoring, who is taking part (adding or removing participants), and who is paired with whom — not only its name. A draft need not be complete or valid to be saved this way; only its name is required (the full rules are checked at publish). Editing SHALL only ever change the host's own draft, and SHALL be refused when no one is signed in.
 
-#### Scenario: A host changes their draft's attribution, anti-bias, scoring and participants
-- **WHEN** a host revises their draft's attribution, anti-bias, scoring categories and participants through the API
+There SHALL be no way through the API to bar a chosen pair from scoring each other independently of the format and the pairings: a contest's format and who is paired with whom are together the whole answer to who may not score whom.
+
+#### Scenario: A host changes their draft's format, scoring and participants
+- **WHEN** a host revises their draft's format, scoring categories and participants through the API
 - **THEN** the stored draft reflects the revised rules
 - **AND** the audit log records the change
 
 #### Scenario: A host removes a participant from their draft
 - **WHEN** a host revises their draft to remove one of its participants through the API
 - **THEN** that participant is no longer part of the stored draft
+
+#### Scenario: An unknown format is refused
+- **WHEN** a host tries to revise their draft to a format that is not one of the three through the API
+- **THEN** the revision is rejected because the format is not one the contest can have
+- **AND** the stored draft is unchanged
 
 #### Scenario: An edited draft still requires a name
 - **WHEN** a host tries to revise their draft to have no name through the API
@@ -73,7 +80,7 @@ A host SHALL be able to list, rename, and discard their own drafts through the A
 A host SHALL be able to list all of their own contests through the API in one place — drafts still being prepared and published contests alike — each marked with the state it is in (being prepared, live, closed, or revealed). Listing SHALL return only that host's contests.
 
 Each listed contest SHALL also carry enough to be read without opening it:
-- its rules in brief — how dishes are attributed, and how many scoring categories it has;
+- its rules in brief — its format, and how many scoring categories it has;
 - its join code, once it has one;
 - how its voting is progressing — how many people have claimed a place, how many are still scoring, and how many have sent their vote.
 
@@ -93,8 +100,8 @@ A contest still being prepared has no join code and no progress, and SHALL repor
 - **THEN** that contest is listed as having eighteen claimed, thirteen sent, and five still scoring
 
 #### Scenario: A live contest is listed with its rules in brief and its join code
-- **WHEN** a signed-in host lists their contests, and their live contest scores each person on their own across four categories
-- **THEN** that contest is listed as scoring each person on their own, with four categories
+- **WHEN** a signed-in host lists their contests, and their live contest is one where everyone is on their own, across four categories
+- **THEN** that contest is listed as one where everyone is on their own, with four categories
 - **AND** it is listed with the join code participants use for it
 
 #### Scenario: A contest being prepared reports no join code and no progress
@@ -121,23 +128,23 @@ A contest still being prepared has no join code and no progress, and SHALL repor
 ### Requirement: A host can read their own contest over the API
 A host SHALL be able to read a contest they own through the API.
 
-The read SHALL report the rules the contest is being played by, so that a host running it can see what it was published with without opening the draft it came from — which no longer exists. That includes how dishes are attributed, which same-side scoring is barred to guard against bias, what the contest is judged on, the score band, and whether a score may be used more than once in a category.
+The read SHALL report the rules the contest is being played by, so that a host running it can see what it was published with without opening the draft it came from — which no longer exists. That includes its format, what the contest is judged on, the score band, and whether a score may be used more than once in a category. The format is the whole of what the contest says about who cooks and who may not score whom, so there is no second rule to report beside it.
 
-The anti-bias rule SHALL be reported from what the contest recorded at publish, not reconstructed from the compiled constraint view. The compiler consumes that rule into the set of dishes each judge may score, so the compiled view holds its consequence and not the rule: a contest where couples cannot score each other and one where chosen pairs cannot are indistinguishable once compiled. A contest published before the rule was recorded SHALL report that it does not say, rather than a guess.
+The format SHALL be reported from what the contest recorded at publish, not reconstructed from the compiled constraint view. The compiler consumes the format into the set of dishes each judge may score, so the compiled view holds its consequence and not the format itself: where nobody has a partner, a contest where everyone is on their own and one where partners are kept apart compile to exactly the same thing. A contest that never recorded a format SHALL report that it does not say, rather than a guess.
 
 #### Scenario: A host reads their own published contest through the API
 - **WHEN** a host who has published a contest reads that contest through the API
 - **THEN** the contest's details are returned
 
 #### Scenario: The read reports the rules the contest is being played by
-- **WHEN** a host reads a contest they published to score each person on their own, barring couples from scoring each other, judged on three categories from one to ten with each score used once
-- **THEN** the read reports each person on their own, and couples barred from scoring each other
+- **WHEN** a host reads a contest they published where everyone is on their own with partners kept apart, judged on three categories from one to ten with each score used once
+- **THEN** the read reports that everyone is on their own with partners kept apart
 - **AND** it reports the three categories, the band from one to ten, and that a score is used only once in a category
 
-#### Scenario: A contest that never recorded its anti-bias rule says so
-- **WHEN** a host reads a contest published before the anti-bias rule was recorded
-- **THEN** the read reports that the contest does not say which same-side scoring is barred
-- **AND** it does not report a rule inferred from the compiled view
+#### Scenario: A contest that never recorded its format says so
+- **WHEN** a host reads a contest that has no format recorded
+- **THEN** the read reports that the contest does not say what its format is
+- **AND** it does not report a format inferred from the compiled view
 
 ### Requirement: A host can find their own contest by name over the API
 A host SHALL be able to find their own contests by name through the API, so they can refer to a contest the way they say it rather than by an internal id. Matching SHALL be exact but case-insensitive (a partial name SHALL NOT match, so a name cannot resolve to the wrong contest). Because a name is not unique, all matches SHALL be returned. Finding SHALL search only the requesting host's own contests, and SHALL be refused when no one is signed in.
