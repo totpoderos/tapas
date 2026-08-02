@@ -194,5 +194,17 @@ hypothesis rather than a measurement.
 
 ## 6. Close out
 
-- [ ] 6.1 `openspec sync` the delta specs into `openspec/specs/`, then archive the change
-- [ ] 6.2 Re-check the `openspec/specs/` record reads as the built system, not as the plan
+- [x] 6.1 `openspec sync` the delta specs into `openspec/specs/`, then archive the change
+- [x] 6.2 Re-check the `openspec/specs/` record reads as the built system, not as the plan
+
+6.2 earned its place. Three things had to change for the record to describe what
+was actually built:
+
+- **Participant removal.** The delta specs were written before the follow-up that
+  fixed it, so the record still said a removal simply happens. It refuses a name
+  nobody bears, and refuses a name two people share rather than removing both.
+- **Pairing.** The rules requirement described pairing but not how a person is
+  reached — by display name, with the same three-way answer a contest name gets,
+  and with both sides always set.
+- **"the few actions that accept a name today"** — plan-language that survived
+  the sync. Every action accepts a name; there is no "today" about it.
