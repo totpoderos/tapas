@@ -39,6 +39,12 @@ import type { GetContest } from '../contests/use-cases/get-contest.js';
 import type { FindContestsByName } from '../contests/use-cases/find-contests-by-name.js';
 import type { GetContestDetails } from '../contests/use-cases/get-contest-details.js';
 import type { ResolveContestByName } from '../contests/use-cases/resolve-contest-by-name.js';
+import type {
+  AddScoringCategory,
+  RemoveScoringCategory,
+  SetScoreRange,
+  SetScoreUniqueness,
+} from '../drafts/use-cases/shape-draft-scoring.js';
 import type { ListMyContests } from '../contests/use-cases/list-my-contests.js';
 import type { PublishContest } from '../contests/use-cases/publish-contest.js';
 import type { CloseContest } from '../contests/use-cases/close-contest.js';
@@ -78,6 +84,10 @@ export interface ServerDeps {
   readonly updateDraft: UpdateDraft;
   readonly addDraftParticipant: AddDraftParticipant;
   readonly removeDraftParticipant: RemoveDraftParticipant;
+  readonly addScoringCategory: AddScoringCategory;
+  readonly removeScoringCategory: RemoveScoringCategory;
+  readonly setScoreRange: SetScoreRange;
+  readonly setScoreUniqueness: SetScoreUniqueness;
   readonly listHostDrafts: ListHostDrafts;
   readonly extractContestDraft: ExtractContestDraft;
   readonly mergeContestDraft: MergeContestDraft;

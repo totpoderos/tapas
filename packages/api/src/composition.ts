@@ -41,6 +41,12 @@ import { CreateDraft } from './drafts/use-cases/create-draft.js';
 import { ListHostDrafts } from './drafts/use-cases/list-host-drafts.js';
 import { RenameDraft } from './drafts/use-cases/rename-draft.js';
 import { AddDraftParticipant, RemoveDraftParticipant } from './drafts/use-cases/manage-draft-participants.js';
+import {
+  AddScoringCategory,
+  RemoveScoringCategory,
+  SetScoreRange,
+  SetScoreUniqueness,
+} from './drafts/use-cases/shape-draft-scoring.js';
 import { UpdateDraft } from './drafts/use-cases/update-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
 import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
@@ -156,6 +162,22 @@ export function buildProductionDeps(
       updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
       ids,
     }),
+    ...(() => {
+      // One set of dependencies for the four scoring changes: they differ only
+      // in the single thing each of them changes.
+      const scoring = {
+        resolveContestByName,
+        drafts,
+        updateDraft: new UpdateDraft({ drafts, audit, clock, ids }),
+        ids,
+      };
+      return {
+        addScoringCategory: new AddScoringCategory(scoring),
+        removeScoringCategory: new RemoveScoringCategory(scoring),
+        setScoreRange: new SetScoreRange(scoring),
+        setScoreUniqueness: new SetScoreUniqueness(scoring),
+      };
+    })(),
     listHostDrafts: new ListHostDrafts(drafts),
     extractContestDraft: new ExtractContestDraft({ llmClient }),
     mergeContestDraft: new MergeContestDraft({ llmClient }),

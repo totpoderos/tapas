@@ -175,6 +175,99 @@ const removeParticipant: McpTool = {
   }),
 };
 
+/**
+ * `add_category` — adds something for one of the host's drafts to be judged on.
+ * Drafts only: a published contest's scoring is settled. Reversible, so not
+ * destructive. A name the draft already carries is refused rather than added
+ * twice — the assistant addresses a category by its name, so two of the same
+ * name would leave the host unable to say which one they meant.
+ */
+const addCategory: McpTool = {
+  name: 'add_category',
+  description:
+    "Add something for one of the host's contest DRAFTS to be judged on — a scoring category such as \"Taste\" or \"Presentation\" — found by the contest's name. Adds one at a time. Refused if the contest is already judged on something with that name. Returns the draft's updated details.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    category: z.string().min(1).describe('What the dishes are judged on, e.g. "Taste".'),
+  },
+  toRequest: (args) => ({
+    method: 'POST',
+    path: '/drafts/by-name/categories',
+    body: { contest: args.contest, category: args.category },
+  }),
+};
+
+/**
+ * `remove_category` — stops one of the host's drafts being judged on something.
+ * Destructive: it takes away a category the host named, so the server requires a
+ * confirmation first, exactly as removing a participant does.
+ */
+const removeCategory: McpTool = {
+  name: 'remove_category',
+  description:
+    "Stop one of the host's contest DRAFTS being judged on something, found by the contest's name and the category's name. Refused if the contest is not judged on it. This takes away something the host set up, so it must be confirmed.",
+  destructive: true,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    category: z.string().min(1).describe('What to stop judging on, e.g. "Presentation".'),
+    confirmationToken: CONFIRMATION_TOKEN,
+  },
+  toRequest: (args) => ({
+    method: 'DELETE',
+    path: `/drafts/by-name/categories?contest=${encodeURIComponent(String(args.contest))}&category=${encodeURIComponent(String(args.category))}`,
+  }),
+};
+
+/**
+ * `set_score_range` — sets the range scores are given within on one of the
+ * host's drafts. Omitting both bounds means the range is worked out from the
+ * contest itself (1..however many dishes each judge may score), which is how a
+ * ranking is asked for.
+ */
+const setScoreRange: McpTool = {
+  name: 'set_score_range',
+  description:
+    "Set the range scores are given within on one of the host's contest DRAFTS, found by the contest's name. Give both `min` and `max` for a fixed range (e.g. 1 to 10). Give NEITHER to let the contest work its own range out — each judge then scores from 1 up to however many dishes they may score, which is a ranking. One bound alone is not a range and is treated as neither.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    min: z.number().optional().describe('The lowest score. Omit (with max) to work the range out from the contest.'),
+    max: z.number().optional().describe('The highest score. Omit (with min) to work the range out from the contest.'),
+  },
+  toRequest: (args) => ({
+    method: 'PUT',
+    path: '/drafts/by-name/score-range',
+    body: { contest: args.contest, min: args.min, max: args.max },
+  }),
+};
+
+/**
+ * `set_score_uniqueness` — settles whether a judge may give the same score to
+ * more than one dish within a category, on one of the host's drafts.
+ */
+const setScoreUniqueness: McpTool = {
+  name: 'set_score_uniqueness',
+  description:
+    "Settle whether a judge may give the same score to more than one dish within a category, on one of the host's contest DRAFTS, found by the contest's name. `true` means every dish in a category must get a different score (a ranking); `false` means a score may be repeated.",
+  destructive: false,
+  scope: 'host',
+  inputSchema: {
+    contest: CONTEST_NAME,
+    uniquePerCategory: z
+      .boolean()
+      .describe('true = each score may be used only once per category; false = scores may repeat.'),
+  },
+  toRequest: (args) => ({
+    method: 'PUT',
+    path: '/drafts/by-name/score-uniqueness',
+    body: { contest: args.contest, uniquePerCategory: args.uniquePerCategory },
+  }),
+};
+
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
@@ -405,6 +498,10 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   getContestDetails,
   addParticipant,
   removeParticipant,
+  addCategory,
+  removeCategory,
+  setScoreRange,
+  setScoreUniqueness,
   getDraft,
   getTally,
   closeContest,

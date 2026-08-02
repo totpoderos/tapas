@@ -72,6 +72,7 @@ describeFeature(feature, ({ Scenario }) => {
     Then('the assistant lets the model choose from all of the contest tools', () => {
       const offered = (llm.lastRequest?.tools ?? []).map((tool) => tool.name).sort();
       expect(offered).toEqual([
+        'add_category',
         'add_participant',
         'close_contest',
         'create_draft',
@@ -84,8 +85,11 @@ describeFeature(feature, ({ Scenario }) => {
         'get_tally',
         'list_my_contests',
         'publish_contest',
+        'remove_category',
         'remove_participant',
         'rename_contest',
+        'set_score_range',
+        'set_score_uniqueness',
         'trigger_reveal',
       ]);
       // and the host-assistant instructions lead the conversation

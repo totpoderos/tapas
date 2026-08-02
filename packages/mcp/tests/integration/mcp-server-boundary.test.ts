@@ -55,6 +55,33 @@ describe('MCP server boundary', () => {
     expect(rejected).toBe(true);
   });
 
+  /*
+   * The API writes its refusals for hosts to read, and that sentence is the
+   * whole point of refusing. It used to be dropped in favour of the bare error
+   * code, so an external assistant could say that something failed but not what
+   * to do about it — while the in-app assistant showed the reason. One failure
+   * reaching two paths as two different answers is the shape this repo keeps
+   * paying for, so it is pinned here.
+   */
+  it("carries the API's reason for a refusal, not just its code", async () => {
+    api = await startApi();
+    const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+    const client = await connect(token);
+
+    await client.callTool({ name: 'create_draft', arguments: { name: 'Tapas Night' } });
+    await client.callTool({
+      name: 'add_category',
+      arguments: { contest: 'Tapas Night', category: 'Taste' },
+    });
+    const again = (await client.callTool({
+      name: 'add_category',
+      arguments: { contest: 'Tapas Night', category: 'Taste' },
+    })) as ToolResult & { isError?: boolean };
+
+    expect(again.isError).toBe(true);
+    expect(again.content[0]!.text).toMatch(/already judged on "Taste"/i);
+  });
+
   it('records an audit entry for an action taken through the server', async () => {
     api = await startApi();
     const client = await connect(await hostWithToken(api.app, api.db, 'ana@example.com'));
