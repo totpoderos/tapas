@@ -31,4 +31,4 @@
 - [x] 5.1 Full local gate: unit tests, the whole vitest run, typecheck, lint, and `openspec validate --strict` on this change.
 - [x] 5.2 Live smoke test by hand: seed a contest, open the panel, show the code, decode it, and follow it into the participant app in the browser.
 - [x] 5.3 Note in the change's docs that a locally-run QR points at `localhost:5174` and will not resolve from a phone — the documented consequence of the dev default, not a defect.
-- [ ] 5.4 Open the PR for the slice, then sync and archive the change once it has landed.
+- [x] 5.4 Open the PR for the slice, then sync and archive the change once it has landed.
