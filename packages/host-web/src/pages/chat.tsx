@@ -321,7 +321,10 @@ export function Chat() {
   }
 
   return (
-    <main id="main" className={styles.page}>
+    // `data-fills-height` tells the shell this screen is exactly the panel's
+    // height and scrolls inside itself, so the surface drops the bottom padding
+    // that would otherwise strand the composer above the panel's foot.
+    <main id="main" data-fills-height className={styles.page}>
       {/* Clearing belongs to this surface, so it sits in the panel's header
           beside the breadcrumb rather than competing with the composer. */}
       <PanelActions>
