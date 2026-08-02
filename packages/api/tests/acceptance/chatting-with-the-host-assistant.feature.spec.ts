@@ -392,4 +392,224 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.json().error.code).toBe('NOT_SIGNED_IN');
     });
   });
+
+  Scenario('One message asking for several things gets all of them', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host chatting with the assistant', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+    });
+    When(
+      'they ask in one message to create a contest, judge it on two things, and have three people taking part',
+      async () => {
+        // Exactly what the model proposes for that sentence, in that order.
+        llm.next = {
+          text: '',
+          toolCalls: [
+            { name: 'create_draft', arguments: { name: 'Tapas' } },
+            { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+            { name: 'add_category', arguments: { contest: 'Tapas', category: 'Originality' } },
+            { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Carlos' } },
+            { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Alba' } },
+            { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Juan' } },
+          ],
+        };
+        response = await request(app, jar, {
+          method: 'POST',
+          url: '/assistant/messages',
+          payload: { messages: [{ role: 'user', content: 'Create a contest called Tapas...' }] },
+        });
+      },
+    );
+    Then('the contest exists, judged on both, with all three taking part', async () => {
+      const details = await request(app, jar, {
+        method: 'GET',
+        url: '/contests/details?name=Tapas',
+      });
+      expect(details.json().details).toMatchObject({
+        name: 'Tapas',
+        categories: ['Taste', 'Originality'],
+        participants: ['Carlos', 'Alba', 'Juan'],
+      });
+    });
+    And('every step is reported, in the order it was asked for', () => {
+      const turn = response.json();
+      expect(turn.kind).toBe('steps');
+      expect(turn.steps.map((step: { action: string }) => step.action)).toEqual([
+        'create_draft',
+        'add_category',
+        'add_category',
+        'add_participant',
+        'add_participant',
+        'add_participant',
+      ]);
+      expect(turn.notReached).toEqual([]);
+    });
+  });
+
+  Scenario('A message asking for a single thing is answered as it always was', ({ Given, When, Then }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host chatting with the assistant', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+    });
+    When('they ask for one thing alone', async () => {
+      llm.next = { text: '', toolCalls: [{ name: 'create_draft', arguments: { name: 'Just The One' } }] };
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'start a draft called Just The One' }] },
+      });
+    });
+    /* The common case, unwrapped: no list of one. */
+    Then('it is carried out and reported on its own', () => {
+      expect(response.json().kind).toBe('result');
+      expect(response.json().action).toBe('create_draft');
+    });
+  });
+
+  Scenario(
+    'Something irreversible is put to the host on its own, and ends the run',
+    ({ Given, When, Then, And }) => {
+      let app: FastifyInstance;
+      let jar: CookieJar;
+      let llm: ScriptedLLMClient;
+      let response: LightMyRequestResponse;
+
+      Given('a signed-in host with a draft ready to publish', async () => {
+        llm = new ScriptedLLMClient();
+        ({ app } = makeTestApp(undefined, {}, llm));
+        jar = await signedInHost(app, 'ana@example.com');
+        await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Ready') });
+      });
+      When('they ask in one message to judge it on one more thing and then publish it', async () => {
+        llm.next = {
+          text: '',
+          toolCalls: [
+            { name: 'add_category', arguments: { contest: 'Ready', category: 'Presentation' } },
+            { name: 'publish_contest', arguments: { contest: 'Ready' } },
+          ],
+        };
+        response = await request(app, jar, {
+          method: 'POST',
+          url: '/assistant/messages',
+          payload: { messages: [{ role: 'user', content: 'add Presentation and publish it' }] },
+        });
+      });
+      Then('the draft is judged on that thing', async () => {
+        const details = await request(app, jar, { method: 'GET', url: '/contests/details?name=Ready' });
+        expect(details.json().details.categories).toContain('Presentation');
+      });
+      And('the host is asked to confirm publishing', () => {
+        const turn = response.json();
+        expect(turn.kind).toBe('steps');
+        expect(turn.steps.at(-1)).toMatchObject({ kind: 'confirm', action: 'publish_contest' });
+      });
+      And('the draft is not published', async () => {
+        const details = await request(app, jar, { method: 'GET', url: '/contests/details?name=Ready' });
+        expect(details.json().details.status).toBe('draft');
+      });
+    },
+  );
+
+  Scenario(
+    'Nothing asked for after an irreversible action is carried out',
+    ({ Given, When, Then, And }) => {
+      let app: FastifyInstance;
+      let jar: CookieJar;
+      let llm: ScriptedLLMClient;
+      let response: LightMyRequestResponse;
+
+      Given('a signed-in host with a draft ready to publish', async () => {
+        llm = new ScriptedLLMClient();
+        ({ app } = makeTestApp(undefined, {}, llm));
+        jar = await signedInHost(app, 'ana@example.com');
+        await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Ready') });
+      });
+      When('they ask in one message to publish it and then rename it', async () => {
+        llm.next = {
+          text: '',
+          toolCalls: [
+            { name: 'publish_contest', arguments: { contest: 'Ready' } },
+            { name: 'rename_contest', arguments: { contest: 'Ready', name: 'Renamed After' } },
+          ],
+        };
+        response = await request(app, jar, {
+          method: 'POST',
+          url: '/assistant/messages',
+          payload: { messages: [{ role: 'user', content: 'publish it and rename it' }] },
+        });
+      });
+      Then('the host is asked to confirm publishing', () => {
+        expect(response.json().steps.at(-1)).toMatchObject({ kind: 'confirm', action: 'publish_contest' });
+      });
+      /*
+       * The one with teeth. A confirmation approves the action it names; what a
+       * message queued behind it was never part of what the host agreed to.
+       */
+      And('the draft still has the name it had', async () => {
+        const byOldName = await request(app, jar, { method: 'GET', url: '/contests/details?name=Ready' });
+        expect(byOldName.json().details?.name).toBe('Ready');
+        // And the name it would have had is nobody's.
+        const byNewName = await request(app, jar, {
+          method: 'GET',
+          url: '/contests/details?name=Renamed%20After',
+        });
+        expect(byNewName.json().candidates).toEqual([]);
+      });
+      And('what was not reached is named', () => {
+        expect(response.json().notReached).toEqual(['rename_contest']);
+      });
+    },
+  );
+
+  Scenario('A step that cannot be carried out stops the ones after it', ({ Given, When, Then, And }) => {
+    let app: FastifyInstance;
+    let jar: CookieJar;
+    let llm: ScriptedLLMClient;
+    let response: LightMyRequestResponse;
+
+    Given('a signed-in host with a draft judged on "Taste"', async () => {
+      llm = new ScriptedLLMClient();
+      ({ app } = makeTestApp(undefined, {}, llm));
+      jar = await signedInHost(app, 'ana@example.com');
+      await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Tapas') });
+    });
+    When('they ask in one message to judge it on "Taste" again and then on "Presentation"', async () => {
+      llm.next = {
+        text: '',
+        toolCalls: [
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Presentation' } },
+        ],
+      };
+      response = await request(app, jar, {
+        method: 'POST',
+        url: '/assistant/messages',
+        payload: { messages: [{ role: 'user', content: 'judge it on Taste and Presentation' }] },
+      });
+    });
+    Then('the repeat is reported as refused, with its reason', () => {
+      const turn = response.json();
+      expect(turn.steps).toHaveLength(1);
+      expect(turn.steps[0]).toMatchObject({ kind: 'failed', action: 'add_category' });
+      expect(turn.steps[0].message).toMatch(/already judged on/i);
+    });
+    And('the draft is not judged on "Presentation"', async () => {
+      const details = await request(app, jar, { method: 'GET', url: '/contests/details?name=Tapas' });
+      expect(details.json().details.categories).not.toContain('Presentation');
+      expect(response.json().notReached).toEqual(['add_category']);
+    });
+  });
 });
+

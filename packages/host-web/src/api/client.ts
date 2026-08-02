@@ -416,11 +416,25 @@ export interface PendingAction {
 }
 
 /** The assistant's response to one turn: a plain reply, a carried-out action, or a confirmation request. */
-export type AssistantTurn =
-  | { readonly kind: 'reply'; readonly text: string }
+/** One thing the assistant did, or was stopped by — the pieces an answer is made of. */
+export type AssistantStep =
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
   | { readonly kind: 'failed'; readonly action: string; readonly message: string }
   | ({ readonly kind: 'confirm'; readonly message: string } & PendingAction);
+
+export type AssistantTurn =
+  | { readonly kind: 'reply'; readonly text: string }
+  | AssistantStep
+  /**
+   * One message may ask for several things. `steps` is what happened, in the
+   * order they were asked for, and `notReached` names anything the run stopped
+   * short of — a host must never be left assuming those happened too.
+   */
+  | {
+      readonly kind: 'steps';
+      readonly steps: readonly AssistantStep[];
+      readonly notReached: readonly string[];
+    };
 
 async function assistant(body: unknown): Promise<AssistantTurn> {
   const response = await send('/assistant/messages', 'POST', body);

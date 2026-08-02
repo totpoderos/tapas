@@ -15,8 +15,15 @@ Metrics are counts summed-then-divided, each with its own denominator:
   assistant proposed (by name).
 - **Tool-argument accuracy** — of matched tools whose arguments are pinned, the
   fraction deep-equal to ground truth.
-- **Chaining correctness** — multi-tool cases: the expected tools proposed in the
-  expected order.
+- **Chaining correctness** — multi-tool cases: the expected tools **proposed** in
+  the expected order.
+
+  > It measures what the model proposes, never what is carried out. It read
+  > **100%** throughout the entire time the in-app assistant took `toolCalls[0]`
+  > and discarded the rest — a host who asked for six things got one, and this
+  > metric said chaining was perfect. It was: the model's half of it. Whether a
+  > proposed run is actually run is the runtime's business and is gated by the
+  > deterministic tests, not here.
 - **Confirmation surfacing** — destructive cases: the destructive tool proposed
   *without* a fabricated `confirmationToken` (the assistant must let the gate
   surface confirmation, not grant it).

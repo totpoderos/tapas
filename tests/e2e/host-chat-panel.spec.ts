@@ -263,6 +263,31 @@ test('the panel says plainly when an action names no contest at all', async ({ p
   expect(await statusOf(page.request, id)).toBe('live');
 });
 
+/*
+ * The reported bug, end to end: one message asking for six things produced a
+ * contest and nothing else. The stub proposes the whole run, as a real model
+ * does; what is under test is that all of it is carried out and reported.
+ */
+test('one message asking for several things gets all of them', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-chain@sobremesa.es');
+  await page.goto('/chat');
+
+  await sendMessage(
+    page,
+    'set up Tapas judged on Taste and Originality with Carlos, Alba and Juan taking part',
+  );
+
+  /*
+   * Every step draws its own details, so the earlier ones show the contest
+   * part-built. The LAST one is the whole of what was asked for — and the run
+   * reaching its end is exactly what used to not happen.
+   */
+  const lastStep = page.locator('dl').last();
+  await expect(lastStep).toContainText('Carlos, Alba, Juan');
+  await expect(lastStep).toContainText('Taste, Originality');
+  await expect(page.getByText(/not done yet/i)).toHaveCount(0);
+});
+
 test('the chat panel is keyboard-operable and has no accessibility violations', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-a11y@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

@@ -75,6 +75,144 @@ describe('runAssistantMessage', () => {
   });
 });
 
+describe('runAssistantMessage over several proposed calls', () => {
+  /** Answers the name-settling read with one contest; records what was actually run. */
+  function executeStub() {
+    const ran: string[] = [];
+    const execute = vi.fn(async (request: { method: string; path: string }) => {
+      if (request.method === 'GET' && request.path.startsWith('/contests?name=')) {
+        return {
+          ok: true,
+          body: [{ id: 'c1', name: 'Tapas', status: 'draft', updatedAt: '2026-01-01T00:00:00.000Z' }],
+        };
+      }
+      ran.push(`${request.method} ${request.path}`);
+      return { ok: true, body: {} };
+    });
+    return { execute, ran };
+  }
+
+  const chain = (...calls: { name: string; arguments: Record<string, unknown> }[]) =>
+    assistantReturning({ text: '', toolCalls: calls });
+
+  it('carries out every proposed call, in the order it was proposed', async () => {
+    const { execute, ran } = executeStub();
+    const turn = await runAssistantMessage(
+      [{ role: 'user', content: 'do all of it' }],
+      turnDeps({
+        execute,
+        assistant: chain(
+          { name: 'create_draft', arguments: { name: 'Tapas' } },
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+          { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Carlos' } },
+        ),
+      }),
+    );
+
+    expect(turn.kind).toBe('steps');
+    if (turn.kind !== 'steps') return;
+    expect(turn.steps.map((step) => step.action)).toEqual([
+      'create_draft',
+      'add_category',
+      'add_participant',
+    ]);
+    expect(turn.notReached).toEqual([]);
+    expect(ran).toHaveLength(3);
+  });
+
+  /*
+   * The one with teeth. A confirmation approves the action it names; whatever a
+   * message queued behind it was never part of what the host agreed to, so it
+   * must not have run — and the host must be told it did not.
+   */
+  it('stops at the first destructive call and never runs what was queued behind it', async () => {
+    const { execute, ran } = executeStub();
+    const turn = await runAssistantMessage(
+      [{ role: 'user', content: 'add one, publish, then rename' }],
+      turnDeps({
+        execute,
+        assistant: chain(
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+          { name: 'publish_contest', arguments: { contest: 'Tapas' } },
+          { name: 'rename_contest', arguments: { contest: 'Tapas', name: 'Later' } },
+        ),
+      }),
+    );
+
+    expect(turn.kind).toBe('steps');
+    if (turn.kind !== 'steps') return;
+    expect(turn.steps.map((step) => step.kind)).toEqual(['result', 'confirm']);
+    expect(turn.notReached).toEqual(['rename_contest']);
+    expect(ran.some((request) => request.includes('rename') || request.includes('publish'))).toBe(false);
+  });
+
+  it('stops at the first failure, keeping what already happened', async () => {
+    const ran: string[] = [];
+    const execute = vi.fn(async (request: { method: string; path: string }) => {
+      if (request.method === 'GET' && request.path.startsWith('/contests?name=')) {
+        return { ok: true, body: [{ id: 'c1', name: 'Tapas', status: 'draft', updatedAt: 'x' }] };
+      }
+      ran.push(request.path);
+      // The second thing asked for is refused; the third must never be tried.
+      if (ran.length === 2) {
+        return { ok: false, body: { error: { code: 'ALREADY_JUDGED_ON', message: 'Already judged on that.' } } };
+      }
+      return { ok: true, body: {} };
+    });
+
+    const turn = await runAssistantMessage(
+      [{ role: 'user', content: 'three things' }],
+      turnDeps({
+        execute,
+        assistant: chain(
+          { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Carlos' } },
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Presentation' } },
+        ),
+      }),
+    );
+
+    expect(turn.kind).toBe('steps');
+    if (turn.kind !== 'steps') return;
+    expect(turn.steps.map((step) => step.kind)).toEqual(['result', 'failed']);
+    expect(turn.steps[1]).toMatchObject({ message: 'Already judged on that.' });
+    expect(turn.notReached).toEqual(['add_category']);
+    expect(ran).toHaveLength(2);
+  });
+
+  it('reports a call it cannot understand as that step failing, and stops', async () => {
+    const { execute, ran } = executeStub();
+    const turn = await runAssistantMessage(
+      [{ role: 'user', content: 'do it' }],
+      turnDeps({
+        execute,
+        assistant: chain(
+          { name: 'add_category', arguments: { contest: 'Tapas', category: 'Taste' } },
+          { name: 'no_such_tool', arguments: {} },
+          { name: 'add_participant', arguments: { contest: 'Tapas', participant: 'Carlos' } },
+        ),
+      }),
+    );
+
+    expect(turn.kind).toBe('steps');
+    if (turn.kind !== 'steps') return;
+    expect(turn.steps.map((step) => step.kind)).toEqual(['result', 'failed']);
+    expect(turn.notReached).toEqual(['add_participant']);
+    expect(ran).toHaveLength(1);
+  });
+
+  it('answers a message asking for one thing in that step\'s own shape', async () => {
+    const { execute } = executeStub();
+    const turn = await runAssistantMessage(
+      [{ role: 'user', content: 'just one' }],
+      turnDeps({ execute, assistant: chain({ name: 'create_draft', arguments: { name: 'Tapas' } }) }),
+    );
+
+    // Not wrapped in a list of one: the common case is left exactly as it was.
+    expect(turn.kind).toBe('result');
+  });
+});
+
 describe('runConfirmedAction', () => {
   it('executes when the token matches the action', async () => {
     const execute = vi.fn(async () => ({ ok: true, body: { status: 'closed' } }));

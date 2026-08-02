@@ -37,6 +37,7 @@
   "contestChanged": "Modificado {{when}}",
   "severalWhichOne": "Varios concursos tienen ese nombre. ¿Cuál de ellos?",
   "severalRecap": "Varios concursos tienen ese nombre.",
+  "notReached": "Sin hacer todavía: {{actions}}. Pídemelo de nuevo cuando quieras.",
   "noContestByName": "No hay ningún concurso con ese nombre.",
   "noDraftByName": "No hay ningún borrador con ese nombre para modificar.",
   "noContestsYet": "Aún no tienes concursos.",
