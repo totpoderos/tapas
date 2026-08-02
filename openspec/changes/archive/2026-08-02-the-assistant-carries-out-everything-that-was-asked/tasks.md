@@ -47,4 +47,15 @@ truth, so nothing is lost — naming them would mean widening the step shape.
 ## 2. Close out
 
 - [x] 2.1 Note in `docs/host-assistant-eval-trajectory.md` that chaining correctness measures what the model PROPOSES, not what is carried out — it read 100% throughout the whole time the runtime ran only the first call
-- [ ] 2.2 Sync the delta specs and archive the change
+- [x] 2.2 Sync the delta specs and archive the change
+
+The re-read found two things again:
+
+- **A retrospective clause survived the sync.** The tool-surface requirement
+  explained that "proposing a chain and running only its first action reports a
+  fragment of the answer as though it were the whole" — true of the bug, and no
+  business being in a record of what the system does. The requirement says what
+  holds; the reasoning belongs in the archived change.
+- **Our word, not a host's.** Two requirement titles said "chain" while their own
+  bodies said "run", which is also what the panel says. The record now says the
+  same thing throughout.
