@@ -23,15 +23,30 @@ export type HostAssistantGroup = (typeof HA_GROUPS)[number];
  * visible change to the eval set too, exactly as the creation eval does.
  */
 export const HA_TOOL_NAMES = [
+  // Reading
   'get_contest',
+  'get_contest_details',
   'get_draft',
   'get_tally',
   'get_results',
+  'list_my_contests',
+  'find_contest',
+  // Preparing a draft
   'create_draft',
   'rename_contest',
+  'add_participant',
+  'remove_participant',
+  'add_category',
+  'remove_category',
+  'set_score_range',
+  'set_score_uniqueness',
+  'set_format',
+  'set_partner',
+  // Running a contest
   'close_contest',
   'publish_contest',
   'trigger_reveal',
+  'delete_contest',
 ] as const;
 export type HaToolName = (typeof HA_TOOL_NAMES)[number];
 

@@ -31,9 +31,16 @@ npm run eval:gate           -- --suite creation --report reports/creation.json
 npm run eval:infra          -- --full        # the infrastructure eval
 ```
 
-Baseline model for surfaces 1–2: **`gemma4:e4b` @ temperature 0, seed 1**, on a
-local Ollama. Small local models are shaky at tool-calling, so **thresholds are set
-from observed numbers, not optimism.**
+Model for surfaces 1–2: **temperature 0, seed 1**, against whatever `LLM_BASE_URL`
+/ `LLM_MODEL` / `LLM_API_KEY` point at. The trajectories were opened on
+`gemma4:e4b` on a local Ollama; the host-assistant surface now runs
+`gemma4:31b-cloud` on Ollama's hosted API. **Thresholds are set from observed
+numbers, not optimism** — and re-set when the model changes, because a floor
+calibrated to a weak model cannot fail for a strong one.
+
+Note that the eval CLIs do **not** read `.env`; without the variables in the
+environment they fall back to a local Ollama and silently measure nothing. See
+the "How to reproduce" section of either trajectory.
 
 ---
 
@@ -95,11 +102,13 @@ By design the assistant should **propose the tool and let the system surface
 confirmation**. v2 reworded exactly that, taking confirmation surfacing 0 → 25 and
 pulling chaining 12.5 → 25 with it, **with no regression on any metric**.
 
-**What is honestly still weak.** Tool selection at 64.7% and chaining at 25% are
-**model-capability limits**, not prompt bugs: `gemma4:e4b` proposes one tool per
-turn, so "X then Y" requests lose Y. Rather than pile on prompt text — the
-creation eval's v3 showed what that costs — this is recorded and left for a
-stronger model. **It is not a safety gap**: false-tool rate is 0.0 and
+**What was honestly still weak — and what became of it.** Tool selection at 64.7%
+and chaining at 25% were **model-capability limits**, not prompt bugs:
+`gemma4:e4b` proposes one tool per turn, so "X then Y" requests lose Y. Rather
+than pile on prompt text — the creation eval's v3 showed what that costs — this
+was recorded and left for a stronger model. That turned out to be the right call:
+on `gemma4:31b-cloud` the same v2 prompt scores 100 on both, with no prompt
+change at all. **It was never a safety gap either**: false-tool rate is 0.0 and
 confirmation is enforced by the HMAC gate in code, not by the model's good
 behaviour.
 

@@ -10,7 +10,24 @@ const CREATION_V2 = {
   falseFieldRate: 0.0,
 };
 
-const HOST_ASSISTANT_V2 = {
+/** The adopted host-assistant run: `gemma4:31b-cloud`, case set `ae8116223b65`. */
+const HOST_ASSISTANT_ADOPTED = {
+  toolSelectionAccuracy: 1.0,
+  toolArgumentAccuracy: 1.0,
+  clarificationAccuracy: 1.0,
+  schemaValidity: 1.0,
+  falseToolRate: 0.0,
+  chainingCorrectness: 1.0,
+  confirmationSurfacing: 1.0,
+};
+
+/**
+ * The run the floors used to be calibrated to — `gemma4:e4b` on a local Ollama,
+ * 30 cases. Kept so the raise has something to have teeth against: these numbers
+ * passed the old floors and must not pass the new ones, which is the whole point
+ * of re-setting them when the model changed.
+ */
+const HOST_ASSISTANT_SMALL_LOCAL_MODEL = {
   toolSelectionAccuracy: 0.647,
   toolArgumentAccuracy: 1.0,
   clarificationAccuracy: 1.0,
@@ -28,8 +45,22 @@ describe('eval threshold gate', () => {
   });
 
   it('passes the adopted host-assistant run against its floors', () => {
-    const result = checkThresholds(HOST_ASSISTANT_V2, HOST_ASSISTANT_THRESHOLDS);
+    const result = checkThresholds(HOST_ASSISTANT_ADOPTED, HOST_ASSISTANT_THRESHOLDS);
     expect(result.passed).toBe(true);
+  });
+
+  /*
+   * A floor calibrated to a weak model cannot fail for a strong one — it stops
+   * being a gate. This pins that the raise actually bites.
+   */
+  it('no longer passes the small local model the old floors were set for', () => {
+    const result = checkThresholds(HOST_ASSISTANT_SMALL_LOCAL_MODEL, HOST_ASSISTANT_THRESHOLDS);
+    expect(result.passed).toBe(false);
+    expect(result.rows.filter((r) => !r.passed).map((r) => r.metric).sort()).toEqual([
+      'chainingCorrectness',
+      'confirmationSurfacing',
+      'toolSelectionAccuracy',
+    ]);
   });
 
   it('fails when a floor metric drops below its bound (schema-validity collapse)', () => {

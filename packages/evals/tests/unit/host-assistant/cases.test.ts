@@ -1,25 +1,42 @@
 import { describe, expect, it } from 'vitest';
 import { HOST_ASSISTANT_CASES } from '../../../cases/host-assistant/index.js';
-import { HA_GROUPS, parseHostAssistantCases } from '../../../src/host-assistant/case.js';
+import { HA_GROUPS, HA_TOOL_NAMES, parseHostAssistantCases } from '../../../src/host-assistant/case.js';
 
 /**
  * Structural guards on the frozen set — deterministic, hard-gated. The model's
  * behaviour is threshold-gated (Slice H6c); the set being well-formed is an
  * ordinary invariant, exactly as the creation eval treats its 25 cases.
+ *
+ * The set grew from 30 to 50 when the assistant gained the draft edits and
+ * by-name addressing: it covered 9 of the tools while the catalogue offered 21,
+ * so twelve of them were measured by nothing at all. Changing these counts is
+ * meant to be deliberate — a new tool that nobody wrote a case for fails here
+ * rather than quietly going unmeasured.
  */
 describe('host-assistant frozen case set', () => {
   const cases = parseHostAssistantCases(HOST_ASSISTANT_CASES);
 
-  it('has 30 cases split 10 / 8 / 4 / 4 / 4 across the five groups', () => {
-    expect(cases).toHaveLength(30);
+  it('has 50 cases split 20 / 10 / 6 / 8 / 6 across the five groups', () => {
+    expect(cases).toHaveLength(50);
     const counts = Object.fromEntries(HA_GROUPS.map((group) => [group, cases.filter((c) => c.group === group).length]));
     expect(counts).toEqual({
-      single_tool: 10,
-      multi_tool: 8,
-      clarification: 4,
-      destructive: 4,
-      adversarial: 4,
+      single_tool: 20,
+      multi_tool: 10,
+      clarification: 6,
+      destructive: 8,
+      adversarial: 6,
     });
+  });
+
+  /*
+   * The check the counts alone cannot make. Twelve tools were shipped with no
+   * case at all, which no failing test noticed — the set was well-formed, just
+   * blind. A tool the assistant offers and nobody measures is the gap this
+   * closes.
+   */
+  it('measures every tool the assistant may propose', () => {
+    const measured = new Set(cases.flatMap((c) => c.expect.tools.map((tool) => tool.name)));
+    expect([...HA_TOOL_NAMES].filter((name) => !measured.has(name))).toEqual([]);
   });
 
   it('gives every case a unique id and a note', () => {

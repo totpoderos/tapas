@@ -35,4 +35,18 @@ export const CLARIFICATION_CASES: HostAssistantCaseInput[] = [
     message: 'Rename it to "Spring Fling".',
     expect: { tools: [] },
   },
+  {
+    id: 'clarify-which-contest-to-judge-on',
+    group: 'clarification',
+    note: 'A category is named but not the contest to add it to.',
+    message: 'Judge it on presentation as well.',
+    expect: { tools: [] },
+  },
+  {
+    id: 'clarify-who-to-pair',
+    group: 'clarification',
+    note: 'A pairing needs two people and a contest; this names none of them.',
+    message: 'Pair them up.',
+    expect: { tools: [] },
+  },
 ];

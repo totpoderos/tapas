@@ -58,7 +58,7 @@ The E2E boots a real API (in-memory SQLite) and both frontends and drives Chromi
 
 ## How to evaluate
 
-The AI surfaces are measured, not assumed. Evals need a local [Ollama](https://ollama.com) (or any OpenAI-compatible endpoint via `LLM_BASE_URL`).
+The AI surfaces are measured, not assumed. Evals need any OpenAI-compatible endpoint — a local [Ollama](https://ollama.com), a hosted one, or anything else — via `LLM_BASE_URL`, `LLM_MODEL` and `LLM_API_KEY`. The eval CLIs do not read `.env`, so put those in the environment first.
 
 ```bash
 npm run eval:creation        -- --out reports/creation.json         # contest-creation extraction
@@ -128,7 +128,7 @@ AI is integrated in three distinct places, each with the same discipline (schema
 | Backend | Node.js + Fastify (+ Helmet, CORS allowlist, rate limiting) |
 | Frontends | React + Vite; **CSS custom properties + CSS Modules** over a shared design-token package |
 | Persistence | SQLite via the built-in `node:sqlite` (Postgres-ready: migrations, no SQLite-only SQL) |
-| AI | Provider-agnostic `LLMClient` over any OpenAI-compatible `/chat/completions` (local Ollama by default); MCP via the official SDK |
+| AI | Provider-agnostic `LLMClient` over any OpenAI-compatible `/chat/completions` (local or hosted); MCP via the official SDK |
 | Testing | Vitest + `vitest-cucumber` (Gherkin) + Playwright E2E with `axe-core` |
 | Infra | Docker + compose (dev, and prod behind Caddy TLS), GitHub Actions CI/CD |
 
