@@ -65,6 +65,8 @@ interface ContestDetails {
   readonly status: string;
   readonly participants: readonly string[];
   readonly categories: readonly string[];
+  /** Who is paired with whom, each pair named once. Absent when nobody is paired. */
+  readonly pairs?: readonly (readonly [string, string])[];
 }
 
 /**
@@ -103,6 +105,7 @@ function shapeOf(result: unknown, t: TFunction, language: string): ResultShape {
         status: typeof d.status === 'string' ? d.status : '',
         participants: Array.isArray(d.participants) ? d.participants.map(String) : [],
         categories: Array.isArray(d.categories) ? d.categories.map(String) : [],
+        ...(Array.isArray(d.pairs) ? { pairs: readPairs(d.pairs) } : {}),
       },
     };
   }
@@ -118,6 +121,13 @@ function shapeOf(result: unknown, t: TFunction, language: string): ResultShape {
   if (candidates) return { kind: 'unresolved', candidates };
 
   return { kind: 'done' };
+}
+
+/** Reads the pairings defensively — anything that is not two names is dropped. */
+function readPairs(raw: readonly unknown[]): readonly (readonly [string, string])[] {
+  return raw.flatMap((pair) =>
+    Array.isArray(pair) && pair.length === 2 ? [[String(pair[0]), String(pair[1])] as const] : [],
+  );
 }
 
 /**
@@ -487,6 +497,16 @@ export function Chat() {
                 <dd className={styles.detailsValue}>
                   {item.details.categories.length ? item.details.categories.join(', ') : t('chat.noCategoriesYet')}
                 </dd>
+                {/* Only where there is a pairing to show. A contest that keeps
+                    nobody apart has no row here rather than an empty one. */}
+                {item.details.pairs?.length ? (
+                  <>
+                    <dt className={styles.detailsTerm}>{t('chat.pairedUp')}</dt>
+                    <dd className={styles.detailsValue}>
+                      {item.details.pairs.map(([one, other]) => t('chat.pair', { one, other })).join(', ')}
+                    </dd>
+                  </>
+                ) : null}
               </dl>
             </div>
           ) : item.kind === 'contests' ? (

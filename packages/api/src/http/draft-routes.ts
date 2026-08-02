@@ -1,8 +1,9 @@
-import type { DraftContent, ScoreRange } from '@tapas/domain';
+import type { ContestFormat, DraftContent, ScoreRange } from '@tapas/domain';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { StoredDraft } from '../drafts/stored-draft.js';
 import type { DraftFailureCode } from '../drafts/use-cases/shared.js';
 import type { ScoringChangeResult } from '../drafts/use-cases/shape-draft-scoring.js';
+import type { PeopleChangeResult } from '../drafts/use-cases/settle-draft-people.js';
 import type { PublishFailureCode } from '../contests/use-cases/shared.js';
 import type { ExtractContestDraftResult } from '../drafts/extraction/extract-contest-draft.js';
 import {
@@ -181,6 +182,13 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
    * resolver — so a shared name answers with candidates here exactly as it does
    * everywhere else.
    */
+  function peopleAnswer(reply: FastifyReply, answer: PeopleChangeResult) {
+    // Understood and refused for a reason the host can act on — a name that
+    // addresses nobody, or two people at once — rather than malformed.
+    if (!answer.ok) return reply.code(422).send({ error: answer.error });
+    return reply.code(200).send(answer.result);
+  }
+
   function scoringAnswer(reply: FastifyReply, answer: ScoringChangeResult) {
     if (!answer.ok) {
       // The change was understood and refused for a reason the host can act on:
@@ -249,6 +257,46 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
         request.body?.uniquePerCategory === true,
       );
       return scoringAnswer(reply, answer);
+    },
+  );
+
+  /*
+   * What kind of contest it is, and who is paired with whom. Same shape as the
+   * scoring routes above: draft-only, addressed by the contest's name, one
+   * asking changing one thing.
+   */
+  app.put<{ Body: { contest?: string; format?: ContestFormat } }>(
+    '/drafts/by-name/format',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const answer = deps.setDraftFormat.execute(
+        request.hostSession.id,
+        request.body?.contest ?? '',
+        request.body?.format as ContestFormat,
+      );
+      return peopleAnswer(reply, answer);
+    },
+  );
+
+  app.put<{ Body: { contest?: string; person?: string; partner?: string | null } }>(
+    '/drafts/by-name/partner',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      /*
+       * A missing or empty `partner` means "leave this person without one" —
+       * which is a real thing a host asks for, distinct from naming somebody.
+       */
+      const named = request.body?.partner;
+      const partner = typeof named === 'string' && named.trim() !== '' ? named : null;
+      const answer = deps.setDraftPartner.execute(
+        request.hostSession.id,
+        request.body?.contest ?? '',
+        request.body?.person ?? '',
+        partner,
+      );
+      return peopleAnswer(reply, answer);
     },
   );
 

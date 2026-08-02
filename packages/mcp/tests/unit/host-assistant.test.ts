@@ -22,6 +22,8 @@ describe('hostAssistantTools', () => {
       'remove_category',
       'remove_participant',
       'rename_contest',
+      'set_format',
+      'set_partner',
       'set_score_range',
       'set_score_uniqueness',
       'trigger_reveal',

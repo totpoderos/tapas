@@ -47,6 +47,7 @@ import {
   SetScoreRange,
   SetScoreUniqueness,
 } from './drafts/use-cases/shape-draft-scoring.js';
+import { SetDraftFormat, SetDraftPartner } from './drafts/use-cases/settle-draft-people.js';
 import { UpdateDraft } from './drafts/use-cases/update-draft.js';
 import { FindContestsByName } from './contests/use-cases/find-contests-by-name.js';
 import { GetContestDetails } from './contests/use-cases/get-contest-details.js';
@@ -176,6 +177,8 @@ export function buildProductionDeps(
         removeScoringCategory: new RemoveScoringCategory(scoring),
         setScoreRange: new SetScoreRange(scoring),
         setScoreUniqueness: new SetScoreUniqueness(scoring),
+        setDraftFormat: new SetDraftFormat(scoring),
+        setDraftPartner: new SetDraftPartner(scoring),
       };
     })(),
     listHostDrafts: new ListHostDrafts(drafts),

@@ -1,6 +1,6 @@
 import type { Category, DraftContent, ScoreRange, ScoringConfig } from '@tapas/domain';
 import type { IdGenerator } from '../../audit/audit-projection.js';
-import type { ContestDetails, ContestDetailsResult } from '../../contests/contest-details.js';
+import { draftDetailsOf, type ContestDetailsResult } from '../../contests/contest-details.js';
 import type { ResolveContestByName } from '../../contests/use-cases/resolve-contest-by-name.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { UpdateDraft } from './update-draft.js';
@@ -34,16 +34,6 @@ const EMPTY_SCORING: ScoringConfig = {
   range: { type: 'auto' },
   uniquePerCategory: false,
 };
-
-function detailsOf(id: string, content: DraftContent): ContestDetails {
-  return {
-    id,
-    name: content.name,
-    status: 'draft',
-    participants: (content.participants ?? []).map((p) => p.displayName),
-    categories: (content.scoring?.categories ?? []).map((c) => c.name),
-  };
-}
 
 /**
  * Resolves a contest name to one of the host's *drafts* and loads it. Scoring is
@@ -88,7 +78,7 @@ function changeScoring(
 
   const content: DraftContent = { ...resolved.content, scoring: changed };
   const saved = deps.updateDraft.execute(resolved.id, hostId, content);
-  return { ok: true, result: { details: detailsOf(resolved.id, saved.ok ? content : resolved.content) } };
+  return { ok: true, result: { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) } };
 }
 
 /** Matching a category the way a host says it: by name, ignoring case and stray spaces. */

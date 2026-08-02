@@ -1,6 +1,6 @@
 import type { DraftContent, Person } from '@tapas/domain';
 import type { IdGenerator } from '../../audit/audit-projection.js';
-import type { ContestDetails, ContestDetailsResult } from '../../contests/contest-details.js';
+import { draftDetailsOf, type ContestDetailsResult } from '../../contests/contest-details.js';
 import type { ResolveContestByName } from '../../contests/use-cases/resolve-contest-by-name.js';
 import type { DraftRepository } from '../../db/draft-repository.js';
 import type { UpdateDraft } from './update-draft.js';
@@ -10,17 +10,6 @@ export interface ManageDraftParticipantsDeps {
   readonly drafts: DraftRepository;
   readonly updateDraft: UpdateDraft;
   readonly ids: IdGenerator;
-}
-
-/** The details view of a draft after a participant change — reused for the result. */
-function detailsOf(id: string, content: DraftContent): ContestDetails {
-  return {
-    id,
-    name: content.name,
-    status: 'draft',
-    participants: (content.participants ?? []).map((p) => p.displayName),
-    categories: (content.scoring?.categories ?? []).map((c) => c.name),
-  };
 }
 
 /**
@@ -60,7 +49,7 @@ export class AddDraftParticipant {
       participants: [...(resolved.content.participants ?? []), person],
     };
     const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);
-    return { details: detailsOf(resolved.id, saved.ok ? content : resolved.content) };
+    return { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) };
   }
 }
 
@@ -81,7 +70,7 @@ export class RemoveDraftParticipant {
     const wanted = displayName.trim().toLowerCase();
     const existing = resolved.content.participants ?? [];
     const removedIds = new Set(existing.filter((p) => p.displayName.toLowerCase() === wanted).map((p) => p.id));
-    if (removedIds.size === 0) return { details: detailsOf(resolved.id, resolved.content) };
+    if (removedIds.size === 0) return { details: draftDetailsOf(resolved.id, resolved.content) };
 
     const participants: Person[] = existing
       .filter((p) => !removedIds.has(p.id))
@@ -94,6 +83,6 @@ export class RemoveDraftParticipant {
       }));
     const content: DraftContent = { ...resolved.content, participants };
     const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);
-    return { details: detailsOf(resolved.id, saved.ok ? content : resolved.content) };
+    return { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) };
   }
 }

@@ -262,6 +262,58 @@ describe('Chat panel', () => {
   });
 
   /*
+   * A pairing is invisible without this. `set_partner` answers with the same
+   * details it would have answered with before, so a host who asks to pair two
+   * people has no sign that it happened.
+   */
+  it('says who is now paired with whom after the assistant pairs two people', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'set_partner',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas Night',
+          status: 'draft',
+          participants: ['Ana', 'Bob', 'Carmen', 'Dan'],
+          categories: ['Taste'],
+          pairs: [
+            ['Ana', 'Bob'],
+            ['Carmen', 'Dan'],
+          ],
+        },
+      },
+    });
+    renderChat();
+    await send('pair Ana with Bob in Tapas Night');
+
+    expect(await screen.findByText('Ana & Bob, Carmen & Dan')).toBeInTheDocument();
+  });
+
+  it('shows no pairing row for a contest that keeps nobody apart', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_participant',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas Night',
+          status: 'draft',
+          participants: ['Ana', 'Bob'],
+          categories: ['Taste'],
+        },
+      },
+    });
+    renderChat();
+    await send('add Bob to Tapas Night');
+
+    expect(await screen.findByText('Ana, Bob')).toBeInTheDocument();
+    expect(screen.queryByText(/paired up/i)).not.toBeInTheDocument();
+  });
+
+  /*
    * A refused change is a refusal carrying its reason — not the quiet note that
    * means "that name is not one contest", and certainly not a ticket.
    */
