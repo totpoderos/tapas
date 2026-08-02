@@ -152,17 +152,24 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
   // The host's contest list. With a `?name=` filter it becomes "find by name"
   // (exact, case-insensitive) so a host can reach a contest the way they say it,
   // not by an internal id; without it, the full list. Both are ownership-scoped.
-  app.get<{ Querystring: { name?: string } }>(
+  /*
+   * `?only=draft` narrows the same search the draft-only operations use, so a
+   * caller can ask "does this name resolve to one draft?" and get the same
+   * answer those operations would act on. The assistant asks exactly this before
+   * putting a destructive action to the host: a name that is not yet one contest
+   * is not something anybody can meaningfully approve.
+   */
+  app.get<{ Querystring: { name?: string; only?: string } }>(
     '/contests',
     { preHandler: requireSession },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
-      const { name } = request.query;
-      const summaries =
-        name !== undefined
-          ? deps.findContestsByName.execute(request.hostSession.id, name)
-          : deps.listMyContests.execute(request.hostSession.id);
-      return reply.code(200).send(summaries);
+      const { name, only } = request.query;
+      if (name === undefined) {
+        return reply.code(200).send(deps.listMyContests.execute(request.hostSession.id));
+      }
+      const found = deps.findContestsByName.execute(request.hostSession.id, name);
+      return reply.code(200).send(only === 'draft' ? found.filter((c) => c.status === 'draft') : found);
     },
   );
 

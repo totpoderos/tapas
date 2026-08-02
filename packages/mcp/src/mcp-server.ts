@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { dispatchToApi, type ApiDispatcherDeps, type DispatchResult } from './api-dispatcher.js';
 import { confirmationTokenFor, isValidConfirmation } from './confirmation-token.js';
-import { TOOL_CATALOG, type McpTool } from './tool-catalog.js';
+import { TOOL_CATALOG, readResolution, resolutionRequestFor, type McpTool } from './tool-catalog.js';
 
 /**
  * Builds the MCP protocol server (design.md §6.3): a thin adapter that exposes
@@ -34,6 +34,22 @@ export function buildMcpServer(deps: McpServerDeps): McpServer {
         // for this exact action; otherwise it is not dispatched — the client is
         // handed the confirmation to show the host and send back.
         if (tool.destructive && !isValidConfirmation(deps.confirmationSecret, tool.name, args, args.confirmationToken)) {
+          /*
+           * Settle which contest they mean before asking them to approve
+           * anything. A name two of their contests share is a choice for the
+           * host to make, not a confirmation for them to give — and being asked
+           * to approve "close Tapas Night" when they have two is a question
+           * nobody can answer.
+           */
+          const probe = resolutionRequestFor(tool, args);
+          if (probe) {
+            const found = await dispatchToApi(deps, probe);
+            if (!found.ok) return toToolResult(found);
+            const resolution = readResolution(found.body);
+            if (resolution.kind === 'unresolved') {
+              return toToolResult({ ...found, body: { candidates: resolution.candidates } });
+            }
+          }
           return confirmationRequired(deps.confirmationSecret, tool, args);
         }
         return toToolResult(await dispatchToApi(deps, tool.toRequest(args)));

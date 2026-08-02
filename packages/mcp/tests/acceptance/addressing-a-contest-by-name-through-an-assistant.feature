@@ -40,13 +40,18 @@ Feature: Addressing a contest by its name through a connected assistant
     Then no contest is found
     And the other host's contest is still running
 
-  # A shared name changes nothing at either step: not on the first, unconfirmed
-  # request, and not on the confirmed one either (above). Worth pinning both,
-  # because a destructive action is asked about before it is resolved — the host
-  # can be asked to confirm closing a name two contests share, and only then be
-  # told which they must choose. Nothing acts on the wrong contest, but the
-  # question is put before the ambiguity is known.
-  Scenario: An unconfirmed request on a shared name changes nothing
+  # A host must never be asked to approve something that is not yet one thing.
+  # The name is settled first, so a shared name comes back as the choice to make
+  # rather than as a confirmation to give — and nothing is closed either way.
+  Scenario: A shared name is settled before the host is asked to confirm anything
     Given a host with a personal access token and two running contests both named "Tapas Night"
     When the assistant is asked to close "Tapas Night" with the host's token, without confirming
-    Then neither contest is closed
+    Then both contests are offered to choose from
+    And the assistant is not asked to confirm anything
+    And neither contest is closed
+
+  Scenario: A name no contest has is settled before the host is asked to confirm anything
+    Given a host with a personal access token and a running contest named "Tapas Night"
+    When the assistant is asked to close "Sunday Roast" with the host's token, without confirming
+    Then no contest is found
+    And the assistant is not asked to confirm anything

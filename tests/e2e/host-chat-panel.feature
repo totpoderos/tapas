@@ -63,8 +63,9 @@ Feature: Directing a contest from the chat panel
   # before.
   Scenario: The panel asks which contest is meant when an action names one two of them share
     Given a signed-in host with two running contests both named "Tapas Night", and the chat panel open
-    When they ask the assistant to close "Tapas Night" and accept the confirmation
+    When they ask the assistant to close "Tapas Night"
     Then the panel shows both contests and asks which one they mean
+    And it does not ask them to confirm anything
     And neither contest is closed
 
   # Distinct from an action that was tried and refused: one is a mistyped name,
@@ -72,7 +73,7 @@ Feature: Directing a contest from the chat panel
   # and the panel must not blur them.
   Scenario: The panel says plainly when an action names no contest at all
     Given a signed-in host with a running contest named "Tapas Night", and the chat panel open
-    When they ask the assistant to close "Sunday Roast" and accept the confirmation
+    When they ask the assistant to close "Sunday Roast"
     Then the panel says no contest has that name
     And it is not shown as an action that failed
     And the contest named "Tapas Night" is still running

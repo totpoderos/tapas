@@ -17,10 +17,12 @@ but without regard to case. Only the host's own contests are ever considered.
 
 An ambiguous name SHALL change nothing at any step — neither on the request that
 names it nor on a confirmation carrying it — so a request the host has not yet
-settled cannot take effect on the wrong contest. Note that a destructive action
-is challenged for confirmation before its name is resolved, so a host may be
-asked to confirm a name two contests share and be told only then which they must
-choose; that is a question asked too early, not an action taken wrongly.
+settled cannot take effect on the wrong contest.
+
+A name SHALL be settled before the host is asked to approve anything. A
+destructive action on a name that is not one contest SHALL come back as the
+candidates to choose from rather than as a confirmation to give: a host cannot
+meaningfully approve an action that is not yet one action.
 
 #### Scenario: An action names the contest it acts on
 

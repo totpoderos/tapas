@@ -204,8 +204,9 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
-  Scenario('An unconfirmed request on a shared name changes nothing', ({ Given, When, Then }) => {
+  Scenario('A shared name is settled before the host is asked to confirm anything', ({ Given, When, Then, And }) => {
     let client: Client;
+    let result: ToolResult;
 
     Given(
       'a host with a personal access token and two running contests both named "Tapas Night"',
@@ -217,21 +218,45 @@ describeFeature(feature, ({ Scenario }) => {
         client = await connectAssistant(api.baseUrl, token);
       },
     );
-    /*
-     * The first, unconfirmed call. It comes back asking for a confirmation rather
-     * than naming the ambiguity — a destructive tool is challenged before the API
-     * is consulted at all — so the host can be asked to confirm closing a name
-     * that is not yet one contest. What holds regardless, and is what this pins,
-     * is that nothing is closed by it.
-     */
     When('the assistant is asked to close "Tapas Night" with the host\'s token, without confirming', async () => {
-      await callTool(client, 'close_contest', { contest: 'Tapas Night' });
+      result = await callTool(client, 'close_contest', { contest: 'Tapas Night' });
     });
-    Then('neither contest is closed', async () => {
+    Then('both contests are offered to choose from', () => {
+      expect(body(result).candidates).toHaveLength(2);
+    });
+    /*
+     * The point of settling first. Being handed a confirmation for "close Tapas
+     * Night" while holding two of them is a question nobody can answer — the
+     * host would be approving something that is not yet one thing.
+     */
+    And('the assistant is not asked to confirm anything', () => {
+      expect(body(result).confirmationRequired).toBeUndefined();
+      expect(body(result).confirmationToken).toBeUndefined();
+    });
+    And('neither contest is closed', async () => {
       const listed = await callTool(client, 'find_contest', { name: 'Tapas Night' });
       const contests = JSON.parse(listed.content[0]!.text) as readonly { status: string }[];
-      expect(contests).toHaveLength(2);
       expect(contests.every((c) => c.status === 'live')).toBe(true);
+    });
+  });
+
+  Scenario('A name no contest has is settled before the host is asked to confirm anything', ({ Given, When, Then, And }) => {
+    let client: Client;
+    let result: ToolResult;
+
+    Given('a host with a personal access token and a running contest named "Tapas Night"', async () => {
+      const api = await startTrackedApi();
+      const host = await hostWithNamedContest(api.app, api.db, 'ana@example.com', 'Tapas Night');
+      client = await connectAssistant(api.baseUrl, host.token);
+    });
+    When('the assistant is asked to close "Sunday Roast" with the host\'s token, without confirming', async () => {
+      result = await callTool(client, 'close_contest', { contest: 'Sunday Roast' });
+    });
+    Then('no contest is found', () => {
+      expect(body(result)).toEqual({ candidates: [] });
+    });
+    And('the assistant is not asked to confirm anything', () => {
+      expect(body(result).confirmationRequired).toBeUndefined();
     });
   });
 });
