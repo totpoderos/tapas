@@ -84,9 +84,9 @@ test('a contest being prepared is settled in two sections', async ({ page }) => 
 
   await goToSection(page, 'Participants & pairing');
 
-  // The people: who is taking part and who may not score whom, and nothing else.
+  // The people: who is taking part and who they are paired with, and nothing else.
   await expect(page.getByLabel('Participant 1 name')).toHaveValue('Ana');
-  await expect(page.getByRole('button', { name: 'Bar this pair' })).toBeVisible();
+  await expect(page.getByLabel('Partner of Ana')).toBeVisible();
   await expect(page.getByLabel('Contest name')).toHaveCount(0);
 });
 
@@ -257,7 +257,11 @@ test('a pairing survives a change of format', async ({ page }) => {
   await page.getByLabel('Partner of Ana').selectOption({ label: 'Bruno' });
 
   await goToSection(page, 'Rules');
-  await page.getByRole('radio', { name: 'Everyone on their own' }).check();
+  // `exact` matters: Playwright matches an accessible name by substring, so the
+  // bare label also matches "Everyone on their own, partners kept apart". The
+  // component tests do not catch this — testing-library matches a string name
+  // exactly — so the same selector is safe there and ambiguous here.
+  await page.getByRole('radio', { name: 'Everyone on their own', exact: true }).check();
   await page.getByRole('radio', { name: 'Couples cook together' }).check();
   await goToSection(page, 'Participants & pairing');
 

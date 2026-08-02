@@ -41,8 +41,9 @@ test('a host opens a draft to edit its rules', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: /Edit .Summer Tapas./ })).toBeVisible();
   // The rules the host chose are loaded into the editable form.
-  await expect(page.getByRole('radio', { name: 'Each person is scored on their own' })).toBeChecked();
-  await expect(page.getByRole('radio', { name: 'Couples cook together' })).toBeChecked();
+  await expect(
+    page.getByRole('radio', { name: 'Everyone on their own, partners kept apart' }),
+  ).toBeChecked();
 });
 
 test('a host publishes a complete draft and it goes live', async ({ page }) => {

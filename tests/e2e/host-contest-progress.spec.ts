@@ -177,7 +177,7 @@ test('a live contest shows what it is judged on, and the code people join it wit
 
   await page.goto('/');
   const row = rowFor(page, 'Rules On Show');
-  await expect(row).toContainText('Per person');
+  await expect(row).toContainText('Everyone on their own');
   await expect(row).toContainText('3 categories');
   await expect(row).toContainText(`code ${joinCode}`);
 });
@@ -302,7 +302,7 @@ test('progress reads in Spanish', async ({ page }) => {
     .getByRole('table', { name: 'Tus concursos' })
     .getByRole('row')
     .filter({ hasText: 'En Español' });
-  await expect(row).toContainText('Por persona');
+  await expect(row).toContainText('Cada cual por su cuenta');
   await expect(row).toContainText('2 categorías');
   await expect(row).toContainText('Nadie se ha unido todavía');
 });

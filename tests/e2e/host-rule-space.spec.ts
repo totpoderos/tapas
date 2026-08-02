@@ -127,7 +127,9 @@ test('the choices are real radios and the rule a real checkbox', async ({ page }
   await page.goto('/new');
   // Drawn as cards, but a screen reader and the keyboard still get radios in a
   // group — the looks are the label's business, the semantics the input's.
-  await expect(page.getByRole('radio', { name: 'Each person is scored on their own' })).toBeChecked();
+  await expect(
+    page.getByRole('radio', { name: 'Everyone on their own', exact: true }),
+  ).toBeChecked();
   await expect(page.getByRole('radio', { name: 'Couples cook together' })).not.toBeChecked();
   await expect(page.getByRole('checkbox')).toBeChecked();
 
