@@ -108,7 +108,7 @@ const DRAFT_CONTENT = {
 };
 
 /** An external-client call as the host — just the bearer token, no cookies (as the MCP adapter does). */
-function asBearer(app: FastifyInstance, token: string, method: 'GET' | 'POST', url: string, payload?: object) {
+export function asBearer(app: FastifyInstance, token: string, method: 'GET' | 'POST', url: string, payload?: object) {
   return app.inject({ method, url, payload, headers: { authorization: `Bearer ${token}` } });
 }
 
@@ -140,6 +140,30 @@ export async function saveNamedDraftAs(
 ): Promise<string> {
   const created = await asBearer(app, token, 'POST', '/drafts', {
     name,
+    participants: participantNames.map((displayName, i) => ({ id: `p${i}`, displayName })),
+  });
+  return created.json().id as string;
+}
+
+/**
+ * Saves a draft with a specific name and scoring as the given host; returns its
+ * id. For the scoring-shaping specs, which need a draft that is already judged
+ * on something in particular before they change it.
+ */
+export async function saveScoredDraftAs(
+  app: FastifyInstance,
+  token: string,
+  name: string,
+  scoring: object,
+  participantNames: readonly string[] = ['Ana', 'Bob'],
+): Promise<string> {
+  const created = await asBearer(app, token, 'POST', '/drafts', {
+    name,
+    // A format, so the draft is complete enough for publishing to reach the
+    // scoring rules — without one it is refused as incomplete first, and a spec
+    // about the scoring would never exercise the scoring.
+    format: 'solo',
+    scoring,
     participants: participantNames.map((displayName, i) => ({ id: `p${i}`, displayName })),
   });
   return created.json().id as string;

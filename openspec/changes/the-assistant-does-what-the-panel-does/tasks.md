@@ -68,12 +68,49 @@ What Slice B turned up:
 
 ## 3. Slice C — a draft's scoring is settled by asking
 
-- [ ] 3.1 Write the acceptance feature for adding a category, removing one behind a confirmation, setting a fixed range, letting the range be worked out, and settling whether a score may be repeated — confirm before implementing
-- [ ] 3.2 One use case per operation in `packages/api` (`add-scoring-category`, `remove-scoring-category`, `set-score-range`, `set-score-uniqueness`), each loading the draft, applying one change, saving — with unit tests asserting no other rule moves
-- [ ] 3.3 Refuse a rule that cannot stand (a range whose bounds make no range, a category name already used) with a host-facing reason, and refuse any of these against a published contest
-- [ ] 3.4 Routes for each, addressed by contest name through the shared resolver
-- [ ] 3.5 Add the four tools to `tool-catalog.ts`, `remove_category` marked destructive so it takes the existing confirmation flow
-- [ ] 3.6 Full local gate, then PR
+- [x] 3.1 Write the acceptance feature for adding a category, removing one behind a confirmation, setting a fixed range, letting the range be worked out, and settling whether a score may be repeated — confirm before implementing
+- [x] 3.2 One use case per operation in `packages/api` (`add-scoring-category`, `remove-scoring-category`, `set-score-range`, `set-score-uniqueness`), each loading the draft, applying one change, saving — with unit tests asserting no other rule moves
+- [x] 3.3 ~~Refuse a rule that cannot stand~~ — **rescoped, see below**. Refuse a category name the draft already carries, and a removal of one it does not; a published contest answers "no draft found" like any other name that is not a draft
+- [x] 3.4 Routes for each, addressed by contest name through the shared resolver
+- [x] 3.5 Add the four tools to `tool-catalog.ts`, `remove_category` marked destructive so it takes the existing confirmation flow
+- [x] 3.6 Full local gate, then PR
+
+**3.3 was written against the wrong rule.** It asked for "a range whose bounds
+make no range" to be refused at edit time. But `editing-a-contest-draft.feature`
+already states this repo's line: a draft need not be valid to be saved, and the
+rules are checked at publish. The existing specs draw it precisely — a *shape*
+error (a format outside the three) is refused at edit; a *coherence* error is
+the compiler's at publish. A 5..2 range is two good numbers in a good shape, so
+refusing it here would be a second validator the form does not share — the
+parallel-path divergence this repo keeps paying for. It is stored, and a
+scenario pins that publishing refuses it, so nobody "fixes" this later without
+meeting the reasoning.
+
+The one refusal that *was* added stands on different ground: a category name the
+draft already carries is refused because the assistant addresses a category **by
+name**, so two called "Taste" would leave the host unable to say which to
+remove. That is addressing, not validation. The form can allow duplicates
+because it removes by the row it drew.
+
+What Slice C turned up:
+
+- **The MCP path dropped every refusal reason.** `describeFailure` surfaced only
+  the error *code*, so an external assistant could report that something failed
+  but never what to do about it — while the in-app assistant showed the host-
+  facing sentence the API had written (`refusalMessage`). One failure, two paths,
+  two answers. Fixed here; the reason now reaches both.
+- **A removal that matches nothing is refused, not quietly reported as done.**
+  `remove_participant` still no-ops silently in that case, which is now
+  inconsistent. Left alone rather than changed under cover of this slice — see
+  the follow-up below.
+
+## 3b. Follow-up raised by Slice C
+
+- [ ] 3b.1 Decide whether `remove_participant` should refuse when nobody by that
+      name is taking part, as `remove_category` now does. Today it reports the
+      unchanged draft as though the removal happened, which is the weaker answer
+      — but changing it is a behaviour change to a shipped tool, so it wants its
+      own slice rather than a quiet edit inside this one.
 
 ## 4. Slice D — a draft's format and partners are settled by asking
 

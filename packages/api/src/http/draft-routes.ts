@@ -1,7 +1,8 @@
-import type { DraftContent } from '@tapas/domain';
+import type { DraftContent, ScoreRange } from '@tapas/domain';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { StoredDraft } from '../drafts/stored-draft.js';
 import type { DraftFailureCode } from '../drafts/use-cases/shared.js';
+import type { ScoringChangeResult } from '../drafts/use-cases/shape-draft-scoring.js';
 import type { PublishFailureCode } from '../contests/use-cases/shared.js';
 import type { ExtractContestDraftResult } from '../drafts/extraction/extract-contest-draft.js';
 import {
@@ -167,6 +168,87 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       const draft = deps.drafts.findById(id);
       if (!draft) return reply.code(200).send({ candidates: [] });
       return reply.code(200).send(draft);
+    },
+  );
+
+  /*
+   * Settling a draft's scoring, one thing at a time. Each is its own route
+   * because each is its own asking — a host changes what a contest is judged on
+   * without restating how it is scored, and a route that took the lot would
+   * make a model that omitted a field erase it.
+   *
+   * All addressed by the contest's name, draft-only, through the shared
+   * resolver — so a shared name answers with candidates here exactly as it does
+   * everywhere else.
+   */
+  function scoringAnswer(reply: FastifyReply, answer: ScoringChangeResult) {
+    if (!answer.ok) {
+      // The change was understood and refused for a reason the host can act on:
+      // unprocessable, not malformed.
+      return reply.code(422).send({ error: answer.error });
+    }
+    return reply.code(200).send(answer.result);
+  }
+
+  app.post<{ Body: { contest?: string; category?: string } }>(
+    '/drafts/by-name/categories',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const answer = deps.addScoringCategory.execute(
+        request.hostSession.id,
+        request.body?.contest ?? '',
+        request.body?.category ?? '',
+      );
+      return scoringAnswer(reply, answer);
+    },
+  );
+
+  // Removing is destructive (the assistant confirms with the host first); the
+  // params ride the query so a body isn't needed on DELETE.
+  app.delete<{ Querystring: { contest?: string; category?: string } }>(
+    '/drafts/by-name/categories',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const answer = deps.removeScoringCategory.execute(
+        request.hostSession.id,
+        request.query.contest ?? '',
+        request.query.category ?? '',
+      );
+      return scoringAnswer(reply, answer);
+    },
+  );
+
+  app.put<{ Body: { contest?: string; min?: number; max?: number } }>(
+    '/drafts/by-name/score-range',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const { min, max } = request.body ?? {};
+      /*
+       * Both bounds or neither. Neither means "work it out from the contest",
+       * which is a real choice a host makes — and one bound alone is not half a
+       * range, it is a request that cannot be honoured either way.
+       */
+      const range: ScoreRange =
+        typeof min === 'number' && typeof max === 'number' ? { type: 'fixed', min, max } : { type: 'auto' };
+      const answer = deps.setScoreRange.execute(request.hostSession.id, request.body?.contest ?? '', range);
+      return scoringAnswer(reply, answer);
+    },
+  );
+
+  app.put<{ Body: { contest?: string; uniquePerCategory?: boolean } }>(
+    '/drafts/by-name/score-uniqueness',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      if (!request.hostSession) return reply.code(401).send(notSignedIn);
+      const answer = deps.setScoreUniqueness.execute(
+        request.hostSession.id,
+        request.body?.contest ?? '',
+        request.body?.uniquePerCategory === true,
+      );
+      return scoringAnswer(reply, answer);
     },
   );
 

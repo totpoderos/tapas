@@ -24,6 +24,7 @@ describe('MCP tool catalog', () => {
   it('names the contest, never identifies it, on every host-facing tool', () => {
     const addressed = TOOL_CATALOG.filter((tool) => 'contest' in tool.inputSchema);
     expect(addressed.map((t) => t.name).sort()).toEqual([
+      'add_category',
       'add_participant',
       'close_contest',
       'delete_contest',
@@ -32,8 +33,11 @@ describe('MCP tool catalog', () => {
       'get_results',
       'get_tally',
       'publish_contest',
+      'remove_category',
       'remove_participant',
       'rename_contest',
+      'set_score_range',
+      'set_score_uniqueness',
       'trigger_reveal',
     ]);
     for (const tool of TOOL_CATALOG) {

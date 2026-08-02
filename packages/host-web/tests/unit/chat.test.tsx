@@ -234,6 +234,51 @@ describe('Chat panel', () => {
   });
 
   /*
+   * A rule change reports the state it produced, not the call that was made:
+   * the host reads the panel to know where their contest stands. It works
+   * because the panel reads the shape of the answer — add_category returns the
+   * draft's details like any other draft change, so it needed no panel change
+   * of its own.
+   */
+  it('reports what a draft is now judged on after the assistant changes a rule', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_category',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas Night',
+          status: 'draft',
+          participants: ['Ana', 'Bob'],
+          categories: ['Taste', 'Presentation'],
+        },
+      },
+    });
+    renderChat();
+    await send('judge Tapas Night on Presentation');
+
+    expect(await screen.findByText('Taste, Presentation')).toBeInTheDocument();
+  });
+
+  /*
+   * A refused change is a refusal carrying its reason — not the quiet note that
+   * means "that name is not one contest", and certainly not a ticket.
+   */
+  it('shows a refused rule change as a refusal, with the reason', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'failed',
+      action: 'add_category',
+      message: 'This contest is already judged on "Taste".',
+    });
+    renderChat();
+    await send('judge Tapas Night on Taste');
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/already judged on/i);
+  });
+
+  /*
    * Asking "which one?" is only worth doing if the host can answer. Two rows
    * both reading "Tapas Night — Live" is the same dead end as not asking, so
    * each candidate has to carry the thing that tells it apart.

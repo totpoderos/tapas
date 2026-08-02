@@ -72,15 +72,27 @@ function describeFailure(result: DispatchResult): string {
         : result.status === 404
           ? 'Not found.'
           : `The request failed (status ${result.status}).`;
-  const code = errorCode(result.body);
-  return code ? `${base} (${code})` : base;
+  /*
+   * The API writes its refusals for hosts to read — "This contest is already
+   * judged on Taste" — and that sentence is the whole point of refusing. It used
+   * to be dropped here in favour of the bare code, so an external assistant
+   * could only report that something failed and not what to do about it, while
+   * the in-app assistant showed the reason (see `refusalMessage` in
+   * host-assistant-turn.ts). One failure, two paths, two different answers.
+   */
+  const { code, message } = errorFields(result.body);
+  const detail = [message, code && `(${code})`].filter(Boolean).join(' ');
+  return detail ? `${base} ${detail}` : base;
 }
 
-/** The API's error envelope is `{ error: { code, message } }`; surface the code when present. */
-function errorCode(body: unknown): string | undefined {
-  if (typeof body !== 'object' || body === null) return undefined;
+/** The API's error envelope is `{ error: { code, message } }`. */
+function errorFields(body: unknown): { code?: string; message?: string } {
+  if (typeof body !== 'object' || body === null) return {};
   const error = (body as Record<string, unknown>).error;
-  if (typeof error !== 'object' || error === null) return undefined;
-  const code = (error as Record<string, unknown>).code;
-  return typeof code === 'string' ? code : undefined;
+  if (typeof error !== 'object' || error === null) return {};
+  const record = error as Record<string, unknown>;
+  return {
+    code: typeof record.code === 'string' ? record.code : undefined,
+    message: typeof record.message === 'string' && record.message.trim() ? record.message.trim() : undefined,
+  };
 }

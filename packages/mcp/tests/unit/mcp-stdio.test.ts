@@ -22,6 +22,7 @@ describe('createConfiguredMcpServer', () => {
     const { tools } = await client.listTools();
 
     expect(tools.map((tool) => tool.name).sort()).toEqual([
+      'add_category',
       'add_participant',
       'close_contest',
       'create_draft',
@@ -34,8 +35,11 @@ describe('createConfiguredMcpServer', () => {
       'get_tally',
       'list_my_contests',
       'publish_contest',
+      'remove_category',
       'remove_participant',
       'rename_contest',
+      'set_score_range',
+      'set_score_uniqueness',
       'trigger_reveal',
     ]);
     await client.close();

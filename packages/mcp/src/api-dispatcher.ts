@@ -8,7 +8,9 @@
  */
 
 export interface ApiRequest {
-  readonly method: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  // PUT joined the rest when the assistant gained the draft edits that replace a
+  // setting outright — a score range is set, not merged into.
+  readonly method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** API path beginning with `/`, e.g. `/contests/abc`. */
   readonly path: string;
   readonly body?: unknown;
