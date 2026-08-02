@@ -139,10 +139,31 @@ describe('compile — fixed range', () => {
     expect(c.scoreRangeByVoter.get('B')).toEqual({ min: 1, max: 10 });
   });
 
+  /*
+   * A contest judged on nothing is broken in a way that only shows at the end:
+   * its participants get a ballot with nothing to score, every dish totals zero,
+   * and the reveal names all of them joint winners. Caught here rather than when
+   * the draft is written — a draft with no categories yet is an ordinary
+   * halfway state.
+   */
+  it('rejects a contest that is judged on nothing', () => {
+    const result = compile(
+      makeDraft({
+        participants: [person('A'), person('B')],
+        scoring: { categories: [], range: { type: 'auto' }, uniquePerCategory: false },
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('NO_CATEGORIES');
+    expect(result.error.message).toMatch(/judged on/i);
+  });
+
   it('rejects an inverted fixed range', () => {
     const r = compile(
       makeDraft({
-        scoring: { categories: [], range: { type: 'fixed', min: 10, max: 1 }, uniquePerCategory: false },
+        scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 10, max: 1 }, uniquePerCategory: false },
         participants: [person('A'), person('B')],
       }),
     );
@@ -153,7 +174,7 @@ describe('compile — fixed range', () => {
   it('rejects a fixed range that does not start at 1 or above', () => {
     const r = compile(
       makeDraft({
-        scoring: { categories: [], range: { type: 'fixed', min: 0, max: 5 }, uniquePerCategory: false },
+        scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 0, max: 5 }, uniquePerCategory: false },
         participants: [person('A'), person('B')],
       }),
     );
@@ -182,7 +203,7 @@ describe('compile — auto range', () => {
   });
 
   it('works with repeats allowed (auto range, not unique)', () => {
-    const c = ok(compile(makeDraft({ participants: [person('A'), person('B'), person('C')], scoring: { categories: [], range: { type: 'auto' }, uniquePerCategory: false } })));
+    const c = ok(compile(makeDraft({ participants: [person('A'), person('B'), person('C')], scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: false } })));
     expect(c.scoreRangeByVoter.get('A')).toEqual({ min: 1, max: 2 });
     expect(c.uniquePerCategory).toBe(false);
   });
@@ -247,7 +268,7 @@ describe('compile — validation', () => {
 
 describe('compile — materialized output', () => {
   it('carries uniquePerCategory through (true)', () => {
-    const c = ok(compile(makeDraft({ participants: [person('A'), person('B')], scoring: { categories: [], range: { type: 'auto' }, uniquePerCategory: true } })));
+    const c = ok(compile(makeDraft({ participants: [person('A'), person('B')], scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true } })));
     expect(c.uniquePerCategory).toBe(true);
   });
 

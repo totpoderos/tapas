@@ -73,6 +73,66 @@ describe('Contest.publish', () => {
     if (!result.ok) expect(result.error.code).toBe('INCOMPLETE_DRAFT');
   });
 
+  /*
+   * All three used to be reported as "The draft is missing its scoring rules"
+   * whichever was actually absent. A contest prepared through the assistant
+   * arrives with its people and its scoring settled and no format, and its host
+   * was sent to fix the scoring, which was complete.
+   */
+  it('names the format when that is the only thing the draft never said', () => {
+    const noFormat: DraftContent = {
+      name: 'Tapas Night',
+      participants: [
+        { id: 'a', displayName: 'Ana' },
+        { id: 'b', displayName: 'Bob' },
+      ],
+      scoring: {
+        categories: [{ id: 'c1', name: 'Taste' }],
+        range: { type: 'fixed', min: 1, max: 5 },
+        uniquePerCategory: false,
+      },
+    };
+    const result = Contest.publish({ id: 'd1', hostId: 'h1', content: noFormat }, 'JOIN-1');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe('INCOMPLETE_DRAFT');
+    expect(result.error.message).toContain('what kind of contest it is');
+    // The thing it must NOT say, because the scoring is right there.
+    expect(result.error.message).not.toContain('how it is scored');
+  });
+
+  it('names the people when nobody was ever listed', () => {
+    const noPeople: DraftContent = {
+      name: 'Tapas Night',
+      format: 'solo',
+      scoring: {
+        categories: [{ id: 'c1', name: 'Taste' }],
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    };
+    const result = Contest.publish({ id: 'd1', hostId: 'h1', content: noPeople }, 'JOIN-1');
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('who is taking part');
+    expect(result.error.message).not.toContain('what kind of contest it is');
+  });
+
+  it('names all three when a draft has only a name', () => {
+    const result = Contest.publish(
+      { id: 'd1', hostId: 'h1', content: { name: 'Half-baked' } },
+      'JOIN-1',
+    );
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toContain('what kind of contest it is');
+    expect(result.error.message).toContain('who is taking part');
+    expect(result.error.message).toContain('how it is scored');
+  });
+
   it('surfaces a compiler rejection (a judge who could score nothing)', () => {
     const singleCouple: DraftContent = {
       name: 'Just us',

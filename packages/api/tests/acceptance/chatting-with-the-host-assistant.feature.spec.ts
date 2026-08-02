@@ -202,8 +202,17 @@ describeFeature(feature, ({ Scenario }) => {
     Then('the host is told it did not happen', () => {
       expect(response.json().kind).toBe('failed');
     });
+    /*
+     * The reason names what the draft still needs, not merely that something is
+     * wrong. Asserted on the substance rather than on one word: this used to
+     * match /scoring/i, which passed even when the refusal blamed the scoring
+     * for a missing format.
+     */
     And('the host is told why', () => {
-      expect(response.json().message).toMatch(/scoring/i);
+      const { message } = response.json();
+      expect(message).toContain('what kind of contest it is');
+      expect(message).toContain('who is taking part');
+      expect(message).toContain('how it is scored');
     });
   });
 
