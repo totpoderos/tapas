@@ -116,11 +116,14 @@ What Slice C turned up:
 
 ## 3b. Follow-up raised by Slice C
 
-- [ ] 3b.1 Decide whether `remove_participant` should refuse when nobody by that
-      name is taking part, as `remove_category` now does. Today it reports the
-      unchanged draft as though the removal happened, which is the weaker answer
-      — but changing it is a behaviour change to a shipped tool, so it wants its
-      own slice rather than a quiet edit inside this one.
+- [x] 3b.1 **Settled: it refuses, as `remove_category` does.** And writing the
+      spec for it turned up something worse than the logged complaint:
+      `remove_participant` collected **every** participant matching the display
+      name, so a host with two people called "Ana" who confirmed "remove Ana"
+      lost **both**. A destructive action taking away more than the host named
+      is the one thing confirming exists to prevent, and the confirmation they
+      gave named one person. A shared name now goes back to the host, exactly as
+      `set_partner` does with one.
 
 ## 4. Slice D — a draft's format and partners are settled by asking
 

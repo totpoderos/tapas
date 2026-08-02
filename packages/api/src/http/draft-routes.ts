@@ -103,7 +103,12 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
       const contest = request.query.contest ?? '';
       const participant = request.query.participant ?? '';
-      return reply.code(200).send(deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant));
+      const answer = deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant);
+      // Understood and refused for a reason the host can act on — a name that
+      // reaches nobody, or two people at once. The same 422 the scoring and
+      // partner refusals use, so one kind of answer has one kind of status.
+      if (!answer.ok) return reply.code(422).send({ error: answer.error });
+      return reply.code(200).send(answer.result);
     },
   );
 
