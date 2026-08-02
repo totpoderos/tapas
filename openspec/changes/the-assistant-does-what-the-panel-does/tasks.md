@@ -46,12 +46,25 @@ Not scheduled: needs a decision, since it changes the confirmation flow's shape.
 
 Before the new tools land, so they need no panel change when they do.
 
-- [ ] 2.1 Write the acceptance feature for the panel offering the choice when a name is shared, and saying plainly when a name matches nothing, for an action rather than only a read — confirm before implementing
-- [ ] 2.2 Replace `CONTEST_LIST_ACTIONS` / `DETAILS_ACTIONS` in `chat.tsx` with discrimination on the result's own shape, each shape keyed on a field only it has
-- [ ] 2.3 Widen the "which one did you mean?" path so any action can ask it, not only the three that can today
-- [ ] 2.4 Component tests for each shape, including an unfamiliar shape falling back to the plain ticket
-- [ ] 2.5 Add the i18n keys for the new wording to EN and ES, and grep every consumer of any key removed
-- [ ] 2.6 Full local gate, then PR
+- [x] 2.1 Write the acceptance feature for the panel offering the choice when a name is shared, and saying plainly when a name matches nothing, for an action rather than only a read — confirm before implementing
+- [x] 2.2 Replace `CONTEST_LIST_ACTIONS` / `DETAILS_ACTIONS` in `chat.tsx` with discrimination on the result's own shape, each shape keyed on a field only it has
+- [x] 2.3 Widen the "which one did you mean?" path so any action can ask it, not only the three that can today
+- [x] 2.4 Component tests for each shape, including an unfamiliar shape falling back to the plain ticket
+- [x] 2.5 Add the i18n keys for the new wording to EN and ES, and grep every consumer of any key removed
+- [x] 2.6 Full local gate, then PR
+
+What Slice B turned up:
+
+- **Asking "which one?" was a question the host could not answer.** Looking at
+  the screen by hand — which the tests could not do — showed two candidates both
+  reading "Tapas Night — Live", identical and unchoosable. Each candidate now
+  carries what tells it apart: the join code the host already has on screen, or
+  when it last changed for a draft that has none. The recap the model keeps
+  carries it too, or the assistant cannot act on the answer it just asked for.
+- **One action-name table survives, deliberately.** `DRAFT_ONLY_ACTIONS` decides
+  whether an empty answer reads "no contest" or "no draft" — a noun, not a
+  renderer. The shape of an answer genuinely cannot say which was asked for, and
+  a tool missing from the table still gets a truthful message.
 
 ## 3. Slice C — a draft's scoring is settled by asking
 

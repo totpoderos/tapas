@@ -31,6 +31,8 @@
   "recapNoCategories": "ninguna categoría todavía",
   "detailsRecap": "{{name}} ({{status}}) — participan: {{who}}; se puntúa en: {{cats}}.",
   "nudge": "No te he entendido. Prueba, por ejemplo, «lista mis concursos».",
+  "contestCode": "Código {{code}}",
+  "contestChanged": "Modificado {{when}}",
   "severalWhichOne": "Varios concursos tienen ese nombre. ¿Cuál de ellos?",
   "severalRecap": "Varios concursos tienen ese nombre.",
   "noContestByName": "No hay ningún concurso con ese nombre.",

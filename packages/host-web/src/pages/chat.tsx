@@ -10,6 +10,7 @@ import {
   type PendingAction,
 } from '../api/client';
 import { useContests } from '../contests/contests-provider';
+import { whenLastChanged } from '../contests/when';
 import { PanelActions } from '../shell/panel-actions';
 import styles from './chat.module.css';
 
@@ -29,19 +30,34 @@ function resultSummary(action: string, result: unknown, t: TFunction): string {
     : t('chat.resultDone', { action: labelFor(action, t) });
 }
 
-// Read tools that return a *list of contests* — their answer is the data, so it
-// is rendered as a list rather than a bare "done" ticket.
-const CONTEST_LIST_ACTIONS = new Set(['list_my_contests', 'find_contest']);
-// Tools whose result is a single contest's details (or candidates to choose from).
-const DETAILS_ACTIONS = new Set(['get_contest_details', 'add_participant', 'remove_participant']);
-// Tools that only ever act on a draft, so "nothing by that name" means no DRAFT
-// by that name — a published contest of the same name is not what they missed.
-const DRAFT_ONLY_ACTIONS = new Set(['get_draft', 'rename_contest', 'publish_contest']);
+/*
+ * Tools that only ever act on a DRAFT. This is the one thing left that the shape
+ * of an answer cannot say: an empty answer to `get_draft` means no *draft* by
+ * that name, and looks exactly like an empty answer to `get_contest`, which
+ * means no *contest*. It decides a noun, not a renderer — a tool missing from
+ * here still gets a truthful message, just the more general one.
+ */
+const DRAFT_ONLY_ACTIONS = new Set([
+  'get_draft',
+  'rename_contest',
+  'publish_contest',
+  'add_participant',
+  'remove_participant',
+]);
 const STATUS_MARK: Record<string, string> = { live: '●', draft: '◇', closed: '◆', revealed: '✓' };
 
 interface ContestRow {
   readonly name: string;
   readonly status: string;
+  /**
+   * What tells this contest apart from another of the same name — the join code
+   * a host already has on screen, or failing that when it last changed.
+   *
+   * Not decoration. Asking "which one?" and then listing two rows that read
+   * identically is not a question a host can answer; it is the same dead end as
+   * not asking. This is the field that makes the asking worth doing.
+   */
+  readonly apart?: string;
 }
 
 interface ContestDetails {
@@ -51,14 +67,37 @@ interface ContestDetails {
   readonly categories: readonly string[];
 }
 
-/** Reads the get_contest_details response: one contest's details, or candidates to choose from. */
-function readDetails(result: unknown, t: TFunction): { details?: ContestDetails; candidates?: ContestRow[] } {
-  if (!result || typeof result !== 'object') return {};
+/**
+ * What a tool's answer *is*, read from the answer itself.
+ *
+ * The panel used to choose how to draw a result from the name of the tool that
+ * produced it, which meant a table of tool names kept beside the catalogue — a
+ * second catalogue, free to fall behind the first. When it did, a real change
+ * rendered as a bare "done" ticket, or worse, an action that never happened
+ * rendered as one that did.
+ *
+ * So the answer says what it is. Each shape is told by a field only it has, and
+ * anything unrecognised falls back to the plain ticket — which is terse but
+ * true, and is what a new tool gets for free until someone gives it a nicer
+ * rendering.
+ */
+type ResultShape =
+  | { readonly kind: 'contests'; readonly rows: readonly ContestRow[] }
+  | { readonly kind: 'details'; readonly details: ContestDetails }
+  | { readonly kind: 'unresolved'; readonly candidates: readonly ContestRow[] }
+  | { readonly kind: 'done' };
+
+function shapeOf(result: unknown, t: TFunction, language: string): ResultShape {
+  const rows = contestRows(result, t, language);
+  if (rows) return { kind: 'contests', rows };
+
+  if (!result || typeof result !== 'object') return { kind: 'done' };
   const record = result as Record<string, unknown>;
-  const candidates = contestRows(record.candidates, t);
+
   if (record.details && typeof record.details === 'object') {
     const d = record.details as Record<string, unknown>;
     return {
+      kind: 'details',
       details: {
         name: typeof d.name === 'string' ? d.name : '',
         status: typeof d.status === 'string' ? d.status : '',
@@ -67,44 +106,83 @@ function readDetails(result: unknown, t: TFunction): { details?: ContestDetails;
       },
     };
   }
-  return { candidates: candidates ?? [] };
+
+  /*
+   * `candidates` means the name the host said is not one contest, so whatever
+   * they asked for did not happen — with entries when they have reused a name,
+   * and empty when no contest has it. Every tool can answer this way now, which
+   * is exactly why it must be read from the answer and not from a list of which
+   * tools might.
+   */
+  const candidates = contestRows(record.candidates, t, language);
+  if (candidates) return { kind: 'unresolved', candidates };
+
+  return { kind: 'done' };
 }
 
 /**
- * Whether a tool answered "that name is not one contest" rather than doing the
- * thing. Every host-facing tool now names its contest, and any of them can come
- * back this way: `candidates` with entries when the host has reused a name, and
- * empty when no contest has it.
- *
- * Told by the shape of the answer rather than by which tool was called — the
- * list of tools that can ask this is now every tool, and a table of names kept
- * beside the catalogue is a second catalogue to fall behind it.
+ * What to say when the answer is empty. This is the one choice the shape cannot
+ * make: an empty answer looks the same whether the host asked for a draft, a
+ * contest, or their whole list — only the question told them apart.
  */
-function unresolvedName(result: unknown): boolean {
-  return (
-    !!result &&
-    typeof result === 'object' &&
-    'candidates' in result &&
-    Array.isArray((result as { candidates: unknown }).candidates)
-  );
+function emptyAnswerText(action: string, t: TFunction): string {
+  if (action === 'list_my_contests') return t('chat.noContestsYet');
+  return DRAFT_ONLY_ACTIONS.has(action) ? t('chat.noDraftByName') : t('chat.noContestByName');
 }
 
-/** Reads a contest list out of a tool result, defensively — null if it is not one. */
-function contestRows(result: unknown, t: TFunction): ContestRow[] | null {
+/**
+ * Reads a contest list out of a tool result — null if it is not one.
+ *
+ * This now *decides* whether an answer is a list of contests, not merely how to
+ * read one, so it has to be strict: every entry must actually look like a
+ * contest. An array of something else drawn as a contest list would be a screen
+ * full of "Unnamed contest", which is worse than the plain ticket it would
+ * otherwise get. An empty array is still a list — an empty one.
+ */
+function contestRows(result: unknown, t: TFunction, language: string): ContestRow[] | null {
   if (!Array.isArray(result)) return null;
+  const looksLikeContest = (row: unknown): boolean =>
+    !!row && typeof row === 'object' && ('name' in row || 'status' in row);
+  if (!result.every(looksLikeContest)) return null;
+
   return result.map((row) => {
-    const record = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+    const record = row as Record<string, unknown>;
     return {
       name: typeof record.name === 'string' ? record.name : t('chat.unnamedContest'),
       status: typeof record.status === 'string' ? record.status : '',
+      apart: tellsApart(record, t, language),
     };
   });
 }
 
-/** A one-line recap of a contest list, kept in the conversation so the model has context. */
-function summariseRows(rows: ContestRow[], t: TFunction): string {
+/**
+ * The one detail that lets a host pick this contest out of several with the same
+ * name. The join code first — it is the thing they already have on screen and
+ * read out to the room — and when there is none (a draft has none yet), when it
+ * was last changed, which is what separates this year's "Tapas Night" from last
+ * year's.
+ */
+function tellsApart(record: Record<string, unknown>, t: TFunction, language: string): string | undefined {
+  if (typeof record.joinCode === 'string' && record.joinCode !== '') {
+    return t('chat.contestCode', { code: record.joinCode });
+  }
+  if (typeof record.updatedAt === 'string') {
+    const when = whenLastChanged(record.updatedAt, language);
+    if (when) return t('chat.contestChanged', { when });
+  }
+  return undefined;
+}
+
+/**
+ * A one-line recap of a contest list, kept in the conversation so the model has
+ * context. It carries what tells the contests apart for the same reason the
+ * screen does: the host answers "which one?" by naming that detail back, and a
+ * recap of two identical-looking rows leaves the model unable to act on the
+ * answer it just asked for.
+ */
+function summariseRows(rows: readonly ContestRow[], t: TFunction): string {
   if (rows.length === 0) return t('chat.contestsRecapEmpty');
-  const list = rows.map((r) => `${r.name} (${r.status})`).join(', ');
+  const list = rows.map((r) => `${r.name} (${[r.apart, r.status].filter(Boolean).join(', ')})`).join('; ');
   return t('chat.contestsRecap', { list });
 }
 
@@ -158,7 +236,7 @@ function loadChat(): PersistedChat {
  * surfaces a confirmation card the host must accept first (§7.1).
  */
 export function Chat() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { refresh: refreshContests } = useContests();
   const initial = useMemo(loadChat, []);
   const [feed, setFeed] = useState<readonly Feed[]>(initial.feed);
@@ -216,57 +294,44 @@ export function Chat() {
       // Fed back to the model too, so the next turn can react to the reason
       // instead of cheerfully repeating the same call.
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
-    } else if (turn.kind === 'result' && DETAILS_ACTIONS.has(turn.action)) {
-      // Details resolve to one contest, or to candidates when a name is shared.
-      const { details, candidates } = readDetails(turn.result, t);
-      if (details) {
-        add({ kind: 'details', details });
-        setHistory((h) => [...h, { role: 'assistant', content: detailsSummary(details, t) }]);
-      } else if (candidates && candidates.length > 0) {
-        add({ kind: 'note', text: t('chat.severalWhichOne') });
-        add({ kind: 'contests', rows: candidates });
-        setHistory((h) => [...h, { role: 'assistant', content: t('chat.severalRecap') }]);
-      } else {
-        // Adding/removing works on a draft; the details tool works on any contest.
-        const text =
-          turn.action === 'get_contest_details' ? t('chat.noContestByName') : t('chat.noDraftByName');
-        add({ kind: 'note', text });
-        setHistory((h) => [...h, { role: 'assistant', content: text }]);
-      }
-    } else if (turn.kind === 'result' && unresolvedName(turn.result)) {
-      /*
-       * The action named something that is not one contest, so it did not happen.
-       * Every tool can now answer this way, and without this the branch below
-       * would announce a change that was never made — the one thing the panel
-       * must never say. Slice B replaces the action-name tables around it with
-       * the same shape-reading this uses.
-       */
-      const rows = contestRows((turn.result as { candidates?: unknown }).candidates, t) ?? [];
-      if (rows.length > 0) {
-        add({ kind: 'note', text: t('chat.severalWhichOne') });
-        add({ kind: 'contests', rows });
-        setHistory((h) => [...h, { role: 'assistant', content: t('chat.severalRecap') }]);
-      } else {
-        const text = DRAFT_ONLY_ACTIONS.has(turn.action)
-          ? t('chat.noDraftByName')
-          : t('chat.noContestByName');
-        add({ kind: 'note', text });
-        setHistory((h) => [...h, { role: 'assistant', content: text }]);
-      }
     } else if (turn.kind === 'result') {
-      const rows = CONTEST_LIST_ACTIONS.has(turn.action) ? contestRows(turn.result, t) : null;
-      if (rows) {
-        // A read tool's answer IS its data — render the contests, not a "done" ticket.
-        if (rows.length === 0) {
-          add({
-            kind: 'note',
-            text: turn.action === 'find_contest' ? t('chat.noContestByName') : t('chat.noContestsYet'),
-          });
+      const shape = shapeOf(turn.result, t, i18n.language);
+
+      if (shape.kind === 'details') {
+        add({ kind: 'details', details: shape.details });
+        setHistory((h) => [...h, { role: 'assistant', content: detailsSummary(shape.details, t) }]);
+      } else if (shape.kind === 'unresolved') {
+        /*
+         * The name the host said is not one contest, so what they asked for did
+         * not happen. Said as a note rather than a refusal on purpose: a refusal
+         * means the thing was tried and could not be done, and a host reads the
+         * two differently. This one is "you have two of those" or "you have none
+         * of those" — a question to answer, not a failure to absorb.
+         */
+        if (shape.candidates.length > 0) {
+          add({ kind: 'note', text: t('chat.severalWhichOne') });
+          add({ kind: 'contests', rows: shape.candidates });
+          setHistory((h) => [
+            ...h,
+            // The candidates go into the model's context too, told apart, so it can
+            // act on whichever one the host names back.
+            { role: 'assistant', content: `${t('chat.severalRecap')} ${summariseRows(shape.candidates, t)}` },
+          ]);
         } else {
-          add({ kind: 'contests', rows });
+          const text = emptyAnswerText(turn.action, t);
+          add({ kind: 'note', text });
+          setHistory((h) => [...h, { role: 'assistant', content: text }]);
         }
+      } else if (shape.kind === 'contests') {
+        // A read tool's answer IS its data — render the contests, not a "done" ticket.
+        const { rows } = shape;
+        if (rows.length === 0) add({ kind: 'note', text: emptyAnswerText(turn.action, t) });
+        else add({ kind: 'contests', rows });
         if (turn.text) add({ kind: 'assistant', text: turn.text });
-        setHistory((h) => [...h, { role: 'assistant', content: turn.text || summariseRows(rows, t) }]);
+        setHistory((h) => [
+          ...h,
+          { role: 'assistant', content: turn.text || summariseRows(rows, t) },
+        ]);
       } else {
         /*
          * The assistant has just changed something. The shared contest list has
@@ -432,6 +497,9 @@ export function Chat() {
                     {STATUS_MARK[row.status] ?? '•'}
                   </span>
                   <span className={styles.contestName}>{row.name}</span>
+                  {/* What tells two contests of the same name apart — without it
+                      "which one?" is a question the host cannot answer. */}
+                  {row.apart ? <span className={styles.contestApart}>{row.apart}</span> : null}
                   <span className={styles.contestStatus}>{row.status}</span>
                 </li>
               ))}

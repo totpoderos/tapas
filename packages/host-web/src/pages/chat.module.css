@@ -161,6 +161,17 @@
   color: var(--ink);
   font-weight: 600;
 }
+/*
+ * What separates this contest from another of the same name. Quieter than the
+ * name, and sitting between it and the state, so a list of same-named contests
+ * reads down the one column that actually differs. Tabular figures so join codes
+ * and dates line up rather than jostling.
+ */
+.contestApart {
+  color: var(--ink-2);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 .contestStatus {
   color: var(--ink-2);
   font-size: 13px;
