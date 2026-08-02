@@ -5,6 +5,7 @@ import type { DraftRepository } from '../../../src/db/draft-repository.js';
 import type { RosterRepository } from '../../../src/db/roster-repository.js';
 import { GetContestDetails } from '../../../src/contests/use-cases/get-contest-details.js';
 import type { FindContestsByName } from '../../../src/contests/use-cases/find-contests-by-name.js';
+import { ResolveContestByName } from '../../../src/contests/use-cases/resolve-contest-by-name.js';
 
 const summary = (id: string, name: string, status: ContestSummary['status']): ContestSummary => ({
   id,
@@ -20,7 +21,11 @@ function build(opts: {
   roster?: Partial<RosterRepository>;
 }): GetContestDetails {
   return new GetContestDetails({
-    findContestsByName: { execute: () => opts.matches } as unknown as FindContestsByName,
+    // The real resolver over a stubbed search, so these tests keep exercising the
+    // one name rule rather than a second copy of it stubbed out here.
+    resolveContestByName: new ResolveContestByName({
+      execute: () => opts.matches,
+    } as unknown as FindContestsByName),
     drafts: (opts.drafts ?? {}) as DraftRepository,
     contests: (opts.contests ?? {}) as ContestRepository,
     roster: (opts.roster ?? {}) as RosterRepository,

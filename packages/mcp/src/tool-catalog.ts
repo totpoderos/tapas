@@ -24,19 +24,40 @@ export interface McpTool {
 }
 
 /**
- * `get_contest` — reads one of the host's own contests. Read-only and
- * host-scoped; the API enforces ownership, the adapter only forwards. The id
- * is URL-encoded so a value can never break out of the path.
+ * How every host-facing tool names the contest it acts on. Written once so the
+ * model is told the rule once: a host says a name, never an internal id, and a
+ * name that several contests share is settled with the host before anything
+ * happens rather than guessed at.
+ */
+const CONTEST_NAME = z
+  .string()
+  .min(1)
+  .describe(
+    "The exact name of the contest, as the host says it (case-insensitive). Never an id — the host does not see ids. If the answer comes back with `candidates`, the host has more than one contest with that name and nothing was changed: ask them which one they mean before trying again. An empty `candidates` list means no contest has that name.",
+  );
+
+/** The protocol-level confirmation a destructive tool carries. Never forwarded to the API. */
+const CONFIRMATION_TOKEN = z
+  .string()
+  .optional()
+  .describe('The confirmation token the server issued for this exact action.');
+
+/**
+ * `get_contest` — reads one of the host's own contests, by the name the host
+ * says. Read-only and host-scoped; the API enforces ownership and resolves the
+ * name, the adapter only forwards. The name is URL-encoded so a value can never
+ * break out of the query.
  */
 const getContest: McpTool = {
   name: 'get_contest',
-  description: "Read one of the host's own contests by id and return its current state.",
+  description:
+    "Read one of the host's own contests by its name and return its current state. When several of the host's contests share the name, returns the candidates to choose from instead; when none has it, returns no candidates.",
   destructive: false,
   scope: 'host',
-  inputSchema: { contestId: z.string().min(1).describe('The id of the contest to read.') },
+  inputSchema: { contest: CONTEST_NAME },
   toRequest: (args) => ({
     method: 'GET',
-    path: `/contests/${encodeURIComponent(String(args.contestId))}`,
+    path: `/contests/by-name?name=${encodeURIComponent(String(args.contest))}`,
   }),
 };
 
@@ -122,7 +143,7 @@ const addParticipant: McpTool = {
   destructive: false,
   scope: 'host',
   inputSchema: {
-    contest: z.string().min(1).describe('The exact name of the draft to add to (case-insensitive).'),
+    contest: CONTEST_NAME,
     participant: z.string().min(1).describe('The display name of the participant to add.'),
   },
   toRequest: (args) => ({
@@ -144,12 +165,9 @@ const removeParticipant: McpTool = {
   destructive: true,
   scope: 'host',
   inputSchema: {
-    contest: z.string().min(1).describe('The exact name of the draft to remove from (case-insensitive).'),
+    contest: CONTEST_NAME,
     participant: z.string().min(1).describe('The display name of the participant to remove.'),
-    confirmationToken: z
-      .string()
-      .optional()
-      .describe('The confirmation token the server issued for this exact action.'),
+    confirmationToken: CONFIRMATION_TOKEN,
   },
   toRequest: (args) => ({
     method: 'DELETE',
@@ -160,13 +178,14 @@ const removeParticipant: McpTool = {
 /** `get_draft` — reads one of the host's own contest drafts (still being prepared). */
 const getDraft: McpTool = {
   name: 'get_draft',
-  description: "Read one of the host's own contest drafts by id and return its current content.",
+  description:
+    "Read one of the host's own contest DRAFTS by its name and return its current content. A published contest of the same name is not a draft and is not returned.",
   destructive: false,
   scope: 'host',
-  inputSchema: { draftId: z.string().min(1).describe('The id of the draft to read.') },
+  inputSchema: { contest: CONTEST_NAME },
   toRequest: (args) => ({
     method: 'GET',
-    path: `/drafts/${encodeURIComponent(String(args.draftId))}`,
+    path: `/drafts/by-name?name=${encodeURIComponent(String(args.contest))}`,
   }),
 };
 
@@ -177,10 +196,10 @@ const getTally: McpTool = {
     "Read the live tally of one of the host's contests: how many participants have claimed a place, are still scoring, and have sent their votes.",
   destructive: false,
   scope: 'host',
-  inputSchema: { contestId: z.string().min(1).describe('The id of the contest whose tally to read.') },
+  inputSchema: { contest: CONTEST_NAME },
   toRequest: (args) => ({
     method: 'GET',
-    path: `/contests/${encodeURIComponent(String(args.contestId))}/tally`,
+    path: `/contests/by-name/tally?name=${encodeURIComponent(String(args.contest))}`,
   }),
 };
 
@@ -197,15 +216,13 @@ const closeContest: McpTool = {
   destructive: true,
   scope: 'host',
   inputSchema: {
-    contestId: z.string().min(1).describe('The id of the contest to close.'),
-    confirmationToken: z
-      .string()
-      .optional()
-      .describe('The confirmation token the server issued for this exact action.'),
+    contest: CONTEST_NAME,
+    confirmationToken: CONFIRMATION_TOKEN,
   },
   toRequest: (args) => ({
     method: 'POST',
-    path: `/contests/${encodeURIComponent(String(args.contestId))}/close`,
+    path: '/contests/by-name/close',
+    body: { contest: args.contest },
   }),
 };
 
@@ -266,20 +283,26 @@ const createDraft: McpTool = {
   toRequest: (args) => ({ method: 'POST', path: '/drafts', body: args }),
 };
 
-/** `update_draft` — renames an existing draft (the only draft edit the API exposes today). */
-const updateDraft: McpTool = {
-  name: 'update_draft',
-  description: "Rename one of the host's contest drafts.",
+/**
+ * `rename_contest` — renames one of the host's drafts. Named for what it does:
+ * as `update_draft` it promised every draft edit and delivered a rename, and a
+ * model reading the catalogue would reasonably reach for it to change any part
+ * of a draft.
+ */
+const renameContest: McpTool = {
+  name: 'rename_contest',
+  description:
+    "Rename one of the host's contest DRAFTS, found by its current name. Only the name changes; nothing else about the draft is touched.",
   destructive: false,
   scope: 'host',
   inputSchema: {
-    draftId: z.string().min(1).describe('The id of the draft to rename.'),
+    contest: CONTEST_NAME,
     name: z.string().min(1).describe('The new name for the draft.'),
   },
   toRequest: (args) => ({
     method: 'PATCH',
-    path: `/drafts/${encodeURIComponent(String(args.draftId))}`,
-    body: { name: args.name },
+    path: '/drafts/by-name',
+    body: { contest: args.contest, name: args.name },
   }),
 };
 
@@ -294,15 +317,13 @@ const publishContest: McpTool = {
   destructive: true,
   scope: 'host',
   inputSchema: {
-    draftId: z.string().min(1).describe('The id of the draft to publish.'),
-    confirmationToken: z
-      .string()
-      .optional()
-      .describe('The confirmation token the server issued for this exact action.'),
+    contest: CONTEST_NAME,
+    confirmationToken: CONFIRMATION_TOKEN,
   },
   toRequest: (args) => ({
     method: 'POST',
-    path: `/drafts/${encodeURIComponent(String(args.draftId))}/publish`,
+    path: '/drafts/by-name/publish',
+    body: { contest: args.contest },
   }),
 };
 
@@ -317,15 +338,13 @@ const triggerReveal: McpTool = {
   destructive: true,
   scope: 'host',
   inputSchema: {
-    contestId: z.string().min(1).describe('The id of the closed contest to reveal.'),
-    confirmationToken: z
-      .string()
-      .optional()
-      .describe('The confirmation token the server issued for this exact action.'),
+    contest: CONTEST_NAME,
+    confirmationToken: CONFIRMATION_TOKEN,
   },
   toRequest: (args) => ({
     method: 'POST',
-    path: `/contests/${encodeURIComponent(String(args.contestId))}/reveal`,
+    path: '/contests/by-name/reveal',
+    body: { contest: args.contest },
   }),
 };
 
@@ -347,22 +366,19 @@ const deleteContest: McpTool = {
   destructive: true,
   scope: 'host',
   inputSchema: {
-    contestId: z.string().min(1).describe('The id of the contest or draft to delete.'),
+    contest: CONTEST_NAME,
     confirmName: z
       .string()
       .optional()
       .describe("The contest's exact name. Required once anyone has taken part in it."),
-    confirmationToken: z
-      .string()
-      .optional()
-      .describe('The confirmation token the server issued for this exact action.'),
+    confirmationToken: CONFIRMATION_TOKEN,
   },
   toRequest: (args) => {
-    const path = `/contests/${encodeURIComponent(String(args.contestId))}`;
+    const path = `/contests/by-name?name=${encodeURIComponent(String(args.contest))}`;
     const name = args.confirmName;
     return {
       method: 'DELETE',
-      path: name === undefined ? path : `${path}?confirm=${encodeURIComponent(String(name))}`,
+      path: name === undefined ? path : `${path}&confirm=${encodeURIComponent(String(name))}`,
     };
   },
 };
@@ -374,12 +390,10 @@ const getResults: McpTool = {
     "Read the final results — category totals and winners — of one of the host's contests. The contest must already be revealed.",
   destructive: false,
   scope: 'host',
-  inputSchema: {
-    contestId: z.string().min(1).describe('The id of the revealed contest whose results to read.'),
-  },
+  inputSchema: { contest: CONTEST_NAME },
   toRequest: (args) => ({
     method: 'GET',
-    path: `/contests/${encodeURIComponent(String(args.contestId))}/results`,
+    path: `/contests/by-name/results?name=${encodeURIComponent(String(args.contest))}`,
   }),
 };
 
@@ -395,7 +409,7 @@ export const TOOL_CATALOG: readonly McpTool[] = [
   getTally,
   closeContest,
   createDraft,
-  updateDraft,
+  renameContest,
   publishContest,
   triggerReveal,
   deleteContest,

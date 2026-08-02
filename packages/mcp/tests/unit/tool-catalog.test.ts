@@ -9,12 +9,37 @@ describe('MCP tool catalog', () => {
     expect(getContest?.scope).toBe('host');
   });
 
-  it('maps get_contest arguments to a GET on the contest, url-encoding the id', () => {
+  it('maps get_contest arguments to a GET by name, url-encoding the name', () => {
     const getContest = TOOL_CATALOG.find((tool) => tool.name === 'get_contest');
-    expect(getContest?.toRequest({ contestId: 'abc/../123' })).toEqual({
+    expect(getContest?.toRequest({ contest: 'abc/../123' })).toEqual({
       method: 'GET',
-      path: '/contests/abc%2F..%2F123',
+      path: '/contests/by-name?name=abc%2F..%2F123',
     });
+  });
+
+  /*
+   * The rule the whole surface now rests on. A tool that still took an id would
+   * make the model ask the host for something they have never been shown.
+   */
+  it('names the contest, never identifies it, on every host-facing tool', () => {
+    const addressed = TOOL_CATALOG.filter((tool) => 'contest' in tool.inputSchema);
+    expect(addressed.map((t) => t.name).sort()).toEqual([
+      'add_participant',
+      'close_contest',
+      'delete_contest',
+      'get_contest',
+      'get_draft',
+      'get_results',
+      'get_tally',
+      'publish_contest',
+      'remove_participant',
+      'rename_contest',
+      'trigger_reveal',
+    ]);
+    for (const tool of TOOL_CATALOG) {
+      expect(Object.keys(tool.inputSchema)).not.toContain('contestId');
+      expect(Object.keys(tool.inputSchema)).not.toContain('draftId');
+    }
   });
 
   it('maps list_my_contests to a GET on the contest list, with no arguments', () => {
@@ -66,20 +91,23 @@ describe('MCP tool catalog', () => {
     });
   });
 
-  it('maps get_draft to a GET on the draft', () => {
+  it('maps get_draft to a GET on the draft by name', () => {
     const getDraft = TOOL_CATALOG.find((tool) => tool.name === 'get_draft');
     expect(getDraft?.scope).toBe('host');
     expect(getDraft?.destructive).toBe(false);
-    expect(getDraft?.toRequest({ draftId: 'd1' })).toEqual({ method: 'GET', path: '/drafts/d1' });
+    expect(getDraft?.toRequest({ contest: 'Tapas Night' })).toEqual({
+      method: 'GET',
+      path: '/drafts/by-name?name=Tapas%20Night',
+    });
   });
 
   it('maps get_tally to a GET on the contest tally', () => {
     const getTally = TOOL_CATALOG.find((tool) => tool.name === 'get_tally');
     expect(getTally?.scope).toBe('host');
     expect(getTally?.destructive).toBe(false);
-    expect(getTally?.toRequest({ contestId: 'c1' })).toEqual({
+    expect(getTally?.toRequest({ contest: 'Tapas Night' })).toEqual({
       method: 'GET',
-      path: '/contests/c1/tally',
+      path: '/contests/by-name/tally?name=Tapas%20Night',
     });
   });
 
@@ -88,9 +116,10 @@ describe('MCP tool catalog', () => {
     expect(closeContest?.destructive).toBe(true);
     expect(closeContest?.scope).toBe('host');
     // The confirmation token is a protocol concern — it must not leak into the API request.
-    expect(closeContest?.toRequest({ contestId: 'c1', confirmationToken: 'anything' })).toEqual({
+    expect(closeContest?.toRequest({ contest: 'Tapas Night', confirmationToken: 'anything' })).toEqual({
       method: 'POST',
-      path: '/contests/c1/close',
+      path: '/contests/by-name/close',
+      body: { contest: 'Tapas Night' },
     });
   });
 
@@ -104,62 +133,70 @@ describe('MCP tool catalog', () => {
     });
   });
 
-  it('maps update_draft to a PATCH that sends only the new name, not the id', () => {
-    const updateDraft = TOOL_CATALOG.find((tool) => tool.name === 'update_draft');
-    expect(updateDraft?.toRequest({ draftId: 'd1', name: 'Winter Tapas' })).toEqual({
+  it('maps rename_contest to a PATCH carrying the old name and the new one', () => {
+    const updateDraft = TOOL_CATALOG.find((tool) => tool.name === 'rename_contest');
+    expect(updateDraft?.toRequest({ contest: 'Tapas Night', name: 'Winter Tapas' })).toEqual({
       method: 'PATCH',
-      path: '/drafts/d1',
-      body: { name: 'Winter Tapas' },
+      path: '/drafts/by-name',
+      body: { contest: 'Tapas Night', name: 'Winter Tapas' },
     });
   });
 
   it('marks publish_contest destructive and does not forward the confirmation token', () => {
     const publishContest = TOOL_CATALOG.find((tool) => tool.name === 'publish_contest');
     expect(publishContest?.destructive).toBe(true);
-    expect(publishContest?.toRequest({ draftId: 'd1', confirmationToken: 'x' })).toEqual({
+    expect(publishContest?.toRequest({ contest: 'Tapas Night', confirmationToken: 'x' })).toEqual({
       method: 'POST',
-      path: '/drafts/d1/publish',
+      path: '/drafts/by-name/publish',
+      body: { contest: 'Tapas Night' },
     });
   });
 
   it('marks trigger_reveal destructive and does not forward the confirmation token', () => {
     const triggerReveal = TOOL_CATALOG.find((tool) => tool.name === 'trigger_reveal');
     expect(triggerReveal?.destructive).toBe(true);
-    expect(triggerReveal?.toRequest({ contestId: 'c1', confirmationToken: 'x' })).toEqual({
+    expect(triggerReveal?.toRequest({ contest: 'Tapas Night', confirmationToken: 'x' })).toEqual({
       method: 'POST',
-      path: '/contests/c1/reveal',
+      path: '/contests/by-name/reveal',
+      body: { contest: 'Tapas Night' },
     });
   });
 
   it('marks delete_contest destructive and does not forward the confirmation token', () => {
     const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
     expect(deleteContest?.destructive).toBe(true);
-    expect(deleteContest?.toRequest({ contestId: 'c1', confirmationToken: 'x' })).toEqual({
+    expect(deleteContest?.toRequest({ contest: 'Tapas Night', confirmationToken: 'x' })).toEqual({
       method: 'DELETE',
-      path: '/contests/c1',
+      path: '/contests/by-name?name=Tapas%20Night',
     });
   });
 
   it("carries the typed name through as the API's confirm parameter", () => {
     const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
     expect(
-      deleteContest?.toRequest({ contestId: 'c1', confirmName: 'Summer Tapas' }),
-    ).toEqual({ method: 'DELETE', path: '/contests/c1?confirm=Summer%20Tapas' });
+      deleteContest?.toRequest({ contest: 'Summer Tapas', confirmName: 'Summer Tapas' }),
+    ).toEqual({
+      method: 'DELETE',
+      path: '/contests/by-name?name=Summer%20Tapas&confirm=Summer%20Tapas',
+    });
   });
 
   it('encodes a contest name that would otherwise break out of the query', () => {
     const deleteContest = TOOL_CATALOG.find((tool) => tool.name === 'delete_contest');
     expect(
-      deleteContest?.toRequest({ contestId: 'c 1', confirmName: 'A&B=C?D' }),
-    ).toEqual({ method: 'DELETE', path: '/contests/c%201?confirm=A%26B%3DC%3FD' });
+      deleteContest?.toRequest({ contest: 'c 1', confirmName: 'A&B=C?D' }),
+    ).toEqual({
+      method: 'DELETE',
+      path: '/contests/by-name?name=c%201&confirm=A%26B%3DC%3FD',
+    });
   });
 
   it('maps get_results to a GET on the contest results', () => {
     const getResults = TOOL_CATALOG.find((tool) => tool.name === 'get_results');
     expect(getResults?.destructive).toBe(false);
-    expect(getResults?.toRequest({ contestId: 'c1' })).toEqual({
+    expect(getResults?.toRequest({ contest: 'Tapas Night' })).toEqual({
       method: 'GET',
-      path: '/contests/c1/results',
+      path: '/contests/by-name/results?name=Tapas%20Night',
     });
   });
 

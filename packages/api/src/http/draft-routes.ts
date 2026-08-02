@@ -105,6 +105,71 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     },
   );
 
+  /**
+   * The id of the draft the host *named*, for the assistant's by-name routes, or
+   * `undefined` once the answer has been sent.
+   *
+   * Same three-way answer as every other by-name route (see `named` in
+   * contest-routes.ts): one draft acts, several or none answer 200 with
+   * `candidates`. `only: 'draft'` is what makes a published contest of the same
+   * name neither a target nor a rival candidate — a host who runs "Tapas Night"
+   * every spring must still be able to prepare this year's.
+   */
+  function namedDraft(request: FastifyRequest, reply: FastifyReply, name: string): string | undefined {
+    if (!request.hostSession) {
+      void reply.code(401).send(notSignedIn);
+      return undefined;
+    }
+    const resolved = deps.resolveContestByName.execute(request.hostSession.id, name, { only: 'draft' });
+    if (resolved.kind === 'one') return resolved.contest.id;
+    void reply.code(200).send({ candidates: resolved.kind === 'several' ? resolved.candidates : [] });
+    return undefined;
+  }
+
+  app.patch<{ Body: { contest?: string; name?: string } }>(
+    '/drafts/by-name',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      const id = namedDraft(request, reply, request.body?.contest ?? '');
+      if (id === undefined) return;
+      const renamed = deps.renameDraft.execute(
+        id,
+        request.hostSession!.id,
+        request.body?.name ?? '',
+        provenanceOfRequest(request),
+      );
+      if (!renamed.ok)
+        return reply.code(DRAFT_ERROR_STATUS[renamed.error.code]).send({ error: renamed.error });
+      return reply.code(200).send(renamed.draft);
+    },
+  );
+
+  app.post<{ Body: { contest?: string } }>(
+    '/drafts/by-name/publish',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      const id = namedDraft(request, reply, request.body?.contest ?? '');
+      if (id === undefined) return;
+      const published = deps.publishContest.execute(id, request.hostSession!.id);
+      if (!published.ok)
+        return reply.code(publishErrorStatus(published.error.code)).send({ error: published.error });
+      const { id: contestId, name, joinCode } = published.contest;
+      return reply.code(201).send({ id: contestId, name, joinCode });
+    },
+  );
+
+  app.get<{ Querystring: { name?: string } }>(
+    '/drafts/by-name',
+    { preHandler: requireSession },
+    async (request, reply) => {
+      const id = namedDraft(request, reply, request.query.name ?? '');
+      if (id === undefined) return;
+      const draft = deps.drafts.findById(id);
+      if (!draft) return reply.code(200).send({ candidates: [] });
+      return reply.code(200).send(draft);
+    },
+  );
+
   app.get<{ Params: { id: string } }>(
     '/drafts/:id',
     { preHandler: requireSession },

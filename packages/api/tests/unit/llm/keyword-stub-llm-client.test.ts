@@ -10,10 +10,11 @@ describe('KeywordStubLLMClient (test-only assistant stub)', () => {
     expect(out.toolCalls).toEqual([{ name: 'create_draft', arguments: { name: 'Summer Tapas' } }]);
   });
 
-  it('maps "close ... <id>" to a close_contest tool call carrying that id', async () => {
-    const id = '11111111-2222-3333-4444-555555555555';
-    const out = await ask(`close the contest ${id}`);
-    expect(out.toolCalls).toEqual([{ name: 'close_contest', arguments: { contestId: id } }]);
+  it('maps "close <name>" to a close_contest tool call carrying that name', async () => {
+    const out = await ask('close the contest Tapas Night');
+    expect(out.toolCalls).toEqual([
+      { name: 'close_contest', arguments: { contest: 'Tapas Night' } },
+    ]);
   });
 
   it('maps "list my contests" to a list_my_contests tool call', async () => {

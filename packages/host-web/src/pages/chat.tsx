@@ -34,6 +34,9 @@ function resultSummary(action: string, result: unknown, t: TFunction): string {
 const CONTEST_LIST_ACTIONS = new Set(['list_my_contests', 'find_contest']);
 // Tools whose result is a single contest's details (or candidates to choose from).
 const DETAILS_ACTIONS = new Set(['get_contest_details', 'add_participant', 'remove_participant']);
+// Tools that only ever act on a draft, so "nothing by that name" means no DRAFT
+// by that name — a published contest of the same name is not what they missed.
+const DRAFT_ONLY_ACTIONS = new Set(['get_draft', 'rename_contest', 'publish_contest']);
 const STATUS_MARK: Record<string, string> = { live: '●', draft: '◇', closed: '◆', revealed: '✓' };
 
 interface ContestRow {
@@ -65,6 +68,25 @@ function readDetails(result: unknown, t: TFunction): { details?: ContestDetails;
     };
   }
   return { candidates: candidates ?? [] };
+}
+
+/**
+ * Whether a tool answered "that name is not one contest" rather than doing the
+ * thing. Every host-facing tool now names its contest, and any of them can come
+ * back this way: `candidates` with entries when the host has reused a name, and
+ * empty when no contest has it.
+ *
+ * Told by the shape of the answer rather than by which tool was called — the
+ * list of tools that can ask this is now every tool, and a table of names kept
+ * beside the catalogue is a second catalogue to fall behind it.
+ */
+function unresolvedName(result: unknown): boolean {
+  return (
+    !!result &&
+    typeof result === 'object' &&
+    'candidates' in result &&
+    Array.isArray((result as { candidates: unknown }).candidates)
+  );
 }
 
 /** Reads a contest list out of a tool result, defensively — null if it is not one. */
@@ -208,6 +230,26 @@ export function Chat() {
         // Adding/removing works on a draft; the details tool works on any contest.
         const text =
           turn.action === 'get_contest_details' ? t('chat.noContestByName') : t('chat.noDraftByName');
+        add({ kind: 'note', text });
+        setHistory((h) => [...h, { role: 'assistant', content: text }]);
+      }
+    } else if (turn.kind === 'result' && unresolvedName(turn.result)) {
+      /*
+       * The action named something that is not one contest, so it did not happen.
+       * Every tool can now answer this way, and without this the branch below
+       * would announce a change that was never made — the one thing the panel
+       * must never say. Slice B replaces the action-name tables around it with
+       * the same shape-reading this uses.
+       */
+      const rows = contestRows((turn.result as { candidates?: unknown }).candidates, t) ?? [];
+      if (rows.length > 0) {
+        add({ kind: 'note', text: t('chat.severalWhichOne') });
+        add({ kind: 'contests', rows });
+        setHistory((h) => [...h, { role: 'assistant', content: t('chat.severalRecap') }]);
+      } else {
+        const text = DRAFT_ONLY_ACTIONS.has(turn.action)
+          ? t('chat.noDraftByName')
+          : t('chat.noContestByName');
         add({ kind: 'note', text });
         setHistory((h) => [...h, { role: 'assistant', content: text }]);
       }

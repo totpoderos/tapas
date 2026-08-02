@@ -4,6 +4,7 @@ import type { ContestSummary } from '../../../src/contests/contest-summary.js';
 import type { DraftRepository } from '../../../src/db/draft-repository.js';
 import type { StoredDraft } from '../../../src/drafts/stored-draft.js';
 import type { FindContestsByName } from '../../../src/contests/use-cases/find-contests-by-name.js';
+import { ResolveContestByName } from '../../../src/contests/use-cases/resolve-contest-by-name.js';
 import type { UpdateDraft } from '../../../src/drafts/use-cases/update-draft.js';
 import {
   AddDraftParticipant,
@@ -33,7 +34,11 @@ function workspace(matches: ContestSummary[], initial?: DraftContent) {
   } as unknown as UpdateDraft;
   let seq = 0;
   const deps: ManageDraftParticipantsDeps = {
-    findContestsByName: { execute: () => matches } as unknown as FindContestsByName,
+    // The real resolver over a stubbed search, so these tests keep exercising the
+    // one name rule rather than a second copy of it stubbed out here.
+    resolveContestByName: new ResolveContestByName({
+      execute: () => matches,
+    } as unknown as FindContestsByName),
     drafts,
     updateDraft,
     ids: { next: () => `new-${++seq}` },

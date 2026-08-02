@@ -19,8 +19,8 @@ describe('hostAssistantTools', () => {
       'list_my_contests',
       'publish_contest',
       'remove_participant',
+      'rename_contest',
       'trigger_reveal',
-      'update_draft',
     ]);
 
     for (const tool of tools) {
@@ -34,8 +34,8 @@ describe('hostAssistantTools', () => {
     const getContest = tools.find((tool) => tool.name === 'get_contest');
     expect(getContest?.inputSchema).toMatchObject({
       type: 'object',
-      properties: { contestId: { type: 'string' } },
-      required: ['contestId'],
+      properties: { contest: { type: 'string' } },
+      required: ['contest'],
     });
   });
 });

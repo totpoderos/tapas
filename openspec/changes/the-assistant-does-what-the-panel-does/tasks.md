@@ -1,0 +1,85 @@
+Five sub-slices, each its own ATDD loop and its own PR. The acceptance
+`.feature` for a slice is written and confirmed before its implementation
+starts. Every slice ends on the full local gate — unit, whole vitest run,
+typecheck, lint, `openspec validate --strict`, and the E2E suite — since CI is
+off.
+
+## 1. Slice A — every contest is addressed by its name
+
+Taken first: it touches the most existing tools, and its tests protect every
+slice after it.
+
+- [x] 1.1 Write the acceptance feature for addressing by name — one match acts, several return the candidates, none reports nothing found, case-insensitive, another host's contest is never reached — and confirm it before implementing
+- [x] 1.2 Extract the name→contest resolution the by-name routes already do into one shared use case in `packages/api`, with its own unit tests for the three-way answer
+- [x] 1.3 Give the host-facing contest routes a by-name form (read, tally, results, close, publish, reveal, delete, rename), each answering result / candidates / nothing-found through the shared resolver
+- [x] 1.4 Change the nine tools in `tool-catalog.ts` from `contestId`/`draftId` to `name`, and rename `update_draft` to `rename_contest`; delete the id-addressed forms rather than keeping them alongside
+- [x] 1.5 Update the MCP contract tests and the in-app assistant's dispatch tests together, asserting both paths carry the same arguments to the same request
+- [x] 1.6 Update `keyword-stub-llm-client.ts` so the deterministic E2E stub calls the by-name tools, and green the chat-panel E2E
+- [x] 1.7 Full local gate, then PR
+
+Two things Slice A turned up that were not foreseen:
+
+- The panel would have reported a not-done action as done. `chat.tsx` keyed its
+  rendering off tool names, so a `candidates` answer to a close fell through to
+  the "done" ticket. Guarded here — a result carrying `candidates` is never
+  reported as a change — rather than left for Slice B, because shipping A alone
+  would otherwise tell a host their contest was closed when it was not.
+- A destructive action is challenged for confirmation **before** its name is
+  resolved, so a host can be asked to confirm closing a name two contests share
+  and only then be told to choose. Nothing acts on the wrong contest (the
+  confirmed call answers with the candidates and changes nothing), so this is a
+  question asked too early rather than a wrong action. Left as is; see the
+  follow-up below.
+
+## 1b. Follow-up raised by Slice A — resolve before challenging
+
+Not scheduled: needs a decision, since it changes the confirmation flow's shape.
+
+- [ ] 1b.1 Decide whether a destructive tool should resolve its name *before*
+      issuing a confirmation, so the host is never asked to confirm an ambiguous
+      name. Doing so means the adapter makes a resolving call before the
+      confirming one, and the confirmation would need to bind the resolved
+      contest rather than the name it was asked about — otherwise the name can
+      resolve differently between the challenge and the confirmation.
+
+## 2. Slice B — the panel renders by result shape
+
+Before the new tools land, so they need no panel change when they do.
+
+- [ ] 2.1 Write the acceptance feature for the panel offering the choice when a name is shared, and saying plainly when a name matches nothing, for an action rather than only a read — confirm before implementing
+- [ ] 2.2 Replace `CONTEST_LIST_ACTIONS` / `DETAILS_ACTIONS` in `chat.tsx` with discrimination on the result's own shape, each shape keyed on a field only it has
+- [ ] 2.3 Widen the "which one did you mean?" path so any action can ask it, not only the three that can today
+- [ ] 2.4 Component tests for each shape, including an unfamiliar shape falling back to the plain ticket
+- [ ] 2.5 Add the i18n keys for the new wording to EN and ES, and grep every consumer of any key removed
+- [ ] 2.6 Full local gate, then PR
+
+## 3. Slice C — a draft's scoring is settled by asking
+
+- [ ] 3.1 Write the acceptance feature for adding a category, removing one behind a confirmation, setting a fixed range, letting the range be worked out, and settling whether a score may be repeated — confirm before implementing
+- [ ] 3.2 One use case per operation in `packages/api` (`add-scoring-category`, `remove-scoring-category`, `set-score-range`, `set-score-uniqueness`), each loading the draft, applying one change, saving — with unit tests asserting no other rule moves
+- [ ] 3.3 Refuse a rule that cannot stand (a range whose bounds make no range, a category name already used) with a host-facing reason, and refuse any of these against a published contest
+- [ ] 3.4 Routes for each, addressed by contest name through the shared resolver
+- [ ] 3.5 Add the four tools to `tool-catalog.ts`, `remove_category` marked destructive so it takes the existing confirmation flow
+- [ ] 3.6 Full local gate, then PR
+
+## 4. Slice D — a draft's format and partners are settled by asking
+
+- [ ] 4.1 Write the acceptance feature for setting the format, pairing two people, and leaving someone without a partner — confirm before implementing
+- [ ] 4.2 `set-format` use case, refusing a format a draft's people cannot satisfy with a reason the host can act on
+- [ ] 4.3 `set-partner` use case: names two people by display name, pairs them both ways, and clears whatever partner either of them had — with unit tests for the one-sided-partnership case the compiler would otherwise reject at publish
+- [ ] 4.4 Resolve a person by display name within the draft with the same three-way answer as a contest name, including the ambiguous-display-name case
+- [ ] 4.5 Routes and the two tools, addressed by contest name
+- [ ] 4.6 Full local gate, then PR
+
+## 5. Slice E — the assistant is measured on the wider surface
+
+- [ ] 5.1 Extend the host-assistant eval cases to cover each new operation and the by-name addressing, including a case where a name is shared and the right move is to ask
+- [ ] 5.2 Run the eval gate against the configured hosted model and record the trajectory
+- [ ] 5.3 Decide the threshold from what it actually scores, and commit it — a drop in tool-choice accuracy is a finding about the model, not a reason to merge the tools back together
+- [ ] 5.4 Update `design.md` §6 (the tool surface) and the security notes on the widened write surface
+- [ ] 5.5 Full local gate, then PR
+
+## 6. Close out
+
+- [ ] 6.1 `openspec sync` the delta specs into `openspec/specs/`, then archive the change
+- [ ] 6.2 Re-check the `openspec/specs/` record reads as the built system, not as the plan

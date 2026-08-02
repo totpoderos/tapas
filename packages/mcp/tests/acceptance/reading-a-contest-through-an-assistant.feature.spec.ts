@@ -25,8 +25,8 @@ async function connectAssistant(apiBaseUrl: string, hostToken: string): Promise<
   return client;
 }
 
-async function readContest(client: Client, contestId: string): Promise<ToolResult> {
-  return (await client.callTool({ name: 'get_contest', arguments: { contestId } })) as ToolResult;
+async function readContest(client: Client, contest: string): Promise<ToolResult> {
+  return (await client.callTool({ name: 'get_contest', arguments: { contest } })) as ToolResult;
 }
 
 /** The text of the result's first content block, which every get_contest result carries. */
@@ -61,8 +61,8 @@ describeFeature(feature, ({ Scenario }) => {
       contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
-    When("the assistant is asked to read that contest with the host's token", async () => {
-      result = await readContest(client, contestId);
+    When("the assistant is asked to read that contest by name with the host's token", async () => {
+      result = await readContest(client, 'Tapas');
     });
     Then('the contest is returned', () => {
       expect(result.isError).toBeFalsy();
@@ -79,31 +79,36 @@ describeFeature(feature, ({ Scenario }) => {
       const api = await startTrackedApi();
       const other = await hostWithPublishedContest(api.app, api.db, 'other@example.com');
       othersContestId = other.contestId;
+      expect(othersContestId).toBeTruthy();
       const intruderToken = await hostWithToken(api.app, api.db, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, intruderToken);
     });
-    When("the assistant is asked to read the other host's contest with the first host's token", async () => {
-      result = await readContest(client, othersContestId);
+    When("the assistant is asked to read the other host's contest by name with the first host's token", async () => {
+      result = await readContest(client, 'Tapas');
     });
-    Then('the request is refused as not allowed', () => {
-      expect(result.isError).toBe(true);
-      expect(firstText(result)).toMatch(/not allowed/i);
+    /*
+     * Not refused: only the host's own contests are searched by name, so another
+     * host's contest is not there to refuse. A 403 would confirm a contest by
+     * that name exists — see ResolveContestByName.
+     */
+    Then('no contest is found', () => {
+      expect(result.isError).toBeFalsy();
+      expect(JSON.parse(firstText(result))).toEqual({ candidates: [] });
     });
   });
 
   Scenario('Without a valid token the assistant cannot read a contest', ({ Given, When, Then }) => {
     let client: Client;
-    let contestId: string;
     let result: ToolResult;
 
     Given('a contest and no valid personal access token', async () => {
       const api = await startTrackedApi();
       const host = await hostWithPublishedContest(api.app, api.db, 'ana@example.com');
-      contestId = host.contestId;
+      expect(host.contestId).toBeTruthy();
       client = await connectAssistant(api.baseUrl, 'not-a-real-token');
     });
     When('the assistant is asked to read the contest without a valid token', async () => {
-      result = await readContest(client, contestId);
+      result = await readContest(client, 'Tapas');
     });
     Then('the request is refused as not authorized', () => {
       expect(result.isError).toBe(true);

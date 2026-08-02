@@ -41,8 +41,8 @@ function body(result: ToolResult): Record<string, unknown> {
   return JSON.parse(block.text) as Record<string, unknown>;
 }
 
-async function contestStatus(client: Client, contestId: string): Promise<string> {
-  return body(await callTool(client, 'get_contest', { contestId })).status as string;
+async function contestStatus(client: Client, contest: string): Promise<string> {
+  return body(await callTool(client, 'get_contest', { contest })).status as string;
 }
 
 describeFeature(feature, ({ Scenario }) => {
@@ -58,20 +58,18 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Revealing a contest must be confirmed', ({ Given, When, Then, And }) => {
     let client: Client;
-    let contestId: string;
     let result: ToolResult;
 
     Given('a host with a closed contest ready to reveal', async () => {
       const api = await startTrackedApi();
       const host = await hostWithClosedContest(api.app, api.db, 'ana@example.com');
-      contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to reveal it without a confirmation', async () => {
-      result = await callTool(client, 'trigger_reveal', { contestId });
+      result = await callTool(client, 'trigger_reveal', { contest: 'Tapas' });
     });
     Then('the contest is not revealed', async () => {
-      expect(await contestStatus(client, contestId)).toBe('closed');
+      expect(await contestStatus(client, 'Tapas')).toBe('closed');
     });
     And('the assistant is told the action needs confirming', () => {
       expect(body(result)).toMatchObject({ confirmationRequired: true });
@@ -80,20 +78,18 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A confirmed reveal reveals the contest', ({ Given, When, Then }) => {
     let client: Client;
-    let contestId: string;
     let confirmationToken: string;
     let result: ToolResult;
 
     Given('a host with a closed contest and the confirmation to reveal it', async () => {
       const api = await startTrackedApi();
       const host = await hostWithClosedContest(api.app, api.db, 'ana@example.com');
-      contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
-      confirmationToken = body(await callTool(client, 'trigger_reveal', { contestId }))
+      confirmationToken = body(await callTool(client, 'trigger_reveal', { contest: 'Tapas' }))
         .confirmationToken as string;
     });
     When('the assistant reveals the contest with that confirmation', async () => {
-      result = await callTool(client, 'trigger_reveal', { contestId, confirmationToken });
+      result = await callTool(client, 'trigger_reveal', { contest: 'Tapas', confirmationToken });
     });
     Then('the contest is revealed', () => {
       expect(result.isError).toBeFalsy();
@@ -103,17 +99,15 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('The assistant reads the results of a revealed contest', ({ Given, When, Then }) => {
     let client: Client;
-    let contestId: string;
     let result: ToolResult;
 
     Given('a host with a revealed contest', async () => {
       const api = await startTrackedApi();
       const host = await hostWithRevealedContest(api.app, api.db, 'ana@example.com');
-      contestId = host.contestId;
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to read its results', async () => {
-      result = await callTool(client, 'get_results', { contestId });
+      result = await callTool(client, 'get_results', { contest: 'Tapas' });
     });
     Then('the results are returned', () => {
       expect(result.isError).toBeFalsy();

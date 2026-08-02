@@ -28,7 +28,7 @@ export const HA_TOOL_NAMES = [
   'get_tally',
   'get_results',
   'create_draft',
-  'update_draft',
+  'rename_contest',
   'close_contest',
   'publish_contest',
   'trigger_reveal',

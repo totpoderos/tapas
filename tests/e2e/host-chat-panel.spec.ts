@@ -163,7 +163,7 @@ test('an approval waiting on the host cannot be cleared out from under itself', 
   await signInFreshHost(page.request, 'e2e-chat-clear-pending@sobremesa.es');
   const id = await liveContest(page.request, 'Held Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Held Cook-off');
   await expect(page.getByRole('button', { name: 'Yes, do it' })).toBeVisible();
 
   // The confirmation card is modal (role="alertdialog", aria-modal="true", over a
@@ -189,7 +189,7 @@ test('a destructive action is held behind a confirmation card', async ({ page })
   await signInFreshHost(page.request, 'e2e-chat-hold@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   await expect(page.getByRole('alertdialog')).toBeVisible();
   await expect(page.getByRole('alertdialog')).toContainText(/close this contest/i);
@@ -200,7 +200,7 @@ test('confirming the card carries out the action', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-confirm@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   await page.getByRole('button', { name: 'Yes, do it' }).click();
 
@@ -212,7 +212,7 @@ test('cancelling the card changes nothing', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-cancel@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
 
   await page.getByRole('button', { name: 'Cancel' }).click();
 
@@ -225,7 +225,7 @@ test('the chat panel is keyboard-operable and has no accessibility violations', 
   await signInFreshHost(page.request, 'e2e-chat-a11y@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');
   await page.goto('/chat');
-  await sendMessage(page, `close contest ${id}`);
+  await sendMessage(page, 'close Balcony Cook-off');
   await expect(page.getByRole('alertdialog')).toBeVisible();
 
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();

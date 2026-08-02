@@ -86,15 +86,22 @@ async function draftFor(app: FastifyInstance, jar: CookieJar, name: string): Pro
   return created.json().id as string;
 }
 
-/** Has the assistant rename a draft, the way a host asking it to would. */
+/**
+ * Has the assistant rename a draft, the way a host asking it to would — naming
+ * the draft as the host says it, since that is now the only way the assistant
+ * addresses one.
+ */
 async function assistantRenames(
   app: FastifyInstance,
   jar: CookieJar,
   llm: ScriptedLLMClient,
-  draftId: string,
+  currentName: string,
   name: string,
 ): Promise<void> {
-  llm.next = { text: '', toolCalls: [{ name: 'update_draft', arguments: { draftId, name } }] };
+  llm.next = {
+    text: '',
+    toolCalls: [{ name: 'rename_contest', arguments: { contest: currentName, name } }],
+  };
   const turn = await request(app, jar, {
     method: 'POST',
     url: '/assistant/messages',
@@ -174,7 +181,7 @@ describeFeature(feature, ({ Scenario }) => {
         contestId = await liveContest(app, jar, 'Balcony Cook-off');
       });
       And('that host closes it through the assistant, confirming when asked', async () => {
-        llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId } }] };
+        llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contest: 'Balcony Cook-off' } }] };
         const asked = await request(app, jar, {
           method: 'POST',
           url: '/assistant/messages',
@@ -402,14 +409,14 @@ describeFeature(feature, ({ Scenario }) => {
       draftId = await draftFor(app, jar, 'Summer Tapas');
     });
     When('that host asks the assistant to rename it', async () => {
-      await assistantRenames(app, jar, llm, draftId, 'Autumn Tapas');
+      await assistantRenames(app, jar, llm, 'Summer Tapas', 'Autumn Tapas');
       renamed = await lastRename(app, jar, draftId);
     });
     Then('the renaming is recorded as having come through a connected tool', () => {
       expect(renamed?.sourcePath).toBe('mcp');
     });
     And('it names the tool that renamed it', () => {
-      expect(renamed?.toolName).toBe('update_draft');
+      expect(renamed?.toolName).toBe('rename_contest');
     });
     And('the new name it was asked for is recorded with it', () => {
       expect(renamed?.toolArgs).toMatchObject({ name: 'Autumn Tapas' });
@@ -461,7 +468,10 @@ describeFeature(feature, ({ Scenario }) => {
         url: `/drafts/${draftId}`,
         payload: { name: 'By hand' },
       });
-      await assistantRenames(app, jar, llm, draftId, 'By assistant');
+      // The by-hand rename has already happened, so the draft the assistant is
+      // asked for is the one the host would now say: "By hand", not the name it
+      // was created with. Addressing by name means the name has to be current.
+      await assistantRenames(app, jar, llm, 'By hand', 'By assistant');
     });
     When('that host reads the recorded history', async () => {
       renames = (await historyOf(app, jar, draftId)).filter((e) => e.type === 'draft.updated');
@@ -492,7 +502,7 @@ describeFeature(feature, ({ Scenario }) => {
       const me = await request(app, jar, { method: 'GET', url: '/auth/me' });
       hostId = me.json().hostId;
       draftId = await draftFor(app, jar, 'Summer Tapas');
-      await assistantRenames(app, jar, llm, draftId, 'Autumn Tapas');
+      await assistantRenames(app, jar, llm, 'Summer Tapas', 'Autumn Tapas');
     });
     When('that host reads the recorded history', async () => {
       renamed = await lastRename(app, jar, draftId);
@@ -520,7 +530,7 @@ describeFeature(feature, ({ Scenario }) => {
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
     });
     And('that host closes it through the assistant, confirming when asked', async () => {
-      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contestId } }] };
+      llm.next = { text: '', toolCalls: [{ name: 'close_contest', arguments: { contest: 'Balcony Cook-off' } }] };
       const asked = await request(app, jar, {
         method: 'POST',
         url: '/assistant/messages',
