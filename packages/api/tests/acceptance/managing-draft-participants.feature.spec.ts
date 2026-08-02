@@ -53,8 +53,7 @@ async function saveDraft(app: FastifyInstance, jar: CookieJar, c: DraftContent):
 async function liveContest(app: FastifyInstance, jar: CookieJar, name: string): Promise<void> {
   const complete: DraftContent = {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: people('Ana', 'Bob'),
   };

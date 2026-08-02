@@ -11,8 +11,7 @@ function person(id: string, partnerId: string) {
 function completeContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },
@@ -64,8 +63,7 @@ describe('PublishContest', () => {
     new PublishContest(deps).execute('draft-1', 'host-1');
 
     const stored = contests.findById('draft-1');
-    expect(stored?.attribution).toBe('per_person');
-    expect(stored?.antiBias).toBe('couples');
+    expect(stored?.format).toBe('solo_with_partners');
   });
 
   it('seeds the roster with an open place per participant', () => {
@@ -113,8 +111,7 @@ describe('PublishContest', () => {
     const { deps, drafts } = makePublishDeps();
     const singleCouple: DraftContent = {
       name: 'Just us',
-      attribution: 'per_person',
-      antiBias: 'couples',
+      format: 'solo_with_partners',
       scoring: {
         categories: [{ id: 'c1', name: 'Taste' }],
         range: { type: 'auto' },

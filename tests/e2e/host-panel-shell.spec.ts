@@ -21,8 +21,7 @@ function completeContent(name: string) {
   const person = (id: string, partnerId: string) => ({ id, displayName: id, partnerId });
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },

@@ -1,11 +1,6 @@
 import { createContext, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type {
-  AntiBias,
-  Attribution,
-  DraftContent,
-  ScoreRange,
-} from '../../api/client';
+import type { ContestFormat, DraftContent, ScoreRange } from '../../api/client';
 
 export interface Category {
   readonly key: string;
@@ -16,13 +11,6 @@ export interface EditPerson {
   readonly id: string;
   readonly displayName: string;
   readonly partnerId: string | null;
-  readonly noScoreWith: readonly string[];
-}
-
-/** A pair barred from scoring each other, held once rather than once per side. */
-export interface BarredPair {
-  readonly one: EditPerson;
-  readonly other: EditPerson;
 }
 
 /**
@@ -36,10 +24,8 @@ export interface BarredPair {
 export interface DraftEditor {
   readonly name: string;
   readonly setName: (value: string) => void;
-  readonly attribution: Attribution;
-  readonly setAttribution: (value: Attribution) => void;
-  readonly antiBias: AntiBias;
-  readonly setAntiBias: (value: AntiBias) => void;
+  readonly format: ContestFormat;
+  readonly setFormat: (value: ContestFormat) => void;
 
   readonly categories: readonly Category[];
   readonly addCategory: (name: string) => void;
@@ -59,17 +45,17 @@ export interface DraftEditor {
   readonly renamePerson: (personId: string, displayName: string) => void;
   readonly removePerson: (personId: string) => void;
   readonly setPartner: (personId: string, partnerId: string | null) => void;
-  readonly barPair: (oneId: string, otherId: string) => void;
-  readonly liftPair: (oneId: string, otherId: string) => void;
+
+  /** Whether a partner does anything under this format, and so whether to ask for one. */
+  readonly partnersMatter: boolean;
 
   /** Said where the name is typed. The whole-draft version is on the workspace. */
   readonly nameError: string | undefined;
   readonly setNameError: (value: string | undefined) => void;
 
-  /** Who has nobody to be paired with — only a problem when scoring is per couple. */
+  /** Who has nobody to be paired with — only a problem when couples cook together. */
   readonly unpartnered: readonly EditPerson[];
   readonly couples: number;
-  readonly barredPairs: readonly BarredPair[];
   /** A person's name, or what to call them until they have one. */
   readonly nameOf: (person: EditPerson) => string;
 
@@ -84,33 +70,15 @@ export interface DraftEditor {
 
 const DraftEditorContext = createContext<DraftEditor | null>(null);
 
-/**
- * Reads the draft as it arrived, with barring made mutual.
- *
- * The rule is offered as "chosen pairs cannot score each other", and this screen
- * used to write one direction only — so a draft saved back then may hold a bar
- * from Núria to Pau and nothing from Pau to Núria. Symmetrising on the way in
- * keeps everything downstream simple: the pairs list, the editor and what gets
- * stored all see the same symmetric thing, and saving makes it mutual for good.
- */
+/** Reads the draft as it arrived. */
 function toEditPeople(
   participants: DraftContent['participants'],
   freshId: () => string,
 ): EditPerson[] {
-  const loaded = participants ?? [];
-  const barred = new Map<string, Set<string>>(
-    loaded.map((p) => [p.id, new Set(p.noScoreWith ?? [])]),
-  );
-  for (const person of loaded) {
-    for (const againstId of person.noScoreWith ?? []) {
-      barred.get(againstId)?.add(person.id);
-    }
-  }
-  return loaded.map((p) => ({
+  return (participants ?? []).map((p) => ({
     id: p.id || freshId(),
     displayName: p.displayName,
     partnerId: p.partnerId ?? null,
-    noScoreWith: [...(barred.get(p.id) ?? [])],
   }));
 }
 
@@ -136,10 +104,7 @@ export function DraftEditorProvider({
   const touch = () => setRevision((n) => n + 1);
 
   const [name, setNameState] = useState(initial.name);
-  const [attribution, setAttributionState] = useState<Attribution>(
-    initial.attribution ?? 'per_person',
-  );
-  const [antiBias, setAntiBiasState] = useState<AntiBias>(initial.antiBias ?? 'none');
+  const [format, setFormatState] = useState<ContestFormat>(initial.format ?? 'solo');
   const [categories, setCategories] = useState<Category[]>(() =>
     (initial.scoring?.categories ?? []).map((cat) => ({ key: freshId(), name: cat.name })),
   );
@@ -172,10 +137,8 @@ export function DraftEditorProvider({
   const editor: DraftEditor = {
     name,
     setName: change(setNameState),
-    attribution,
-    setAttribution: change(setAttributionState),
-    antiBias,
-    setAntiBias: change(setAntiBiasState),
+    format,
+    setFormat: change(setFormatState),
 
     categories,
     addCategory: (label) => {
@@ -202,27 +165,23 @@ export function DraftEditorProvider({
     addPerson: (displayName) => {
       const value = displayName.trim();
       if (!value) return;
-      setPeople((ps) => [...ps, { id: freshId(), displayName: value, partnerId: null, noScoreWith: [] }]);
+      setPeople((ps) => [...ps, { id: freshId(), displayName: value, partnerId: null }]);
       touch();
     },
     renamePerson: (personId, displayName) => {
       setPeople((ps) => ps.map((p) => (p.id === personId ? { ...p, displayName } : p)));
       touch();
     },
-    /** Removes a person and every reference to them (a partner back-link, any no-score entries). */
+    /** Removes a person and the partner back-link that named them. */
     removePerson: (personId) => {
       setPeople((ps) =>
         ps
           .filter((p) => p.id !== personId)
-          .map((p) => ({
-            ...p,
-            partnerId: p.partnerId === personId ? null : p.partnerId,
-            noScoreWith: p.noScoreWith.filter((n) => n !== personId),
-          })),
+          .map((p) => ({ ...p, partnerId: p.partnerId === personId ? null : p.partnerId })),
       );
       touch();
     },
-    /** Pairs two people as a couple, reciprocally; clearing one clears both. */
+    /** Pairs two people, reciprocally; clearing one clears both. */
     setPartner: (personId, partnerId) => {
       setPeople((ps) => {
         const previous = ps.find((p) => p.id === personId)?.partnerId ?? null;
@@ -238,62 +197,20 @@ export function DraftEditorProvider({
       });
       touch();
     },
-    /**
-     * Bars two people from scoring each other — both ways.
-     *
-     * The rule is offered as "chosen pairs cannot score each other", and it used to
-     * write one direction only, so barring Núria from scoring Pau left Pau free to
-     * score Núria. Pairing was already reciprocal; barring is now too, which is all
-     * the compiler needs to keep the promise the option makes.
+    /*
+     * A partner does something under two of the three formats and nothing under
+     * the third, so it is asked for under two and not the third. Pairings already
+     * recorded are kept either way — see `buildContent`.
      */
-    barPair: (oneId, otherId) => {
-      if (oneId === otherId) return;
-      setPeople((ps) =>
-        ps.map((p) => {
-          if (p.id !== oneId && p.id !== otherId) return p;
-          const against = p.id === oneId ? otherId : oneId;
-          return p.noScoreWith.includes(against)
-            ? p
-            : { ...p, noScoreWith: [...p.noScoreWith, against] };
-        }),
-      );
-      touch();
-    },
-    /** Lifts a bar, both ways — including a half of one left by an older draft. */
-    liftPair: (oneId, otherId) => {
-      setPeople((ps) =>
-        ps.map((p) =>
-          p.id === oneId || p.id === otherId
-            ? { ...p, noScoreWith: p.noScoreWith.filter((n) => n !== oneId && n !== otherId) }
-            : p,
-        ),
-      );
-      touch();
-    },
+    partnersMatter: format !== 'solo',
 
     nameError,
     setNameError,
 
-    unpartnered: attribution === 'per_couple' ? people.filter((p) => !p.partnerId) : [],
+    unpartnered: format === 'couples' ? people.filter((p) => !p.partnerId) : [],
     couples: new Set(
       people.filter((p) => p.partnerId).map((p) => [p.id, p.partnerId].sort().join('~')),
     ).size,
-    /*
-     * Read from both sides, so a half-bar left by an older draft still shows as the
-     * pair it was meant to be — and saving makes it mutual for good.
-     */
-    barredPairs: (() => {
-      const seen = new Map<string, BarredPair>();
-      for (const person of people) {
-        for (const againstId of person.noScoreWith) {
-          const other = people.find((p) => p.id === againstId);
-          if (!other) continue;
-          const key = [person.id, other.id].sort().join('~');
-          if (!seen.has(key)) seen.set(key, { one: person, other });
-        }
-      }
-      return [...seen.values()];
-    })(),
     nameOf: (person) =>
       person.displayName ||
       t('reviewDraft.participantFallback', { number: people.indexOf(person) + 1 }),
@@ -307,8 +224,7 @@ export function DraftEditorProvider({
           : { type: 'auto' };
       return {
         name: name.trim(),
-        attribution,
-        antiBias,
+        format,
         scoring: {
           categories: categories
             .map((c) => c.name.trim())
@@ -317,11 +233,16 @@ export function DraftEditorProvider({
           range,
           uniquePerCategory,
         },
+        /*
+         * Pairings are stored whatever the format. Under `solo` a partner does
+         * nothing, but it is a roster fact the format has no use for rather than a
+         * rule that failed to apply — discarding it would lose work the host did,
+         * and choosing another format brings it straight back.
+         */
         participants: people.map((p) => ({
           id: p.id,
           displayName: p.displayName.trim(),
           ...(p.partnerId ? { partnerId: p.partnerId } : {}),
-          ...(p.noScoreWith.length ? { noScoreWith: p.noScoreWith } : {}),
         })),
       };
     },
@@ -345,9 +266,9 @@ export function useDraftEditor(): DraftEditor {
 
 /** Kept for the sections that only need to know whether a partner is wanted. */
 export function useNeedsPartner(): (person: EditPerson) => boolean {
-  const { attribution } = useDraftEditor();
+  const { format } = useDraftEditor();
   return useMemo(
-    () => (person: EditPerson) => attribution === 'per_couple' && !person.partnerId,
-    [attribution],
+    () => (person: EditPerson) => format === 'couples' && !person.partnerId,
+    [format],
   );
 }

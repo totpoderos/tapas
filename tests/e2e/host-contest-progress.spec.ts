@@ -23,13 +23,12 @@ const PASSWORD = 'Str0ng!Passw0rd';
 /** A publishable draft. `closeRule: host_trigger` keeps it live once votes land. */
 function content(
   name: string,
-  options: { categories?: number; attribution?: 'per_person' | 'per_couple' } = {},
+  options: { categories?: number; format?: 'solo' | 'solo_with_partners' | 'couples' } = {},
 ) {
-  const perCouple = options.attribution === 'per_couple';
+  const couples = options.format === 'couples';
   return {
     name,
-    attribution: options.attribution ?? 'per_person',
-    antiBias: 'none',
+    format: options.format ?? 'solo',
     // The default `all_sent` would close the contest once every place had sent,
     // and these tests are about a contest still running.
     closeRule: { when: 'host_trigger' },
@@ -41,11 +40,11 @@ function content(
       range: { type: 'fixed', min: 1, max: 5 },
       uniquePerCategory: false,
     },
-    // Four people. Paired up when scoring is per couple, which requires it.
+    // Four people. Paired up when couples cook together, which requires it.
     participants: ['ana', 'bob', 'carmen', 'dani'].map((id, i, all) => ({
       id,
       displayName: id,
-      ...(perCouple ? { partnerId: all[i % 2 === 0 ? i + 1 : i - 1] } : {}),
+      ...(couples ? { partnerId: all[i % 2 === 0 ? i + 1 : i - 1] } : {}),
     })),
   };
 }
@@ -178,7 +177,7 @@ test('a live contest shows what it is judged on, and the code people join it wit
 
   await page.goto('/');
   const row = rowFor(page, 'Rules On Show');
-  await expect(row).toContainText('Per person');
+  await expect(row).toContainText('Everyone on their own');
   await expect(row).toContainText('3 categories');
   await expect(row).toContainText(`code ${joinCode}`);
 });
@@ -211,11 +210,11 @@ test('a contest being prepared has no code and no votes', async ({ page }) => {
 
 test('a contest being prepared still shows the rules it has been given', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-progress-draft-rules@sobremesa.es');
-  await seedDraft(page.request, 'Prepared Rules', { attribution: 'per_couple', categories: 2 });
+  await seedDraft(page.request, 'Prepared Rules', { format: 'couples', categories: 2 });
 
   await page.goto('/');
   const row = rowFor(page, 'Prepared Rules');
-  await expect(row).toContainText('Per couple');
+  await expect(row).toContainText('Couples cook together');
   await expect(row).toContainText('2 categories');
 });
 
@@ -303,7 +302,7 @@ test('progress reads in Spanish', async ({ page }) => {
     .getByRole('table', { name: 'Tus concursos' })
     .getByRole('row')
     .filter({ hasText: 'En Español' });
-  await expect(row).toContainText('Por persona');
+  await expect(row).toContainText('Cada cual por su cuenta');
   await expect(row).toContainText('2 categorías');
   await expect(row).toContainText('Nadie se ha unido todavía');
 });

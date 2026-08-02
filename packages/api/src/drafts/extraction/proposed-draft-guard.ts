@@ -15,8 +15,7 @@ export type ExtractedFields = Omit<ProposedDraft, 'clarifications'>;
 /** Plain-language names for the fields, for clarifications a non-technical host reads. */
 const FIELD_LABELS: Record<keyof ExtractedFields, string> = {
   name: 'the contest name',
-  attribution: 'attribution',
-  antiBias: 'the anti-bias rule',
+  format: 'the contest format',
   scoring: 'the scoring rules',
   participants: 'the participants',
   closeRule: 'the close rule',

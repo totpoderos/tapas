@@ -45,6 +45,7 @@ Metrics are percentages; false-field rate is *lower-is-better*.
 | v1 (baseline) | 34.5 | 84.3 | 90.9 | 0.0 | Current prompt, incl. the participant-text injection defense. 29 turns, 0 no-tool-call, 19 with a rejected field. |
 | v2 (nested-shape guidance) | 89.7 | 88.2 | 84.1 | 0.0 | Adds the exact `scoring`/`closeRule`/`revealStrategy` shapes to both prompts. Schema validity +55.2pts; rejections `scoring` 14→1, `closeRule` 6→2, `revealStrategy` 5→1. Regressed missing-field recall −6.8pts (see below). |
 | v3 (restore high-stakes asking) — **reverted** | 58.6 | 83.9 | 88.6 | 0.0 | Kept v2's shapes and added an imperative to always ask about un-stated high-stakes fields. Recall recovered only partly (84.1→88.6) while schema validity **collapsed** 89.7→58.6 — the extra instruction destabilised the small model's shape adherence (rejections back up: `attribution` 8, `participants` 7). Net worse; reverted to v2. |
+| v2 on the one-format case set — **not comparable to the rows above** | 75.9 | 80.7 | 85.7 | 1.6 | Same prompt (v2), re-measured after `a-contest-has-one-format` collapsed `attribution` + `antiBias` into one `format`. **The case set changed**, so this is a new baseline rather than a v2→v4 delta: two domain cases had no meaning left and were replaced, and every case's field names moved. Gate passes on all four floors. See below. |
 
 **Adopted: v2.** v2 is the settled prompt. v3 is kept in the trajectory as a
 recorded negative result, not in the code. The lesson is a small-model one: past
@@ -58,6 +59,38 @@ no wrong high-stakes value is ever set; the host is simply not always re-prompte
 A better lever for that (e.g. a deterministic post-check that appends the missing
 high-stakes clarifications, independent of the model) is left as future work
 rather than more prompt text.
+
+**Reading the one-format re-measure (2026-08-02).** Read as a *new baseline*, not
+as a regression against v2: the prompt is unchanged, but the case set is not the
+one v2 was measured on, so the numbers are not a delta. Two domain cases had no
+meaning left once the fields collapsed — the `arbitrary_pairs` feud, which has no
+expression at all now, and `per_couple` with nobody barred, which was only
+meaningful while the two fields could disagree — and both were replaced rather
+than dropped. Every remaining case's field names moved.
+
+Run-to-run spread on this model is real and worth knowing before anyone reads a
+small movement as a signal: two runs over near-identical case sets gave schema
+validity **79.3** and **75.9**, a 3.4pt spread at `temperature 0`.
+
+Two findings are about the collapse itself rather than the measurement:
+
+1. **One field is more inferable from roster language than two were.** In
+   `partial-format-asked-then-answered` the model fills in `format: 'couples'`
+   from "Ana and Bob are partners" alone, and tags it `host` — so the §9 guard,
+   which drops only `llm_default`, does not catch it. That is the whole of the
+   1.6% false-field rate. Previously "partners" implied only a pairing and
+   `attribution` stayed a visibly separate question; now "partners" sits one hop
+   from `couples`. Knowing two people are partners still says nothing about the
+   format — they may cook one dish between them, or one each with neither
+   scoring the other — so the case is kept as written rather than softened.
+   It measures a pressure point this change created.
+2. **`format` inherits `attribution`'s place in the rejection list.** The v3
+   negative result recorded `attribution` ×8 rejections; the equivalent here is
+   `format` ×2 (of 5 rejections total). In one, the model's own clarification
+   invents a fourth value — "is it solo, couples, or **teams with partners**?" —
+   which suggests the three-value enum is not yet firmly anchored for a model
+   this size. Worth a prompt iteration, but on the v3 evidence, adding text is
+   not free; that is future work, not a change made here.
 
 **Reading v2.** The nested-shape guidance did exactly what the baseline pointed at: **schema validity 34.5 → 89.7** (domain 20→100, adversarial 33→100), with field accuracy up (84.3→88.2) and false-field rate held at 0.0. The cost was **missing-field recall 90.9 → 84.1**: now that the model reliably *produces* well-shaped fields (fields produced 53→71), it is less inclined to *ask* about high-stakes fields it cannot determine — the misses are almost all `attribution: never asked about` (and one adversarial `antiBias`). The §9 guard still keeps those values from being set (false-field rate 0.0), so this is an asking/UX regression, not a safety one — but §9 wants those fields surfaced to the host, so v3 targets it.
 

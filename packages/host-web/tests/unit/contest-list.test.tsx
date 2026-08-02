@@ -159,7 +159,7 @@ describe('How each contest is going', () => {
         id: 'a',
         name: 'Spring Tapas Crawl',
         status: 'live',
-        attribution: 'per_person',
+        format: 'solo',
         categoryCount: 4,
         joinCode: '4KQ-207',
         progress: { claimedCount: 1, draftCount: 0, sentCount: 1 },
@@ -169,7 +169,7 @@ describe('How each contest is going', () => {
 
     await screen.findByRole('table', { name: 'Your contests' });
     expect(rowFor('Spring Tapas Crawl')).toHaveTextContent(
-      'Per person · 4 categories · code 4KQ-207',
+      'Everyone on their own · 4 categories · code 4KQ-207',
     );
   });
 
@@ -244,7 +244,7 @@ describe('How each contest is going', () => {
         id: 'a',
         name: 'Spring Tapas Crawl',
         status: 'live',
-        attribution: 'per_person',
+        format: 'solo',
         categoryCount: 4,
         joinCode: '4KQ-207',
         progress: { claimedCount: 18, draftCount: 5, sentCount: 13 },

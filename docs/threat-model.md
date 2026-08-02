@@ -257,7 +257,7 @@ highest-value quick fixes — see §4 and §5.
 - **Participant-name injection defense (deterministic).** A convincing name can
   fool the model into reporting a high-stakes rule as *host-stated*; so a guard
   reads the participant names **directly** (not the model's `source` tag) and drops
-  any high-stakes rule (`attribution|antiBias|scoring`) a name tries to dictate,
+  any high-stakes rule (`format|scoring`) a name tries to dictate,
   replacing it with a clarification — surgical, leaving genuinely host-stated rules
   intact ([participant-text-injection.ts:51](../packages/api/src/drafts/extraction/participant-text-injection.ts),
   applied at [proposed-draft-guard.ts:129](../packages/api/src/drafts/extraction/proposed-draft-guard.ts)).

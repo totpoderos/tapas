@@ -23,8 +23,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function repeatsAllowed(name: string, categories = [{ id: 'c1', name: 'Taste' }]) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories, range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'a', displayName: 'Ana' },

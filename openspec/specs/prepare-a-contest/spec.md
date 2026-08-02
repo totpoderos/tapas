@@ -7,20 +7,19 @@ one survive moving to the other, that one save stores the whole thing from eithe
 and that saving, publishing and what is still missing are offered wherever the host
 is standing. Creating a contest is the first of those two sections, so it settles
 the rules and hands the people over rather than asking for them twice.
-
 ## Requirements
 ### Requirement: A contest being prepared has two sections
-A contest that has not yet gone live SHALL be prepared in two sections rather than on one screen. One section SHALL hold its **rules** — what it is called, whether dishes are attributed per person or per couple, the anti-bias rule, the scoring categories, the score range, and whether scores must be unique within a category. The other SHALL hold its **participants and pairing** — who is taking part, who is paired with whom, and which pairs may not score each other. Everything a host could settle on the one screen SHALL be settled on one of the two, and nothing SHALL appear on both.
+A contest that has not yet gone live SHALL be prepared in two sections rather than on one screen. One section SHALL hold its **rules** — what it is called, its format, the scoring categories, the score range, and whether scores must be unique within a category. The other SHALL hold its **participants and pairing** — who is taking part and who is paired with whom. Everything a host could settle on the one screen SHALL be settled on one of the two, and nothing SHALL appear on both.
 
 #### Scenario: The rules are settled in their own section
 - **WHEN** a signed-in host opens the rules of a contest they are preparing
-- **THEN** they can change what it is called, how dishes are attributed, its anti-bias rule, its scoring categories, its score range, and whether scores must be unique within a category
-- **AND** the roster, the pairings and the barred pairs are not on that section
+- **THEN** they can change what it is called, its format, its scoring categories, its score range, and whether scores must be unique within a category
+- **AND** the roster and the pairings are not on that section
 
 #### Scenario: The people are settled in their own section
 - **WHEN** a signed-in host opens the participants and pairing of a contest they are preparing
-- **THEN** they can add and remove people, pair them as couples, and bar pairs from scoring each other
-- **AND** the contest's name, attribution, anti-bias rule and scoring are not on that section
+- **THEN** they can add and remove people, and pair them as partners where the format allows it
+- **AND** the contest's name, its format and its scoring are not on that section
 
 ### Requirement: The navigation offers both sections of a contest being prepared
 When a host is inside a contest being prepared, the panel's navigation SHALL name it, say that it has not been published, and offer both of its sections as separate ways in. The section the host is on SHALL be marked as the current one, and moving between them SHALL be a single step from either.
@@ -71,11 +70,17 @@ Saving SHALL store everything the host has changed across both sections, whichev
 ### Requirement: Publishing and what is still missing are offered on both sections
 The publish checklist describes the whole contest being prepared and not one section of it, so both sections SHALL say what is ready and what is not, and both SHALL offer publishing. What the contest still needs SHALL also be said in the panel, where a host can see it without scrolling the section they are on.
 
+Participants without a partner SHALL be reported as missing only under the format where couples cook together, since that is the only format where having no partner is a fault rather than a choice.
+
 #### Scenario: What is still missing is said on either section
-- **WHEN** a signed-in host is preparing a contest scored per couple, two of whose participants have no partner
+- **WHEN** a signed-in host is preparing a contest where couples cook together, two of whose participants have no partner
 - **THEN** both its rules and its participants and pairing list what is ready and what is not
 - **AND** both say two participants still need a partner
 - **AND** the panel says so too, without scrolling
+
+#### Scenario: A participant without a partner is not reported as missing under the other formats
+- **WHEN** a signed-in host is preparing a contest where partners are kept apart, two of whose participants have no partner
+- **THEN** the checklist does not report those participants as something still missing
 
 #### Scenario: A contest is published from the section the host is on
 - **WHEN** a signed-in host on the rules of a complete contest they are preparing publishes it
@@ -87,24 +92,6 @@ The publish checklist describes the whole contest being prepared and not one sec
 - **THEN** they are told why it cannot go live
 - **AND** it is still a contest being prepared
 - **AND** they are still on the section they were on
-
-### Requirement: A rule that is being recorded but not applied says so
-A contest guards against bias in one way, not several: it may bar couples, or bar chosen pairs, or bar nobody. Pairs barred from scoring each other are therefore only applied when the contest bars **chosen pairs**. Where a host can record such pairs under a contest that guards against bias another way, they SHALL be told plainly that those pairs are not in force and which rule would put them in force. The pairs SHALL still be listed and still be editable, so that nothing a host recorded is lost or hidden, and choosing the other rule brings them into force.
-
-#### Scenario: Pairs recorded under a contest that bars couples are said to be idle
-- **WHEN** a signed-in host bars two participants from scoring each other, in a contest being prepared where couples cannot score each other
-- **THEN** the pair is listed as barred
-- **AND** they are told those pairs are not in force for this contest
-- **AND** they are told which rule would put them in force
-
-#### Scenario: The same pairs are not said to be idle when the contest bars chosen pairs
-- **WHEN** a signed-in host looks at the barred pairs of a contest being prepared where chosen pairs cannot score each other
-- **THEN** they are not told anything is out of force
-
-#### Scenario: An idle pair is kept, not discarded
-- **WHEN** a signed-in host bars two participants in a contest being prepared where couples cannot score each other, and saves
-- **THEN** the pair is still recorded against the contest being prepared
-- **AND** choosing that chosen pairs cannot score each other puts it in force without it having to be entered again
 
 ### Requirement: Creating a contest settles its rules and hands over to its people
 The form that starts a contest SHALL be the first of the two sections and SHALL NOT ask who is taking part, so that the same people are not asked for twice. It SHALL offer both a way to save and stop and a way to go on to the participants and pairing of the contest it just saved. Going on SHALL save first, so the host never carries unsaved rules into the next section.
@@ -158,7 +145,7 @@ Each section SHALL be operable by keyboard alone with focus always visible, SHAL
 ### Requirement: The publish checklist says whether enough people are taking part
 The checklist SHALL say whether a contest being prepared has enough people to go live, because a contest with nobody taking part, and a contest with exactly one person, are both refused when published. It SHALL NOT report a contest as ready while either is true. Where only one person is taking part, the checklist SHALL say why a second is needed rather than only that one is.
 
-The checklist remains a prediction from the draft's own content. Whether every judge can score something depends on the attribution, the anti-bias rule, the pairings and the barred pairs together, and stays the server's answer — only what is certain from the count alone is said here.
+The checklist remains a prediction from the draft's own content. Whether every judge can score something depends on the contest's format and its pairings together, and stays the server's answer — only what is certain from the count alone is said here.
 
 #### Scenario: A contest nobody is taking part in is not ready
 - **WHEN** a signed-in host is preparing a contest that nobody is taking part in
@@ -180,3 +167,69 @@ The checklist remains a prediction from the draft's own content. Whether every j
 - **WHEN** a signed-in host names a new contest and goes on to its participants and pairing, where nobody has been added yet
 - **THEN** the checklist says nobody is taking part yet
 - **AND** it does not say the contest is ready to publish
+
+### Requirement: A contest is prepared under one of three formats
+
+A contest SHALL have exactly one **format**, chosen from three, and that one choice SHALL settle both who cooks a dish and who may not score it. There SHALL be no second rule to set alongside it and no combination of settings for a host to reason about: every format is a contest that can be held, and no format leaves anything about scoring undecided.
+
+The three SHALL be:
+
+- **everyone on their own** — each person cooks their own dish, and everybody scores every dish but their own;
+- **everyone on their own, partners kept apart** — each person cooks their own dish, a partner is optional, and whoever has one does not score their partner's dish, while whoever has none scores everybody;
+- **couples cook together** — each couple cooks one dish between them, everybody has a partner, and nobody scores the dish their own couple cooked.
+
+Each format SHALL be offered saying what happens under it, not naming a rule, so that a host reads three contests rather than three settings.
+
+#### Scenario: The rules offer one format, described as what happens
+
+- **WHEN** a signed-in host opens the rules of a contest they are preparing
+- **THEN** they are offered exactly one choice of format, with the three formats to choose from
+- **AND** each says what it means for who cooks and who scores
+- **AND** there is no separate choice of what guards against bias
+
+#### Scenario: Everyone on their own leaves only a person's own dish out
+
+- **WHEN** a contest where everyone is on their own goes live
+- **THEN** every participant may score every dish except the one they cooked
+
+#### Scenario: A partner's dish is not theirs to score
+
+- **WHEN** a contest where everyone is on their own with partners kept apart goes live, in which one pair are partners and one participant has no partner
+- **THEN** neither partner may score the other's dish
+- **AND** the participant without a partner may score every dish but their own
+
+#### Scenario: A couple cooks one dish and neither of them scores it
+
+- **WHEN** a contest where couples cook together goes live
+- **THEN** each couple has one dish between them
+- **AND** neither member of a couple may score that dish
+- **AND** each of them may score every other couple's dish
+
+### Requirement: The partner offered follows the contest's format
+
+Who may be paired with whom SHALL be asked only where a partner does something. Under **everyone on their own** no partner SHALL be asked for, since none would change anything. Under **partners kept apart** a partner SHALL be offered and SHALL be optional. Under **couples cook together** a partner SHALL be required, and anybody without one SHALL be marked as still wanting one, in words and not by colour alone.
+
+Pairings already recorded SHALL survive a change of format: choosing a format that has no use for them SHALL neither discard them nor warn about them, and choosing a format that uses them again SHALL put them back to work without anybody entering them a second time.
+
+#### Scenario: No partner is asked for when nobody is kept apart
+
+- **WHEN** a signed-in host opens the participants of a contest they are preparing where everyone is on their own
+- **THEN** there is nowhere to give a participant a partner
+
+#### Scenario: A partner is optional when partners are kept apart
+
+- **WHEN** a signed-in host opens the participants of a contest they are preparing where partners are kept apart
+- **THEN** they can give a participant a partner or leave them without one
+- **AND** a participant left without one is not marked as wanting anything
+
+#### Scenario: A partner is required when couples cook together
+
+- **WHEN** a signed-in host opens the participants of a contest they are preparing where couples cook together, one of whose participants has no partner
+- **THEN** that participant is marked, in words, as still needing a partner
+
+#### Scenario: Pairings survive a change of format
+
+- **WHEN** a signed-in host who has paired two participants changes the contest they are preparing to one where everyone is on their own, and then back
+- **THEN** the two are still partners
+- **AND** they were not warned about the pairing on the way
+

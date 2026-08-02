@@ -1,7 +1,7 @@
 Feature: A host sets up a new contest
-  Setting up a contest means choosing how it will be scored: how dishes are
-  credited, what stops people scoring their own side, what each dish is judged on,
-  and the band scores fall in.
+  Setting up a contest means choosing what kind of contest it is — who cooks a
+  dish and who may not score it — along with what each dish is judged on and the
+  band scores fall in.
 
   Only a name is required to save. Everything else can be filled in now or later,
   and the whole rule space is checked when the contest is published — so saving is
@@ -29,17 +29,11 @@ Feature: A host sets up a new contest
     Then the screen says only a name is required to save
     And that everything else is checked when the contest is published
 
-  Scenario: A host chooses how dishes are credited
+  Scenario: A host chooses what kind of contest it is
     Given a signed-in host setting up a new contest
-    When they choose that each couple is scored together
+    When they choose that couples cook together
     And they give it a name and save it
-    Then the contest being prepared is scored per couple
-
-  Scenario: A host chooses what stops people scoring their own side
-    Given a signed-in host setting up a new contest
-    When they choose that couples cannot score each other
-    And they give it a name and save it
-    Then the contest being prepared bars couples from scoring each other
+    Then the contest being prepared is one where couples cook together
 
   Scenario: A host chooses what each dish is judged on
     Given a signed-in host setting up a new contest

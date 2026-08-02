@@ -12,7 +12,7 @@ It is also a master's thesis project, so three things are first-class deliverabl
 
 A tapas contest is not one product but a point in a five-dimensional rule space:
 
-- **Attribution** — per person or per couple
+- **Format** — everyone on their own, everyone on their own with partners kept apart, or couples cooking together
 - **Anti-bias** — none, couples, or arbitrary no-score pairs
 - **Scoring range** — fixed `1..10` or `1..N`
 - **Uniqueness** — strict permutation (ranking) or allow repeats (rating)

@@ -15,8 +15,7 @@ const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 function draftContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'a', displayName: 'Ana' },

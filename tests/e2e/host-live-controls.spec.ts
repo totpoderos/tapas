@@ -26,8 +26,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function content(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     // Host-triggered close, so the contest stays live until the host closes it.
     // The default `all_sent` would close it once every place had sent, and these
     // tests want a contest that is still running with only some votes in.

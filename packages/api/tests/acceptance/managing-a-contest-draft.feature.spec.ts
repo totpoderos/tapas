@@ -63,8 +63,7 @@ type DraftWorkspace = ReturnType<typeof makeDraftWorkspace>;
 function draftNamed(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
     participants: [],
   };
@@ -77,7 +76,7 @@ describeFeature(feature, ({ Scenario }) => {
     let savedDraftId = '';
 
     Given('a host', () => void (workspace = makeDraftWorkspace()));
-    When('the host saves a draft named "Summer Tapas 2026" scored per person with couples barred', () => {
+    When('the host saves a draft named "Summer Tapas 2026" where everyone is on their own with partners kept apart', () => {
       const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
       expect(creation.ok).toBe(true);
       if (creation.ok) savedDraftId = creation.draft.id;

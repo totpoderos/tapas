@@ -79,7 +79,7 @@ context: |
       Results & Reveal, Assistant (supporting). Audit is cross-cutting.
     - Aggregates: Draft, Contest, VoteSession (contains Score),
       Participant, Dish. Value objects: ScoringConfig, Range,
-      Attribution, AntiBias, Category.
+      ContestFormat, Category.
     - Pure domain lives in the `domain` workspace with ZERO I/O deps
       (enforceable rule). api/mcp depend on it. DTOs + LLMClient stay
       in `shared`.

@@ -50,8 +50,7 @@ async function signedInHost(app: FastifyInstance, email: string): Promise<Cookie
 function contentWith(closeRule?: DraftContent['closeRule']): DraftContent {
   return {
     name: 'Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },

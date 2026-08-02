@@ -38,29 +38,29 @@ describe('Draft', () => {
     const draft = Draft.rehydrate('draft-1', 'host-1', { name: 'Old name' });
     const edited = draft.withContent({
       name: 'New name',
-      attribution: 'per_couple',
+      format: 'couples',
       participants: [{ id: 'a', displayName: 'Ana', partnerId: 'b' }],
     });
     expect(edited.ok).toBe(true);
     if (edited.ok) {
       expect(edited.draft.id).toBe('draft-1');
       expect(edited.draft.hostId).toBe('host-1');
-      expect(edited.draft.content.attribution).toBe('per_couple');
+      expect(edited.draft.content.format).toBe('couples');
       expect(edited.draft.content.participants).toEqual([{ id: 'a', displayName: 'Ana', partnerId: 'b' }]);
     }
   });
 
   it('refuses to edit to an empty name (the one invariant a draft keeps)', () => {
     const draft = Draft.rehydrate('draft-1', 'host-1', { name: 'Old name' });
-    const edited = draft.withContent({ name: '  ', attribution: 'per_person' });
+    const edited = draft.withContent({ name: '  ', format: 'solo' });
     expect(edited.ok).toBe(false);
     if (!edited.ok) expect(edited.error.code).toBe('NAME_REQUIRED');
   });
 
   it('does not mutate the original when edited', () => {
-    const draft = Draft.rehydrate('draft-1', 'host-1', { name: 'Old name', attribution: 'per_person' });
-    draft.withContent({ name: 'New name', attribution: 'per_couple' });
+    const draft = Draft.rehydrate('draft-1', 'host-1', { name: 'Old name', format: 'solo' });
+    draft.withContent({ name: 'New name', format: 'couples' });
     expect(draft.content.name).toBe('Old name');
-    expect(draft.content.attribution).toBe('per_person');
+    expect(draft.content.format).toBe('solo');
   });
 });

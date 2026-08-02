@@ -2,9 +2,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   compile,
-  type AntiBias,
-  type Attribution,
   type ContestDraft,
+  type ContestFormat,
   type Person,
   type ScoreRange,
 } from '../../src/index.js';
@@ -12,8 +11,7 @@ import {
 interface Config {
   n: number;
   coupled: boolean;
-  attribution: Attribution;
-  antiBias: AntiBias;
+  format: ContestFormat;
   range: ScoreRange;
   unique: boolean;
 }
@@ -21,8 +19,7 @@ interface Config {
 const configArb: fc.Arbitrary<Config> = fc.record({
   n: fc.integer({ min: 1, max: 8 }),
   coupled: fc.boolean(),
-  attribution: fc.constantFrom<Attribution>('per_person', 'per_couple'),
-  antiBias: fc.constantFrom<AntiBias>('none', 'couples', 'arbitrary_pairs'),
+  format: fc.constantFrom<ContestFormat>('solo', 'solo_with_partners', 'couples'),
   range: fc.constantFrom<ScoreRange>({ type: 'auto' }, { type: 'fixed', min: 1, max: 10 }),
   unique: fc.boolean(),
 });
@@ -41,14 +38,8 @@ function buildDraft(cfg: Config): ContestDraft {
     }
   }
 
-  if (cfg.antiBias === 'arbitrary_pairs' && cfg.n >= 3) {
-    const first = people[0];
-    if (first) people[0] = { ...first, noScoreWith: ['p2'] };
-  }
-
   return {
-    attribution: cfg.attribution,
-    antiBias: cfg.antiBias,
+    format: cfg.format,
     scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: cfg.range, uniquePerCategory: cfg.unique },
     participants: people,
   };
@@ -93,21 +84,58 @@ describe('compile — properties', () => {
     );
   });
 
-  it('under couples anti-bias, a judge is never allowed on their partner’s dish', () => {
+  /**
+   * The two formats that acknowledge partners reach the same guarantee by
+   * different means: `solo_with_partners` excludes the partner's dish by rule,
+   * `couples` because it is the judge's own dish. Asserted over both at once —
+   * if a future change makes only one of them hold, that asymmetry is the bug.
+   */
+  it('wherever partners are acknowledged, a judge is never allowed on their partner’s dish', () => {
     fc.assert(
-      fc.property(configArb, (cfg) => {
-        const draft = buildDraft({ ...cfg, antiBias: 'couples' });
+      fc.property(configArb, fc.constantFrom<ContestFormat>('solo_with_partners', 'couples'), (cfg, format) => {
+        const draft = buildDraft({ ...cfg, format });
         const r = compile(draft);
         if (!r.ok) return;
         const c = r.contest;
         for (const p of draft.participants) {
-          if (!p.partnerId) continue;
+          if (p.partnerId === undefined) continue;
           for (const dish of c.dishes) {
-            if (p.partnerId !== undefined && dish.submitterIds.includes(p.partnerId)) {
+            if (dish.submitterIds.includes(p.partnerId)) {
               expect((c.allowedVoters.get(dish.id) ?? new Set()).has(p.id)).toBe(false);
             }
           }
         }
+      }),
+      { numRuns: 300 },
+    );
+  });
+
+  it('under solo, a judge’s own dish is the only thing kept from them', () => {
+    fc.assert(
+      fc.property(configArb, (cfg) => {
+        const draft = buildDraft({ ...cfg, format: 'solo' });
+        const r = compile(draft);
+        if (!r.ok) return;
+        const c = r.contest;
+        for (const p of draft.participants) {
+          for (const dish of c.dishes) {
+            const allowed = (c.allowedVoters.get(dish.id) ?? new Set()).has(p.id);
+            expect(allowed).toBe(!dish.submitterIds.includes(p.id));
+          }
+        }
+      }),
+      { numRuns: 300 },
+    );
+  });
+
+  it('a couples contest never compiles with somebody unpartnered', () => {
+    fc.assert(
+      fc.property(configArb, (cfg) => {
+        const draft = buildDraft({ ...cfg, format: 'couples' });
+        if (draft.participants.every((p) => p.partnerId !== undefined)) return;
+        const r = compile(draft);
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.error.code).toBe('UNPARTNERED_IN_COUPLES');
       }),
       { numRuns: 300 },
     );

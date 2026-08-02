@@ -31,8 +31,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function content(name: string, { uniquePerCategory = true } = {}) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     closeRule: { when: 'host_trigger' },
     scoring: {
       categories: [
@@ -164,8 +163,7 @@ test('the control room shows the rules the contest is being played by', async ({
 
   await page.goto(`/contest/${contestId}`);
   const rules = page.getByRole('region', { name: 'Rules in force' });
-  await expect(rules).toContainText('Per person');
-  await expect(rules).toContainText('Couples can’t score each other');
+  await expect(rules).toContainText('Everyone on their own, partners kept apart');
   await expect(rules).toContainText('Taste, Look, Ambition');
   await expect(rules).toContainText('1–10');
   await expect(rules).toContainText('Unique per category');
@@ -302,7 +300,9 @@ test('the control room reads in Spanish', async ({ page }) => {
   await page.getByLabel('Language').selectOption('es');
 
   await expect(page.getByRole('region', { name: 'Progreso' })).toBeVisible();
-  await expect(page.getByRole('region', { name: 'Reglas en vigor' })).toContainText('Por persona');
+  await expect(page.getByRole('region', { name: 'Reglas en vigor' })).toContainText(
+    'Cada cual por su cuenta, sin puntuar a su pareja',
+  );
   await expect(page.getByRole('button', { name: 'Cerrar la votación' })).toBeVisible();
   // What the host wrote, and what the system issued, are left alone. Scoped to the
   // navigation: the panel names the contest in its header too, so unscoped this

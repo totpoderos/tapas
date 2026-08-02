@@ -19,7 +19,6 @@ const PersonSchema = z
     id: z.string().min(1),
     displayName: z.string().min(1),
     partnerId: z.string().min(1).optional(),
-    noScoreWith: z.array(z.string().min(1)).optional(),
   })
   .strict();
 
@@ -55,8 +54,7 @@ const RevealStrategySchema = z.union([
  */
 export const FIELD_SCHEMAS = {
   name: field(z.string().min(1)),
-  attribution: field(z.enum(['per_person', 'per_couple'])),
-  antiBias: field(z.enum(['none', 'couples', 'arbitrary_pairs'])),
+  format: field(z.enum(['solo', 'solo_with_partners', 'couples'])),
   scoring: field(ScoringConfigSchema),
   participants: field(z.array(PersonSchema).min(1)),
   closeRule: field(CloseRuleSchema),
@@ -66,8 +64,7 @@ export const FIELD_SCHEMAS = {
 export const ProposedDraftSchema = z
   .object({
     name: FIELD_SCHEMAS.name.optional(),
-    attribution: FIELD_SCHEMAS.attribution.optional(),
-    antiBias: FIELD_SCHEMAS.antiBias.optional(),
+    format: FIELD_SCHEMAS.format.optional(),
     scoring: FIELD_SCHEMAS.scoring.optional(),
     participants: FIELD_SCHEMAS.participants.optional(),
     closeRule: FIELD_SCHEMAS.closeRule.optional(),
@@ -80,8 +77,7 @@ export type ProposedDraft = z.infer<typeof ProposedDraftSchema>;
 
 /** Fields the assistant may never guess a default for — see design.md §9. */
 export const NON_DEFAULTABLE_FIELDS = [
-  'attribution',
-  'antiBias',
+  'format',
   'scoring',
   'participants',
 ] as const satisfies readonly (keyof ProposedDraft)[];
@@ -104,7 +100,6 @@ const PERSON_JSON_SCHEMA = {
     id: { type: 'string' },
     displayName: { type: 'string' },
     partnerId: { type: 'string' },
-    noScoreWith: { type: 'array', items: { type: 'string' } },
   },
 };
 
@@ -193,8 +188,10 @@ export const PROPOSE_CONTEST_DRAFT_TOOL: LLMToolDefinition = {
     required: ['clarifications'],
     properties: {
       name: jsonSchemaField({ type: 'string' }),
-      attribution: jsonSchemaField({ type: 'string', enum: ['per_person', 'per_couple'] }),
-      antiBias: jsonSchemaField({ type: 'string', enum: ['none', 'couples', 'arbitrary_pairs'] }),
+      format: jsonSchemaField({
+        type: 'string',
+        enum: ['solo', 'solo_with_partners', 'couples'],
+      }),
       scoring: jsonSchemaField(SCORING_JSON_SCHEMA),
       participants: jsonSchemaField({ type: 'array', items: PERSON_JSON_SCHEMA }),
       closeRule: jsonSchemaField(CLOSE_RULE_JSON_SCHEMA),

@@ -94,16 +94,16 @@ describe('MergeContestDraft', () => {
   it('drops a high-stakes field the model defaulted, and adds a clarification instead', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
-        attribution: { value: 'per_person', source: 'llm_default' },
+        format: { value: 'solo', source: 'llm_default' },
         clarifications: [],
       }),
     );
 
     const outcome = await new MergeContestDraft({ llmClient }).execute(input());
 
-    expect(outcome.draft.attribution).toBeUndefined();
+    expect(outcome.draft.format).toBeUndefined();
     expect(outcome.clarifications).toEqual([
-      "Please specify attribution explicitly — I can't default that for you.",
+      "Please specify the contest format explicitly — I can't default that for you.",
     ]);
   });
 
@@ -111,33 +111,33 @@ describe('MergeContestDraft', () => {
     const llmClient = new FakeLLMClient(toolCallCompletion({ clarifications: [] }));
 
     const outcome = await new MergeContestDraft({ llmClient }).execute(
-      input({ draft: { antiBias: { value: 'couples', source: 'llm_default' } } }),
+      input({ draft: { format: { value: 'couples', source: 'llm_default' } } }),
     );
 
-    expect(outcome.draft.antiBias).toBeUndefined();
+    expect(outcome.draft.format).toBeUndefined();
     expect(outcome.clarifications).toEqual([
-      "Please specify the anti-bias rule explicitly — I can't default that for you.",
+      "Please specify the contest format explicitly — I can't default that for you.",
     ]);
   });
 
   it('asks about a defaulted high-stakes field once, not once per side of the merge', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
-        attribution: { value: 'per_person', source: 'llm_default' },
+        format: { value: 'solo', source: 'llm_default' },
         clarifications: [],
       }),
     );
 
     const outcome = await new MergeContestDraft({ llmClient }).execute(
       input({
-        draft: { attribution: { value: 'per_couple', source: 'llm_default' } },
+        draft: { format: { value: 'couples', source: 'llm_default' } },
         clarifications: [],
       }),
     );
 
-    expect(outcome.draft.attribution).toBeUndefined();
+    expect(outcome.draft.format).toBeUndefined();
     expect(outcome.clarifications).toEqual([
-      "Please specify attribution explicitly — I can't default that for you.",
+      "Please specify the contest format explicitly — I can't default that for you.",
     ]);
   });
 

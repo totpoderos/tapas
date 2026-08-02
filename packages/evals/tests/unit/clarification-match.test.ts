@@ -13,7 +13,7 @@ describe('asksAbout', () => {
     ['I could not tell who is participating — please list them.', 'participants'],
     [
       'The role of attribution was not specified; we need to know if the judging score counts should be per person or per couple.',
-      'attribution',
+      'format',
     ],
     [
       'We need detailed rules on how to score the tapas (what criteria are used and what is the scoring range?).',
@@ -27,7 +27,11 @@ describe('asksAbout', () => {
     ],
     [
       'We did not receive information about how contestants should be paired up or if there are any special anti-bias rules.',
-      'antiBias',
+      'format',
+    ],
+    [
+      'What kind of contest is this — is everyone on their own, or do couples cook together?',
+      'format',
     ],
   ] as const)('recognizes %j as asking about %s', (clarification, field) => {
     expect(asksAbout([clarification], field)).toBe(true);

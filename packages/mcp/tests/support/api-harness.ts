@@ -94,8 +94,7 @@ async function asHost(app: FastifyInstance, jar: CookieJar, method: 'GET' | 'POS
 /** A simple, publishable draft: Ana/Bob/Carol, no couples, taste 1..5. */
 const DRAFT_CONTENT = {
   name: 'Tapas',
-  attribution: 'per_person',
-  antiBias: 'none',
+  format: 'solo',
   scoring: {
     categories: [{ id: 'taste', name: 'Taste' }],
     range: { type: 'fixed', min: 1, max: 5 },

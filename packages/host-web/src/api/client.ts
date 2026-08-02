@@ -301,8 +301,8 @@ export interface ContestSummary {
   readonly name: string;
   readonly status: 'draft' | 'live' | 'closed' | 'revealed';
   readonly updatedAt: string;
-  /** What a dish is credited to. Absent when the contest does not say. */
-  readonly attribution?: Attribution;
+  /** What kind of contest it is. Absent when the contest does not say. */
+  readonly format?: ContestFormat;
   /** How many things each dish is judged on. Absent when none have been chosen. */
   readonly categoryCount?: number;
   /** The code people join with. Absent until the contest is published. */
@@ -318,10 +318,16 @@ export async function listContests(): Promise<ContestSummary[]> {
   return (await response.json()) as ContestSummary[];
 }
 
-/** How a dish is credited: to each cook, or to a couple as a pair. */
-export type Attribution = 'per_person' | 'per_couple';
-/** Which same-side scoring is barred, to guard against bias. */
-export type AntiBias = 'none' | 'couples' | 'arbitrary_pairs';
+/**
+ * What kind of contest this is — who cooks a dish, and who may not score it.
+ *
+ * Declared here rather than imported: the panel does not depend on `@tapas/domain`,
+ * which is server-side and has no business in a browser bundle. That makes this a
+ * hand-kept copy of the domain's `ContestFormat`, so the two must be changed
+ * together — nothing in the type system links them, and a drift shows up only as a
+ * contest that will not save.
+ */
+export type ContestFormat = 'solo' | 'solo_with_partners' | 'couples';
 /** The score band voters use: derived automatically, or a fixed min–max. */
 export type ScoreRange = { readonly type: 'auto' } | { readonly type: 'fixed'; readonly min: number; readonly max: number };
 
@@ -334,17 +340,14 @@ export interface ScoringConfig {
 export interface Participant {
   readonly id: string;
   readonly displayName: string;
-  /** The id of this participant's partner, when they are scored as a couple. */
+  /** The id of this participant's partner. A partner is the only way two people are kept apart. */
   readonly partnerId?: string;
-  /** Ids of participants this one may not score (anti-bias). */
-  readonly noScoreWith?: readonly string[];
 }
 
 /** The editable content of a draft. Only `name` is required; the rest is filled over time. */
 export interface DraftContent {
   readonly name: string;
-  readonly attribution?: Attribution;
-  readonly antiBias?: AntiBias;
+  readonly format?: ContestFormat;
   readonly scoring?: ScoringConfig;
   readonly participants?: readonly Participant[];
 }
@@ -478,14 +481,12 @@ function filenameFrom(header: string | null): string {
  * The rules a published contest is being played by.
  *
  * Read from the contest rather than from the draft, which is retired at publish
- * and no longer exists. `attribution` and `antiBias` are absent on a contest
- * published before they were recorded — which reads as "does not say", and in
- * `antiBias`'s case must never be shown as `'none'`, since that is itself a rule
- * a host can choose.
+ * and no longer exists. `format` is absent on a contest that recorded none —
+ * which reads as "does not say", and must never be shown as `'solo'`, since that
+ * is itself a format a host can choose.
  */
 export interface ContestRules {
-  readonly attribution?: Attribution;
-  readonly antiBias?: AntiBias;
+  readonly format?: ContestFormat;
   readonly categories: readonly { readonly id: string; readonly name: string }[];
   readonly uniquePerCategory: boolean;
   /** The band every judge scores in. Absent when the contest has no participants to derive it from. */
@@ -512,8 +513,7 @@ export interface Tally {
 
 /** The contest as the API sends it: the stored contest, with its compiled view flattened. */
 interface ContestDetailDto extends Omit<ContestDetail, 'rules'> {
-  readonly attribution?: Attribution;
-  readonly antiBias?: AntiBias;
+  readonly format?: ContestFormat;
   readonly materialized: {
     readonly uniquePerCategory: boolean;
     readonly categories: readonly { readonly id: string; readonly name: string }[];
@@ -536,8 +536,7 @@ export async function getContest(id: string): Promise<ContestDetail> {
     status: dto.status,
     joinCode: dto.joinCode,
     rules: {
-      ...(dto.attribution === undefined ? {} : { attribution: dto.attribution }),
-      ...(dto.antiBias === undefined ? {} : { antiBias: dto.antiBias }),
+      ...(dto.format === undefined ? {} : { format: dto.format }),
       categories: dto.materialized.categories,
       uniquePerCategory: dto.materialized.uniquePerCategory,
       ...(bounds === undefined ? {} : { scoreRange: { min: bounds.min, max: bounds.max } }),

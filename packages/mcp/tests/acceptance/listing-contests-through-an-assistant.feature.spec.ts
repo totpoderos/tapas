@@ -89,7 +89,7 @@ describeFeature(feature, ({ Scenario }) => {
       const [listed] = JSON.parse(firstText(result)) as {
         joinCode?: string;
         progress?: { claimedCount: number; draftCount: number; sentCount: number };
-        attribution?: string;
+        format?: string;
         categoryCount?: number;
       }[];
       expect(listed?.joinCode).toMatch(/\S/);
@@ -98,10 +98,10 @@ describeFeature(feature, ({ Scenario }) => {
     });
     And('it is listed with what it is judged on', () => {
       const [listed] = JSON.parse(firstText(result)) as {
-        attribution?: string;
+        format?: string;
         categoryCount?: number;
       }[];
-      expect(listed?.attribution).toBe('per_person');
+      expect(listed?.format).toBe('solo');
       expect(listed?.categoryCount).toBe(1);
     });
   });

@@ -105,8 +105,7 @@ test('the rules chosen are what gets saved', async ({ page }) => {
 
   await page.goto('/new');
   await page.getByLabel('Contest name').fill('Chosen Rules');
-  await page.getByLabel('Each couple is scored together').click();
-  await page.getByLabel('Couples cannot score each other').click();
+  await page.getByRole('radio', { name: 'Couples cook together' }).check();
   await page.getByLabel('Fixed range').click();
   await page.getByLabel('Lowest score').fill('1');
   await page.getByLabel('Highest score').fill('5');
@@ -117,9 +116,9 @@ test('the rules chosen are what gets saved', async ({ page }) => {
   // Read back through the API, so this asserts what was stored rather than what the
   // screen happened to show.
   const listed = await page.request.get('/contests');
-  const contests = (await listed.json()) as { name: string; attribution?: string }[];
+  const contests = (await listed.json()) as { name: string; format?: string }[];
   const saved = contests.find((c) => c.name === 'Chosen Rules');
-  expect(saved?.attribution).toBe('per_couple');
+  expect(saved?.format).toBe('couples');
 });
 
 test('the choices are real radios and the rule a real checkbox', async ({ page }) => {
@@ -128,12 +127,14 @@ test('the choices are real radios and the rule a real checkbox', async ({ page }
   await page.goto('/new');
   // Drawn as cards, but a screen reader and the keyboard still get radios in a
   // group — the looks are the label's business, the semantics the input's.
-  await expect(page.getByRole('radio', { name: 'Each person is scored on their own' })).toBeChecked();
-  await expect(page.getByRole('radio', { name: 'Each couple is scored together' })).not.toBeChecked();
+  await expect(
+    page.getByRole('radio', { name: 'Everyone on their own', exact: true }),
+  ).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Couples cook together' })).not.toBeChecked();
   await expect(page.getByRole('checkbox')).toBeChecked();
 
-  await page.getByLabel('Each couple is scored together').press('Space');
-  await expect(page.getByRole('radio', { name: 'Each couple is scored together' })).toBeChecked();
+  await page.getByRole('radio', { name: 'Couples cook together' }).press('Space');
+  await expect(page.getByRole('radio', { name: 'Couples cook together' })).toBeChecked();
 });
 
 test('the rule space is keyboard-operable and free of accessibility violations', async ({

@@ -36,8 +36,7 @@
   "activityFailed": "The recent activity couldn’t be loaded.",
   "rulesTitle": "Rules in force",
   "rules": {
-    "attribution": "Attribution",
-    "antiBias": "Anti-bias",
+    "format": "Format",
     "categories": "Categories",
     "scoreRange": "Score range",
     "band": "{{min}}–{{max}}",

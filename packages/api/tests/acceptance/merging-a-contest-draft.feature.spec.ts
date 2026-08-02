@@ -184,11 +184,11 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given(
-        'a merge attempt that defaults the attribution field without the host having said so',
+        "a merge attempt that defaults the contest's format without the host having said so",
         async () => {
           const llmClient = new FakeLLMClient(
             toolCallCompletion({
-              attribution: { value: 'per_person', source: 'llm_default' },
+              format: { value: 'solo', source: 'llm_default' },
               clarifications: [],
             }),
           );
@@ -208,12 +208,12 @@ describeFeature(feature, ({ Scenario }) => {
           },
         });
       });
-      Then('the attribution field is dropped from the draft', () => {
-        expect(response.json().draft.attribution).toBeUndefined();
+      Then('the format is dropped from the draft', () => {
+        expect(response.json().draft.format).toBeUndefined();
       });
       And('a clarification asks the host to specify it', () => {
         expect(response.json().clarifications).toEqual([
-          "Please specify attribution explicitly — I can't default that for you.",
+          "Please specify the contest format explicitly — I can't default that for you.",
         ]);
       });
     },

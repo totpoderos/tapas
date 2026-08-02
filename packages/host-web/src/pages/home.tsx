@@ -124,7 +124,7 @@ export function Home() {
 function RulesInBrief({ contest }: { contest: ContestSummary }) {
   const { t } = useTranslation();
   const parts = [
-    contest.attribution && t(`common.attribution.${contest.attribution}`),
+    contest.format && t(`common.format.${contest.format}`),
     contest.categoryCount !== undefined &&
       t('home.categories', { count: contest.categoryCount }),
     contest.joinCode && t('home.joinCode', { code: contest.joinCode }),

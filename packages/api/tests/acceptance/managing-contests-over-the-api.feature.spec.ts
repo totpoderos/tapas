@@ -19,8 +19,7 @@ function person(id: string, partnerId: string) {
 function completeContent(name: string): DraftContent {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'couples',
+    format: 'solo_with_partners',
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },

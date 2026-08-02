@@ -13,6 +13,7 @@ export type CompileErrorCode =
   | 'DUPLICATE_PERSON_ID'
   | 'MISSING_PARTNER'
   | 'INCONSISTENT_PARTNER'
+  | 'UNPARTNERED_IN_COUPLES'
   | 'INVALID_RANGE'
   | 'JUDGE_CANNOT_SCORE_ANY_DISH';
 
@@ -56,6 +57,16 @@ export function compile(draft: ContestDraft): CompileResult {
     }
   }
 
+  // The couples format is only for couples: there is no dish for somebody
+  // without a partner to cook, and no couple for them to belong to.
+  if (draft.format === 'couples') {
+    for (const p of people) {
+      if (p.partnerId === undefined) {
+        return fail('UNPARTNERED_IN_COUPLES', `"${p.displayName}" has no partner, and this contest is for couples.`);
+      }
+    }
+  }
+
   const { range } = draft.scoring;
   if (range.type === 'fixed' && (range.min < 1 || range.max < range.min)) {
     return fail('INVALID_RANGE', `Fixed score range 1-based and non-empty required (got ${range.min}..${range.max}).`);
@@ -63,33 +74,13 @@ export function compile(draft: ContestDraft): CompileResult {
 
   const dishes = buildDishes(draft, people);
 
-  // Symmetric "may not score" relation, only for arbitrary_pairs.
-  const noScore = new Map<PersonId, Set<PersonId>>();
-  const link = (a: PersonId, b: PersonId): void => {
-    let set = noScore.get(a);
-    if (!set) {
-      set = new Set();
-      noScore.set(a, set);
-    }
-    set.add(b);
-  };
-  if (draft.antiBias === 'arbitrary_pairs') {
-    for (const p of people) {
-      for (const other of p.noScoreWith ?? []) {
-        if (!byId.has(other)) continue;
-        link(p.id, other);
-        link(other, p.id);
-      }
-    }
-  }
-
   const allowedVoters = new Map<DishId, ReadonlySet<PersonId>>();
   for (const dish of dishes) {
     const submitters = new Set(dish.submitterIds);
     const allowed = new Set<PersonId>();
     for (const p of people) {
       if (submitters.has(p.id)) continue; // never score your own dish
-      if (isBarred(draft.antiBias, p, submitters, noScore)) continue;
+      if (isBarred(draft.format, p, submitters)) continue;
       allowed.add(p.id);
     }
     allowedVoters.set(dish.id, allowed);
@@ -133,45 +124,44 @@ export function compile(draft: ContestDraft): CompileResult {
   };
 }
 
+/**
+ * What the format keeps from a judge *beyond* their own dish, which the caller
+ * has already excluded.
+ *
+ * Only one format has anything to add. Under `couples` a judge's partner shares
+ * their dish, so "never score your own dish" has already excluded it — the
+ * fairness of a couples contest falls out of how its dishes are built rather
+ * than from a rule that has to agree with them.
+ */
 function isBarred(
-  antiBias: ContestDraft['antiBias'],
+  format: ContestDraft['format'],
   voter: Person,
   submitters: ReadonlySet<PersonId>,
-  noScore: ReadonlyMap<PersonId, ReadonlySet<PersonId>>,
 ): boolean {
-  switch (antiBias) {
-    case 'none':
-      return false;
-    case 'couples':
-      return voter.partnerId !== undefined && submitters.has(voter.partnerId);
-    case 'arbitrary_pairs': {
-      const barred = noScore.get(voter.id);
-      if (!barred) return false;
-      for (const s of submitters) if (barred.has(s)) return true;
-      return false;
-    }
-  }
+  return (
+    format === 'solo_with_partners' &&
+    voter.partnerId !== undefined &&
+    submitters.has(voter.partnerId)
+  );
 }
 
 function buildDishes(draft: ContestDraft, people: readonly Person[]): MaterializedDish[] {
-  if (draft.attribution === 'per_person') {
+  // Both solo formats cook one dish each; a partner under `solo` is a roster
+  // fact the format has no use for, not a pairing that failed to apply.
+  if (draft.format !== 'couples') {
     return people.map((p) => ({ id: `D-${p.id}`, submitterIds: [p.id] }));
   }
 
-  // per_couple: partners share one dish; singles get their own.
+  // couples: partners share one dish. Everybody has a partner by the time we
+  // get here, so there is no unpartnered case to fall back on.
   const dishes: MaterializedDish[] = [];
   const placed = new Set<PersonId>();
   for (const p of people) {
-    if (placed.has(p.id)) continue;
-    if (p.partnerId !== undefined) {
-      const submitterIds = [p.id, p.partnerId];
-      dishes.push({ id: `D-${submitterIds.join('-')}`, submitterIds });
-      placed.add(p.id);
-      placed.add(p.partnerId);
-    } else {
-      dishes.push({ id: `D-${p.id}`, submitterIds: [p.id] });
-      placed.add(p.id);
-    }
+    if (placed.has(p.id) || p.partnerId === undefined) continue;
+    const submitterIds = [p.id, p.partnerId];
+    dishes.push({ id: `D-${submitterIds.join('-')}`, submitterIds });
+    placed.add(p.id);
+    placed.add(p.partnerId);
   }
   return dishes;
 }

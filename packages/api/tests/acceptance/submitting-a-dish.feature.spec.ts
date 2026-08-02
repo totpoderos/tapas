@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import type { DatabaseSync } from 'node:sqlite';
-import type { Attribution, DraftContent } from '@tapas/domain';
+import type { ContestFormat, DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
@@ -31,12 +31,11 @@ function person(id: string, displayName: string, partnerId: string) {
   return { id, displayName, partnerId };
 }
 
-/** A complete, publishable draft with the given attribution and 2 couples (4 people). */
-function completeContent(attribution: Attribution): DraftContent {
+/** A complete, publishable draft in the given format, with 2 couples (4 people). */
+function completeContent(format: ContestFormat): DraftContent {
   return {
     name: 'Tapas',
-    attribution,
-    antiBias: 'couples',
+    format,
     scoring: {
       categories: [{ id: 'c1', name: 'Taste' }],
       range: { type: 'auto' },
@@ -55,7 +54,7 @@ function completeContent(attribution: Attribution): DraftContent {
 function publishLiveContest(
   db: DatabaseSync,
   joinCode: string,
-  attribution: Attribution = 'per_person',
+  format: ContestFormat = 'solo_with_partners',
 ) {
   const drafts = new SqliteDraftRepository(db);
   const contests = new SqliteContestRepository(db);
@@ -67,7 +66,7 @@ function publishLiveContest(
 
   const created = new CreateDraft({ drafts, audit, clock: CLOCK, ids }).execute(
     'host-1',
-    completeContent(attribution),
+    completeContent(format),
   );
   if (!created.ok) throw new Error('expected draft creation to succeed');
   const published = new PublishContest({
@@ -251,7 +250,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a live contest where "Ana" and "Marcos" are partners sharing a dish', () => {
       ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1', 'per_couple'));
+      ({ contestId } = publishLiveContest(db, 'TAPAS1', 'couples'));
     });
     When('Marcos submits their dish as "Tortilla"', async () => {
       const submitted = await submitDish(app, contestId, claimCookie(db, 'TAPAS1', 'marcos'), {

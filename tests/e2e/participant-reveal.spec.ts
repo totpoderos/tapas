@@ -24,8 +24,7 @@ const PASSWORD = 'Str0ng!Passw0rd';
 function content(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'taste', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'ana', displayName: 'Ana' },

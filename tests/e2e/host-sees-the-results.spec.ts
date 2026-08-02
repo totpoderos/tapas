@@ -81,8 +81,7 @@ async function dishOrderOf(page: Page, dishes: readonly string[]): Promise<strin
 function content(name: string) {
   return {
     name,
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     // Host-triggered close, so the contest stays live until the host closes it.
     closeRule: { when: 'host_trigger' },
     scoring: {

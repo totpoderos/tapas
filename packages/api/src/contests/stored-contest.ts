@@ -1,7 +1,6 @@
 import type {
-  AntiBias,
-  Attribution,
   CloseRule,
+  ContestFormat,
   MaterializedContest,
   RevealStrategy,
 } from '@tapas/domain';
@@ -15,20 +14,14 @@ export interface StoredContest {
   readonly status: 'live' | 'closed' | 'revealed';
   readonly materialized: MaterializedContest;
   /**
-   * What the contest credits a dish to, kept from the draft it was published
-   * from. The compiled view records the consequence of this rule (a dish has one
-   * submitter or two) rather than the rule, so it is carried separately for the
-   * host's own reading. Absent on a contest published before it was kept.
+   * What kind of contest this is, kept from the draft it was published from. The
+   * compiled view records the consequence of the format (who may score what)
+   * rather than the format itself, and that is lossy: where nobody has a partner,
+   * `solo` and `solo_with_partners` compile to exactly the same thing. The draft
+   * is retired at publish, so if the contest does not carry it, nothing does.
+   * Absent reads as "does not say" rather than as any particular format.
    */
-  readonly attribution?: Attribution;
-  /**
-   * Which same-side scoring the contest bars, kept from the draft for the same
-   * reason as `attribution` — and more urgently. The compiler folds this rule into
-   * `allowedVoters`, which is lossy: a contest barring couples and one barring
-   * chosen pairs compile to the same shape. Absent on a contest published before
-   * it was kept, which reads as "does not say" rather than "no restriction".
-   */
-  readonly antiBias?: AntiBias;
+  readonly format?: ContestFormat;
   readonly closeRule: CloseRule;
   readonly revealStrategy: RevealStrategy;
   readonly createdAt: string;

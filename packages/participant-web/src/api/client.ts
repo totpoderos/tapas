@@ -205,7 +205,7 @@ export interface Winner {
   /** The dish, by the name it was submitted under. */
   readonly name: string;
   /**
-   * Who brought it — a list, because partners share a dish under `per_couple`.
+   * Who brought it — a list, because partners share a dish under the `couples` format.
    * Optional for the same reason it is optional in `@tapas/ui`'s `RevealWinner`:
    * a payload from before this existed is still a valid result.
    */

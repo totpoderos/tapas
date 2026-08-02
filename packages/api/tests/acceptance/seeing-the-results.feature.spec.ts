@@ -36,8 +36,7 @@ async function request(
 function content(): DraftContent {
   return {
     name: 'Summer Tapas',
-    attribution: 'per_person',
-    antiBias: 'none',
+    format: 'solo',
     scoring: { categories: [{ id: 'taste', name: 'Taste' }], range: { type: 'fixed', min: 1, max: 5 }, uniquePerCategory: false },
     participants: [
       { id: 'ana', displayName: 'Ana' },
@@ -172,31 +171,39 @@ async function tiedContest(app: FastifyInstance) {
 }
 
 /**
- * `per_couple`: Ana and Bob are partners and bring ONE dish between them; Carol
- * brings her own. Carol rates theirs highest, so the shared dish wins and has to
- * name both of the people who made it.
+ * Couples cook together: Ana and Bob bring ONE dish between them, Carol and Dan
+ * bring theirs. Carol's side rates the other highest, so the shared dish wins and
+ * has to name both of the people who made it.
  */
 async function sharedDishContest(app: FastifyInstance) {
   const couples: DraftContent = {
     ...content(),
-    attribution: 'per_couple',
+    format: 'couples',
     participants: [
       { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
       { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
-      { id: 'carol', displayName: 'Carol' },
+      { id: 'carol', displayName: 'Carol', partnerId: 'dan' },
+      { id: 'dan', displayName: 'Dan', partnerId: 'carol' },
     ],
   };
   const { host, contestId, joinCode } = await publish(app, 'couple@x.es', couples);
   const ana = await claim(app, joinCode, 'ana');
+  const bob = await claim(app, joinCode, 'bob');
   const carol = await claim(app, joinCode, 'carol');
+  const dan = await claim(app, joinCode, 'dan');
   await request(app, ana, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Tortilla for two' } });
   await request(app, carol, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Gazpacho' } });
 
-  // Each scores every dish open to them: Carol theirs, Ana Carol's.
-  await request(app, carol, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId: 'D-ana-bob', categoryId: 'taste', value: 5 } });
-  expect((await request(app, carol, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
-  await request(app, ana, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId: 'D-carol', categoryId: 'taste', value: 1 } });
-  expect((await request(app, ana, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  // Each scores the one dish open to them — the other couple's.
+  for (const [jar, dishId, value] of [
+    [carol, 'D-ana-bob', 5],
+    [dan, 'D-ana-bob', 5],
+    [ana, 'D-carol-dan', 1],
+    [bob, 'D-carol-dan', 1],
+  ] as const) {
+    await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value } });
+    expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
+  }
 
   await closeAndReveal(app, host, contestId);
   return { contestId, ana };
@@ -222,22 +229,25 @@ async function contestWithAnUnnamedDish(app: FastifyInstance, hostEmail: string)
   return { contestId, ana, host };
 }
 
-/** `per_couple`, and the shared dish is the one nobody names. */
+/** Couples cook together, and the shared dish is the one nobody names. */
 async function coupleWithAnUnnamedDish(app: FastifyInstance) {
   const couples: DraftContent = {
     ...content(),
-    attribution: 'per_couple',
+    format: 'couples',
     participants: [
       { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
       { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
-      { id: 'carol', displayName: 'Carol' },
+      { id: 'carol', displayName: 'Carol', partnerId: 'dan' },
+      { id: 'dan', displayName: 'Dan', partnerId: 'carol' },
     ],
   };
   const { host, contestId, joinCode } = await publish(app, 'couple-unnamed@x.es', couples);
   const ana = await claim(app, joinCode, 'ana');
+  const bob = await claim(app, joinCode, 'bob');
   const carol = await claim(app, joinCode, 'carol');
+  const dan = await claim(app, joinCode, 'dan');
   await request(app, carol, { method: 'POST', url: `/contests/${contestId}/dishes`, payload: { name: 'Gazpacho' } });
-  for (const [jar, dishId] of [[carol, 'D-ana-bob'], [ana, 'D-carol']] as const) {
+  for (const [jar, dishId] of [[carol, 'D-ana-bob'], [dan, 'D-ana-bob'], [ana, 'D-carol-dan'], [bob, 'D-carol-dan']] as const) {
     await request(app, jar, { method: 'POST', url: `/contests/${contestId}/scores`, payload: { dishId, categoryId: 'taste', value: 5 } });
     expect((await request(app, jar, { method: 'POST', url: `/contests/${contestId}/send-vote` })).statusCode).toBe(200);
   }
@@ -354,7 +364,7 @@ describeFeature(feature, ({ Scenario }) => {
     });
     Then('the dish they shared names both of them', () => {
       /*
-       * Under `per_couple` a dish genuinely has two cooks, which is why the
+       * Under the `couples` format a dish genuinely has two cooks, which is why the
        * field is a list. Naming one of them would be the API choosing which
        * half of a couple cooked, in the one moment of the evening that names
        * people at all.

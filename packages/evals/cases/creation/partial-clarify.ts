@@ -25,7 +25,7 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },
@@ -34,7 +34,7 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
         expect: {
           fields: {
             name: 'Winter Tapas',
-            attribution: 'per_person',
+            format: 'solo',
             participants: [
               { id: 'ana', displayName: 'Ana' },
               { id: 'bob', displayName: 'Bob' },
@@ -67,7 +67,7 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               { id: 'carla', displayName: 'Carla' },
             ],
           },
-          clarifiesAbout: ['scoring', 'attribution'],
+          clarifiesAbout: ['scoring', 'format'],
           absent: [],
         },
       },
@@ -90,20 +90,20 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['attribution'],
+          clarifiesAbout: ['format'],
           absent: [],
         },
       },
     ],
   },
   {
-    id: 'partial-attribution-asked-then-answered',
+    id: 'partial-format-asked-then-answered',
     category: 'partial_clarify',
-    note: 'The high-stakes case: attribution is never guessable, so turn 1 must ask and must not fill it in. Turn 2 answers it.',
+    note: 'The high-stakes case: the format is never guessable, so turn 1 must ask and must not fill it in. Turn 2 answers it. Turn 1 names a partnership deliberately — knowing two people are partners says nothing about the format, since partners may cook one dish between them or one each with neither scoring the other.',
     turns: [
       {
         message:
-          'Contest called Duo Tapas. Ana (id ana) and Bob (id bob) are partners and cook together. Taste, 1 to 5, repeats allowed.',
+          'Contest called Duo Tapas. Ana (id ana) and Bob (id bob) are partners. Taste, 1 to 5, repeats allowed.',
         expect: {
           fields: {
             name: 'Duo Tapas',
@@ -117,16 +117,16 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['attribution'],
-          absent: ['attribution'],
+          clarifiesAbout: ['format'],
+          absent: ['format'],
         },
       },
       {
-        message: 'The dish is credited to the couple, not to one of them.',
+        message: 'They cook one dish between them, credited to the couple rather than to one of them.',
         expect: {
           fields: {
             name: 'Duo Tapas',
-            attribution: 'per_couple',
+            format: 'couples',
             participants: [
               { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
               { id: 'bob', displayName: 'Bob', partnerId: 'ana' },
@@ -154,7 +154,7 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },
@@ -169,7 +169,7 @@ export const PARTIAL_CLARIFY_CASES: EvalCase[] = [
               uniquePerCategory: false,
             },
           },
-          clarifiesAbout: ['participants', 'attribution'],
+          clarifiesAbout: ['participants', 'format'],
           absent: [],
         },
       },

@@ -23,12 +23,11 @@ const wayTo = (page: Page, section: 'Rules' | 'Participants & pairing') =>
 const goToSection = (page: Page, section: 'Rules' | 'Participants & pairing') =>
   wayTo(page, section).click();
 
-/** A draft with `people` participants, none paired, scored the given way. */
-function content(name: string, attribution: 'per_person' | 'per_couple', people = 2) {
+/** A draft with `people` participants, none paired, in the given format. */
+function content(name: string, format: ContestFormat, people = 2) {
   return {
     name,
-    attribution,
-    antiBias: 'arbitrary_pairs',
+    format,
     scoring: {
       categories: [{ id: 'taste', name: 'Taste' }],
       range: { type: 'fixed', min: 1, max: 5 },
@@ -40,16 +39,18 @@ function content(name: string, attribution: 'per_person' | 'per_couple', people 
   };
 }
 
+type ContestFormat = 'solo' | 'solo_with_partners' | 'couples';
+
 async function hostWithDraft(
   page: Page,
   email: string,
-  attribution: 'per_person' | 'per_couple' = 'per_couple',
+  format: ContestFormat = 'couples',
   people = 2,
 ): Promise<string> {
   await hostInvitedBy(email, PASSWORD);
   await page.request.post('/auth/login', { data: { email, password: PASSWORD } });
   const created = await page.request.post('/drafts', {
-    data: content('Barrio Supper Club', attribution, people),
+    data: content('Barrio Supper Club', format, people),
   });
   return (await created.json()).id as string;
 }
@@ -60,7 +61,7 @@ async function storedDraft(request: APIRequestContext, id: string) {
   return (await read.json()) as {
     content: {
       name: string;
-      participants?: { id: string; displayName: string; partnerId?: string; noScoreWith?: string[] }[];
+      participants?: { id: string; displayName: string; partnerId?: string }[];
     };
   };
 }
@@ -78,14 +79,14 @@ test('a contest being prepared is settled in two sections', async ({ page }) => 
 
   // The rules: what it is called and how it is judged, and nothing about who.
   await expect(page.getByLabel('Contest name')).toHaveValue('Barrio Supper Club');
-  await expect(page.getByRole('radio', { name: 'Each couple is scored together' })).toBeChecked();
+  await expect(page.getByRole('radio', { name: 'Couples cook together' })).toBeChecked();
   await expect(page.getByLabel('Participant 1 name')).toHaveCount(0);
 
   await goToSection(page, 'Participants & pairing');
 
-  // The people: who is taking part and who may not score whom, and nothing else.
+  // The people: who is taking part and who they are paired with, and nothing else.
   await expect(page.getByLabel('Participant 1 name')).toHaveValue('Ana');
-  await expect(page.getByRole('button', { name: 'Bar this pair' })).toBeVisible();
+  await expect(page.getByLabel('Partner of Ana')).toBeVisible();
   await expect(page.getByLabel('Contest name')).toHaveCount(0);
 });
 
@@ -160,7 +161,7 @@ test('the checklist counts the people, and does not call an empty contest ready'
   // person gets one dish and may not score their own. The checklist used to say
   // nothing about people, so an empty contest read "Everything needed is in place"
   // and was then refused by the server.
-  const id = await hostWithDraft(page, 'e2e-review-count@sobremesa.es', 'per_person', 2);
+  const id = await hostWithDraft(page, 'e2e-review-count@sobremesa.es', 'solo', 2);
   const checklist = page.getByRole('region', { name: 'Publish checklist' });
 
   await page.goto(`/review/${id}/people`);
@@ -204,17 +205,28 @@ test('a participant without a partner is marked where they are', async ({ page }
   await expect(page.getByText('needs a partner')).toHaveCount(0);
 });
 
-test('pairing is only asked about when scoring is per couple', async ({ page }) => {
-  const id = await hostWithDraft(page, 'e2e-review-perperson@sobremesa.es', 'per_person');
+test('pairing is not asked about at all when everyone is on their own', async ({ page }) => {
+  const id = await hostWithDraft(page, 'e2e-review-solo@sobremesa.es', 'solo');
 
   await page.goto(`/review/${id}/people`);
   await expect(page.getByRole('region', { name: 'Publish checklist' })).toContainText('Name set');
-  // Nobody is short of anything: pairing is beside the point here.
+  // A partner would do nothing under this format, so it is not offered at all.
+  await expect(page.getByLabel('Partner of Ana')).toHaveCount(0);
   await expect(page.getByText('needs a partner')).toHaveCount(0);
   await expect(panel(page)).not.toContainText('Before publishing');
 });
 
-/* ── Pairing and barring ────────────────────────────────────────────────────── */
+test('a partner is offered but not insisted on when partners are kept apart', async ({ page }) => {
+  const id = await hostWithDraft(page, 'e2e-review-apart@sobremesa.es', 'solo_with_partners');
+
+  await page.goto(`/review/${id}/people`);
+  await expect(page.getByLabel('Partner of Ana')).toBeVisible();
+  // Having none is a choice under this format, not a fault.
+  await expect(page.getByText('needs a partner')).toHaveCount(0);
+  await expect(panel(page)).not.toContainText('Before publishing');
+});
+
+/* ── Pairing ────────────────────────────────────────────────────────────────── */
 
 test('pairing two people is reciprocal and clears what was missing', async ({ page }) => {
   const id = await hostWithDraft(page, 'e2e-review-pairing@sobremesa.es');
@@ -235,73 +247,40 @@ test('pairing two people is reciprocal and clears what was missing', async ({ pa
   );
 });
 
-test('barring a pair bars it both ways', async ({ page }) => {
-  const id = await hostWithDraft(page, 'e2e-review-barring@sobremesa.es');
+test('a pairing survives a change of format', async ({ page }) => {
+  // Under `solo` a partner does nothing, but it is a roster fact the format has
+  // no use for rather than a rule that failed to apply. Throwing it away would
+  // lose work the host did.
+  const id = await hostWithDraft(page, 'e2e-review-keeps-pairing@sobremesa.es');
 
   await page.goto(`/review/${id}/people`);
-  await page.getByLabel('One').selectOption({ label: 'Ana' });
-  await page.getByLabel('The other').selectOption({ label: 'Bruno' });
-  await page.getByRole('button', { name: 'Bar this pair' }).click();
-
-  // Listed once, as a pair rather than twice as two people.
-  const pairs = page.getByRole('list', { name: 'Can’t score each other' });
-  await expect(pairs.getByRole('listitem')).toHaveCount(1);
-
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
-
-  // The option is called "chosen pairs cannot score each other", so it must be both.
-  const { content: saved } = await storedDraft(page.request, id);
-  expect(saved.participants?.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
-  expect(saved.participants?.find((p) => p.id === 'p2')?.noScoreWith).toEqual(['p1']);
-});
-
-test('lifting a bar lifts it both ways', async ({ page }) => {
-  const id = await hostWithDraft(page, 'e2e-review-lifting@sobremesa.es');
-
-  await page.goto(`/review/${id}/people`);
-  await page.getByLabel('One').selectOption({ label: 'Ana' });
-  await page.getByLabel('The other').selectOption({ label: 'Bruno' });
-  await page.getByRole('button', { name: 'Bar this pair' }).click();
-  await page.getByRole('button', { name: 'Let Ana and Bruno score each other again' }).click();
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
-
-  const { content: saved } = await storedDraft(page.request, id);
-  expect(saved.participants?.find((p) => p.id === 'p1')?.noScoreWith ?? []).toEqual([]);
-  expect(saved.participants?.find((p) => p.id === 'p2')?.noScoreWith ?? []).toEqual([]);
-});
-
-test('barred pairs say so when the contest guards against bias another way', async ({ page }) => {
-  // The compiler reads these pairs only under "chosen pairs cannot score each
-  // other". Under any other rule a host could bar a pair, see it listed, save,
-  // publish, and have it do nothing — with the screen saying nothing.
-  const id = await hostWithDraft(page, 'e2e-review-idlebar@sobremesa.es');
-
-  await page.goto(`/review/${id}`);
-  await page.getByLabel('Couples cannot score each other').check();
-  await goToSection(page, 'Participants & pairing');
-
-  await page.getByLabel('One').selectOption({ label: 'Ana' });
-  await page.getByLabel('The other').selectOption({ label: 'Bruno' });
-  await page.getByRole('button', { name: 'Bar this pair' }).click();
-
-  // Listed, and said to be idle — not hidden, and not silently inert.
-  const pairs = page.getByRole('list', { name: 'Can’t score each other' });
-  await expect(pairs.getByRole('listitem')).toHaveCount(1);
-  await expect(page.getByText(/Not in force for this contest/)).toBeVisible();
-  await expect(page.getByText(/Chosen pairs cannot score each other/).first()).toBeVisible();
-
-  // Kept, so choosing the rule puts it in force without re-entering it.
-  await page.getByRole('button', { name: 'Save changes' }).click();
-  await expect(page.getByText('Saved.')).toBeVisible();
-  const { content: saved } = await storedDraft(page.request, id);
-  expect(saved.participants?.find((p) => p.id === 'p1')?.noScoreWith).toEqual(['p2']);
+  await page.getByLabel('Partner of Ana').selectOption({ label: 'Bruno' });
 
   await goToSection(page, 'Rules');
-  await page.getByLabel('Chosen pairs cannot score each other').check();
+  // `exact` matters: Playwright matches an accessible name by substring, so the
+  // bare label also matches "Everyone on their own, partners kept apart". The
+  // component tests do not catch this — testing-library matches a string name
+  // exactly — so the same selector is safe there and ambiguous here.
+  await page.getByRole('radio', { name: 'Everyone on their own', exact: true }).check();
+  await page.getByRole('radio', { name: 'Couples cook together' }).check();
   await goToSection(page, 'Participants & pairing');
-  await expect(pairs.getByRole('listitem')).toHaveCount(1);
+
+  await expect(page.getByLabel('Partner of Ana')).toHaveValue('p2');
+  await page.getByRole('button', { name: 'Save changes' }).click();
+  await expect(page.getByText('Saved.')).toBeVisible();
+
+  const { content: saved } = await storedDraft(page.request, id);
+  expect(saved.participants?.find((p) => p.id === 'p1')?.partnerId).toBe('p2');
+  expect(saved.participants?.find((p) => p.id === 'p2')?.partnerId).toBe('p1');
+});
+
+test('there is nowhere to bar a pair by hand', async ({ page }) => {
+  // A partner is the only way two people are kept apart now.
+  const id = await hostWithDraft(page, 'e2e-review-nobarring@sobremesa.es');
+
+  await page.goto(`/review/${id}/people`);
+  await expect(page.getByRole('button', { name: 'Bar this pair' })).toHaveCount(0);
+  await expect(page.getByText(/Can’t score each other/)).toHaveCount(0);
   await expect(page.getByText(/Not in force for this contest/)).toHaveCount(0);
 });
 
@@ -344,7 +323,7 @@ test('publishing a ready draft lands in its control room, where the join code is
   page,
 }) => {
   // Four people in two couples: enough that the couples rule leaves work for everyone.
-  const id = await hostWithDraft(page, 'e2e-review-publish@sobremesa.es', 'per_couple', 4);
+  const id = await hostWithDraft(page, 'e2e-review-publish@sobremesa.es', 'couples', 4);
 
   await page.goto(`/review/${id}/people`);
   await page.getByLabel('Partner of Ana').selectOption({ label: 'Bruno' });
@@ -395,7 +374,7 @@ const scan = (page: Page) =>
 test('both sections are keyboard-operable and free of accessibility violations', async ({
   page,
 }) => {
-  const id = await hostWithDraft(page, 'e2e-review-a11y@sobremesa.es', 'per_couple', 4);
+  const id = await hostWithDraft(page, 'e2e-review-a11y@sobremesa.es', 'couples', 4);
 
   // Both, not one: splitting the screen in two halves the coverage otherwise.
   await page.goto(`/review/${id}`);

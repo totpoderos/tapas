@@ -29,8 +29,12 @@ const proxy = {
  * convenience, it inherits whatever the local network is, and it is not a
  * production path.
  */
+// 5173 unless PORT says otherwise, so a second session can run its own copy
+// alongside one already holding the usual port.
+const port = Number(process.env.PORT) || 5173;
+
 export default defineConfig({
   plugins: [react()],
-  server: { port: 5173, host: true, proxy },
+  server: { port, host: true, proxy },
   preview: { port: 4173, proxy },
 });

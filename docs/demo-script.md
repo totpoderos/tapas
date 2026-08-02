@@ -62,8 +62,8 @@ seconds. Point at the trust boundary. Move on — don't narrate all seven.
 
 ### 1 · The domain is compiled, not interpreted — 2 min
 
-> "A contest isn't one product. It's a point in a five-dimensional rule space:
-> attribution, anti-bias, scoring range, uniqueness, categories. On **publish**,
+> "A contest isn't one product. It's a point in a four-dimensional rule space:
+> its format, scoring range, uniqueness, categories. On **publish**,
 > those choices are *compiled* — a pure function, no I/O, no LLM — into a
 > materialized constraint view the runtime enforces."
 
@@ -86,7 +86,7 @@ to enter — not validated after the fact, **impossible by construction**.
 ### 2 · Both creation paths — 3 min
 
 **Path A — the form.** Host app → **New contest** (`/new`). Fill a name, pick
-attribution, add a scoring category, add 2–3 participants → **Save**.
+what kind of contest it is, add a scoring category, add 2–3 participants → **Save**.
 
 > "Standard path. Validated, ownership-scoped, and it lands in the audit log as
 > `sourcePath: form`."

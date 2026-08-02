@@ -80,7 +80,7 @@ describe('the contest-creation case set', () => {
     const domain = cases.filter((c) => c.category === 'domain');
     const values = JSON.stringify(domain);
 
-    for (const axis of ['per_person', 'per_couple', 'none', 'couples', 'arbitrary_pairs']) {
+    for (const axis of ['solo', 'solo_with_partners', 'couples']) {
       expect(values, `no domain case covers ${axis}`).toContain(axis);
     }
     // Both range kinds and both uniqueness settings.

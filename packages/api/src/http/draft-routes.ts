@@ -14,6 +14,7 @@ import type { ServerDeps } from './server-deps.js';
 
 const DRAFT_ERROR_STATUS: Record<DraftFailureCode, number> = {
   NAME_REQUIRED: 400,
+  UNKNOWN_FORMAT: 400,
   DRAFT_NOT_FOUND: 404,
 };
 

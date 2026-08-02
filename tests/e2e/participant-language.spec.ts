@@ -22,8 +22,7 @@ async function seedContest(email: string, dishes: readonly string[]) {
   const created = await host.post('/drafts', {
     data: {
       name: 'Concurso de Tapas',
-      attribution: 'per_person',
-      antiBias: 'none',
+      format: 'solo',
       scoring: {
         categories: [{ id: 'c1', name: 'Sabor' }],
         range: { type: 'fixed', min: 1, max: 5 },

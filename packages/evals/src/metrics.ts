@@ -78,7 +78,7 @@ export function scoreTurn(outcome: TurnOutcome, expected: Expectation): MetricCo
   // A produced field is "false" only when ground truth explicitly forbids it.
   // Treating any *unasserted* field as false was tried first and is wrong: it
   // punishes a case for asserting a subset, so the adversarial seed case —
-  // which rightly cares only about attribution — was docked for extracting
+  // which rightly cares only about the format — was docked for extracting
   // participants correctly. Forbidding must be stated, not inferred.
   const forbidden = new Set<FieldName>(expected.absent);
   const falseFields = produced.filter((field) => forbidden.has(field));

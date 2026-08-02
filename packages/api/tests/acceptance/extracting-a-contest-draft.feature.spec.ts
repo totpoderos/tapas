@@ -57,9 +57,8 @@ describeFeature(feature, ({ Scenario }) => {
         const llmClient = new FakeLLMClient(
           toolCallCompletion({
             name: { value: 'Summer Tapas', source: 'host' },
-            attribution: { value: 'per_person', source: 'host' },
-            antiBias: { value: 'couples', source: 'host' },
-            scoring: {
+            format: { value: 'solo', source: 'host' },
+                        scoring: {
               value: {
                 categories: [{ id: 'taste', name: 'Taste' }],
                 range: { type: 'fixed', min: 1, max: 5 },
@@ -114,7 +113,7 @@ describeFeature(feature, ({ Scenario }) => {
         const llmClient = new FakeLLMClient(
           toolCallCompletion({
             name: { value: 'Summer Tapas', source: 'host' },
-            attribution: { value: 'per_person', source: 'host' },
+            format: { value: 'solo', source: 'host' },
             clarifications: ['I could not tell who is participating — please list them.'],
           }),
         );
@@ -148,11 +147,11 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given(
-      'an assistant response that defaults the attribution field without the host having said so',
+      "an assistant response that defaults the contest's format without the host having said so",
       async () => {
         const llmClient = new FakeLLMClient(
           toolCallCompletion({
-            attribution: { value: 'per_person', source: 'llm_default' },
+            format: { value: 'solo', source: 'llm_default' },
             clarifications: [],
           }),
         );
@@ -168,12 +167,12 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { message: 'Some tapas contest' },
       });
     });
-    Then('the attribution field is dropped from the draft', () => {
-      expect(response.json().draft.attribution).toBeUndefined();
+    Then('the format is dropped from the draft', () => {
+      expect(response.json().draft.format).toBeUndefined();
     });
     And('a clarification asks the host to specify it', () => {
       expect(response.json().clarifications).toEqual([
-        "Please specify attribution explicitly — I can't default that for you.",
+        "Please specify the contest format explicitly — I can't default that for you.",
       ]);
     });
   });

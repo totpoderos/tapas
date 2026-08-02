@@ -24,8 +24,7 @@ vi.mock('../../src/api/client', async () => {
 import * as api from '../../src/api/client';
 
 const RULES: ContestDetail['rules'] = {
-  attribution: 'per_person',
-  antiBias: 'couples',
+  format: 'solo_with_partners',
   categories: [
     { id: 'taste', name: 'Taste' },
     { id: 'look', name: 'Look' },
@@ -138,16 +137,17 @@ describe('Contest control room', () => {
     renderControl();
 
     const rules = await screen.findByRole('region', { name: 'Rules in force' });
-    expect(within(rules).getByText('Per person')).toBeInTheDocument();
-    expect(within(rules).getByText('Couples can’t score each other')).toBeInTheDocument();
+    expect(
+      within(rules).getByText('Everyone on their own, partners kept apart'),
+    ).toBeInTheDocument();
     expect(within(rules).getByText('Taste, Look')).toBeInTheDocument();
     expect(within(rules).getByText('1–10')).toBeInTheDocument();
     expect(within(rules).getByText('On')).toBeInTheDocument();
   });
 
   it('says nothing about a rule the contest never recorded', async () => {
-    // A contest published before the rules were kept. 'none' is itself a real
-    // choice, so an unrecorded anti-bias rule must not be shown as one.
+    // A contest that recorded no format. 'solo' is itself a real choice, so an
+    // unrecorded format must not be shown as one.
     vi.mocked(api.getContest).mockResolvedValue({
       ...LIVE,
       rules: { categories: [], uniquePerCategory: false },
@@ -155,8 +155,10 @@ describe('Contest control room', () => {
     renderControl();
 
     const rules = await screen.findByRole('region', { name: 'Rules in force' });
-    expect(within(rules).queryByText('No restriction')).not.toBeInTheDocument();
-    expect(within(rules).queryByText('Per person')).not.toBeInTheDocument();
+    expect(within(rules).queryByText('Everyone on their own')).not.toBeInTheDocument();
+    expect(
+      within(rules).queryByText('Everyone on their own, partners kept apart'),
+    ).not.toBeInTheDocument();
     expect(within(rules).getByText('Unique per category')).toBeInTheDocument();
   });
 

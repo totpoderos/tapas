@@ -26,16 +26,12 @@ export class PublishContest {
       joinCode,
       status: 'live',
       materialized: published.contest.materialized,
-      // Kept from the draft: the compiled view records that a dish has one
-      // submitter or two, which is the consequence of this rule rather than the
-      // rule, and the host's contest list says the rule.
-      ...(draft.content.attribution === undefined
-        ? {}
-        : { attribution: draft.content.attribution }),
-      // Likewise, and less recoverably: this rule is folded into `allowedVoters`,
-      // where barring couples and barring chosen pairs look the same. The draft is
+      // Kept from the draft: the compiled view records what the format does
+      // (which dishes exist, and who may score them) rather than the format
+      // itself, and that is lossy — where nobody has a partner, `solo` and
+      // `solo_with_partners` compile to exactly the same thing. The draft is
       // retired below, so if the contest does not carry it, nothing does.
-      ...(draft.content.antiBias === undefined ? {} : { antiBias: draft.content.antiBias }),
+      ...(draft.content.format === undefined ? {} : { format: draft.content.format }),
       closeRule: published.contest.closeRule,
       revealStrategy: published.contest.revealStrategy,
       createdAt: this.deps.clock.now(),

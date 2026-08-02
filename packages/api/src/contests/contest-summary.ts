@@ -1,4 +1,4 @@
-import type { Attribution } from '@tapas/domain';
+import type { ContestFormat } from '@tapas/domain';
 import type { StoredContest } from './stored-contest.js';
 
 /** How far along a contest's voting is: who has joined, and who has sent. */
@@ -28,8 +28,8 @@ export interface ContestSummary {
   readonly status: 'draft' | StoredContest['status'];
   /** When the item last changed, so the list can order by real activity. */
   readonly updatedAt: string;
-  /** What a dish is credited to. Absent when the contest does not say. */
-  readonly attribution?: Attribution;
+  /** What kind of contest it is. Absent when the contest does not say. */
+  readonly format?: ContestFormat;
   /** How many things each dish is judged on. Absent when none have been chosen. */
   readonly categoryCount?: number;
   /** The code people join with. Absent until the contest is published. */

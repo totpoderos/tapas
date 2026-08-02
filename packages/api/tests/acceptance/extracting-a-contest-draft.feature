@@ -3,8 +3,8 @@ Feature: Extracting a contest draft from a chat message
   a form. The assistant extracts what it can into a draft, tags every field
   with where it came from, and lists what it could not determine so the host
   can fill in the rest. The assistant may never guess a high-stakes field on
-  the host's behalf — attribution, anti-bias, scoring range and uniqueness,
-  and participants must come from the host, not a default.
+  the host's behalf — the format, the scoring range and uniqueness, and the
+  participants must come from the host, not a default.
 
   Scenario: A complete message extracts a full draft with no clarifications needed
     Given a host message that fully describes a contest
@@ -19,9 +19,9 @@ Feature: Extracting a contest draft from a chat message
     And the clarifications list asks for the participants
 
   Scenario: The assistant may not default a high-stakes field
-    Given an assistant response that defaults the attribution field without the host having said so
+    Given an assistant response that defaults the contest's format without the host having said so
     When the draft is extracted
-    Then the attribution field is dropped from the draft
+    Then the format is dropped from the draft
     And a clarification asks the host to specify it
 
   Scenario: Extraction requires being signed in
