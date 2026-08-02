@@ -1,8 +1,18 @@
+/*
+ * The panel is exactly the viewport, and the surface is what scrolls inside it —
+ * not the document. It reads as a cosmetic choice and is not: a screen that
+ * pins something to its own foot (the assistant's composer) can only do so if
+ * something above it has a height to be a fraction of. While the shell was
+ * merely `min-height`, every ancestor was auto-height, the assistant's
+ * `height: 100%` resolved to auto, and a long conversation grew the document
+ * until the composer — and the header, and the top bar — scrolled off.
+ */
 .shell {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   align-items: stretch;
   background: var(--ground);
+  overflow: hidden;
 }
 
 .nav {
@@ -12,16 +22,17 @@
   flex-direction: column;
   background: var(--surface);
   border-right: 1px solid var(--line);
-  /* Stays put while the surface scrolls. */
-  position: sticky;
-  top: 0;
-  align-self: flex-start;
-  height: 100vh;
+  /* Stays put — it is the full height of the shell, and the shell does not scroll. */
+  align-self: stretch;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .body {
   flex: 1;
   min-width: 0;
+  /* Lets the surface below shrink to the shell rather than to its own content. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -29,7 +40,17 @@
 .surface {
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
   padding: 26px 24px 64px;
+}
+/*
+ * A screen that fills the height keeps its own foot. The surface's bottom
+ * breathing room exists for screens that scroll past it, and on one that does
+ * not it would strand the assistant's composer 64px above the panel's foot.
+ */
+.surface:has(> :global([data-fills-height])) {
+  padding-bottom: 0;
 }
 /* The surface's own <main> no longer needs to centre or pad itself. */
 .surface > :global(main) {
@@ -64,9 +85,9 @@
   }
   .nav {
     width: auto;
-    height: auto;
-    position: static;
     align-self: stretch;
+    /* Opened, it takes at most half the panel — the surface keeps the rest. */
+    max-height: 50dvh;
     border-right: 0;
     border-bottom: 1px solid var(--line);
     /*
