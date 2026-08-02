@@ -119,6 +119,64 @@ describeFeature(feature, ({ Scenario }) => {
     });
   });
 
+  Scenario('Removing somebody who is not taking part is refused', ({ Given, When, Then, And }) => {
+    let client: Client;
+    let result: ToolResult;
+
+    Given('a host with a personal access token and a draft named "Tapas Night" with Ana and Bob taking part', async () => {
+      const api = await startTrackedApi();
+      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+      await saveNamedDraftAs(api.app, token, 'Tapas Night', ['Ana', 'Bob']);
+      client = await connectAssistant(api.baseUrl, token);
+    });
+    When('the assistant is asked to remove "Zoe" from "Tapas Night" with a valid confirmation', async () => {
+      const args = { contest: 'Tapas Night', participant: 'Zoe' };
+      const challenge = body(await callTool(client, 'remove_participant', args));
+      result = await callTool(client, 'remove_participant', {
+        ...args,
+        confirmationToken: challenge.confirmationToken,
+      });
+    });
+    Then('the request is refused because nobody by that name is taking part', () => {
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toMatch(/nobody called "Zoe" is taking part/i);
+    });
+    And('Ana and Bob are both still taking part in the draft', async () => {
+      expect(await participantsOf(client, 'Tapas Night')).toEqual(['Ana', 'Bob']);
+    });
+  });
+
+  Scenario('Removing a name two people share is put back to the host', ({ Given, When, Then, And }) => {
+    let client: Client;
+    let result: ToolResult;
+
+    Given(
+      'a host with a personal access token and a draft named "Tapas Night" with two people called "Ana", and Bob taking part',
+      async () => {
+        const api = await startTrackedApi();
+        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        await saveNamedDraftAs(api.app, token, 'Tapas Night', ['Ana', 'Ana', 'Bob']);
+        client = await connectAssistant(api.baseUrl, token);
+      },
+    );
+    When('the assistant is asked to remove "Ana" from "Tapas Night" with a valid confirmation', async () => {
+      const args = { contest: 'Tapas Night', participant: 'Ana' };
+      const challenge = body(await callTool(client, 'remove_participant', args));
+      result = await callTool(client, 'remove_participant', {
+        ...args,
+        confirmationToken: challenge.confirmationToken,
+      });
+    });
+    Then('the request is refused because more than one person has that name', () => {
+      expect(result.isError).toBe(true);
+      expect(result.content[0]!.text).toMatch(/more than one person/i);
+    });
+    /* This used to remove BOTH of them, on a confirmation that named one. */
+    And('both people called "Ana" are still taking part in the draft', async () => {
+      expect(await participantsOf(client, 'Tapas Night')).toEqual(['Ana', 'Ana', 'Bob']);
+    });
+  });
+
   Scenario('Without a valid token the assistant cannot add a participant', ({ When, Then }) => {
     let result: ToolResult;
 

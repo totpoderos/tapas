@@ -12,6 +12,23 @@ export interface ManageDraftParticipantsDeps {
   readonly ids: IdGenerator;
 }
 
+export type ParticipantFailureCode = 'NOBODY_BY_THAT_NAME' | 'SEVERAL_BY_THAT_NAME';
+
+export interface ParticipantFailure {
+  readonly code: ParticipantFailureCode;
+  readonly message: string;
+}
+
+/**
+ * The answer to removing somebody. Three outcomes: the draft as it now stands,
+ * the candidates when the contest name is not one draft, and a refusal carrying
+ * a reason — the same three `RemoveScoringCategory` gives, because they are the
+ * same action on different things.
+ */
+export type RemoveParticipantResult =
+  | { readonly ok: true; readonly result: ContestDetailsResult }
+  | { readonly ok: false; readonly error: ParticipantFailure };
+
 /**
  * Resolves a contest name to exactly one of the host's *drafts*, then loads it.
  * Participant management is for drafts only: once a contest is published its
@@ -63,15 +80,47 @@ export class AddDraftParticipant {
 export class RemoveDraftParticipant {
   constructor(private readonly deps: ManageDraftParticipantsDeps) {}
 
-  execute(hostId: string, contestName: string, displayName: string): ContestDetailsResult {
+  execute(hostId: string, contestName: string, displayName: string): RemoveParticipantResult {
     const resolved = resolveDraft(this.deps, hostId, contestName);
-    if (!('content' in resolved)) return resolved;
+    if (!('content' in resolved)) return { ok: true, result: resolved };
 
     const wanted = displayName.trim().toLowerCase();
     const existing = resolved.content.participants ?? [];
-    const removedIds = new Set(existing.filter((p) => p.displayName.toLowerCase() === wanted).map((p) => p.id));
-    if (removedIds.size === 0) return { details: draftDetailsOf(resolved.id, resolved.content) };
+    const matches = existing.filter((p) => p.displayName.trim().toLowerCase() === wanted);
 
+    /*
+     * Nobody by that name is refused rather than reported as done. The host has
+     * just confirmed a removal, and answering with an unchanged draft reads as
+     * "removed" — the worst answer available.
+     */
+    if (matches.length === 0) {
+      return {
+        ok: false,
+        error: {
+          code: 'NOBODY_BY_THAT_NAME',
+          message: `Nobody called "${displayName.trim()}" is taking part.`,
+        },
+      };
+    }
+
+    /*
+     * A name two people share used to remove BOTH of them. A destructive action
+     * taking away more than the host named is the one thing confirming exists to
+     * prevent — and the confirmation they gave named one person, not two. A
+     * display name is how the assistant reaches somebody, so a name that reaches
+     * two goes back to the host, exactly as `set_partner` does with one.
+     */
+    if (matches.length > 1) {
+      return {
+        ok: false,
+        error: {
+          code: 'SEVERAL_BY_THAT_NAME',
+          message: `More than one person taking part is called "${displayName.trim()}" — which one do you mean?`,
+        },
+      };
+    }
+
+    const removedIds = new Set(matches.map((p) => p.id));
     const participants: Person[] = existing
       .filter((p) => !removedIds.has(p.id))
       // Removing somebody clears the partnership that named them, so a draft
@@ -83,6 +132,6 @@ export class RemoveDraftParticipant {
       }));
     const content: DraftContent = { ...resolved.content, participants };
     const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);
-    return { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) };
+    return { ok: true, result: { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) } };
   }
 }

@@ -84,8 +84,10 @@ describe('RemoveDraftParticipant', () => {
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: 'Bob' }]),
     );
-    const result = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
-    expect(result.details?.participants).toEqual(['Ana']);
+    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
+    expect(answer.ok).toBe(true);
+    if (!answer.ok) return;
+    expect(answer.result.details?.participants).toEqual(['Ana']);
   });
 
   it('clears a pairing that named the removed participant', () => {
@@ -101,13 +103,53 @@ describe('RemoveDraftParticipant', () => {
     expect(ana?.partnerId).toBeUndefined();
   });
 
-  it('changes nothing when no participant matches', () => {
+  /*
+   * Was "changes nothing when no participant matches", answering with the
+   * unchanged draft — which reads as "removed" to a host who has just confirmed
+   * a removal. It refuses now, as removing a scoring category does.
+   */
+  it('refuses when nobody by that name is taking part', () => {
     const { current, deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }]),
     );
-    const result = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Nobody');
-    expect(result.details?.participants).toEqual(['Ana']);
+    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Nobody');
+
+    expect(answer.ok).toBe(false);
+    if (answer.ok) return;
+    expect(answer.error.code).toBe('NOBODY_BY_THAT_NAME');
+    expect(answer.error.message).toContain('Nobody');
     expect(current()?.participants).toHaveLength(1);
+  });
+
+  /*
+   * The one that mattered: this removed BOTH of them. A destructive action
+   * taking away more than the host named is exactly what confirming exists to
+   * prevent, and the confirmation they gave named one person.
+   */
+  it('refuses a name two people share, and removes neither', () => {
+    const { current, deps } = workspace(
+      [summary('d1', 'Tapas Night', 'draft')],
+      base([
+        { id: 'a1', displayName: 'Ana' },
+        { id: 'a2', displayName: 'Ana' },
+        { id: 'b', displayName: 'Bob' },
+      ]),
+    );
+    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Ana');
+
+    expect(answer.ok).toBe(false);
+    if (answer.ok) return;
+    expect(answer.error.code).toBe('SEVERAL_BY_THAT_NAME');
+    expect(current()?.participants).toHaveLength(3);
+  });
+
+  it('matches a name ignoring stray spaces, as every other name is matched', () => {
+    const { deps } = workspace(
+      [summary('d1', 'Tapas Night', 'draft')],
+      base([{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: ' Bob ' }]),
+    );
+    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
+    expect(answer.ok).toBe(true);
   });
 });
