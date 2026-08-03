@@ -159,7 +159,7 @@ export function People() {
 
         <div className={styles.aside}>
           <Card title={t('people.inviteTitle')}>
-            <form onSubmit={onInvite} noValidate>
+            <form className={styles.inviteForm} onSubmit={onInvite} noValidate>
               {formError ? (
                 <Callout tone="danger" role="alert">
                   {formError}
@@ -173,7 +173,7 @@ export function People() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" block disabled={submitting}>
                 {submitting ? t('people.inviting') : t('people.invite')}
               </Button>
             </form>
