@@ -82,10 +82,16 @@ export function NewContest() {
       name: name.trim(),
       format,
       scoring: {
+        /*
+         * Names only: nothing here has an identity yet, and the API names each
+         * category as it saves it, the way it names a participant given by name
+         * alone. This used to send `c${i + 1}` from the row's position — identity
+         * invented by the screen out of the order the host happened to type in.
+         */
         categories: categories
           .map((c) => c.value.trim())
           .filter(Boolean)
-          .map((label, i) => ({ id: `c${i + 1}`, name: label })),
+          .map((label) => ({ name: label })),
         range,
         uniquePerCategory,
       },

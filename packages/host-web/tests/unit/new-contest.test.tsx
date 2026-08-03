@@ -63,14 +63,18 @@ describe('New contest form', () => {
       name: 'Summer Tapas',
       format: 'couples',
       scoring: {
-        categories: [
-          { id: 'c1', name: 'Taste' },
-          { id: 'c2', name: 'Presentation' },
-        ],
+        // Names only. A category being created has no identity yet and the form
+        // has none to give it — the API names it, as it does a participant given
+        // by name alone. This used to send `c1`/`c2` derived from the row's
+        // position, which made the screen the author of identity it does not own.
+        categories: [{ name: 'Taste' }, { name: 'Presentation' }],
         range: { type: 'auto' },
         uniquePerCategory: true,
       },
     });
+    for (const category of content.scoring?.categories ?? []) {
+      expect(category.id).toBeUndefined();
+    }
     // Who is taking part belongs to the other section, so none is sent from here.
     expect(content.participants).toBeUndefined();
     expect(await screen.findByRole('heading', { name: 'Your contests' })).toBeInTheDocument();

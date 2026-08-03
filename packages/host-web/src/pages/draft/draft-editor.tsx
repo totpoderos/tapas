@@ -3,7 +3,15 @@ import { useTranslation } from 'react-i18next';
 import type { ContestFormat, DraftContent, ScoreRange } from '../../api/client';
 
 export interface Category {
+  /** This row, for React and for the remove button. Never the category's identity. */
   readonly key: string;
+  /**
+   * What the contest is judged on, as the API knows it. Absent for a row the
+   * host has just typed — the API names it at save, the way it names a
+   * participant added by name alone. Carried through a save so that editing the
+   * rules does not quietly make new categories out of the ones already there.
+   */
+  readonly id?: string;
   readonly name: string;
 }
 
@@ -106,7 +114,7 @@ export function DraftEditorProvider({
   const [name, setNameState] = useState(initial.name);
   const [format, setFormatState] = useState<ContestFormat>(initial.format ?? 'solo');
   const [categories, setCategories] = useState<Category[]>(() =>
-    (initial.scoring?.categories ?? []).map((cat) => ({ key: freshId(), name: cat.name })),
+    (initial.scoring?.categories ?? []).map((cat) => ({ key: freshId(), id: cat.id, name: cat.name })),
   );
   const initialRange = initial.scoring?.range;
   const [rangeType, setRangeTypeState] = useState<'auto' | 'fixed'>(
@@ -226,10 +234,18 @@ export function DraftEditorProvider({
         name: name.trim(),
         format,
         scoring: {
+          /*
+           * Each category keeps the identity it arrived with; a row the host has
+           * just typed has none and the API names it. This used to be
+           * `{ id: c${i + 1} }` derived from the row's position, so every save
+           * renumbered the lot — a category added through the assistant came back
+           * as "c2", and two categories that were one thing underneath were
+           * quietly made into two rather than refused at publish.
+           */
           categories: categories
-            .map((c) => c.name.trim())
-            .filter(Boolean)
-            .map((label, i) => ({ id: `c${i + 1}`, name: label })),
+            .map((c) => ({ ...c, name: c.name.trim() }))
+            .filter((c) => c.name)
+            .map((c) => (c.id ? { id: c.id, name: c.name } : { name: c.name })),
           range,
           uniquePerCategory,
         },

@@ -129,6 +129,73 @@ describe('A contest being prepared, in its two sections', () => {
     });
   });
 
+  /*
+   * A category's identity is the system's to keep, not the screen's to derive
+   * from the order rows happen to be in. Saving the rules used to re-mint
+   * c1..cn from row position and discard whatever the draft carried, so a
+   * category added through the assistant — which mints a real id — came back
+   * renumbered, and two categories the model had made one thing were quietly
+   * relabelled into two instead of being refused at publish.
+   */
+  describe('what a category is, across a save', () => {
+    const ASSISTANT_ADDED: StoredDraft = {
+      ...DRAFT,
+      content: {
+        ...DRAFT.content,
+        scoring: {
+          categories: [
+            { id: 'id-7f3a', name: 'Taste' },
+            { id: 'id-9b21', name: 'Presentation' },
+          ],
+          range: { type: 'fixed', min: 1, max: 5 },
+          uniquePerCategory: true,
+        },
+      },
+    };
+
+    beforeEach(() => vi.mocked(api.getDraft).mockResolvedValue(ASSISTANT_ADDED));
+
+    it('saves the categories it loaded as the same ones', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      expect(savedContent().scoring?.categories).toEqual([
+        { id: 'id-7f3a', name: 'Taste' },
+        { id: 'id-9b21', name: 'Presentation' },
+      ]);
+    });
+
+    // A category the host has just typed has no identity yet, and the screen has
+    // none to give it — the API assigns one, exactly as it does for a participant
+    // added by name alone.
+    it('leaves a newly added category for the server to name', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      await userEvent.type(screen.getByLabelText('New category name'), 'Originality');
+      await userEvent.click(screen.getByRole('button', { name: 'Add category' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      const saved = savedContent().scoring?.categories ?? [];
+      expect(saved).toHaveLength(3);
+      expect(saved[0]).toEqual({ id: 'id-7f3a', name: 'Taste' });
+      expect(saved[2]?.name).toBe('Originality');
+      expect(saved[2]?.id).toBeUndefined();
+    });
+
+    it('leaves the rest as they were when one is removed', async () => {
+      renderDraft(RULES);
+      await loaded();
+
+      await userEvent.click(screen.getByRole('button', { name: 'Remove category Taste' }));
+      await userEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+      expect(savedContent().scoring?.categories).toEqual([{ id: 'id-9b21', name: 'Presentation' }]);
+    });
+  });
+
   describe('two views of one contest', () => {
     it('keeps an unsaved change while the host works on the other section', async () => {
       renderDraft(RULES);

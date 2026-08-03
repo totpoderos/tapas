@@ -47,7 +47,20 @@ The participant version of this was fixed once already. `withParticipantIds` is 
 
 `draft-editor.tsx:109` already maps loaded categories into rows keyed by a `freshId()` — the row key and the category id are two different things, and the fix is to keep the category's own id on the row rather than re-derive one from position at save. `new-contest.tsx` is creating, so it has no id to keep: it can simply send names and let the API assign, which is the smaller change and the one that cannot drift.
 
-*Note:* this is what makes the `prepare-a-contest` requirement true. Without it the API would assign good ids and the form would overwrite them with `c1`, `c2` on the next save — the two halves have to land together or the bug survives.
+*Note:* the two halves have to land together. Without the form change the API would assign good ids and the next save would overwrite them with `c1`, `c2`.
+
+### A category's identity has no domain-level observable
+
+Found while writing sub-slice B's acceptance feature, and it withdraws a capability this proposal originally listed.
+
+The only readers of a category id anywhere are `save-score.ts` and the tally — both after publish, where categories are already fixed. Nothing in a draft reads one: `remove_category` matches by name, the form removes by row. So a category's id is **inert inside a draft**, and "a category keeps its identity while a contest is being prepared" has no consequence a scenario could observe. Writing it in Gherkin would mean either naming the id, which the spec-leakage rule forbids, or asserting something vacuous.
+
+So the `prepare-a-contest` delta spec is withdrawn. The invariant is real and is held where invariants without domain-level observables belong: a unit test on `withCategoryIds`, a component test on the form, and an integration test across the HTTP seam.
+
+Two corrections to the proposal's reasoning fall out of the same finding:
+
+- **The forms were never a collision source.** Both re-mint `c1..cn` across the whole list, so their output is always distinct. The paths that can produce a duplicate are the two that take model-invented ids: `create_draft`, and draft extraction, whose `ProposedDraftSchema` also demands one. Sub-slice A guards both.
+- **The forms were laundering duplicates, and will now stop.** Positional re-minting silently turned a model-supplied duplicate into two distinct categories on the next save. Preserving ids removes that, so A's refusal will fire in cases it currently does not. That is the intended behaviour — refuse rather than quietly relabel what a contest is judged on — but it is a real consequence of this sub-slice, not a no-op.
 
 ### `create_draft`'s category id becomes optional
 
@@ -79,5 +92,5 @@ Rollback is reverting the branch — nothing is written in a shape an older buil
 
 ## Open Questions
 
-- Should `new-contest.tsx` send categories with no ids at all, or should the client keep minting proper unique ids and the API only fill gaps? Sending names is simpler and puts identity in one place; the counter-argument is that the form then cannot refer to a category it has just created until the round-trip returns. Nothing in the current form needs to, so the simpler option is assumed — revisit if the rules section grows an interaction that does.
+- ~~Should `new-contest.tsx` send categories with no ids at all?~~ **Settled: yes, names only.** Nothing in either form needs to refer to a category before the round-trip returns — the rules form addresses a row by its own `key`, which is a different thing from the category's id and stays that way. `ScoringConfig.categories[].id` is therefore optional on the wire: absent on the way out for a row just typed, always present on the way back.
 - The `DUPLICATE_CATEGORY_ID` message wording, in both EN and ES. It should name the thing being judged on, not the id.

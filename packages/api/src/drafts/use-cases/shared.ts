@@ -60,3 +60,41 @@ export function withParticipantIds(content: DraftContent, ids: IdGenerator): Dra
     ),
   };
 }
+
+/**
+ * The same for what a contest is judged on, and for the same reason.
+ *
+ * A category's id is internal identity — a score is kept against it and the
+ * tally gathers by matching it — and identity is not the author's to invent.
+ * `AddScoringCategory` mints one when a host says "judge it on Presentation";
+ * the two forms used to derive one from the row's position; and a model asked
+ * for "judged on Taste and Originality" has none to give, because the host has
+ * never been shown one.
+ *
+ * Assigning it here — the one place every draft write already passes — means no
+ * caller has to remember to, and the next authoring path added gets it for free.
+ * Existing ids are kept, so an edit goes on referring to the same categories
+ * rather than quietly making new ones.
+ *
+ * Publishing is what checks the result is coherent: two categories that are one
+ * thing underneath are refused there (`DUPLICATE_CATEGORY_ID`), not laundered
+ * into two by a re-mint on the way past.
+ */
+export function withCategoryIds(content: DraftContent, ids: IdGenerator): DraftContent {
+  const categories = content.scoring?.categories;
+  if (!categories?.length) return content;
+  return {
+    ...content,
+    scoring: {
+      ...content.scoring!,
+      categories: categories.map((category) =>
+        category.id ? category : { ...category, id: ids.next() },
+      ),
+    },
+  };
+}
+
+/** Both, in the order a draft write wants them. Neither caller should have to remember there are two. */
+export function withAssignedIds(content: DraftContent, ids: IdGenerator): DraftContent {
+  return withCategoryIds(withParticipantIds(content, ids), ids);
+}

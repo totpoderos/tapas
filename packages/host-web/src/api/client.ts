@@ -332,7 +332,14 @@ export type ContestFormat = 'solo' | 'solo_with_partners' | 'couples';
 export type ScoreRange = { readonly type: 'auto' } | { readonly type: 'fixed'; readonly min: number; readonly max: number };
 
 export interface ScoringConfig {
-  readonly categories: readonly { readonly id: string; readonly name: string }[];
+  /**
+   * A category's id is identity the API assigns and keeps, so it is absent only
+   * on the way out, for one the host has just typed — the same as a participant
+   * added by name alone. A category read back always carries it, and one that
+   * arrives with it keeps it: this is what stops a save renaming what a contest
+   * is judged on.
+   */
+  readonly categories: readonly { readonly id?: string; readonly name: string }[];
   readonly range: ScoreRange;
   readonly uniquePerCategory: boolean;
 }
