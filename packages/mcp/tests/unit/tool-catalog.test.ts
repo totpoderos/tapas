@@ -154,6 +154,52 @@ describe('MCP tool catalog', async () => {
   });
 
   /*
+   * A category's id is identity the API assigns and keeps. A model asked for
+   * "judged on Taste and Originality" has none to give and the host has never
+   * been shown one, so demanding it refused a call in which everything the host
+   * actually said had arrived. The same reasoning `personShape` already carries.
+   */
+  it('accepts a category the model named but did not identify', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ name: 'Taste' }, { name: 'Originality' }],
+        range: { type: 'fixed', min: 1, max: 5 },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(true);
+  });
+
+  it('keeps an id the model did supply', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ id: 'kept', name: 'Taste' }],
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(true);
+    expect(parsed.ok && (parsed.args.scoring as { categories: unknown[] }).categories[0]).toEqual({
+      id: 'kept',
+      name: 'Taste',
+    });
+  });
+
+  it('still refuses a category with no name', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ id: 'c1' }],
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(false);
+  });
+
+  /*
    * The reported bug: a host who said "scoring range from 1 to 5" got "the
    * details didn't look right (scoring.range: Invalid input)" and no contest at
    * all. Everything they said had arrived — the model wrote the range the way

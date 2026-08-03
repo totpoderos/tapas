@@ -445,9 +445,22 @@ const scoreRangeShape = z.preprocess(
 const scoringShape = z
   .object({
     categories: z
-      .array(z.object({ id: z.string().min(1), name: z.string().min(1) }).strict())
+      .array(
+        z
+          .object({
+            // Optional for the same reason a participant's is: an id is internal
+            // identity, not something a host states, so a model asked for
+            // "judged on Taste and Originality" has none to give. The API names
+            // any category that arrives without one (see `withCategoryIds`).
+            // Supply an existing id to go on meaning the same category — that is
+            // what stops an edit quietly making new ones.
+            id: z.string().min(1).optional().describe('Existing category id; omit for a new one.'),
+            name: z.string().min(1),
+          })
+          .strict(),
+      )
       .min(1)
-      .describe('What the dishes are judged on, e.g. [{ "id": "taste", "name": "Taste" }].'),
+      .describe('What the dishes are judged on, e.g. [{ "name": "Taste" }]. Naming each is enough.'),
     range: scoreRangeShape.describe(
       'The range scores are given within: { "type": "fixed", "min": 1, "max": 5 } for a fixed range, or { "type": "auto" } (with no bounds) to let the contest work its own range out, which is a ranking.',
     ),
