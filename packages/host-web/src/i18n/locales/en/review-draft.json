@@ -73,5 +73,17 @@
   "formatCouples": "Couples cook together",
   "formatCouplesHelp": "Each couple cooks one dish. Nobody scores their own couple’s dish, and everyone needs a partner.",
   "peopleOnly_one": "{{count}} person",
-  "peopleOnly_other": "{{count}} people"
+  "peopleOnly_other": "{{count}} people",
+  "publishReason": {
+    "INCOMPLETE_DRAFT": "it doesn’t say {{things}}.",
+    "NO_PARTICIPANTS": "nobody is taking part.",
+    "NO_CATEGORIES": "there’s nothing for the dishes to be judged on.",
+    "DUPLICATE_PERSON_ID": "“{{first}}” and “{{second}}” are the same person taking part, so they can’t both be scored.",
+    "DUPLICATE_CATEGORY_ID": "“{{first}}” and “{{second}}” are the same thing to be judged on, so they can’t both be scored.",
+    "MISSING_PARTNER": "“{{person}}” is paired with somebody who isn’t taking part.",
+    "INCONSISTENT_PARTNER": "“{{person}}” is paired with somebody who isn’t paired back.",
+    "UNPARTNERED_IN_COUPLES": "“{{person}}” has no partner, and this contest is for couples cooking together.",
+    "INVALID_RANGE": "the score range {{min}} to {{max}} isn’t one anybody could score within.",
+    "JUDGE_CANNOT_SCORE_ANY_DISH": "“{{person}}” would have no dish they’re allowed to score."
+  }
 }

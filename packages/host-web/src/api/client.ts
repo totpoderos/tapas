@@ -13,6 +13,13 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code?: string,
     message?: string,
+    /**
+     * The facts the refusal is about, when the API classified one — the person,
+     * the two things that cannot be told apart, what a contest has still not
+     * said. What lets a screen say the same refusal in the host's language
+     * rather than showing the English sentence it came with. See `refusalText`.
+     */
+    readonly details?: Readonly<Record<string, unknown>>,
   ) {
     super(message ?? `Request failed (${status})`);
     this.name = 'ApiError';
@@ -159,9 +166,14 @@ async function send(
 
 async function errorFrom(response: Response): Promise<ApiError> {
   const parsed = (await response.json().catch(() => undefined)) as
-    | { error?: { code?: string; message?: string } }
+    | { error?: { code?: string; message?: string; details?: Record<string, unknown> } }
     | undefined;
-  return new ApiError(response.status, parsed?.error?.code, parsed?.error?.message);
+  return new ApiError(
+    response.status,
+    parsed?.error?.code,
+    parsed?.error?.message,
+    parsed?.error?.details,
+  );
 }
 
 export async function signIn(email: string, password: string): Promise<void> {

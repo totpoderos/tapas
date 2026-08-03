@@ -9,6 +9,7 @@ import {
   type AssistantTurn,
   type PendingAction,
 } from '../api/client';
+import { refusalText } from '../api/refusal-text';
 import { useContests } from '../contests/contests-provider';
 import { whenLastChanged } from '../contests/when';
 import { PanelActions } from '../shell/panel-actions';
@@ -386,9 +387,13 @@ export function Chat() {
       add({ kind: 'assistant', text });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
     } else if (turn.kind === 'failed') {
-      // The action did not happen. Say so, and say why — the API writes these
-      // reasons for hosts, so they are shown rather than swallowed.
-      const text = t('chat.failed', { action: labelFor(turn.action, t), reason: turn.message });
+      // The action did not happen. Say so, and say why — in the host's language,
+      // the same words the rules form uses for the same refusal. The reason is
+      // shown rather than swallowed; hiding it is what leaves somebody stuck.
+      const text = t('chat.failed', {
+        action: labelFor(turn.action, t),
+        reason: refusalText(turn, t, i18n.language),
+      });
       add({ kind: 'refusal', text });
       // Fed back to the model too, so the next turn can react to the reason
       // instead of cheerfully repeating the same call.
