@@ -137,6 +137,45 @@ describe('loadEnv', () => {
       ).toThrow(EnvValidationError);
     });
 
+    /*
+     * A deployment that has said it sends no mail is not misconfigured — the
+     * invitation flow answers a failed send with the link, and the screen
+     * already shows it. Holding it to mail settings it will never read would
+     * push people into inventing plausible-looking ones, and a fail-fast worth
+     * lying to is a fail-fast that has stopped working.
+     */
+    it('boots in production with no mail settings when it sends no mail', () => {
+      const { MAIL_HOST: _host, MAIL_FROM: _from, ...withoutMail } = base as Record<string, string>;
+      const env = loadEnv({
+        ...withoutMail,
+        MAIL_TRANSPORT: 'none',
+        ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+      } as unknown as NodeJS.ProcessEnv);
+      expect(env.MAIL_TRANSPORT).toBe('none');
+    });
+
+    // The relaxation is scoped to that one answer, not to anything mail-shaped.
+    it('still refuses a local catcher when it does mean to send', () => {
+      const { MAIL_HOST: _host, ...withoutHost } = base as Record<string, string>;
+      expect(() =>
+        loadEnv({
+          ...withoutHost,
+          MAIL_TRANSPORT: 'smtp',
+          ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+        } as unknown as NodeJS.ProcessEnv),
+      ).toThrow(EnvValidationError);
+    });
+
+    it('refuses a transport that is neither sending nor not sending', () => {
+      expect(() =>
+        loadEnv({
+          ...base,
+          MAIL_TRANSPORT: 'maybe',
+          ASSISTANT_CONFIRMATION_SECRET: STRONG_SECRET + '-x',
+        } as unknown as NodeJS.ProcessEnv),
+      ).toThrow(EnvValidationError);
+    });
+
     it('still allows the dev default outside production', () => {
       // NODE_ENV defaults to development -> the committed default is allowed.
       expect(() => loadEnv({ JWT_SECRET: STRONG_SECRET } as NodeJS.ProcessEnv)).not.toThrow();

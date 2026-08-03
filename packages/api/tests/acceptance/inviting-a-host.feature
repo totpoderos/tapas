@@ -264,6 +264,22 @@ Feature: Inviting a host
     When the administrator invites "nuevo@example.com"
     Then the invitation records that its message did not go out
 
+  # A deployment may have no mail server at all — a €4 box with no SMTP provider,
+  # or a demo where nothing outbound is wanted. That is a choice a deployment
+  # makes, not a broken mail server, and it must be told apart from one: the link
+  # is handed over at once rather than after a connection times out.
+  Scenario: A deployment that hands every invitation over by hand
+    Given an administrator "ana@example.com" on a deployment that sends no mail
+    When the administrator invites "nuevo@example.com"
+    Then inviting is not refused
+    And the link is offered to that administrator
+    And the invited person can accept with it and become a host
+
+  Scenario: A deployment that sends no mail says so about every invitation
+    Given an administrator "ana@example.com" on a deployment that sends no mail
+    When the administrator invites "nuevo@example.com"
+    Then the invitation records that its message did not go out
+
   Scenario: A weak password is refused
     Given an invitation was sent to "nuevo@example.com"
     When the invited person tries to accept with the weak password "short"

@@ -33,6 +33,7 @@ const BASE_ENV: Env = {
   ASSISTANT_CONFIRMATION_SECRET: 'test-assistant-confirmation-secret-32chars',
   ASSISTANT_STUB: 0,
   ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
+  MAIL_TRANSPORT: 'smtp',
   MAIL_HOST: 'localhost',
   MAIL_PORT: 1025,
   MAIL_SECURE: false,

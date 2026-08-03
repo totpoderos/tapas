@@ -34,6 +34,7 @@ import { RevokeInvitation } from './auth/use-cases/revoke-invitation.js';
 import { RegisterHost } from './auth/use-cases/register-host.js';
 import { SqliteHostInvitationRepository } from './db/host-invitation-repository.js';
 import type { Mailer } from './mail/mailer.js';
+import { NoMailer } from './mail/no-mailer.js';
 import { SmtpMailer } from './mail/smtp-mailer.js';
 import { RevokePat } from './auth/use-cases/revoke-pat.js';
 import { SignOutHost } from './auth/use-cases/sign-out-host.js';
@@ -88,17 +89,24 @@ export function buildProductionDeps(
         apiKey: env.LLM_API_KEY,
         model: env.LLM_MODEL,
       }),
-  // SMTP everywhere the API process is not itself the test. Tests that run
-  // inside the process pass the in-memory one and read what it was asked to
-  // send; nothing else ever uses a second transport.
-  mailer: Mailer = new SmtpMailer({
-    host: env.MAIL_HOST,
-    port: env.MAIL_PORT,
-    secure: env.MAIL_SECURE,
-    user: env.MAIL_USER,
-    password: env.MAIL_PASSWORD,
-    from: env.MAIL_FROM,
-  }),
+  /*
+   * SMTP everywhere the API process is not itself the test, unless the
+   * deployment has said it sends no mail — then invitations are handed over by
+   * their link, which the invitation flow already answers with whenever a send
+   * fails. Tests that run inside the process pass the in-memory one and read
+   * what it was asked to send; nothing else ever uses a second transport.
+   */
+  mailer: Mailer =
+    env.MAIL_TRANSPORT === 'none'
+      ? new NoMailer()
+      : new SmtpMailer({
+          host: env.MAIL_HOST,
+          port: env.MAIL_PORT,
+          secure: env.MAIL_SECURE,
+          user: env.MAIL_USER,
+          password: env.MAIL_PASSWORD,
+          from: env.MAIL_FROM,
+        }),
 ): ServerDeps {
   const ids = new UuidIdGenerator();
 

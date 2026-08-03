@@ -64,9 +64,21 @@ const EnvSchema = z
       .string()
       .email('ADMIN_BOOTSTRAP_EMAIL must be an email address')
       .default(ADMIN_BOOTSTRAP_DEV_DEFAULT),
-    // Mail is the only route to a host account, so a deployment that cannot
-    // send is one where nobody can ever be invited. The defaults point at a
-    // local catcher; production must name a real server (enforced below).
+    /*
+     * How this deployment hands an invitation over.
+     *
+     * `smtp` sends it. `none` says there is no mail server and the
+     * administrator will pass the link on themselves — which the invitation
+     * flow already supports, because the link comes back whenever a send fails.
+     * Saying so is what makes it a deployment's choice rather than a broken
+     * mail server: the link is offered at once instead of after a connection
+     * times out, and production stops insisting on settings that would go
+     * unused.
+     */
+    MAIL_TRANSPORT: z.enum(['smtp', 'none']).default('smtp'),
+    // Where mail goes when there is mail to send. The defaults point at a local
+    // catcher; production must name a real server (enforced below) unless it
+    // has said it sends none.
     MAIL_HOST: z.string().min(1).default(MAIL_DEV_HOST),
     MAIL_PORT: z.coerce.number().int().positive().default(1025),
     // Not `z.coerce.boolean()`: that reads the string "false" as true, so
@@ -91,18 +103,22 @@ const EnvSchema = z
         });
       }
     }
-    // Not a secret, but leaving it in place would hand the deployment to
-    // whoever holds the committed example inbox.
-    // A production deployment pointed at a local catcher can never invite
-    // anyone, and would only say so on the first invite, weeks later.
-    if (env.MAIL_HOST === MAIL_DEV_HOST) {
+    /*
+     * A production deployment pointed at a local catcher can never invite
+     * anyone, and would only say so on the first invite, weeks later. Checked
+     * only when there is meant to be a mail server: a deployment that has said
+     * it sends none is not misconfigured, and holding it to settings it will
+     * never read would push people into inventing plausible-looking ones — a
+     * fail-fast worth lying to is a fail-fast that has stopped working.
+     */
+    if (env.MAIL_TRANSPORT === 'smtp' && env.MAIL_HOST === MAIL_DEV_HOST) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['MAIL_HOST'],
         message: 'MAIL_HOST must name a real mail server in production (mail is the only way to invite anyone)',
       });
     }
-    if (env.MAIL_FROM === MAIL_DEV_FROM) {
+    if (env.MAIL_TRANSPORT === 'smtp' && env.MAIL_FROM === MAIL_DEV_FROM) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['MAIL_FROM'],

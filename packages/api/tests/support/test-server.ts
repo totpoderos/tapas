@@ -22,6 +22,7 @@ const BASE_ENV: Env = {
   ASSISTANT_CONFIRMATION_SECRET: 'test-assistant-confirmation-secret-32chars',
   ASSISTANT_STUB: 0,
   ADMIN_BOOTSTRAP_EMAIL: 'admin@example.com',
+  MAIL_TRANSPORT: 'smtp',
   MAIL_HOST: 'localhost',
   MAIL_PORT: 1025,
   MAIL_SECURE: false,
@@ -58,6 +59,31 @@ export function makeTestApp(
   const app = buildServer(deps);
   databaseOf.set(app, db);
   return { app, db, mailer };
+}
+
+/**
+ * A server for a deployment that sends no mail — wired the way production wires
+ * it, from `MAIL_TRANSPORT`, so the specs exercise the real choice rather than a
+ * stand-in for it.
+ *
+ * The mailer is left for `buildProductionDeps` to pick, which is the whole point:
+ * a spec that handed a `NoMailer` in directly would prove the invitation flow
+ * copes with a refusing transport (already covered) and prove nothing about the
+ * setting that selects one.
+ */
+export function makeTestAppWithoutMail(clock?: Clock): Omit<TestApp, 'mailer'> {
+  const db = new DatabaseSync(':memory:');
+  runMigrations(db);
+  const deps = buildProductionDeps(
+    db,
+    { ...BASE_ENV, MAIL_TRANSPORT: 'none' },
+    clock,
+    new BcryptPasswordHasher(TEST_BCRYPT_COST),
+    new StubLLMClient(),
+  );
+  const app = buildServer(deps);
+  databaseOf.set(app, db);
+  return { app, db };
 }
 
 /**
