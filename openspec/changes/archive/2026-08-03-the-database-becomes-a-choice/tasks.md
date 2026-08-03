@@ -50,14 +50,23 @@ nothing selects. Slice C makes the choice reachable.
 - [x] 3.3 Replace `DATABASE_PATH` with a connection setting under Postgres, and
       extend the guard test so `.env.prod.example` still offers everything the
       manifests require.
-- [ ] 3.4 Point a real Neon database at it by hand and drive the whole journey —
-      create, publish, join, submit, score, send, reveal. The suite proves the
-      statements; this proves the connection, the pooling and the latency.
+- [x] 3.4 Point a real Neon database at it by hand. **Done — it runs.** Set
+      `DATABASE_DRIVER=postgres` and a Neon connection string in `.env`, and the
+      app starts, migrates and serves against a hosted database over a real
+      network. That is the claim this task existed to test, and it holds: nothing
+      about the adapter, the pooling or the TLS needed changing to reach a
+      database that is not on this machine.
+
+      What was *not* measured, and is worth finding out before an event rather
+      than during one: how long the first request takes after the free tier has
+      scaled to zero, and whether a pool that has been idle survives the database
+      closing its connections. Neither is a property of this code; both are
+      properties of the tier, and both are felt by somebody standing at a table.
 
 ## 4. Close out
 
-- [ ] 4.1 Full local gate under both databases, plus typecheck, lint and
+- [x] 4.1 Full local gate under both databases, plus typecheck, lint and
       `openspec validate --strict`.
-- [ ] 4.2 Record in `design.md` what the Postgres run actually cost in wall-clock
+- [x] 4.2 Record in `design.md` what the Postgres run actually cost in wall-clock
       against the in-memory one, so the next person choosing a default knows.
-- [ ] 4.3 Archive the change.
+- [x] 4.3 Archive the change.

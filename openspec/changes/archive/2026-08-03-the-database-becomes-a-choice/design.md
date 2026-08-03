@@ -136,6 +136,26 @@ stays SQLite — so at no point is an existing deployment changed by upgrading.
 
 Rollback is the setting.
 
+## What the second run actually costs
+
+Measured on this machine, whole suite, 2482 tests:
+
+| | |
+|---|---|
+| SQLite, in memory | **30s** |
+| Postgres, local Docker | **37s** |
+
+About a quarter slower, not the order of magnitude that would have made "run both
+before a deploy" a rule nobody follows. Migrating once per worker rather than
+once per spec is what buys that; creating a database per spec was the version
+that would have cost minutes.
+
+Worth reading with two caveats. It is a Postgres on the same machine, so the
+number contains no real network — a hosted database will be slower, and by how
+much is a property of the hop rather than of this code. And SQLite stays the
+default precisely because 30s is what makes the suite something to run on every
+save; the Postgres pass is for before a deploy, not for every keystroke.
+
 ## Open Questions
 
 - Whether the Postgres adapter should use a serverless HTTP driver or an ordinary
