@@ -22,7 +22,8 @@
     "format": "prettier --write .",
     "dev": "concurrently -n api,host,participant -c blue,green,cyan \"npm:dev -w @tapas/api\" \"npm:dev -w @tapas/host-web\" \"npm:dev -w @tapas/participant-web\"",
     "dev:mcp": "npm run dev -w @tapas/mcp",
-    "prepare": "husky",
+    "_prepare": "Installs the git hooks for a developer. A build machine has no hooks to install and no husky to install them with, so a failure here is not one — it must not take the install down with it.",
+    "prepare": "husky || true",
     "test:e2e": "playwright test",
     "eval:infra": "node scripts/infra-eval.mjs"
   },
