@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   {
     // .vercel holds a platform's build output — bundled, minified, and none of ours.
-    ignores: ['**/dist/**', '**/build/**', '**/node_modules/**', '**/coverage/**', '**/.vercel/**', 'api/**'],
+    ignores: ['**/dist/**', '**/build/**', '**/node_modules/**', '**/coverage/**', '**/.vercel/**', 'serverless/bundle.js'],
   },
   ...tseslint.configs.recommended,
   {
