@@ -70,6 +70,30 @@ export async function makeTestApp(
 }
 
 /**
+ * Another instance of the same deployment: a second app over the same database.
+ *
+ * What a spec needs to say anything at all about counting across instances —
+ * two apps that share nothing look identical to two that share a database when
+ * each is asked on its own.
+ */
+export async function makeTestAppOn(
+  database: Database,
+  clock?: Clock,
+  envOverrides: Partial<Env> = {},
+): Promise<Omit<TestApp, 'mailer'>> {
+  const deps = buildProductionDeps(
+    database,
+    { ...BASE_ENV, ...envOverrides },
+    clock,
+    new BcryptPasswordHasher(TEST_BCRYPT_COST),
+    new StubLLMClient(),
+  );
+  const app = buildServer(deps);
+  databaseOf.set(app, database);
+  return { app, database };
+}
+
+/**
  * A server for a deployment that sends no mail — wired the way production wires
  * it, from `MAIL_TRANSPORT`, so the specs exercise the real choice rather than a
  * stand-in for it.

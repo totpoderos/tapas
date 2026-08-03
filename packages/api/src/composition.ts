@@ -152,6 +152,7 @@ export function buildProductionDeps(
   return {
     tokens,
     sessions,
+    database: db,
     registerHost,
     authenticateHost: new AuthenticateHost({ accounts, hasher, tokens, sessions, clock }),
     refreshSession: new RefreshSession({ tokens, sessions, clock }),

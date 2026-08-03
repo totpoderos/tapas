@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import { rateLimitStoreFor } from './http/rate-limit.js';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { registerAdminRoutes } from './http/admin-routes.js';
 import { registerAssistantRoutes } from './http/assistant-routes.js';
@@ -54,9 +55,22 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     },
   });
   app.register(cors, { origin: [...deps.security.allowedOrigins], credentials: true });
-  // Generous global default (a safety net, not a throttle); sensitive routes
-  // (login, join-by-code) override it per-route with SENSITIVE_RATE_LIMIT.
-  app.register(rateLimit, { max: 1000, timeWindow: '1 minute' });
+  /*
+   * Generous global default (a safety net, not a throttle); sensitive routes
+   * (login, join-by-code) override it per-route with SENSITIVE_RATE_LIMIT.
+   *
+   * Counted in the database, so a deployment answering from several instances
+   * has one count rather than one each — and `skipOnError: false` so a count
+   * that cannot be read refuses the request. The plugin's default is the
+   * opposite, which is right for a throughput limiter and wrong for the control
+   * standing in front of a password.
+   */
+  app.register(rateLimit, {
+    max: 1000,
+    timeWindow: '1 minute',
+    skipOnError: false,
+    store: rateLimitStoreFor(deps) as never,
+  });
 
   registerHttpsRedirect(app, deps.security.isProduction);
   registerErrorHandling(app, deps.security.isProduction);

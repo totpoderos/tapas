@@ -59,7 +59,7 @@ contest).
 | 3 | Software Supply Chain Failures (2025) | `npm audit` CI gate w/ expiring allowlist; committed lockfile; `npm ci` | Strong; **no Dependabot** |
 | 4 | Cryptographic Failures (A02) | bcrypt 12; HS256 via `node:crypto` + timing-safe compare; httpOnly+Secure cookies | Strong; **weak secret enforcement** |
 | 5 | Injection (A03) | Parameterized SQL (zero string-built); two-phase LLM validation; participant-name guard | Strong |
-| 6 | Insecure Design (A04) | Destructive-tool confirmation ×3 layers (HMAC); rate limiting; least-privilege scoping | Strong; replayable token |
+| 6 | Insecure Design (A04) | Destructive-tool confirmation ×3 layers (HMAC); rate limiting counted per deployment, not per process; least-privilege scoping | Strong; replayable token |
 | 7 | Authentication Failures (A07) | 12-char complex password policy; **account lockout 5/15m**; refresh rotation; generic errors | Strong |
 | 8 | Software/Data Integrity Failures (A08) | Action-bound HMAC on destructive ops; committed lockfile + integrity install; two-phase validation | Strong; audit log not signed |
 | 9 | Logging & Alerting Failures (A09) | Auth security-event log (actor+IP+time); unified audit log; no secrets logged | Logging strong; **no alerting** |
@@ -302,8 +302,24 @@ embedded DB with no user/role layer (architectural, acceptable for v1).
   contest A cannot confirm an action on contest B (action-bound).
 - **Rate limiting**: sensitive routes (login, join-by-code) limited to **5/min**,
   env-tunable and fail-closed (min 1)
-  ([rate-limit.ts:13](../packages/api/src/http/rate-limit.ts)); global default
-  1000/min.
+  ([rate-limit.ts](../packages/api/src/http/rate-limit.ts)); global default
+  1000/min. The count is kept **in the database**
+  ([rate-limit-store.ts](../packages/api/src/http/rate-limit-store.ts)), so a
+  deployment answering from several instances counts once rather than once each,
+  and a restart does not hand an attacker a fresh five. A count that cannot be
+  read **refuses** the request (`skipOnError: false`) — the plugin's default is
+  to allow it, which is right for a throughput limiter and wrong for the control
+  standing in front of a password.
+
+> **This counted per process until recently.** The limit was described here as
+> 5/min while the counter lived in one process's memory, so a deployment running
+> N instances allowed 5N, and every cold start began again at zero. Nothing about
+> a request or a log distinguished that from a working limit — it is the only
+> control in this document whose failure is invisible, which is why it was worth
+> a table rather than a paragraph admitting it. The account lockout was never
+> affected: it counts against an account, in the database. What had stopped
+> working was the source-address half, the half that sees one attacker spread
+> across many accounts.
 
 **Residual risk:** confirmation tokens are **replayable for the same action** until
 the state changes — a single-use nonce store is deliberately deferred
