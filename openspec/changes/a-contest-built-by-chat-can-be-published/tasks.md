@@ -14,15 +14,16 @@ asking, which only evals can gate.
       Domain unit tests for each gap, all three at once, and none.
 - [x] 1.3 Carry it in `ContestDetails` via `draftDetailsOf` — absent when the
       draft needs nothing, never set for a live contest.
-- [x] 1.4 Add it at the top level of the three stored-draft answers (`POST
-      /drafts`, `PATCH /drafts/by-name`, `GET /drafts/by-name`) from the same
-      function.
+- [x] 1.4 Add it at the top level of the stored-draft answers from the same
+      function. Widened from the three assistant-facing routes to all six: a
+      draft read by its name and the same draft read by its id staying quiet is
+      the asymmetry this repo keeps finding, and one helper covers both.
 - [x] 1.5 Read it in the chat panel through one reader that takes it from either
       carrier, and render it on the ticket as something left to say — with EN and
       ES strings, keeping the translation-parity guard green.
 - [x] 1.6 Component tests for the three panel cases: a gap named, several gaps
       named, and a ready draft carrying nothing.
-- [ ] 1.7 Green the E2E scenario and the full local gate.
+- [x] 1.7 Green the E2E scenario and the full local gate.
 
 ## 2. Slice B — the assistant asks for what is missing
 

@@ -86,7 +86,11 @@ Draft answers come back in two shapes and both must carry this:
 - the six by-name edit tools answer `{ details }`, built by `draftDetailsOf` —
   `stillNeeded` goes inside `ContestDetails`;
 - `create_draft`, `rename_contest` and `get_draft` answer the stored draft, which
-  has no details view — those three routes add `stillNeeded` at the top level.
+  has no details view — those routes add `stillNeeded` at the top level.
+
+Applied to every route that answers with a stored draft, not only the three the
+assistant uses: the review form reads the same drafts by id, and one of the two
+staying quiet about the same draft is the asymmetry this repo keeps finding.
 
 Both come from the one domain function, and the panel reads both through one
 reader. Left alone, the create answer is the one a host meets first — "create a
