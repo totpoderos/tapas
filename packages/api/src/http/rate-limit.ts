@@ -1,3 +1,7 @@
+import type { Clock } from '../audit/audit-projection.js';
+import type { Database } from '../db/database.js';
+import { DatabaseRateLimitStore } from './rate-limit-store.js';
+
 /**
  * Per-route override for sensitive entry points (design.md §11B.5): login and
  * join-by-code are brute-forceable, so they get a much tighter limit than the
@@ -16,3 +20,23 @@ function sensitiveMax(): number {
 }
 
 export const SENSITIVE_RATE_LIMIT = { max: sensitiveMax(), timeWindow: '1 minute' };
+
+/**
+ * The store the limiter counts in — the database, so a deployment answering from
+ * several instances counts once rather than once each.
+ *
+ * Returned as a constructor because that is the shape the plugin wants: it makes
+ * one per route through `child()`. The deployment's own database and clock are
+ * closed over, which is why this is a function of the deps rather than a class
+ * the plugin could construct itself.
+ */
+export function rateLimitStoreFor(deps: {
+  readonly database: Database;
+  readonly clock: Clock;
+}): new () => DatabaseRateLimitStore {
+  return class ScopedStore extends DatabaseRateLimitStore {
+    constructor() {
+      super(deps);
+    }
+  };
+}

@@ -57,6 +57,7 @@ import type { GetTally } from '../contests/use-cases/get-tally.js';
 import type { GetTurnout } from '../contests/use-cases/get-turnout.js';
 import type { SecurityEventLog } from '../security/security-event.js';
 import type { ClaimPlace } from '../voters/use-cases/claim-place.js';
+import type { Database } from '../db/database.js';
 import type { Clock } from '../audit/audit-projection.js';
 import type { LLMClient } from '@tapas/shared';
 
@@ -110,6 +111,12 @@ export interface ServerDeps {
   readonly getTally: GetTally;
   readonly getTurnout: GetTurnout;
   readonly clock: Clock;
+  /**
+   * The database itself, for the one thing that is not a repository: the rate
+   * limiter counts in it, so a deployment answering from several instances has
+   * one count rather than one each.
+   */
+  readonly database: Database;
   readonly drafts: DraftRepository;
   readonly contests: ContestRepository;
   readonly claimPlace: ClaimPlace;
