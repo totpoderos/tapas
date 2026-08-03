@@ -39,12 +39,12 @@ function contestWith(status: 'live' | 'closed' | 'revealed') {
   };
 }
 
-describe('GetResults', () => {
-  it('tallies only sent votes for a revealed contest', () => {
+describe('GetResults', async () => {
+  it('tallies only sent votes for a revealed contest', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(contestWith('revealed'));
+    await contests.insert(contestWith('revealed'));
     const voteSessions = new FakeVoteSessionRepository();
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 'vs-ana',
       contestId: 'contest-1',
       voterId: 'ana',
@@ -52,7 +52,7 @@ describe('GetResults', () => {
       createdAt: '2026-07-20T09:00:00.000Z',
       submittedAt: '2026-07-20T09:05:00.000Z',
     });
-    voteSessions.upsertScore({
+    await voteSessions.upsertScore({
       id: 'score-1',
       voteSessionId: 'vs-ana',
       dishId: 'D-bob',
@@ -60,7 +60,7 @@ describe('GetResults', () => {
       value: 4,
     });
     // Bob's session was never sent — must not count toward the tally.
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 'vs-bob',
       contestId: 'contest-1',
       voterId: 'bob',
@@ -68,7 +68,7 @@ describe('GetResults', () => {
       createdAt: '2026-07-20T09:00:00.000Z',
       submittedAt: null,
     });
-    voteSessions.upsertScore({
+    await voteSessions.upsertScore({
       id: 'score-2',
       voteSessionId: 'vs-bob',
       dishId: 'D-ana',
@@ -76,7 +76,7 @@ describe('GetResults', () => {
       value: 5,
     });
 
-    const outcome = new GetResults({ contests, voteSessions }).execute('contest-1');
+    const outcome = await new GetResults({ contests, voteSessions }).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -85,22 +85,22 @@ describe('GetResults', () => {
     expect(taste?.totals.get('D-ana')).toBe(0);
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
+  it('reports CONTEST_NOT_FOUND for an unknown contest', async () => {
     const contests = new FakeContestRepository();
     const voteSessions = new FakeVoteSessionRepository();
 
-    const outcome = new GetResults({ contests, voteSessions }).execute('unknown');
+    const outcome = await new GetResults({ contests, voteSessions }).execute('unknown');
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
   });
 
-  it('refuses to return results before the contest has been revealed', () => {
+  it('refuses to return results before the contest has been revealed', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(contestWith('closed'));
+    await contests.insert(contestWith('closed'));
     const voteSessions = new FakeVoteSessionRepository();
 
-    const outcome = new GetResults({ contests, voteSessions }).execute('contest-1');
+    const outcome = await new GetResults({ contests, voteSessions }).execute('contest-1');
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NOT_REVEALED');

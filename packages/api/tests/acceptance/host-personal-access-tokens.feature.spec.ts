@@ -68,7 +68,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
     });
@@ -88,7 +88,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" who has issued a personal access token', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
@@ -115,7 +115,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" who has issued a personal access token', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
@@ -147,7 +147,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" who has issued a personal access token', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = new CookieJar();
       await registerAndLogin(app, anaJar, 'ana@example.com');
       const issued = await request(app, anaJar, { method: 'POST', url: '/auth/pats' });
@@ -171,8 +171,8 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
     });
     When('someone tries to issue a personal access token', async () => {

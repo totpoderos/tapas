@@ -25,114 +25,114 @@ function liveContest(overrides: Partial<Parameters<FakeContestRepository['insert
   };
 }
 
-describe('ensureContestFresh', () => {
-  it('closes a scheduled contest once its time has passed', () => {
+describe('ensureContestFresh', async () => {
+  it('closes a scheduled contest once its time has passed', async () => {
     const contests = new FakeContestRepository();
     const scheduled = liveContest({ closeRule: { when: 'scheduled', at: '2026-07-21T10:00:00.000Z' } });
-    contests.insert(scheduled);
+    await contests.insert(scheduled);
     const clock = { now: () => '2026-07-21T10:00:01.000Z' };
 
-    const fresh = ensureContestFresh(scheduled, { contests, clock });
+    const fresh = await ensureContestFresh(scheduled, { contests, clock });
 
     expect(fresh.status).toBe('closed');
     expect(fresh.closedAt).toBe('2026-07-21T10:00:01.000Z');
-    expect(contests.findById('contest-1')?.status).toBe('closed');
+    expect((await contests.findById('contest-1'))?.status).toBe('closed');
   });
 
-  it('leaves a scheduled contest untouched before its time', () => {
+  it('leaves a scheduled contest untouched before its time', async () => {
     const contests = new FakeContestRepository();
     const scheduled = liveContest({ closeRule: { when: 'scheduled', at: '2026-07-21T10:00:00.000Z' } });
-    contests.insert(scheduled);
+    await contests.insert(scheduled);
     const clock = { now: () => '2026-07-21T09:59:59.000Z' };
 
-    const fresh = ensureContestFresh(scheduled, { contests, clock });
+    const fresh = await ensureContestFresh(scheduled, { contests, clock });
 
     expect(fresh.status).toBe('live');
-    expect(contests.findById('contest-1')?.status).toBe('live');
+    expect((await contests.findById('contest-1'))?.status).toBe('live');
   });
 
-  it('leaves a host_trigger contest untouched regardless of the clock', () => {
+  it('leaves a host_trigger contest untouched regardless of the clock', async () => {
     const contests = new FakeContestRepository();
     const contest = liveContest();
-    contests.insert(contest);
+    await contests.insert(contest);
     const clock = { now: () => '2099-01-01T00:00:00.000Z' };
 
-    const fresh = ensureContestFresh(contest, { contests, clock });
+    const fresh = await ensureContestFresh(contest, { contests, clock });
 
     expect(fresh.status).toBe('live');
   });
 
-  it('leaves an already-closed contest untouched', () => {
+  it('leaves an already-closed contest untouched', async () => {
     const contests = new FakeContestRepository();
     const closed = liveContest({
       status: 'closed',
       closedAt: '2026-07-20T10:00:00.000Z',
       closeRule: { when: 'scheduled', at: '2026-07-19T10:00:00.000Z' },
     });
-    contests.insert(closed);
+    await contests.insert(closed);
     const clock = { now: () => '2026-07-21T10:00:00.000Z' };
 
-    const fresh = ensureContestFresh(closed, { contests, clock });
+    const fresh = await ensureContestFresh(closed, { contests, clock });
 
     expect(fresh.status).toBe('closed');
     expect(fresh.closedAt).toBe('2026-07-20T10:00:00.000Z');
   });
 
-  it('reveals a closed contest once its scheduled reveal time has passed', () => {
+  it('reveals a closed contest once its scheduled reveal time has passed', async () => {
     const contests = new FakeContestRepository();
     const closed = liveContest({
       status: 'closed',
       closedAt: '2026-07-20T10:00:00.000Z',
       revealStrategy: { when: 'scheduled', at: '2026-07-21T10:00:00.000Z' },
     });
-    contests.insert(closed);
+    await contests.insert(closed);
     const clock = { now: () => '2026-07-21T10:00:01.000Z' };
 
-    const fresh = ensureContestFresh(closed, { contests, clock });
+    const fresh = await ensureContestFresh(closed, { contests, clock });
 
     expect(fresh.status).toBe('revealed');
     expect(fresh.revealedAt).toBe('2026-07-21T10:00:01.000Z');
-    expect(contests.findById('contest-1')?.status).toBe('revealed');
+    expect((await contests.findById('contest-1'))?.status).toBe('revealed');
   });
 
-  it('leaves a closed contest untouched before its scheduled reveal time', () => {
+  it('leaves a closed contest untouched before its scheduled reveal time', async () => {
     const contests = new FakeContestRepository();
     const closed = liveContest({
       status: 'closed',
       closedAt: '2026-07-20T10:00:00.000Z',
       revealStrategy: { when: 'scheduled', at: '2026-07-21T10:00:00.000Z' },
     });
-    contests.insert(closed);
+    await contests.insert(closed);
     const clock = { now: () => '2026-07-21T09:59:59.000Z' };
 
-    const fresh = ensureContestFresh(closed, { contests, clock });
+    const fresh = await ensureContestFresh(closed, { contests, clock });
 
     expect(fresh.status).toBe('closed');
   });
 
-  it('does not reveal a live contest even if its scheduled reveal time has passed', () => {
+  it('does not reveal a live contest even if its scheduled reveal time has passed', async () => {
     const contests = new FakeContestRepository();
     const stillLive = liveContest({
       revealStrategy: { when: 'scheduled', at: '2026-07-21T10:00:00.000Z' },
     });
-    contests.insert(stillLive);
+    await contests.insert(stillLive);
     const clock = { now: () => '2026-07-21T10:00:01.000Z' };
 
-    const fresh = ensureContestFresh(stillLive, { contests, clock });
+    const fresh = await ensureContestFresh(stillLive, { contests, clock });
 
     expect(fresh.status).toBe('live');
   });
 
-  it('closes and reveals in the same pass when both times have arrived', () => {
+  it('closes and reveals in the same pass when both times have arrived', async () => {
     const contests = new FakeContestRepository();
     const scheduled = liveContest({
       closeRule: { when: 'scheduled', at: '2026-07-21T09:00:00.000Z' },
       revealStrategy: { when: 'scheduled', at: '2026-07-21T09:30:00.000Z' },
     });
-    contests.insert(scheduled);
+    await contests.insert(scheduled);
     const clock = { now: () => '2026-07-21T10:00:00.000Z' };
 
-    const fresh = ensureContestFresh(scheduled, { contests, clock });
+    const fresh = await ensureContestFresh(scheduled, { contests, clock });
 
     expect(fresh.status).toBe('revealed');
     expect(fresh.closedAt).toBe('2026-07-21T10:00:00.000Z');

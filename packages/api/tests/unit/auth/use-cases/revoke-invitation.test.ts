@@ -9,66 +9,66 @@ function laterBy(millis: number): string {
   return new Date(Date.parse(ISSUED_AT) + millis).toISOString();
 }
 
-function makeUseCase(overrides = {}, nowIso = laterBy(1000)) {
+async function makeUseCase(overrides = {}, nowIso = laterBy(1000)) {
   const invitations = new FakeInvitationRepository();
-  invitations.insert(pendingInvitation(overrides));
+  await invitations.insert(pendingInvitation(overrides));
   return {
     invitations,
     useCase: new RevokeInvitation({ invitations, clock: { now: () => nowIso } }),
   };
 }
 
-describe('RevokeInvitation', () => {
-  it('revokes a live invitation', () => {
-    const { useCase, invitations } = makeUseCase();
+describe('RevokeInvitation', async () => {
+  it('revokes a live invitation', async () => {
+    const { useCase, invitations } = await makeUseCase();
 
-    expect(useCase.execute('inv-1')).toEqual({ ok: true });
+    expect(await useCase.execute('inv-1')).toEqual({ ok: true });
     expect(invitations.stored[0]).toMatchObject({
       status: 'revoked',
       revokedAt: laterBy(1000),
     });
   });
 
-  it('refuses an invitation nobody issued', () => {
-    const { useCase } = makeUseCase();
+  it('refuses an invitation nobody issued', async () => {
+    const { useCase } = await makeUseCase();
 
-    expect(useCase.execute('inv-nobody-issued')).toMatchObject({
+    expect(await useCase.execute('inv-nobody-issued')).toMatchObject({
       ok: false,
       error: { code: 'INVITATION_NOT_FOUND' },
     });
   });
 
-  it('refuses one already accepted — there is nothing to revoke', () => {
-    const { useCase } = makeUseCase({ status: 'accepted', acceptedAt: laterBy(500) });
+  it('refuses one already accepted — there is nothing to revoke', async () => {
+    const { useCase } = await makeUseCase({ status: 'accepted', acceptedAt: laterBy(500) });
 
-    expect(useCase.execute('inv-1')).toMatchObject({
+    expect(await useCase.execute('inv-1')).toMatchObject({
       ok: false,
       error: { code: 'NOTHING_TO_REVOKE' },
     });
   });
 
-  it('refuses one already revoked', () => {
-    const { useCase } = makeUseCase({ status: 'revoked', revokedAt: laterBy(500) });
+  it('refuses one already revoked', async () => {
+    const { useCase } = await makeUseCase({ status: 'revoked', revokedAt: laterBy(500) });
 
-    expect(useCase.execute('inv-1')).toMatchObject({
+    expect(await useCase.execute('inv-1')).toMatchObject({
       ok: false,
       error: { code: 'NOTHING_TO_REVOKE' },
     });
   });
 
-  it('refuses one superseded by a resend', () => {
-    const { useCase } = makeUseCase({ status: 'superseded', supersededBy: 'inv-2' });
+  it('refuses one superseded by a resend', async () => {
+    const { useCase } = await makeUseCase({ status: 'superseded', supersededBy: 'inv-2' });
 
-    expect(useCase.execute('inv-1')).toMatchObject({
+    expect(await useCase.execute('inv-1')).toMatchObject({
       ok: false,
       error: { code: 'NOTHING_TO_REVOKE' },
     });
   });
 
-  it('refuses one whose time has run out — it is already dead', () => {
-    const { useCase, invitations } = makeUseCase({}, laterBy(ONE_DAY_MS));
+  it('refuses one whose time has run out — it is already dead', async () => {
+    const { useCase, invitations } = await makeUseCase({}, laterBy(ONE_DAY_MS));
 
-    expect(useCase.execute('inv-1')).toMatchObject({
+    expect(await useCase.execute('inv-1')).toMatchObject({
       ok: false,
       error: { code: 'NOTHING_TO_REVOKE' },
     });

@@ -33,7 +33,7 @@ export class AuthenticateHost {
     const emailResult = Email.create(rawEmail);
     if (!emailResult.ok) return invalidCredentials('unknown_account', null);
 
-    const account = this.deps.accounts.findByEmail(emailResult.email.value);
+    const account = await this.deps.accounts.findByEmail(emailResult.email.value);
     if (!account) return invalidCredentials('unknown_account', null);
 
     const now = this.deps.clock.now();
@@ -48,14 +48,14 @@ export class AuthenticateHost {
 
     const correct = await this.deps.hasher.verify(rawPassword, account.passwordHash);
     if (!correct) {
-      this.deps.accounts.update(account.withFailedLogin(now));
+      await this.deps.accounts.update(account.withFailedLogin(now));
       return invalidCredentials('bad_password', account.id);
     }
 
-    this.deps.accounts.update(account.withSuccessfulLogin());
+    await this.deps.accounts.update(account.withSuccessfulLogin());
     const session = this.deps.tokens.issue({ sub: account.id, role: account.role });
     const expiresAt = new Date(Date.parse(now) + REFRESH_TTL_SECONDS * 1000).toISOString();
-    this.deps.sessions.activate(session.sessionId, account.id, expiresAt);
+    await this.deps.sessions.activate(session.sessionId, account.id, expiresAt);
     return { ok: true, session, hostId: account.id, role: account.role };
   }
 }

@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import type { DraftContent } from '@tapas/domain';
@@ -22,13 +23,13 @@ const feature = await loadFeature(
   fileURLToPath(new URL('./publishing-a-contest.feature', import.meta.url)),
 );
 
-function makeContestWorkspace() {
+async function makeContestWorkspace() {
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
-  const drafts = new SqliteDraftRepository(db);
-  const contests = new SqliteContestRepository(db);
-  const roster = new SqliteRosterRepository(db);
-  const auditLog = new SqliteAuditLogRepository(db);
+  await runMigrations(new SqliteDatabase(db));
+  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
+  const contests = new SqliteContestRepository(new SqliteDatabase(db));
+  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
+  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
   let auditSequence = 0;
   const ids = { next: () => `audit-${++auditSequence}` };
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
@@ -45,7 +46,7 @@ function makeContestWorkspace() {
   };
 }
 
-type ContestWorkspace = ReturnType<typeof makeContestWorkspace>;
+type ContestWorkspace = Awaited<ReturnType<typeof makeContestWorkspace>>;
 
 function person(id: string, partnerId: string) {
   return { id, displayName: id, partnerId };
@@ -100,8 +101,8 @@ function singleCoupleContent(name: string): DraftContent {
   };
 }
 
-function saveDraft(workspace: ContestWorkspace, hostId: string, content: DraftContent): string {
-  const creation = workspace.createDraft.execute(hostId, content);
+async function saveDraft(workspace: ContestWorkspace, hostId: string, content: DraftContent): Promise<string> {
+  const creation = await workspace.createDraft.execute(hostId, content);
   if (!creation.ok) throw new Error(`could not set up draft: ${creation.error.code}`);
   return creation.draft.id;
 }
@@ -114,29 +115,29 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given(
       'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, completeContent('Summer Tapas 2026'));
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, completeContent('Summer Tapas 2026'));
       },
     );
-    When('the host publishes the draft', () => {
-      expect(workspace.publishContest.execute(draftId, hostId).ok).toBe(true);
+    When('the host publishes the draft', async () => {
+      expect((await workspace.publishContest.execute(draftId, hostId)).ok).toBe(true);
     });
-    Then('the draft becomes a live contest named "Summer Tapas 2026"', () => {
-      const contest = workspace.getContest.execute(draftId);
+    Then('the draft becomes a live contest named "Summer Tapas 2026"', async () => {
+      const contest = await workspace.getContest.execute(draftId);
       expect(contest?.status).toBe('live');
       expect(contest?.name).toBe('Summer Tapas 2026');
     });
-    And('a join code is issued for the contest', () => {
-      expect(workspace.getContest.execute(draftId)?.joinCode).toBeTruthy();
+    And('a join code is issued for the contest', async () => {
+      expect((await workspace.getContest.execute(draftId))?.joinCode).toBeTruthy();
     });
-    And("the draft no longer appears among the host's drafts", () => {
-      expect(workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
+    And("the draft no longer appears among the host's drafts", async () => {
+      expect(await workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
     });
-    And('the audit log records that the contest was published', () => {
-      const wasPublished = workspace.auditLog
-        .findByContest(draftId)
-        .some((entry) => entry.type === 'contest.published');
+    And('the audit log records that the contest was published', async () => {
+      const wasPublished = (await workspace.auditLog.findByContest(draftId)).some(
+        (entry) => entry.type === 'contest.published',
+      );
       expect(wasPublished).toBe(true);
     });
   });
@@ -147,24 +148,24 @@ describeFeature(feature, ({ Scenario }) => {
     let draftId = '';
     let contestId = '';
 
-    Given('a host with a draft whose participants were listed by name only', () => {
-      workspace = makeContestWorkspace();
-      draftId = saveDraft(workspace, hostId, namesOnlyContent('Whatever'));
+    Given('a host with a draft whose participants were listed by name only', async () => {
+      workspace = await makeContestWorkspace();
+      draftId = await saveDraft(workspace, hostId, namesOnlyContent('Whatever'));
     });
-    Then('each participant can be told apart from the others', () => {
-      const saved = workspace.listHostDrafts.execute(hostId).find((draft) => draft.id === draftId);
+    Then('each participant can be told apart from the others', async () => {
+      const saved = (await workspace.listHostDrafts.execute(hostId)).find((draft) => draft.id === draftId);
       const ids = (saved?.content.participants ?? []).map((person) => person.id);
       expect(ids).toHaveLength(2);
       expect(ids.every((id) => typeof id === 'string' && id.length > 0)).toBe(true);
       expect(new Set(ids).size).toBe(ids.length);
     });
-    When('the host publishes that draft', () => {
-      const published = workspace.publishContest.execute(draftId, hostId);
+    When('the host publishes that draft', async () => {
+      const published = await workspace.publishContest.execute(draftId, hostId);
       expect(published.ok).toBe(true);
       if (published.ok) contestId = published.contest.id;
     });
-    Then('the contest goes live', () => {
-      expect(workspace.getContest.execute(contestId)?.status).toBe('live');
+    Then('the contest goes live', async () => {
+      expect((await workspace.getContest.execute(contestId))?.status).toBe('live');
     });
   });
 
@@ -172,13 +173,13 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
     Given(
       'a host with a draft that has its people and its scoring but never said what kind of contest it is',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, {
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
           name: 'Tapas Night',
           participants: [
             { id: 'a', displayName: 'Ana' },
@@ -192,8 +193,8 @@ describeFeature(feature, ({ Scenario }) => {
         });
       },
     );
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected because the draft does not say what kind of contest it is', () => {
       expect(publishOutcome.ok).toBe(false);
@@ -212,13 +213,13 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
     Given(
       'a host with a draft that says what kind of contest it is and how it is scored, but has nobody taking part',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, {
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
           name: 'Tapas Night',
           format: 'solo',
           scoring: {
@@ -229,8 +230,8 @@ describeFeature(feature, ({ Scenario }) => {
         });
       },
     );
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected because nobody is taking part', () => {
       expect(publishOutcome.ok).toBe(false);
@@ -243,14 +244,14 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
-    Given('a host with a draft that has only a name', () => {
-      workspace = makeContestWorkspace();
-      draftId = saveDraft(workspace, hostId, { name: 'Half-baked' });
+    Given('a host with a draft that has only a name', async () => {
+      workspace = await makeContestWorkspace();
+      draftId = await saveDraft(workspace, hostId, { name: 'Half-baked' });
     });
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected naming all three of the things it still needs', () => {
       expect(publishOutcome.ok).toBe(false);
@@ -265,21 +266,21 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
-    Given('a host with a draft named "Half-baked" that has no scoring rules yet', () => {
-      workspace = makeContestWorkspace();
-      draftId = saveDraft(workspace, hostId, { name: 'Half-baked' });
+    Given('a host with a draft named "Half-baked" that has no scoring rules yet', async () => {
+      workspace = await makeContestWorkspace();
+      draftId = await saveDraft(workspace, hostId, { name: 'Half-baked' });
     });
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected because the draft is incomplete', () => {
       expect(publishOutcome.ok).toBe(false);
       if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('INCOMPLETE_DRAFT');
     });
-    And('no contest is created', () => {
-      expect(workspace.getContest.execute(draftId)).toBeUndefined();
+    And('no contest is created', async () => {
+      expect(await workspace.getContest.execute(draftId)).toBeUndefined();
     });
   });
 
@@ -287,13 +288,13 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let publishOutcome: ReturnType<PublishContest['execute']>;
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
     Given(
       'a host with a draft that says what kind of contest it is and who is taking part, but is judged on nothing',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, {
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
           name: 'Judged On Nothing',
           format: 'solo',
           participants: [
@@ -304,8 +305,8 @@ describeFeature(feature, ({ Scenario }) => {
         });
       },
     );
-    When('the host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected because the contest is judged on nothing', () => {
       expect(publishOutcome.ok).toBe(false);
@@ -313,8 +314,8 @@ describeFeature(feature, ({ Scenario }) => {
       expect(publishOutcome.error.code).toBe('NO_CATEGORIES');
       expect(publishOutcome.error.message).toMatch(/judged on/i);
     });
-    And('no contest is created', () => {
-      expect(workspace.getContest.execute(draftId)).toBeUndefined();
+    And('no contest is created', async () => {
+      expect(await workspace.getContest.execute(draftId)).toBeUndefined();
     });
   });
 
@@ -324,25 +325,25 @@ describeFeature(feature, ({ Scenario }) => {
       let workspace: ContestWorkspace;
       const hostId = 'host-1';
       let draftId = '';
-      let publishOutcome: ReturnType<PublishContest['execute']>;
+      let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
 
       Given(
         'a host with a draft for a single couple, where everyone is on their own with partners kept apart',
-        () => {
-          workspace = makeContestWorkspace();
-          draftId = saveDraft(workspace, hostId, singleCoupleContent('Just us'));
+        async () => {
+          workspace = await makeContestWorkspace();
+          draftId = await saveDraft(workspace, hostId, singleCoupleContent('Just us'));
         },
       );
-      When('the host tries to publish the draft', () => {
-        publishOutcome = workspace.publishContest.execute(draftId, hostId);
+      When('the host tries to publish the draft', async () => {
+        publishOutcome = await workspace.publishContest.execute(draftId, hostId);
       });
       Then('publishing is rejected because a judge could score nothing', () => {
         expect(publishOutcome.ok).toBe(false);
         if (!publishOutcome.ok)
           expect(publishOutcome.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');
       });
-      And('no contest is created', () => {
-        expect(workspace.getContest.execute(draftId)).toBeUndefined();
+      And('no contest is created', async () => {
+        expect(await workspace.getContest.execute(draftId)).toBeUndefined();
       });
     },
   );
@@ -351,13 +352,13 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: ContestWorkspace;
     const hostId = 'host-1';
     let draftId = '';
-    let result: ReturnType<ContestWorkspace['publishContest']['execute']>;
+    let result: Awaited<ReturnType<ContestWorkspace['publishContest']['execute']>>;
 
     Given(
       'a host with a draft where couples cook together, for 5 people of whom 4 are 2 couples and 1 has no partner',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, {
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
           ...completeContent('Odd One Out'),
           format: 'couples',
           participants: [
@@ -370,15 +371,15 @@ describeFeature(feature, ({ Scenario }) => {
         });
       },
     );
-    When('the host tries to publish the draft', () => {
-      result = workspace.publishContest.execute(draftId, hostId);
+    When('the host tries to publish the draft', async () => {
+      result = await workspace.publishContest.execute(draftId, hostId);
     });
     Then('publishing is rejected because a participant has no partner', () => {
       expect(result.ok).toBe(false);
       if (!result.ok) expect(result.error.code).toBe('UNPARTNERED_IN_COUPLES');
     });
-    And('no contest is created', () => {
-      expect(workspace.getContest.execute(draftId)).toBeUndefined();
+    And('no contest is created', async () => {
+      expect(await workspace.getContest.execute(draftId)).toBeUndefined();
     });
   });
 
@@ -389,9 +390,9 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given(
       'a host with a complete draft named "Two by Two" for 6 people in 3 couples, where couples cook together',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, hostId, {
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
           ...completeContent('Two by Two'),
           format: 'couples',
           participants: [
@@ -405,14 +406,14 @@ describeFeature(feature, ({ Scenario }) => {
         });
       },
     );
-    When('the host publishes the draft', () => {
-      expect(workspace.publishContest.execute(draftId, hostId).ok).toBe(true);
+    When('the host publishes the draft', async () => {
+      expect((await workspace.publishContest.execute(draftId, hostId)).ok).toBe(true);
     });
-    Then('the contest goes live', () => {
-      expect(workspace.getContest.execute(draftId)?.status).toBe('live');
+    Then('the contest goes live', async () => {
+      expect((await workspace.getContest.execute(draftId))?.status).toBe('live');
     });
-    And('each couple has one dish between them', () => {
-      const dishes = workspace.getContest.execute(draftId)?.materialized.dishes ?? [];
+    And('each couple has one dish between them', async () => {
+      const dishes = (await workspace.getContest.execute(draftId))?.materialized.dishes ?? [];
       expect(dishes).toHaveLength(3);
       expect(dishes.every((dish) => dish.submitterIds.length === 2)).toBe(true);
     });
@@ -424,17 +425,17 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given(
       'a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart',
-      () => {
-        workspace = makeContestWorkspace();
-        draftId = saveDraft(workspace, 'host-1', completeContent('Summer Tapas 2026'));
+      async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, 'host-1', completeContent('Summer Tapas 2026'));
       },
     );
     And('another host', () => {
       // "host-2" is simply a different identity
     });
-    let publishOutcome: ReturnType<PublishContest['execute']>;
-    When('the other host tries to publish the draft', () => {
-      publishOutcome = workspace.publishContest.execute(draftId, 'host-2');
+    let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
+    When('the other host tries to publish the draft', async () => {
+      publishOutcome = await workspace.publishContest.execute(draftId, 'host-2');
     });
     Then('publishing is rejected because the draft is not theirs', () => {
       expect(publishOutcome.ok).toBe(false);
@@ -450,14 +451,14 @@ describeFeature(feature, ({ Scenario }) => {
     let firstJoinCode = '';
     let secondJoinCode = '';
 
-    Given('a host with two complete drafts', () => {
-      workspace = makeContestWorkspace();
-      firstDraftId = saveDraft(workspace, hostId, completeContent('First'));
-      secondDraftId = saveDraft(workspace, hostId, completeContent('Second'));
+    Given('a host with two complete drafts', async () => {
+      workspace = await makeContestWorkspace();
+      firstDraftId = await saveDraft(workspace, hostId, completeContent('First'));
+      secondDraftId = await saveDraft(workspace, hostId, completeContent('Second'));
     });
-    When('the host publishes both drafts', () => {
-      const firstPublish = workspace.publishContest.execute(firstDraftId, hostId);
-      const secondPublish = workspace.publishContest.execute(secondDraftId, hostId);
+    When('the host publishes both drafts', async () => {
+      const firstPublish = await workspace.publishContest.execute(firstDraftId, hostId);
+      const secondPublish = await workspace.publishContest.execute(secondDraftId, hostId);
       if (firstPublish.ok) firstJoinCode = firstPublish.contest.joinCode;
       if (secondPublish.ok) secondJoinCode = secondPublish.contest.joinCode;
     });

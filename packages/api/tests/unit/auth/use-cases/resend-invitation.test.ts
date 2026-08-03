@@ -13,9 +13,9 @@ function laterBy(millis: number): string {
   return new Date(Date.parse(ISSUED_AT) + millis).toISOString();
 }
 
-function makeUseCase(overrides = {}, nowIso = laterBy(1000)) {
+async function makeUseCase(overrides = {}, nowIso = laterBy(1000)) {
   const invitations = new FakeInvitationRepository();
-  invitations.insert(pendingInvitation(overrides));
+  await invitations.insert(pendingInvitation(overrides));
   const mailer = new InMemoryMailer();
   const inviteHost = new InviteHost({
     invitations,
@@ -28,9 +28,9 @@ function makeUseCase(overrides = {}, nowIso = laterBy(1000)) {
   return { invitations, mailer, useCase: new ResendInvitation({ invitations, inviteHost }) };
 }
 
-describe('ResendInvitation', () => {
+describe('ResendInvitation', async () => {
   it('issues a new invitation to the same address', async () => {
-    const { useCase, invitations, mailer } = makeUseCase();
+    const { useCase, invitations, mailer } = await makeUseCase();
 
     const resent = await useCase.execute('inv-1', 'admin-1');
 
@@ -42,7 +42,7 @@ describe('ResendInvitation', () => {
   });
 
   it('gives the new invitation its own token and its own window', async () => {
-    const { useCase, invitations } = makeUseCase();
+    const { useCase, invitations } = await makeUseCase();
 
     await useCase.execute('inv-1', 'admin-1');
 
@@ -51,7 +51,7 @@ describe('ResendInvitation', () => {
   });
 
   it('supersedes the original and points it at its replacement', async () => {
-    const { useCase, invitations } = makeUseCase();
+    const { useCase, invitations } = await makeUseCase();
 
     const resent = await useCase.execute('inv-1', 'admin-1');
 
@@ -62,7 +62,7 @@ describe('ResendInvitation', () => {
   });
 
   it('resends one whose time has run out — expiring is not a decision', async () => {
-    const { useCase, invitations } = makeUseCase({}, laterBy(ONE_DAY_MS * 2));
+    const { useCase, invitations } = await makeUseCase({}, laterBy(ONE_DAY_MS * 2));
 
     const resent = await useCase.execute('inv-1', 'admin-1');
 
@@ -71,7 +71,7 @@ describe('ResendInvitation', () => {
   });
 
   it('refuses one that was revoked — a decision is not undone by resending', async () => {
-    const { useCase, invitations } = makeUseCase({ status: 'revoked', revokedAt: laterBy(500) });
+    const { useCase, invitations } = await makeUseCase({ status: 'revoked', revokedAt: laterBy(500) });
 
     const resent = await useCase.execute('inv-1', 'admin-1');
 
@@ -80,7 +80,7 @@ describe('ResendInvitation', () => {
   });
 
   it('refuses one that was accepted', async () => {
-    const { useCase } = makeUseCase({ status: 'accepted', acceptedAt: laterBy(500) });
+    const { useCase } = await makeUseCase({ status: 'accepted', acceptedAt: laterBy(500) });
 
     expect(await useCase.execute('inv-1', 'admin-1')).toMatchObject({
       ok: false,
@@ -89,7 +89,7 @@ describe('ResendInvitation', () => {
   });
 
   it('refuses one that was already superseded', async () => {
-    const { useCase } = makeUseCase({ status: 'superseded', supersededBy: 'inv-2' });
+    const { useCase } = await makeUseCase({ status: 'superseded', supersededBy: 'inv-2' });
 
     expect(await useCase.execute('inv-1', 'admin-1')).toMatchObject({
       ok: false,
@@ -98,7 +98,7 @@ describe('ResendInvitation', () => {
   });
 
   it('refuses one nobody issued', async () => {
-    const { useCase } = makeUseCase();
+    const { useCase } = await makeUseCase();
 
     expect(await useCase.execute('inv-nobody-issued', 'admin-1')).toMatchObject({
       ok: false,

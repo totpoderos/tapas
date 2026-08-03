@@ -63,7 +63,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
   app.get<{ Params: { joinCode: string } }>(
     '/contests/:joinCode/places',
     async (request, reply) => {
-      const contest = deps.contests.findByJoinCode(request.params.joinCode);
+      const contest = await deps.contests.findByJoinCode(request.params.joinCode);
       if (!contest) {
         return reply
           .code(404)
@@ -81,7 +81,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
        * nothing else about a person is attached. Claiming is still refused for a
        * taken place — the roster widened, the rule did not.
        */
-      const places = deps.roster.listAll(contest.id).map((place) => ({
+      const places = (await deps.roster.listAll(contest.id)).map((place) => ({
         participantId: place.participantId,
         displayName: place.displayName,
         taken: place.claimedAt !== null,
@@ -94,7 +94,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/contests/:joinCode/claim',
     { config: { rateLimit: SENSITIVE_RATE_LIMIT } },
     async (request, reply) => {
-      const claim = deps.claimPlace.execute(request.params.joinCode, request.body.participantId);
+      const claim = await deps.claimPlace.execute(request.params.joinCode, request.body.participantId);
       if (!claim.ok)
         return reply.code(CLAIM_ERROR_STATUS[claim.error.code]).send({ error: claim.error });
       setVoterCookie(reply, claim.session, deps.cookieTransport);
@@ -112,7 +112,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
-      const place = deps.roster.find(request.voterSession.contestId, request.voterSession.id);
+      const place = await deps.roster.find(request.voterSession.contestId, request.voterSession.id);
       if (!place) return reply.code(401).send(notSignedIn);
       return reply.code(200).send({
         participantId: place.participantId,
@@ -128,7 +128,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
-      const submitted = deps.submitDish.execute(
+      const submitted = await deps.submitDish.execute(
         request.voterSession.contestId,
         request.voterSession.id,
         {
@@ -160,8 +160,8 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
        * a dish that is not in is simply absent from the list, as before.
        */
       return reply.code(200).send({
-        dishes: deps.dishes.findByContest(request.voterSession.contestId),
-        expected: deps.roster.listAll(request.voterSession.contestId).length,
+        dishes: await deps.dishes.findByContest(request.voterSession.contestId),
+        expected: (await deps.roster.listAll(request.voterSession.contestId)).length,
       });
     },
   );
@@ -172,7 +172,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
-      const saved = deps.saveScore.execute(
+      const saved = await deps.saveScore.execute(
         request.voterSession.contestId,
         request.voterSession.id,
         {
@@ -196,7 +196,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       // from a draft after a reload, instead of remembering it in the screen.
       return reply
         .code(200)
-        .send(deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id));
+        .send(await deps.getMyScores.execute(request.voterSession.contestId, request.voterSession.id));
     },
   );
 
@@ -206,7 +206,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
-      const ballot = deps.getBallot.execute(request.voterSession.contestId, request.voterSession.id);
+      const ballot = await deps.getBallot.execute(request.voterSession.contestId, request.voterSession.id);
       if (!ballot.ok) return reply.code(404).send({ error: ballot.error });
       return reply.code(200).send(ballot.ballot);
     },
@@ -243,10 +243,10 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       // Having a token is not enough: the place it names has to still be on the
       // roster, exactly as `/me` requires. A place removed since the token was
       // issued is someone who did not take part.
-      const place = deps.roster.find(request.voterSession.contestId, request.voterSession.id);
+      const place = await deps.roster.find(request.voterSession.contestId, request.voterSession.id);
       if (!place) return reply.code(401).send(notSignedIn);
 
-      const turnout = deps.getTurnout.execute(request.voterSession.contestId);
+      const turnout = await deps.getTurnout.execute(request.voterSession.contestId);
       if (!turnout.ok) return reply.code(404).send({ error: turnout.error });
       return reply.code(200).send(turnout.turnout);
     },
@@ -261,14 +261,14 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
       const contestId = request.voterSession.contestId;
 
-      const results = deps.getResults.execute(contestId);
+      const results = await deps.getResults.execute(contestId);
       if (!results.ok) {
         return reply
           .code(results.error.code === 'NOT_REVEALED' ? 409 : 404)
           .send({ error: results.error });
       }
 
-      const contest = deps.getContest.execute(contestId);
+      const contest = await deps.getContest.execute(contestId);
       if (!contest) {
         return reply
           .code(404)
@@ -276,8 +276,8 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
       }
       const naming = dishNaming(
         contest.materialized,
-        deps.dishes.findByContest(contestId),
-        deps.roster.listAll(contestId),
+        await deps.dishes.findByContest(contestId),
+        await deps.roster.listAll(contestId),
       );
       const dto = toRevealDto(
         contest.name,
@@ -295,7 +295,7 @@ export function registerVoterRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.voterSession) return reply.code(401).send(notSignedIn);
 
-      const sent = deps.sendVote.execute(request.voterSession.contestId, request.voterSession.id);
+      const sent = await deps.sendVote.execute(request.voterSession.contestId, request.voterSession.id);
       if (!sent.ok)
         return reply.code(SEND_VOTE_ERROR_STATUS[sent.error.code]).send({ error: sent.error });
       return reply.code(200).send(sent.session);

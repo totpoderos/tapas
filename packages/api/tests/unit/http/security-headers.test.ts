@@ -22,8 +22,8 @@ import type { Env } from '../../../src/index.js';
  * because that is the only thing it acts on.
  */
 
-const appFor = (nodeEnv: Env['NODE_ENV']): FastifyInstance =>
-  makeTestApp(undefined, { NODE_ENV: nodeEnv }).app;
+const appFor = async (nodeEnv: Env['NODE_ENV']): Promise<FastifyInstance> =>
+  (await makeTestApp(undefined, { NODE_ENV: nodeEnv })).app;
 
 const headers = async (app: FastifyInstance) => {
   const response = await app.inject({
@@ -34,33 +34,33 @@ const headers = async (app: FastifyInstance) => {
   return response.headers as Record<string, string | undefined>;
 };
 
-describe('security headers suit how the site is served', () => {
-  describe('in production', () => {
+describe('security headers suit how the site is served', async () => {
+  describe('in production', async () => {
     it('pins HTTPS with HSTS', async () => {
-      const sent = await headers(appFor('production'));
+      const sent = await headers(await appFor('production'));
       expect(sent['strict-transport-security']).toMatch(/max-age=\d+/);
     });
 
     it('asks the browser to upgrade insecure requests', async () => {
-      const sent = await headers(appFor('production'));
+      const sent = await headers(await appFor('production'));
       expect(sent['content-security-policy']).toContain('upgrade-insecure-requests');
     });
   });
 
-  describe('in development, where the site is served over plain HTTP', () => {
+  describe('in development, where the site is served over plain HTTP', async () => {
     it('does not pin HTTPS, which Safari would honour on localhost for a year', async () => {
-      const sent = await headers(appFor('development'));
+      const sent = await headers(await appFor('development'));
       expect(sent['strict-transport-security']).toBeUndefined();
     });
 
     it('does not ask the browser to upgrade requests nothing is listening for', async () => {
-      const sent = await headers(appFor('development'));
+      const sent = await headers(await appFor('development'));
       expect(sent['content-security-policy']).not.toContain('upgrade-insecure-requests');
     });
 
     // Relaxing those two must not quietly drop the rest of the hardening.
     it('keeps the rest of the policy intact', async () => {
-      const sent = await headers(appFor('development'));
+      const sent = await headers(await appFor('development'));
       expect(sent['content-security-policy']).toContain("default-src 'self'");
       expect(sent['content-security-policy']).toContain("object-src 'none'");
       expect(sent['x-content-type-options']).toBe('nosniff');
@@ -72,7 +72,7 @@ describe('security headers suit how the site is served', () => {
   // Same reasoning as the session cookie: only an explicit `development` relaxes
   // anything, so an unset or unfamiliar environment stays hardened.
   it('stays hardened for any environment that is not explicitly development', async () => {
-    const sent = await headers(appFor('staging' as unknown as Env['NODE_ENV']));
+    const sent = await headers(await appFor('staging' as unknown as Env['NODE_ENV']));
     expect(sent['strict-transport-security']).toMatch(/max-age=\d+/);
     expect(sent['content-security-policy']).toContain('upgrade-insecure-requests');
   });

@@ -1,12 +1,12 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import { HostAccount, type HostRole } from '@tapas/domain';
 
 export interface HostAccountRepository {
-  insert(account: HostAccount): void;
-  findByEmail(email: string): HostAccount | undefined;
-  findById(id: string): HostAccount | undefined;
-  listAll(): HostAccount[];
-  update(account: HostAccount): void;
+  insert(account: HostAccount): Promise<void>;
+  findByEmail(email: string): Promise<HostAccount | undefined>;
+  findById(id: string): Promise<HostAccount | undefined>;
+  listAll(): Promise<HostAccount[]>;
+  update(account: HostAccount): Promise<void>;
 }
 
 interface HostAccountRow {
@@ -30,10 +30,10 @@ function toAccount(row: HostAccountRow): HostAccount {
 }
 
 export class SqliteHostAccountRepository implements HostAccountRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  insert(account: HostAccount): void {
-    this.db
+  async insert(account: HostAccount): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO host_accounts (id, email, password_hash, role, failed_attempts, locked_until, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -49,28 +49,28 @@ export class SqliteHostAccountRepository implements HostAccountRepository {
       );
   }
 
-  update(account: HostAccount): void {
-    this.db
+  async update(account: HostAccount): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_accounts SET failed_attempts = ?, locked_until = ? WHERE id = ?`)
       .run(account.failedAttempts, account.lockedUntil, account.id);
   }
 
-  findByEmail(email: string): HostAccount | undefined {
-    const row = this.db.prepare(`SELECT * FROM host_accounts WHERE email = ?`).get(email) as unknown as
+  async findByEmail(email: string): Promise<HostAccount | undefined> {
+    const row = await this.db.prepare(`SELECT * FROM host_accounts WHERE email = ?`).get(email) as unknown as
       | HostAccountRow
       | undefined;
     return row ? toAccount(row) : undefined;
   }
 
-  findById(id: string): HostAccount | undefined {
-    const row = this.db.prepare(`SELECT * FROM host_accounts WHERE id = ?`).get(id) as unknown as
+  async findById(id: string): Promise<HostAccount | undefined> {
+    const row = await this.db.prepare(`SELECT * FROM host_accounts WHERE id = ?`).get(id) as unknown as
       | HostAccountRow
       | undefined;
     return row ? toAccount(row) : undefined;
   }
 
-  listAll(): HostAccount[] {
-    const rows = this.db
+  async listAll(): Promise<HostAccount[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM host_accounts ORDER BY created_at`)
       .all() as unknown as HostAccountRow[];
     return rows.map(toAccount);

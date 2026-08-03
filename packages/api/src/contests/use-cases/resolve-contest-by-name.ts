@@ -42,8 +42,8 @@ export type ResolvedContest =
 export class ResolveContestByName {
   constructor(private readonly findContestsByName: FindContestsByName) {}
 
-  execute(hostId: string, name: string, options: ResolveContestOptions = {}): ResolvedContest {
-    const found = this.findContestsByName.execute(hostId, name);
+  async execute(hostId: string, name: string, options: ResolveContestOptions = {}): Promise<ResolvedContest> {
+    const found = await this.findContestsByName.execute(hostId, name);
     /*
      * A draft-only action ignores a published contest bearing the same name
      * rather than counting it as a rival candidate: a host who re-runs "Tapas

@@ -10,54 +10,54 @@ function makeRefreshEnv(clock: Clock) {
   return { refreshSession: new RefreshSession({ tokens, sessions, clock }), tokens, sessions };
 }
 
-describe('RefreshSession', () => {
-  it('rotates an active refresh token for a fresh, activated session', () => {
+describe('RefreshSession', async () => {
+  it('rotates an active refresh token for a fresh, activated session', async () => {
     const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
     const { refreshSession, tokens, sessions } = makeRefreshEnv(clock);
     const original = tokens.issue({ sub: 'host-1', role: 'host' });
-    sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
+    await sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
 
-    const refreshOutcome = refreshSession.execute(original.refreshToken);
+    const refreshOutcome = await refreshSession.execute(original.refreshToken);
 
     expect(refreshOutcome.ok).toBe(true);
-    if (refreshOutcome.ok) expect(sessions.isActive(refreshOutcome.session.sessionId)).toBe(true);
-    expect(sessions.isActive(original.sessionId)).toBe(false);
+    if (refreshOutcome.ok) expect(await sessions.isActive(refreshOutcome.session.sessionId)).toBe(true);
+    expect(await sessions.isActive(original.sessionId)).toBe(false);
   });
 
-  it('refuses a refresh token whose session was already revoked', () => {
+  it('refuses a refresh token whose session was already revoked', async () => {
     const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
     const { refreshSession, tokens, sessions } = makeRefreshEnv(clock);
     const original = tokens.issue({ sub: 'host-1', role: 'host' });
-    sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
-    sessions.revoke(original.sessionId);
+    await sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
+    await sessions.revoke(original.sessionId);
 
-    const refreshOutcome = refreshSession.execute(original.refreshToken);
+    const refreshOutcome = await refreshSession.execute(original.refreshToken);
 
     expect(refreshOutcome.ok).toBe(false);
     if (!refreshOutcome.ok) expect(refreshOutcome.error.code).toBe('NOT_SIGNED_IN');
   });
 
-  it('refuses an access token presented as a refresh token', () => {
+  it('refuses an access token presented as a refresh token', async () => {
     const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
     const { refreshSession, tokens, sessions } = makeRefreshEnv(clock);
     const original = tokens.issue({ sub: 'host-1', role: 'host' });
-    sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
+    await sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
 
-    const refreshOutcome = refreshSession.execute(original.accessToken);
+    const refreshOutcome = await refreshSession.execute(original.accessToken);
 
     expect(refreshOutcome.ok).toBe(false);
     if (!refreshOutcome.ok) expect(refreshOutcome.error.code).toBe('NOT_SIGNED_IN');
   });
 
-  it('rejects an expired refresh token', () => {
+  it('rejects an expired refresh token', async () => {
     const issuedAt: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
     const { tokens, sessions } = makeRefreshEnv(issuedAt);
     const original = tokens.issue({ sub: 'host-1', role: 'host' });
-    sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
+    await sessions.activate(original.sessionId, 'host-1', '2026-07-26T10:00:00.000Z');
 
     const aWeekLater: Clock = { now: () => '2026-07-27T10:00:00.000Z' };
     const tokensLater = new HmacJwtTokenIssuer(SECRET, aWeekLater);
-    const refreshOutcome = new RefreshSession({ tokens: tokensLater, sessions, clock: aWeekLater }).execute(
+    const refreshOutcome = await new RefreshSession({ tokens: tokensLater, sessions, clock: aWeekLater }).execute(
       original.refreshToken,
     );
 

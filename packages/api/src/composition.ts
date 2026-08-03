@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './db/database.js';
 import type { LLMClient } from '@tapas/shared';
 import type { Env } from './config/env.js';
 import type { Clock } from './audit/audit-projection.js';
@@ -60,7 +60,7 @@ import { CloseContest } from './contests/use-cases/close-contest.js';
 import { RevealContest } from './contests/use-cases/reveal-contest.js';
 import { GetResults } from './contests/use-cases/get-results.js';
 import { DeleteContest } from './contests/use-cases/delete-contest.js';
-import { SqliteUnitOfWork } from './db/unit-of-work.js';
+import { DatabaseUnitOfWork } from './db/unit-of-work.js';
 import { cookieTransportFor } from './http/session-cookies.js';
 import { GetTally } from './contests/use-cases/get-tally.js';
 import { GetTurnout } from './contests/use-cases/get-turnout.js';
@@ -78,7 +78,7 @@ const BCRYPT_COST = 12;
 
 /** Assembles the production `ServerDeps` from a real SQLite connection and validated env. */
 export function buildProductionDeps(
-  db: DatabaseSync,
+  db: Database,
   env: Env,
   clock: Clock = new SystemClock(),
   hasher: PasswordHasher = new BcryptPasswordHasher(BCRYPT_COST),
@@ -221,7 +221,7 @@ export function buildProductionDeps(
       dishes,
       voteSessions,
       audit,
-      unitOfWork: new SqliteUnitOfWork(db),
+      unitOfWork: new DatabaseUnitOfWork(db),
     }),
     getTally: new GetTally({ contests, roster, voteSessions }),
     getTurnout: new GetTurnout({ contests, roster, voteSessions }),

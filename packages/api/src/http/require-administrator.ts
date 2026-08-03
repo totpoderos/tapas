@@ -36,9 +36,9 @@ export function requireAdministrator(deps: RequireAdministratorDeps) {
     }
 
     const account =
-      session.authenticatedBy === 'session' ? deps.hostAccounts.findById(session.id) : undefined;
+      session.authenticatedBy === 'session' ? await deps.hostAccounts.findById(session.id) : undefined;
     if (account?.role !== 'admin') {
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'admin_access.refused',
         actorId: session.id,
         sourceIp: request.ip,

@@ -52,16 +52,16 @@ const person = (id: string, displayName: string, partnerId?: string): Person =>
 /** Who is partnered with whom, by display name, for reading an assertion at a glance. */
 function pairings(content: DraftContent): Record<string, string | null> {
   const people = content.participants ?? [];
-  const nameOf = (id: string) => people.find((p) => p.id === id)?.displayName ?? id;
+  const nameOf = (id: string) => (people.find((p) => p.id === id))?.displayName ?? id;
   return Object.fromEntries(people.map((p) => [p.displayName, p.partnerId ? nameOf(p.partnerId) : null]));
 }
 
 const ONLY_DRAFT = [summary('d1', 'Tapas Night')];
 
-describe('SetDraftFormat', () => {
-  it('says what kind of contest the draft is', () => {
+describe('SetDraftFormat', async () => {
+  it('says what kind of contest the draft is', async () => {
     const { deps, current } = workspace(ONLY_DRAFT, draftWith([person('a', 'Ana')], { format: 'solo' }));
-    new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
+    await new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
 
     expect(current().format).toBe('couples');
   });
@@ -71,34 +71,34 @@ describe('SetDraftFormat', () => {
    * to a finished draft — the form allows it and publishing is what refuses it,
    * so refusing here would be a validator the form does not share.
    */
-  it('settles a format the people cannot yet satisfy', () => {
+  it('settles a format the people cannot yet satisfy', async () => {
     const { deps, current } = workspace(ONLY_DRAFT, draftWith([person('a', 'Ana'), person('b', 'Bob')]));
-    const answer = new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
+    const answer = await new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
 
     expect(answer.ok).toBe(true);
     expect(current().format).toBe('couples');
     expect(pairings(current())).toEqual({ Ana: null, Bob: null });
   });
 
-  it('leaves the people and the scoring alone', () => {
+  it('leaves the people and the scoring alone', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([person('a', 'Ana'), person('b', 'Bob')], {
         scoring: { categories: [{ id: 'c0', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: false },
       }),
     );
-    new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
+    await new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
 
     expect((current().participants ?? []).map((p) => p.displayName)).toEqual(['Ana', 'Bob']);
     expect(current().scoring?.categories.map((c) => c.name)).toEqual(['Taste']);
   });
 
-  it('changes nothing for a name only a published contest has', () => {
+  it('changes nothing for a name only a published contest has', async () => {
     const { deps, current } = workspace(
       [summary('c1', 'Tapas Night', 'live')],
       draftWith([person('a', 'Ana')], { format: 'solo' }),
     );
-    const answer = new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
+    const answer = await new SetDraftFormat(deps).execute('h1', 'Tapas Night', 'couples');
 
     expect(answer.ok).toBe(true);
     if (!answer.ok) return;
@@ -107,13 +107,13 @@ describe('SetDraftFormat', () => {
   });
 });
 
-describe('SetDraftPartner', () => {
-  it('pairs two people, on both of them', () => {
+describe('SetDraftPartner', async () => {
+  it('pairs two people, on both of them', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([person('a', 'Ana'), person('b', 'Bob'), person('c', 'Carmen')]),
     );
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
 
     expect(pairings(current())).toEqual({ Ana: 'Bob', Bob: 'Ana', Carmen: null });
   });
@@ -123,7 +123,7 @@ describe('SetDraftPartner', () => {
    * partnership Bob still believes in, which publishing rejects as not
    * reciprocal — with a reason the host cannot connect to what they asked.
    */
-  it('frees the partner each of them is leaving', () => {
+  it('frees the partner each of them is leaving', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([
@@ -133,22 +133,22 @@ describe('SetDraftPartner', () => {
         person('d', 'Dan', 'c'),
       ]),
     );
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Carmen');
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Carmen');
 
     expect(pairings(current())).toEqual({ Ana: 'Carmen', Carmen: 'Ana', Bob: null, Dan: null });
   });
 
-  it('leaves somebody without a partner, and frees the one they were with', () => {
+  it('leaves somebody without a partner, and frees the one they were with', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([person('a', 'Ana', 'b'), person('b', 'Bob', 'a')]),
     );
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', null);
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', null);
 
     expect(pairings(current())).toEqual({ Ana: null, Bob: null });
   });
 
-  it('every partnership it leaves behind is reciprocal', () => {
+  it('every partnership it leaves behind is reciprocal', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([
@@ -158,18 +158,18 @@ describe('SetDraftPartner', () => {
         person('d', 'Dan', 'c'),
       ]),
     );
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Bob', 'Dan');
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Bob', 'Dan');
 
     const people = current().participants ?? [];
     for (const p of people) {
       if (!p.partnerId) continue;
-      expect(people.find((other) => other.id === p.partnerId)?.partnerId).toBe(p.id);
+      expect((people.find((other) => other.id === p.partnerId))?.partnerId).toBe(p.id);
     }
   });
 
-  it('refuses somebody who is not taking part, and changes nothing', () => {
+  it('refuses somebody who is not taking part, and changes nothing', async () => {
     const { deps, current } = workspace(ONLY_DRAFT, draftWith([person('a', 'Ana'), person('b', 'Bob')]));
-    const answer = new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Zoe');
+    const answer = await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Zoe');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -179,12 +179,12 @@ describe('SetDraftPartner', () => {
   });
 
   /* A display name is an address, and no more unique than a contest name. */
-  it('puts a name two people share back to the host', () => {
+  it('puts a name two people share back to the host', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([person('a1', 'Ana'), person('a2', 'Ana'), person('b', 'Bob')]),
     );
-    const answer = new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
+    const answer = await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -192,9 +192,9 @@ describe('SetDraftPartner', () => {
     expect(pairings(current())).toEqual({ Ana: null, Bob: null });
   });
 
-  it('refuses to make somebody their own partner', () => {
+  it('refuses to make somebody their own partner', async () => {
     const { deps, current } = workspace(ONLY_DRAFT, draftWith([person('a', 'Ana'), person('b', 'Bob')]));
-    const answer = new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Ana');
+    const answer = await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Ana');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -202,21 +202,21 @@ describe('SetDraftPartner', () => {
     expect(pairings(current())).toEqual({ Ana: null, Bob: null });
   });
 
-  it('matches a name without regard to case or stray spaces', () => {
+  it('matches a name without regard to case or stray spaces', async () => {
     const { deps, current } = workspace(ONLY_DRAFT, draftWith([person('a', 'Ana'), person('b', 'Bob')]));
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', ' ana ', 'BOB');
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', ' ana ', 'BOB');
 
     expect(pairings(current())).toEqual({ Ana: 'Bob', Bob: 'Ana' });
   });
 
-  it('leaves what the draft is judged on alone', () => {
+  it('leaves what the draft is judged on alone', async () => {
     const { deps, current } = workspace(
       ONLY_DRAFT,
       draftWith([person('a', 'Ana'), person('b', 'Bob')], {
         scoring: { categories: [{ id: 'c0', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: true },
       }),
     );
-    new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
+    await new SetDraftPartner(deps).execute('h1', 'Tapas Night', 'Ana', 'Bob');
 
     expect(current().scoring?.categories.map((c) => c.name)).toEqual(['Taste']);
     expect(current().scoring?.uniquePerCategory).toBe(true);

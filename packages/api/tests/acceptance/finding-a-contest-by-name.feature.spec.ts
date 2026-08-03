@@ -81,7 +81,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Tapas Night');
     });
@@ -102,7 +102,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Tapas Night');
     });
@@ -122,7 +122,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with two contests both named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Tapas Night');
       await liveContest(app, jar, 'Tapas Night');
@@ -143,7 +143,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Tapas Night');
     });
@@ -162,7 +162,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host, and a second host with a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       const bobJar = await signedInHost(app, 'bob@example.com');
       await liveContest(app, bobJar, 'Tapas Night');
@@ -181,7 +181,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('someone not signed in looks for a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       response = await app.inject({ method: 'GET', url: '/contests?name=Tapas%20Night' });
     });
     Then('the request is refused as not authorized', () => {

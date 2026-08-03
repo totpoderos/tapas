@@ -8,15 +8,15 @@ import type { GetTallyDeps, GetTallyResult } from './shared.js';
 export class GetTally {
   constructor(private readonly deps: GetTallyDeps) {}
 
-  execute(contestId: string): GetTallyResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string): Promise<GetTallyResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
 
     // Every place the host listed, claimed or not — what the rest is out of.
-    const placeCount = this.deps.roster.listAll(contestId).length;
-    const claimedCount = this.deps.roster.listClaimed(contestId).length;
-    const sessions = this.deps.voteSessions.listSessions(contestId);
+    const placeCount = (await this.deps.roster.listAll(contestId)).length;
+    const claimedCount = (await this.deps.roster.listClaimed(contestId)).length;
+    const sessions = await this.deps.voteSessions.listSessions(contestId);
     const draftCount = sessions.filter((session) => session.status === 'draft').length;
     const sentCount = sessions.filter((session) => session.status === 'sent').length;
 

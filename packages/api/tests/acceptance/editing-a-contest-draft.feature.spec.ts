@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import type { DraftContent, Person } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -80,7 +81,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" where everyone is on their own', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { format: 'solo' }));
     });
@@ -98,7 +99,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" where everyone is on their own with partners kept apart', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { format: 'solo_with_partners' }));
     });
@@ -117,7 +118,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a draft named "Tapas Night" where everyone is on their own', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { format: 'solo' }));
     });
@@ -144,7 +145,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night"', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night'));
     });
@@ -166,8 +167,8 @@ describeFeature(feature, ({ Scenario }) => {
       const names = (await getDraft(app, jar, id)).json().content.participants.map((p: { displayName: string }) => p.displayName);
       expect(names).toEqual(['Ana', 'Bob', 'Carmen']);
     });
-    And('the audit log records the change to the draft', () => {
-      const entries = new SqliteAuditLogRepository(db).findByContest(id);
+    And('the audit log records the change to the draft', async () => {
+      const entries = await new SqliteAuditLogRepository(new SqliteDatabase(db)).findByContest(id);
       expect(entries.some((e) => e.type === 'draft.updated')).toBe(true);
     });
   });
@@ -178,7 +179,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" with Ana, Bob and Carmen taking part', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { participants: people('Ana', 'Bob', 'Carmen') }));
     });
@@ -197,7 +198,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" with Ana, Bob, Carmen and Dan taking part', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night', { participants: people('Ana', 'Bob', 'Carmen', 'Dan') }));
     });
@@ -212,7 +213,7 @@ describeFeature(feature, ({ Scenario }) => {
       }));
     });
     function partnerOf(participants: { id: string; partnerId?: string }[], id: string): string | undefined {
-      return participants.find((p) => p.id === id)?.partnerId;
+      return (participants.find((p) => p.id === id))?.partnerId;
     }
     Then('Ana and Bob are recorded as partners', async () => {
       const ps = (await getDraft(app, jar, id)).json().content.participants;
@@ -233,7 +234,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a draft named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night'));
     });
@@ -253,7 +254,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host, and a second host preparing a draft named "Their Draft"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       const bobJar = await signedInHost(app, 'bob@example.com');
       bobDraftId = await createDraft(app, bobJar, content('Their Draft'));
@@ -273,7 +274,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('editing a draft is attempted with no one signed in', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       response = await app.inject({ method: 'PUT', url: '/drafts/whatever', payload: content('X') });
     });
     Then('the request is refused as not authorized', () => {

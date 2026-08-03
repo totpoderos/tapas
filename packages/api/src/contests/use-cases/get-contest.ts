@@ -5,7 +5,7 @@ import type { StoredContest } from '../stored-contest.js';
 export class GetContest {
   constructor(private readonly contests: ContestRepository) {}
 
-  execute(contestId: string): StoredContest | undefined {
-    return this.contests.findById(contestId);
+  async execute(contestId: string): Promise<StoredContest | undefined> {
+    return await this.contests.findById(contestId);
   }
 }

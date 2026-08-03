@@ -19,6 +19,33 @@ export default tseslint.config(
     },
   },
   {
+    /*
+     * The API's data path is asynchronous, and a forgotten `await` there is the
+     * one defect the test suite cannot see: SQLite answers inside the same tick,
+     * so an un-awaited write still lands and every spec passes — and the same
+     * code loses the write against a database reached over a network. Type-aware
+     * linting is the only thing that catches it, so it is scoped to where it
+     * matters rather than paid for everywhere.
+     */
+    files: ['packages/api/src/**/*.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-misused-promises': 'error',
+    },
+  },
+  {
+    // Temporary, for the async conversion: removes awaits on things that were
+    // never promises. Auto-fixable, which is the point.
+    files: ['packages/api/tests/**/*.ts', 'packages/mcp/tests/**/*.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    rules: { '@typescript-eslint/await-thenable': 'error' },
+  },
+  {
     // The domain SOURCE must stay pure: no I/O, no infrastructure.
     // (Tests may use node built-ins, e.g. loading feature files.)
     // This is an enforced rule, not a convention (design.md §4A.4).

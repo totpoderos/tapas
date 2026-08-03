@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildProductionDeps } from '../../src/composition.js';
 import { runMigrations } from '../../src/db/migrate.js';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { buildServer } from '../../src/server.js';
 import { InMemoryMailer } from '../../src/mail/mailer.js';
 import { BcryptPasswordHasher, StubLLMClient, type Clock, type Env, type LLMClient } from '../../src/index.js';
@@ -40,16 +41,20 @@ export interface TestApp {
 }
 
 /** A fully-wired server over a fresh in-memory SQLite database, for HTTP-level acceptance tests. */
-export function makeTestApp(
+export async function makeTestApp(
   clock?: Clock,
   envOverrides: Partial<Env> = {},
   llmClient: LLMClient = new StubLLMClient(),
   mailer: InMemoryMailer = new InMemoryMailer(),
-): TestApp {
+): Promise<TestApp> {
+  // The raw connection is handed back to the spec for seeding and inspection;
+  // the app gets an adapter over that same connection, because `:memory:`
+  // opened twice would be two different databases.
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
+  const database = new SqliteDatabase(db);
+  await runMigrations(database);
   const deps = buildProductionDeps(
-    db,
+    database,
     { ...BASE_ENV, ...envOverrides },
     clock,
     new BcryptPasswordHasher(TEST_BCRYPT_COST),
@@ -71,11 +76,12 @@ export function makeTestApp(
  * copes with a refusing transport (already covered) and prove nothing about the
  * setting that selects one.
  */
-export function makeTestAppWithoutMail(clock?: Clock): Omit<TestApp, 'mailer'> {
+export async function makeTestAppWithoutMail(clock?: Clock): Promise<Omit<TestApp, 'mailer'>> {
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
+  const database = new SqliteDatabase(db);
+  await runMigrations(database);
   const deps = buildProductionDeps(
-    db,
+    database,
     { ...BASE_ENV, MAIL_TRANSPORT: 'none' },
     clock,
     new BcryptPasswordHasher(TEST_BCRYPT_COST),

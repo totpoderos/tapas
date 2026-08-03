@@ -92,12 +92,12 @@ async function claim(app: FastifyInstance): Promise<LightMyRequestResponse> {
   });
 }
 
-const appFor = (nodeEnv: Env['NODE_ENV']) => makeTestApp(undefined, { NODE_ENV: nodeEnv }).app;
+const appFor = async (nodeEnv: Env['NODE_ENV']) => (await makeTestApp(undefined, { NODE_ENV: nodeEnv })).app;
 
-describe('session cookies follow how the site is served', () => {
+describe('session cookies follow how the site is served', async () => {
   describe.each([['production'], ['test']] as const)('in %s', (nodeEnv) => {
     it("restricts the host's session to secure connections, cross-site", async () => {
-      const response = await login(appFor(nodeEnv));
+      const response = await login(await appFor(nodeEnv));
       const access = cookie(response, 'access_token');
       expect(access.secure).toBe(true);
       expect(String(access.sameSite).toLowerCase()).toBe('none');
@@ -105,26 +105,26 @@ describe('session cookies follow how the site is served', () => {
     });
 
     it("restricts the voter's session to secure connections, cross-site", async () => {
-      const voter = cookie(await claim(appFor(nodeEnv)), 'voter_token');
+      const voter = cookie(await claim(await appFor(nodeEnv)), 'voter_token');
       expect(voter.secure).toBe(true);
       expect(String(voter.sameSite).toLowerCase()).toBe('none');
       expect(voter.httpOnly).toBe(true);
     });
   });
 
-  describe('in development, where the app is served over plain HTTP', () => {
+  describe('in development, where the app is served over plain HTTP', async () => {
     // Secure would be dropped by Safari here, taking the session with it. The
     // dev server proxies the API under the app's own origin, so the cookie is
     // first-party and `lax` is both sufficient and correct.
     it("does not restrict the host's session to secure connections", async () => {
-      const access = cookie(await login(appFor('development')), 'access_token');
+      const access = cookie(await login(await appFor('development')), 'access_token');
       expect(access.secure).toBeFalsy();
       expect(String(access.sameSite).toLowerCase()).toBe('lax');
       expect(access.httpOnly).toBe(true); // still never readable from JS
     });
 
     it("does not restrict the voter's session to secure connections", async () => {
-      const voter = cookie(await claim(appFor('development')), 'voter_token');
+      const voter = cookie(await claim(await appFor('development')), 'voter_token');
       expect(voter.secure).toBeFalsy();
       expect(String(voter.sameSite).toLowerCase()).toBe('lax');
       expect(voter.httpOnly).toBe(true);
@@ -136,7 +136,7 @@ describe('session cookies follow how the site is served', () => {
   // setting — the only way to weaken the cookie is to say `development` outright.
   it('stays strict for any environment that is not explicitly development', async () => {
     const unfamiliar = 'staging' as unknown as Env['NODE_ENV'];
-    const access = cookie(await login(appFor(unfamiliar)), 'access_token');
+    const access = cookie(await login(await appFor(unfamiliar)), 'access_token');
     expect(access.secure).toBe(true);
     expect(String(access.sameSite).toLowerCase()).toBe('none');
   });

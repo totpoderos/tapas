@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import type { DatabaseSync } from 'node:sqlite';
 import type { ContestFormat, DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
@@ -51,25 +52,25 @@ function completeContent(format: ContestFormat): DraftContent {
 }
 
 /** Publishes a live contest against the app's db, returning { contestId, joinCode }. */
-function publishLiveContest(
+async function publishLiveContest(
   db: DatabaseSync,
   joinCode: string,
   format: ContestFormat = 'solo_with_partners',
 ) {
-  const drafts = new SqliteDraftRepository(db);
-  const contests = new SqliteContestRepository(db);
-  const roster = new SqliteRosterRepository(db);
-  const auditLog = new SqliteAuditLogRepository(db);
+  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
+  const contests = new SqliteContestRepository(new SqliteDatabase(db));
+  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
+  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
   let sequence = 0;
   const ids = { next: () => `audit-${joinCode}-${++sequence}` };
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock: CLOCK, ids }));
 
-  const created = new CreateDraft({ drafts, audit, clock: CLOCK, ids }).execute(
+  const created = await new CreateDraft({ drafts, audit, clock: CLOCK, ids }).execute(
     'host-1',
     completeContent(format),
   );
   if (!created.ok) throw new Error('expected draft creation to succeed');
-  const published = new PublishContest({
+  const published = await new PublishContest({
     drafts,
     contests,
     roster,
@@ -82,10 +83,10 @@ function publishLiveContest(
 }
 
 /** Claims a place directly and returns the voter cookie header. */
-function claimCookie(db: DatabaseSync, joinCode: string, participantId: string): string {
-  const claim = new ClaimPlace({
-    contests: new SqliteContestRepository(db),
-    roster: new SqliteRosterRepository(db),
+async function claimCookie(db: DatabaseSync, joinCode: string, participantId: string): Promise<string> {
+  const claim = await new ClaimPlace({
+    contests: new SqliteContestRepository(new SqliteDatabase(db)),
+    roster: new SqliteRosterRepository(new SqliteDatabase(db)),
     tokens: new HmacJwtTokenIssuer(SECRET, new SystemClock()),
     clock: new SystemClock(),
   }).execute(joinCode, participantId);
@@ -115,10 +116,10 @@ describeFeature(feature, ({ Scenario }) => {
     let cookie: string;
     let response: LightMyRequestResponse;
 
-    Given('a live contest where "Ana" has claimed her place', () => {
-      ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1'));
-      cookie = claimCookie(db, 'TAPAS1', 'ana');
+    Given('a live contest where "Ana" has claimed her place', async () => {
+      ({ app, db } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
+      cookie = await claimCookie(db, 'TAPAS1', 'ana');
     });
     When('Ana submits a dish named "Patatas bravas"', async () => {
       response = await submitDish(app, contestId, cookie, { name: 'Patatas bravas' });
@@ -138,9 +139,9 @@ describeFeature(feature, ({ Scenario }) => {
       let cookie: string;
 
       Given('a live contest where "Ana" has submitted "Patatas bravas"', async () => {
-        ({ app, db } = makeTestApp());
-        ({ contestId } = publishLiveContest(db, 'TAPAS1'));
-        cookie = claimCookie(db, 'TAPAS1', 'ana');
+        ({ app, db } = await makeTestApp());
+        ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
+        cookie = await claimCookie(db, 'TAPAS1', 'ana');
         await submitDish(app, contestId, cookie, { name: 'Patatas bravas' });
       });
       When('Ana submits her dish again as "Patatas bravas picantes"', async () => {
@@ -178,10 +179,10 @@ describeFeature(feature, ({ Scenario }) => {
     let cookie: string;
     let response: LightMyRequestResponse;
 
-    Given('a live contest where "Ana" has claimed her place', () => {
-      ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1'));
-      cookie = claimCookie(db, 'TAPAS1', 'ana');
+    Given('a live contest where "Ana" has claimed her place', async () => {
+      ({ app, db } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
+      cookie = await claimCookie(db, 'TAPAS1', 'ana');
     });
     When('Ana submits a dish with no name', async () => {
       response = await submitDish(app, contestId, cookie, { name: '' });
@@ -198,9 +199,9 @@ describeFeature(feature, ({ Scenario }) => {
     let contestId: string;
     let response: LightMyRequestResponse;
 
-    Given('a live contest', () => {
-      ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1'));
+    Given('a live contest', async () => {
+      ({ app, db } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
     });
     When('a dish is submitted with no participant token', async () => {
       response = await app.inject({
@@ -222,9 +223,9 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a live contest where "Ana" has submitted "Patatas bravas"', async () => {
-      ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1'));
-      await submitDish(app, contestId, claimCookie(db, 'TAPAS1', 'ana'), {
+      ({ app, db } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
+      await submitDish(app, contestId, await claimCookie(db, 'TAPAS1', 'ana'), {
         name: 'Patatas bravas',
       });
     });
@@ -233,7 +234,7 @@ describeFeature(feature, ({ Scenario }) => {
       response = await app.inject({
         method: 'GET',
         url: `/contests/${contestId}/dishes`,
-        headers: { cookie: claimCookie(db, 'TAPAS1', 'pau') },
+        headers: { cookie: await claimCookie(db, 'TAPAS1', 'pau') },
       });
     });
     Then('"Patatas bravas" is among them', () => {
@@ -248,12 +249,12 @@ describeFeature(feature, ({ Scenario }) => {
     let db: DatabaseSync;
     let contestId: string;
 
-    Given('a live contest where "Ana" and "Marcos" are partners sharing a dish', () => {
-      ({ app, db } = makeTestApp());
-      ({ contestId } = publishLiveContest(db, 'TAPAS1', 'couples'));
+    Given('a live contest where "Ana" and "Marcos" are partners sharing a dish', async () => {
+      ({ app, db } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(db, 'TAPAS1', 'couples'));
     });
     When('Marcos submits their dish as "Tortilla"', async () => {
-      const submitted = await submitDish(app, contestId, claimCookie(db, 'TAPAS1', 'marcos'), {
+      const submitted = await submitDish(app, contestId, await claimCookie(db, 'TAPAS1', 'marcos'), {
         name: 'Tortilla',
       });
       expect(submitted.statusCode).toBe(201);
@@ -262,7 +263,7 @@ describeFeature(feature, ({ Scenario }) => {
       const list = await app.inject({
         method: 'GET',
         url: `/contests/${contestId}/dishes`,
-        headers: { cookie: claimCookie(db, 'TAPAS1', 'maria') },
+        headers: { cookie: await claimCookie(db, 'TAPAS1', 'maria') },
       });
       const coupleDish = list
         .json()
@@ -274,7 +275,7 @@ describeFeature(feature, ({ Scenario }) => {
       const me = await app.inject({
         method: 'GET',
         url: `/contests/${contestId}/dishes`,
-        headers: { cookie: claimCookie(db, 'TAPAS1', 'ana') },
+        headers: { cookie: await claimCookie(db, 'TAPAS1', 'ana') },
       });
       const anaDish = me
         .json()

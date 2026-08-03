@@ -18,9 +18,9 @@ export interface ListHostAccountsDeps {
 export class ListHostAccounts {
   constructor(private readonly deps: ListHostAccountsDeps) {}
 
-  execute(): HostAccountSummary[] {
-    return this.deps.hostAccounts
-      .listAll()
+  async execute(): Promise<HostAccountSummary[]> {
+    return (await this.deps.hostAccounts
+      .listAll())
       .map((account) => ({ email: account.email, isAdministrator: account.role === 'admin' }));
   }
 }

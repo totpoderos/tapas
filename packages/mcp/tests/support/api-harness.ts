@@ -10,6 +10,7 @@ import {
   type Clock,
   type Env,
 } from '@tapas/api';
+import { SqliteDatabase } from '@tapas/api';
 
 /**
  * A real, fully-wired API over in-memory SQLite, listening on an ephemeral port
@@ -55,8 +56,9 @@ export interface RunningApi {
 /** Builds the API and starts it listening on a free port; returns its base URL. */
 export async function startApi(): Promise<RunningApi> {
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
-  const deps = buildProductionDeps(db, BASE_ENV, FIXED_CLOCK, new BcryptPasswordHasher(4), new StubLLMClient());
+  const database = new SqliteDatabase(db);
+  await runMigrations(database);
+  const deps = buildProductionDeps(database, BASE_ENV, FIXED_CLOCK, new BcryptPasswordHasher(4), new StubLLMClient());
   const app = buildServer(deps);
   await app.listen({ port: 0, host: '127.0.0.1' });
   const address = app.server.address();

@@ -15,16 +15,16 @@ export interface EnsureContestFreshDeps {
  * auto-close happens eagerly right after `SendVote` instead, since that is
  * the only event that can make it true.
  */
-export function ensureContestFresh(
+export async function ensureContestFresh(
   contest: StoredContest,
   deps: EnsureContestFreshDeps,
-): StoredContest {
+): Promise<StoredContest> {
   let current = contest;
 
   if (current.status === 'live' && current.closeRule.when === 'scheduled') {
     const now = deps.clock.now();
     if (shouldAutoClose(current.closeRule, { allPlacesSent: false }, now)) {
-      deps.contests.updateStatus(current.id, 'closed', now, null);
+      await deps.contests.updateStatus(current.id, 'closed', now, null);
       current = { ...current, status: 'closed', closedAt: now };
     }
   }
@@ -32,7 +32,7 @@ export function ensureContestFresh(
   if (current.status === 'closed' && current.revealStrategy.when === 'scheduled') {
     const now = deps.clock.now();
     if (Date.parse(now) >= Date.parse(current.revealStrategy.at)) {
-      deps.contests.updateStatus(current.id, 'revealed', current.closedAt, now);
+      await deps.contests.updateStatus(current.id, 'revealed', current.closedAt, now);
       current = { ...current, status: 'revealed', revealedAt: now };
     }
   }

@@ -37,48 +37,48 @@ function contestWith(overrides: Partial<Parameters<FakeContestRepository['insert
   };
 }
 
-describe('RevealContest', () => {
-  it('reveals a closed contest and records the reveal in the audit log', () => {
+describe('RevealContest', async () => {
+  it('reveals a closed contest and records the reveal in the audit log', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
-    contests.insert(contestWith());
+    await contests.insert(contestWith());
 
-    const outcome = new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
+    const outcome = await new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.contest.status).toBe('revealed');
     expect(outcome.contest.revealedAt).toBe('2026-07-21T10:00:00.000Z');
-    expect(contests.findById('contest-1')?.status).toBe('revealed');
+    expect((await contests.findById('contest-1'))?.status).toBe('revealed');
     const entry = auditLog.entries.at(-1);
     expect(entry?.type).toBe('contest.revealed');
     expect(entry?.confirmation).toBe('host');
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest, recording nothing', () => {
+  it('reports CONTEST_NOT_FOUND for an unknown contest, recording nothing', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
 
-    const outcome = new RevealContest({ contests, clock, audit }).execute('unknown', AS_HOST);
+    const outcome = await new RevealContest({ contests, clock, audit }).execute('unknown', AS_HOST);
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
     expect(auditLog.entries).toHaveLength(0);
   });
 
-  it('refuses to reveal a contest that has not closed yet', () => {
+  it('refuses to reveal a contest that has not closed yet', async () => {
     const { contests, clock, audit } = makeDeps();
-    contests.insert(contestWith({ status: 'live', closedAt: null }));
+    await contests.insert(contestWith({ status: 'live', closedAt: null }));
 
-    const outcome = new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
+    const outcome = await new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NOT_CLOSED');
   });
 
-  it('refuses to reveal an already-revealed contest', () => {
+  it('refuses to reveal an already-revealed contest', async () => {
     const { contests, clock, audit } = makeDeps();
-    contests.insert(contestWith({ status: 'revealed', revealedAt: '2026-07-20T11:00:00.000Z' }));
+    await contests.insert(contestWith({ status: 'revealed', revealedAt: '2026-07-20T11:00:00.000Z' }));
 
-    const outcome = new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
+    const outcome = await new RevealContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('ALREADY_REVEALED');

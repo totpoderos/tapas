@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import type { DraftContent } from '@tapas/domain';
@@ -17,7 +18,7 @@ import {
   SqliteDishRepository,
   SqliteDraftRepository,
   SqliteRosterRepository,
-  SqliteUnitOfWork,
+  DatabaseUnitOfWork,
   SqliteVoteSessionRepository,
   type Clock,
   type IdGenerator,
@@ -27,11 +28,11 @@ const feature = await loadFeature(
   fileURLToPath(new URL('./managing-a-contest-draft.feature', import.meta.url)),
 );
 
-function makeDraftWorkspace() {
+async function makeDraftWorkspace() {
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
-  const drafts = new SqliteDraftRepository(db);
-  const auditLog = new SqliteAuditLogRepository(db);
+  await runMigrations(new SqliteDatabase(db));
+  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
+  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
   let sequence = 0;
   const ids: IdGenerator = { next: () => `id-${++sequence}` };
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
@@ -44,13 +45,13 @@ function makeDraftWorkspace() {
     // draft's stored content names participants, so it is erased rather than
     // copied into the log (which is what the old `draft.discarded` record did).
     deleteContest: new DeleteContest({
-      contests: new SqliteContestRepository(db),
+      contests: new SqliteContestRepository(new SqliteDatabase(db)),
       drafts,
-      roster: new SqliteRosterRepository(db),
-      dishes: new SqliteDishRepository(db),
-      voteSessions: new SqliteVoteSessionRepository(db, clock),
+      roster: new SqliteRosterRepository(new SqliteDatabase(db)),
+      dishes: new SqliteDishRepository(new SqliteDatabase(db)),
+      voteSessions: new SqliteVoteSessionRepository(new SqliteDatabase(db), clock),
       audit,
-      unitOfWork: new SqliteUnitOfWork(db),
+      unitOfWork: new DatabaseUnitOfWork(new SqliteDatabase(db)),
     }),
     getDraft: new GetDraft(drafts),
     listHostDrafts: new ListHostDrafts(drafts),
@@ -58,7 +59,7 @@ function makeDraftWorkspace() {
   };
 }
 
-type DraftWorkspace = ReturnType<typeof makeDraftWorkspace>;
+type DraftWorkspace = Awaited<ReturnType<typeof makeDraftWorkspace>>;
 
 function draftNamed(name: string): DraftContent {
   return {
@@ -75,21 +76,21 @@ describeFeature(feature, ({ Scenario }) => {
     const hostId = 'host-1';
     let savedDraftId = '';
 
-    Given('a host', () => void (workspace = makeDraftWorkspace()));
-    When('the host saves a draft named "Summer Tapas 2026" where everyone is on their own with partners kept apart', () => {
-      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+    Given('a host', async () => void (workspace = await makeDraftWorkspace()));
+    When('the host saves a draft named "Summer Tapas 2026" where everyone is on their own with partners kept apart', async () => {
+      const creation = await workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
       expect(creation.ok).toBe(true);
       if (creation.ok) savedDraftId = creation.draft.id;
     });
-    Then('the draft is stored', () => {
-      expect(workspace.getDraft.execute(savedDraftId, hostId)).toBeDefined();
+    Then('the draft is stored', async () => {
+      expect(await workspace.getDraft.execute(savedDraftId, hostId)).toBeDefined();
     });
-    And("the draft appears among the host's drafts", () => {
-      const draftNames = workspace.listHostDrafts.execute(hostId).map((draft) => draft.content.name);
+    And("the draft appears among the host's drafts", async () => {
+      const draftNames = (await workspace.listHostDrafts.execute(hostId)).map((draft) => draft.content.name);
       expect(draftNames).toContain('Summer Tapas 2026');
     });
-    And('the audit log records that the draft was saved by that host', () => {
-      const savedEvent = workspace.auditLog.findByContest(savedDraftId).find((entry) => entry.type === 'draft.saved');
+    And('the audit log records that the draft was saved by that host', async () => {
+      const savedEvent = (await workspace.auditLog.findByContest(savedDraftId)).find((entry) => entry.type === 'draft.saved');
       expect(savedEvent?.actorId).toBe(hostId);
       expect(savedEvent?.sourcePath).toBe('form');
     });
@@ -100,20 +101,20 @@ describeFeature(feature, ({ Scenario }) => {
     const hostId = 'host-1';
     let draftId = '';
 
-    Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      workspace = makeDraftWorkspace();
-      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+    Given('a host with a saved draft named "Summer Tapas 2026"', async () => {
+      workspace = await makeDraftWorkspace();
+      const creation = await workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
       if (creation.ok) draftId = creation.draft.id;
     });
-    When('the host renames the draft to "Summer Tapas Final"', () => {
-      const renameResult = workspace.renameDraft.execute(draftId, hostId, 'Summer Tapas Final');
+    When('the host renames the draft to "Summer Tapas Final"', async () => {
+      const renameResult = await workspace.renameDraft.execute(draftId, hostId, 'Summer Tapas Final');
       expect(renameResult.ok).toBe(true);
     });
-    Then('the stored draft is named "Summer Tapas Final"', () => {
-      expect(workspace.getDraft.execute(draftId, hostId)?.content.name).toBe('Summer Tapas Final');
+    Then('the stored draft is named "Summer Tapas Final"', async () => {
+      expect((await workspace.getDraft.execute(draftId, hostId))?.content.name).toBe('Summer Tapas Final');
     });
-    And('the audit log records the change with the previous and the new name', () => {
-      const renameEvent = workspace.auditLog.findByContest(draftId).find((entry) => entry.type === 'draft.updated');
+    And('the audit log records the change with the previous and the new name', async () => {
+      const renameEvent = (await workspace.auditLog.findByContest(draftId)).find((entry) => entry.type === 'draft.updated');
       expect((renameEvent?.before as DraftContent | undefined)?.name).toBe('Summer Tapas 2026');
       expect((renameEvent?.after as DraftContent | undefined)?.name).toBe('Summer Tapas Final');
     });
@@ -124,19 +125,19 @@ describeFeature(feature, ({ Scenario }) => {
     const hostId = 'host-1';
     let draftId = '';
 
-    Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      workspace = makeDraftWorkspace();
-      const creation = workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
+    Given('a host with a saved draft named "Summer Tapas 2026"', async () => {
+      workspace = await makeDraftWorkspace();
+      const creation = await workspace.createDraft.execute(hostId, draftNamed('Summer Tapas 2026'));
       if (creation.ok) draftId = creation.draft.id;
     });
-    When('the host discards the draft', () => {
-      expect(workspace.deleteContest.execute(draftId, hostId).ok).toBe(true);
+    When('the host discards the draft', async () => {
+      expect((await workspace.deleteContest.execute(draftId, hostId)).ok).toBe(true);
     });
-    Then("the draft no longer appears among the host's drafts", () => {
-      expect(workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
+    Then("the draft no longer appears among the host's drafts", async () => {
+      expect(await workspace.listHostDrafts.execute(hostId)).toHaveLength(0);
     });
-    And('nothing recorded about it remains except that it was deleted', () => {
-      const entries = workspace.auditLog.findByContest(draftId);
+    And('nothing recorded about it remains except that it was deleted', async () => {
+      const entries = await workspace.auditLog.findByContest(draftId);
       expect(entries.map((entry) => entry.type)).toEqual(['contest.deleted']);
       // The draft's content named a participant; the tombstone must not.
       expect(entries[0]?.before).toBeUndefined();
@@ -147,11 +148,11 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('A draft without a name cannot be saved', ({ Given, When, Then }) => {
     let workspace: DraftWorkspace;
     const hostId = 'host-1';
-    let saveOutcome: ReturnType<CreateDraft['execute']>;
+    let saveOutcome: Awaited<ReturnType<CreateDraft['execute']>>;
 
-    Given('a host', () => void (workspace = makeDraftWorkspace()));
-    When('the host tries to save a draft with no name', () => {
-      saveOutcome = workspace.createDraft.execute(hostId, draftNamed(''));
+    Given('a host', async () => void (workspace = await makeDraftWorkspace()));
+    When('the host tries to save a draft with no name', async () => {
+      saveOutcome = await workspace.createDraft.execute(hostId, draftNamed(''));
     });
     Then('saving is rejected because a name is required', () => {
       expect(saveOutcome.ok).toBe(false);
@@ -163,15 +164,15 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: DraftWorkspace;
     let visibleDraftNames: string[] = [];
 
-    Given('a host with a saved draft named "Summer Tapas 2026"', () => {
-      workspace = makeDraftWorkspace();
-      workspace.createDraft.execute('host-1', draftNamed('Summer Tapas 2026'));
+    Given('a host with a saved draft named "Summer Tapas 2026"', async () => {
+      workspace = await makeDraftWorkspace();
+      await workspace.createDraft.execute('host-1', draftNamed('Summer Tapas 2026'));
     });
-    And('another host with a saved draft named "Winter Tapas"', () => {
-      workspace.createDraft.execute('host-2', draftNamed('Winter Tapas'));
+    And('another host with a saved draft named "Winter Tapas"', async () => {
+      await workspace.createDraft.execute('host-2', draftNamed('Winter Tapas'));
     });
-    When('the host lists their drafts', () => {
-      visibleDraftNames = workspace.listHostDrafts.execute('host-1').map((draft) => draft.content.name);
+    When('the host lists their drafts', async () => {
+      visibleDraftNames = (await workspace.listHostDrafts.execute('host-1')).map((draft) => draft.content.name);
     });
     Then('only "Summer Tapas 2026" appears', () => {
       expect(visibleDraftNames).toEqual(['Summer Tapas 2026']);

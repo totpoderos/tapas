@@ -78,7 +78,7 @@ describeFeature(feature, ({ Scenario }) => {
             clarifications: [],
           }),
         );
-        ({ app } = makeTestApp(undefined, {}, llmClient));
+        ({ app } = await makeTestApp(undefined, {}, llmClient));
         cookie = await signedInHost(app);
       });
       When('the host asks the assistant to extract a draft from it', async () => {
@@ -117,7 +117,7 @@ describeFeature(feature, ({ Scenario }) => {
             clarifications: ['I could not tell who is participating — please list them.'],
           }),
         );
-        ({ app } = makeTestApp(undefined, {}, llmClient));
+        ({ app } = await makeTestApp(undefined, {}, llmClient));
         cookie = await signedInHost(app);
       });
       When('the host asks the assistant to extract a draft from it', async () => {
@@ -155,7 +155,7 @@ describeFeature(feature, ({ Scenario }) => {
             clarifications: [],
           }),
         );
-        ({ app } = makeTestApp(undefined, {}, llmClient));
+        ({ app } = await makeTestApp(undefined, {}, llmClient));
         cookie = await signedInHost(app);
       },
     );
@@ -181,8 +181,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
     });
     When('a draft extraction is attempted', async () => {
       response = await app.inject({

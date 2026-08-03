@@ -38,13 +38,13 @@ export class RegisterHost {
     }
 
     const email = emailResult.email.value;
-    if (this.deps.accounts.findByEmail(email)) {
+    if (await this.deps.accounts.findByEmail(email)) {
       return { ok: false, error: { code: 'EMAIL_TAKEN', message: 'That email is already registered.' } };
     }
 
     const passwordHash = await this.deps.hasher.hash(rawPassword);
     const account = HostAccount.register(this.deps.ids.next(), email, passwordHash, role);
-    this.deps.accounts.insert(account);
+    await this.deps.accounts.insert(account);
     return { ok: true, hostId: account.id };
   }
 }

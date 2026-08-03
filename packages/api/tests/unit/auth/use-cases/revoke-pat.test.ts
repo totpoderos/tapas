@@ -11,31 +11,31 @@ function makeRevokePatEnv() {
   return { issuePat: new IssuePat({ pats, ids, clock }), revokePat: new RevokePat({ pats }), pats };
 }
 
-describe('RevokePat', () => {
-  it("revokes the issuing host's own token", () => {
+describe('RevokePat', async () => {
+  it("revokes the issuing host's own token", async () => {
     const { issuePat, revokePat, pats } = makeRevokePatEnv();
-    const issued = issuePat.execute('host-1');
+    const issued = await issuePat.execute('host-1');
 
-    const revokeOutcome = revokePat.execute(issued.patId, 'host-1');
+    const revokeOutcome = await revokePat.execute(issued.patId, 'host-1');
 
     expect(revokeOutcome.ok).toBe(true);
-    expect(pats.findById(issued.patId)?.revokedAt).toBeTruthy();
+    expect((await pats.findById(issued.patId))?.revokedAt).toBeTruthy();
   });
 
-  it('refuses to revoke a token belonging to another host', () => {
+  it('refuses to revoke a token belonging to another host', async () => {
     const { issuePat, revokePat } = makeRevokePatEnv();
-    const issued = issuePat.execute('host-1');
+    const issued = await issuePat.execute('host-1');
 
-    const revokeOutcome = revokePat.execute(issued.patId, 'host-2');
+    const revokeOutcome = await revokePat.execute(issued.patId, 'host-2');
 
     expect(revokeOutcome.ok).toBe(false);
     if (!revokeOutcome.ok) expect(revokeOutcome.error.code).toBe('NOT_ALLOWED');
   });
 
-  it('refuses to revoke an unknown token', () => {
+  it('refuses to revoke an unknown token', async () => {
     const { revokePat } = makeRevokePatEnv();
 
-    const revokeOutcome = revokePat.execute('nope', 'host-1');
+    const revokeOutcome = await revokePat.execute('nope', 'host-1');
 
     expect(revokeOutcome.ok).toBe(false);
     if (!revokeOutcome.ok) expect(revokeOutcome.error.code).toBe('PAT_NOT_FOUND');

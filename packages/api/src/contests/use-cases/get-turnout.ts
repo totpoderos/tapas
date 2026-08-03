@@ -22,8 +22,8 @@ import type { GetTurnoutDeps, GetTurnoutResult, TurnoutParticipant } from './sha
 export class GetTurnout {
   constructor(private readonly deps: GetTurnoutDeps) {}
 
-  execute(contestId: string): GetTurnoutResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string): Promise<GetTurnoutResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
 
@@ -33,14 +33,14 @@ export class GetTurnout {
      * distinguish from not having started — so both fall on the same side.
      */
     const sentBy = new Set(
-      this.deps.voteSessions
-        .listSessions(contestId)
+      (await this.deps.voteSessions
+        .listSessions(contestId))
         .filter((session) => session.status === 'sent')
         .map((session) => session.voterId),
     );
 
-    const participants: TurnoutParticipant[] = this.deps.roster
-      .listAll(contestId)
+    const participants: TurnoutParticipant[] = (await this.deps.roster
+      .listAll(contestId))
       .map((place) => ({
         participantId: place.participantId,
         displayName: place.displayName,

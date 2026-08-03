@@ -2,10 +2,10 @@ import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { DeleteContestDeps, DeleteContestResult } from './shared.js';
 
 /** Whether the contest has anything of anyone else's invested in it yet. */
-function anyoneHasTakenPart(deps: DeleteContestDeps, contestId: string): boolean {
+async function anyoneHasTakenPart(deps: DeleteContestDeps, contestId: string): Promise<boolean> {
   return (
-    deps.roster.listClaimed(contestId).length > 0 ||
-    deps.voteSessions.listSessions(contestId).length > 0
+    (await deps.roster.listClaimed(contestId)).length > 0 ||
+    (await deps.voteSessions.listSessions(contestId)).length > 0
   );
 }
 
@@ -35,7 +35,7 @@ function anyoneHasTakenPart(deps: DeleteContestDeps, contestId: string): boolean
 export class DeleteContest {
   constructor(private readonly deps: DeleteContestDeps) {}
 
-  execute(
+  async execute(
     contestId: string,
     hostId: string,
     options: {
@@ -43,9 +43,9 @@ export class DeleteContest {
       readonly confirmation?: 'host' | 'auto';
       readonly provenance?: AuditProvenance;
     } = {},
-  ): DeleteContestResult {
-    const contest = this.deps.contests.findById(contestId);
-    const draft = contest ? undefined : this.deps.drafts.findById(contestId);
+  ): Promise<DeleteContestResult> {
+    const contest = await this.deps.contests.findById(contestId);
+    const draft = contest ? undefined : await this.deps.drafts.findById(contestId);
     const owner = contest?.hostId ?? draft?.hostId;
 
     if (owner === undefined) {
@@ -60,7 +60,7 @@ export class DeleteContest {
     // The guard lives here, not in the dialog: every entry point — form, MCP,
     // assistant — passes through this use case, so a screen cannot be the only
     // thing standing between a mis-click and sixteen people's votes.
-    if (contest && anyoneHasTakenPart(this.deps, contestId) && options.confirmName !== name) {
+    if (contest && (await anyoneHasTakenPart(this.deps, contestId)) && options.confirmName !== name) {
       return {
         ok: false,
         error: {
@@ -70,20 +70,20 @@ export class DeleteContest {
       };
     }
 
-    this.deps.unitOfWork.run(() => {
+    await this.deps.unitOfWork.run(async () => {
       if (contest) {
-        this.deps.voteSessions.deleteByContest(contestId);
-        this.deps.dishes.deleteByContest(contestId);
-        this.deps.roster.deleteByContest(contestId);
-        this.deps.contests.delete(contestId);
+        await this.deps.voteSessions.deleteByContest(contestId);
+        await this.deps.dishes.deleteByContest(contestId);
+        await this.deps.roster.deleteByContest(contestId);
+        await this.deps.contests.delete(contestId);
       } else {
-        this.deps.drafts.delete(contestId);
+        await this.deps.drafts.delete(contestId);
       }
 
       // Erase the history, then mark that it was erased. Order matters: the
       // tombstone must not be caught by the deletion it is recording.
-      this.deps.audit.deleteByContest(contestId);
-      this.deps.audit.record(
+      await this.deps.audit.deleteByContest(contestId);
+      await this.deps.audit.record(
         { type: 'contest.deleted', contestId, actorId: hostId },
         // An action the host asked their assistant for is recorded as having come
         // through a connected tool; one taken in the app is recorded as the app's.

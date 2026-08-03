@@ -5,7 +5,7 @@ import { dispatchedAs, provenanceOfRequest } from '../../../src/http/request-pro
 /** Just enough of a request to be asked what headers it carries. */
 const carrying = (headers: Record<string, string> = {}) => ({ headers }) as FastifyRequest;
 
-describe('how a request says it arrived', () => {
+describe('how a request says it arrived', async () => {
   it('is the app, for a request nobody marked', () => {
     expect(provenanceOfRequest(carrying())).toEqual({ sourcePath: 'form' });
   });

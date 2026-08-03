@@ -40,7 +40,7 @@ export class ResendInvitation {
   constructor(private readonly deps: ResendInvitationDeps) {}
 
   async execute(id: string, resentBy: string): Promise<ResendInvitationResult> {
-    const invitation = this.deps.invitations.findById(id);
+    const invitation = await this.deps.invitations.findById(id);
     if (!invitation)
       return {
         ok: false,
@@ -62,7 +62,7 @@ export class ResendInvitation {
         error: { code: 'RESEND_FAILED', message: issued.error.message },
       };
 
-    this.deps.invitations.markSuperseded(invitation.id, issued.invitationId);
+    await this.deps.invitations.markSuperseded(invitation.id, issued.invitationId);
     // The outcome is the issuing path's to report; nothing is re-decided here.
     return { ok: true, invitationId: issued.invitationId, messageSent: issued.messageSent, link: issued.link };
   }

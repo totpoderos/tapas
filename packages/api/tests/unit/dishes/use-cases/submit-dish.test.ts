@@ -32,9 +32,9 @@ function contestWithDishes(id: string, dishes: MaterializedDish[]) {
   };
 }
 
-function makeEnv(dishes: MaterializedDish[]) {
+async function makeEnv(dishes: MaterializedDish[]) {
   const contests = new FakeContestRepository();
-  contests.insert(contestWithDishes('contest-1', dishes));
+  await contests.insert(contestWithDishes('contest-1', dishes));
   const dishRepo = new FakeDishRepository();
   return {
     submitDish: new SubmitDish({ contests, dishes: dishRepo, clock }),
@@ -43,43 +43,43 @@ function makeEnv(dishes: MaterializedDish[]) {
   };
 }
 
-describe('SubmitDish', () => {
-  it("records a cook's dish against their materialized slot", () => {
-    const { submitDish, dishRepo } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+describe('SubmitDish', async () => {
+  it("records a cook's dish against their materialized slot", async () => {
+    const { submitDish, dishRepo } = await makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
 
-    const outcome = submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
+    const outcome = await submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
 
     expect(outcome.ok).toBe(true);
     if (outcome.ok) expect(outcome.dish.dishId).toBe('D-ana');
-    expect(dishRepo.findByContest('contest-1')).toHaveLength(1);
+    expect(await dishRepo.findByContest('contest-1')).toHaveLength(1);
   });
 
-  it('revises the same dish rather than adding a second', () => {
-    const { submitDish, dishRepo } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+  it('revises the same dish rather than adding a second', async () => {
+    const { submitDish, dishRepo } = await makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
 
-    submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
-    submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas picantes' });
+    await submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
+    await submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas picantes' });
 
-    const dishes = dishRepo.findByContest('contest-1');
+    const dishes = await dishRepo.findByContest('contest-1');
     expect(dishes).toHaveLength(1);
     expect(dishes[0]?.name).toBe('Patatas bravas picantes');
   });
 
-  it('rejects a dish with no name', () => {
-    const { submitDish } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+  it('rejects a dish with no name', async () => {
+    const { submitDish } = await makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
 
-    const outcome = submitDish.execute('contest-1', 'ana', { name: '   ' });
+    const outcome = await submitDish.execute('contest-1', 'ana', { name: '   ' });
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NAME_REQUIRED');
   });
 
-  it("lets either partner submit the couple's shared dish", () => {
-    const { submitDish, dishRepo } = makeEnv([
+  it("lets either partner submit the couple's shared dish", async () => {
+    const { submitDish, dishRepo } = await makeEnv([
       { id: 'D-ana-marcos', submitterIds: ['ana', 'marcos'] },
     ]);
 
-    const outcome = submitDish.execute('contest-1', 'marcos', { name: 'Tortilla' });
+    const outcome = await submitDish.execute('contest-1', 'marcos', { name: 'Tortilla' });
 
     expect(outcome.ok).toBe(true);
     if (outcome.ok) {
@@ -87,26 +87,26 @@ describe('SubmitDish', () => {
       expect(outcome.dish.submitterIds).toEqual(['ana', 'marcos']);
     }
     // Ana submits for the same slot — still one dish, updated.
-    submitDish.execute('contest-1', 'ana', { name: 'Tortilla de patatas' });
-    const dishes = dishRepo.findByContest('contest-1');
+    await submitDish.execute('contest-1', 'ana', { name: 'Tortilla de patatas' });
+    const dishes = await dishRepo.findByContest('contest-1');
     expect(dishes).toHaveLength(1);
     expect(dishes[0]?.name).toBe('Tortilla de patatas');
   });
 
-  it('refuses a participant who has no dish slot', () => {
-    const { submitDish } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+  it('refuses a participant who has no dish slot', async () => {
+    const { submitDish } = await makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
 
-    const outcome = submitDish.execute('contest-1', 'stranger', { name: 'Gazpacho' });
+    const outcome = await submitDish.execute('contest-1', 'stranger', { name: 'Gazpacho' });
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NO_DISH_FOR_PARTICIPANT');
   });
 
-  it('refuses a submission once the contest has closed', () => {
-    const { submitDish, contests } = makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
-    contests.updateStatus('contest-1', 'closed', clock.now(), null);
+  it('refuses a submission once the contest has closed', async () => {
+    const { submitDish, contests } = await makeEnv([{ id: 'D-ana', submitterIds: ['ana'] }]);
+    await contests.updateStatus('contest-1', 'closed', clock.now(), null);
 
-    const outcome = submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
+    const outcome = await submitDish.execute('contest-1', 'ana', { name: 'Patatas bravas' });
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_CLOSED');

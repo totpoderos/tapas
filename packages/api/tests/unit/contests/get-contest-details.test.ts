@@ -32,12 +32,12 @@ function build(opts: {
   });
 }
 
-describe('GetContestDetails', () => {
-  it("reads a draft's participants and categories by name", () => {
+describe('GetContestDetails', async () => {
+  it("reads a draft's participants and categories by name", async () => {
     const get = build({
       matches: [summary('d1', 'Tapas Night', 'draft')],
       drafts: {
-        findById: () =>
+        findById: async () =>
           ({
             id: 'd1',
             content: {
@@ -48,51 +48,51 @@ describe('GetContestDetails', () => {
               ],
               scoring: { categories: [{ id: 'c1', name: 'Taste' }], range: { type: 'auto' }, uniquePerCategory: false },
             },
-          }) as unknown as ReturnType<DraftRepository['findById']>,
+          }) as unknown as Awaited<ReturnType<DraftRepository['findById']>>,
       },
     });
 
-    const { details } = get.execute('h1', 'Tapas Night');
+    const { details } = await get.execute('h1', 'Tapas Night');
     expect(details?.status).toBe('draft');
     expect(details?.participants).toEqual(['Ana', 'Bob']);
     expect(details?.categories).toEqual(['Taste']);
   });
 
-  it("reads a published contest's participants from the roster and categories from the materialised view", () => {
+  it("reads a published contest's participants from the roster and categories from the materialised view", async () => {
     const get = build({
       matches: [summary('c1', 'Balcony Cook-off', 'live')],
       contests: {
-        findById: () =>
+        findById: async () =>
           ({
             id: 'c1',
             name: 'Balcony Cook-off',
             status: 'live',
             materialized: { categories: [{ id: 'c1', name: 'Presentation' }] },
-          }) as unknown as ReturnType<ContestRepository['findById']>,
+          }) as unknown as Awaited<ReturnType<ContestRepository['findById']>>,
       },
       roster: {
-        listAll: () => [
+        listAll: async () => [
           { contestId: 'c1', participantId: 'a', displayName: 'Ana', claimedAt: null },
           { contestId: 'c1', participantId: 'b', displayName: 'Bob', claimedAt: '2026-01-01T00:00:00.000Z' },
         ],
       },
     });
 
-    const { details } = get.execute('h1', 'Balcony Cook-off');
+    const { details } = await get.execute('h1', 'Balcony Cook-off');
     expect(details?.status).toBe('live');
     expect(details?.participants).toEqual(['Ana', 'Bob']);
     expect(details?.categories).toEqual(['Presentation']);
   });
 
-  it('returns candidates when several contests share the name', () => {
+  it('returns candidates when several contests share the name', async () => {
     const matches = [summary('c1', 'Tapas Night', 'live'), summary('c2', 'Tapas Night', 'draft')];
-    const { details, candidates } = build({ matches }).execute('h1', 'Tapas Night');
+    const { details, candidates } = await build({ matches }).execute('h1', 'Tapas Night');
     expect(details).toBeUndefined();
     expect(candidates).toHaveLength(2);
   });
 
-  it('returns no candidates and no details when nothing matches', () => {
-    const result = build({ matches: [] }).execute('h1', 'Nope');
+  it('returns no candidates and no details when nothing matches', async () => {
+    const result = await build({ matches: [] }).execute('h1', 'Nope');
     expect(result.details).toBeUndefined();
     expect(result.candidates).toEqual([]);
   });

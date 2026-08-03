@@ -47,26 +47,26 @@ function session(voterId: string, status: 'draft' | 'sent') {
 }
 
 /** Ana sent, Bob is part-way through, Carol never claimed a place. */
-function roomOfThree() {
+async function roomOfThree() {
   const contests = new FakeContestRepository();
-  contests.insert(liveContest());
+  await contests.insert(liveContest());
   const roster = new FakeRosterRepository();
-  roster.seed('contest-1', [
+  await roster.seed('contest-1', [
     { participantId: 'ana', displayName: 'Ana' },
     { participantId: 'bob', displayName: 'Bob' },
     { participantId: 'carol', displayName: 'Carol' },
   ]);
-  roster.claim('contest-1', 'ana', '2026-07-20T09:00:00.000Z');
-  roster.claim('contest-1', 'bob', '2026-07-20T09:00:00.000Z');
+  await roster.claim('contest-1', 'ana', '2026-07-20T09:00:00.000Z');
+  await roster.claim('contest-1', 'bob', '2026-07-20T09:00:00.000Z');
   const voteSessions = new FakeVoteSessionRepository();
-  voteSessions.createSession(session('ana', 'sent'));
-  voteSessions.createSession(session('bob', 'draft'));
+  await voteSessions.createSession(session('ana', 'sent'));
+  await voteSessions.createSession(session('bob', 'draft'));
   return { contests, roster, voteSessions };
 }
 
-describe('GetTurnout', () => {
-  it('says how many votes are in, out of how many are expected', () => {
-    const outcome = new GetTurnout(roomOfThree()).execute('contest-1');
+describe('GetTurnout', async () => {
+  it('says how many votes are in, out of how many are expected', async () => {
+    const outcome = await new GetTurnout(await roomOfThree()).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -77,8 +77,8 @@ describe('GetTurnout', () => {
     expect(outcome.turnout.votesExpected).toBe(3);
   });
 
-  it('names who has still to vote, and who is in', () => {
-    const outcome = new GetTurnout(roomOfThree()).execute('contest-1');
+  it('names who has still to vote, and who is in', async () => {
+    const outcome = await new GetTurnout(await roomOfThree()).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -95,9 +95,9 @@ describe('GetTurnout', () => {
    * must look the same — "not in" — because how far through someone is, is that
    * person's business, and the shape of this answer is what decides that.
    */
-  it('does not distinguish a part-scored vote from one not started', () => {
-    const { contests, roster, voteSessions } = roomOfThree();
-    voteSessions.upsertScore({
+  it('does not distinguish a part-scored vote from one not started', async () => {
+    const { contests, roster, voteSessions } = await roomOfThree();
+    await voteSessions.upsertScore({
       id: 's-1',
       voteSessionId: 'vs-bob',
       dishId: 'D-ana',
@@ -105,7 +105,7 @@ describe('GetTurnout', () => {
       value: 4,
     });
 
-    const outcome = new GetTurnout({ contests, roster, voteSessions }).execute('contest-1');
+    const outcome = await new GetTurnout({ contests, roster, voteSessions }).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -121,8 +121,8 @@ describe('GetTurnout', () => {
    * three at the top, and nothing else. This test is meant to fail when the
    * answer grows — that is a decision to be made, not a diff to wave through.
    */
-  it('carries nothing about a participant beyond whether their vote is in', () => {
-    const outcome = new GetTurnout(roomOfThree()).execute('contest-1');
+  it('carries nothing about a participant beyond whether their vote is in', async () => {
+    const outcome = await new GetTurnout(await roomOfThree()).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -136,13 +136,13 @@ describe('GetTurnout', () => {
     }
   });
 
-  it('counts nobody as in when no vote has been sent', () => {
+  it('counts nobody as in when no vote has been sent', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(liveContest());
+    await contests.insert(liveContest());
     const roster = new FakeRosterRepository();
-    roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
+    await roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
 
-    const outcome = new GetTurnout({
+    const outcome = await new GetTurnout({
       contests,
       roster,
       voteSessions: new FakeVoteSessionRepository(),
@@ -154,8 +154,8 @@ describe('GetTurnout', () => {
     expect(outcome.turnout.votesExpected).toBe(1);
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
-    const outcome = new GetTurnout({
+  it('reports CONTEST_NOT_FOUND for an unknown contest', async () => {
+    const outcome = await new GetTurnout({
       contests: new FakeContestRepository(),
       roster: new FakeRosterRepository(),
       voteSessions: new FakeVoteSessionRepository(),

@@ -25,8 +25,8 @@ function invitationAnswer(issued: {
 }
 
 /** Mail failing quietly is how an enrollment path stops working with nobody told. */
-function recordUnsentMessage(deps: ServerDeps, actorId: string | null, sourceIp: string): void {
-  deps.securityLog.record({ type: 'invitation.not_sent', actorId, sourceIp });
+async function recordUnsentMessage(deps: ServerDeps, actorId: string | null, sourceIp: string): Promise<void> {
+  await deps.securityLog.record({ type: 'invitation.not_sent', actorId, sourceIp });
 }
 
 /** An administrator is trusted with the invitations, so these say plainly what went wrong. */
@@ -46,7 +46,7 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
   const preHandler = [requireHostSession(deps), requireAdministrator(deps)];
 
   app.get('/admin/hosts', { preHandler }, async (_request, reply) => {
-    return reply.code(200).send({ hosts: deps.listHostAccounts.execute() });
+    return reply.code(200).send({ hosts: await deps.listHostAccounts.execute() });
   });
 
   app.post<{ Body: { email: string } }>(
@@ -59,31 +59,31 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
         return reply.code(INVITE_ERROR_STATUS[invited.error.code]).send({ error: invited.error });
 
       // Records that an invitation was issued — never the token it carries.
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'invitation.issued',
         actorId: invitedBy,
         sourceIp: request.ip,
       });
-      if (!invited.messageSent) recordUnsentMessage(deps, invitedBy, request.ip);
+      if (!invited.messageSent) await recordUnsentMessage(deps, invitedBy, request.ip);
       return reply.code(201).send(invitationAnswer(invited));
     },
   );
 
   app.get('/admin/invites', { preHandler }, async (_request, reply) => {
-    return reply.code(200).send({ invitations: deps.listInvitations.execute() });
+    return reply.code(200).send({ invitations: await deps.listInvitations.execute() });
   });
 
   app.post<{ Params: { id: string } }>(
     '/admin/invites/:id/revoke',
     { preHandler },
     async (request, reply) => {
-      const revoked = deps.revokeInvitation.execute(request.params.id);
+      const revoked = await deps.revokeInvitation.execute(request.params.id);
       if (!revoked.ok)
         return reply
           .code(INVITATION_ACTION_STATUS[revoked.error.code] ?? 400)
           .send({ error: revoked.error });
 
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'invitation.revoked',
         actorId: request.hostSession!.id,
         sourceIp: request.ip,
@@ -104,12 +104,12 @@ export function registerAdminRoutes(app: FastifyInstance, deps: ServerDeps): voi
           .send({ error: resent.error });
 
       // Records the resend; the invitation it issued records itself as issued.
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'invitation.resent',
         actorId: resentBy,
         sourceIp: request.ip,
       });
-      if (!resent.messageSent) recordUnsentMessage(deps, resentBy, request.ip);
+      if (!resent.messageSent) await recordUnsentMessage(deps, resentBy, request.ip);
       return reply.code(201).send(invitationAnswer(resent));
     },
   );

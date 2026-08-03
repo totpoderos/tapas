@@ -31,7 +31,7 @@ function makeAuthEnv() {
   };
 }
 
-describe('AuthenticateHost', () => {
+describe('AuthenticateHost', async () => {
   it('issues a session for correct credentials and activates it', async () => {
     const { registerHost, authenticateHost, sessions } = makeAuthEnv();
     await registerHost.execute('ana@example.com', STRONG);
@@ -41,7 +41,7 @@ describe('AuthenticateHost', () => {
     expect(loginOutcome.ok).toBe(true);
     if (loginOutcome.ok) {
       expect(loginOutcome.session.accessToken).toBe('access-token');
-      expect(sessions.isActive(loginOutcome.session.sessionId)).toBe(true);
+      expect(await sessions.isActive(loginOutcome.session.sessionId)).toBe(true);
     }
   });
 
@@ -57,7 +57,7 @@ describe('AuthenticateHost', () => {
       expect(loginOutcome.logReason).toBe('bad_password'); // truthful to the log
       if (registration.ok) expect(loginOutcome.hostId).toBe(registration.hostId);
     }
-    expect(accounts.findByEmail('ana@example.com')?.failedAttempts).toBe(1);
+    expect((await accounts.findByEmail('ana@example.com'))?.failedAttempts).toBe(1);
   });
 
   it('refuses an unknown email with the same generic error, logged as an unknown account', async () => {

@@ -23,12 +23,12 @@ export interface SubmitDishDeps {
 export class SubmitDish {
   constructor(private readonly deps: SubmitDishDeps) {}
 
-  execute(contestId: string, participantId: string, input: SubmitDishInput): SubmitDishResult {
+  async execute(contestId: string, participantId: string, input: SubmitDishInput): Promise<SubmitDishResult> {
     const name = input.name?.trim();
     if (!name)
       return { ok: false, error: { code: 'NAME_REQUIRED', message: 'A dish needs a name.' } };
 
-    const contest = this.deps.contests.findById(contestId);
+    const contest = await this.deps.contests.findById(contestId);
     if (contest && contest.status !== 'live') {
       return { ok: false, error: { code: 'CONTEST_CLOSED', message: 'This contest is closed.' } };
     }
@@ -51,7 +51,7 @@ export class SubmitDish {
       submitterIds: [...slot.submitterIds],
       submittedAt: this.deps.clock.now(),
     };
-    this.deps.dishes.upsert(dish);
+    await this.deps.dishes.upsert(dish);
     return { ok: true, dish };
   }
 }

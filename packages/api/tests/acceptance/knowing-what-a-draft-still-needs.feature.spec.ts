@@ -100,7 +100,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a host preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category, that has not said what kind of contest it is',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
         await saveDraft(app, jar, withoutFormat('Tapas Night'));
       },
@@ -122,7 +122,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a host preparing a draft named "Half-baked" that has said nothing about what kind of contest it is nor how it is scored',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
         await saveDraft(app, jar, {
           name: 'Half-baked',
@@ -147,7 +147,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a complete draft named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await saveDraft(app, jar, completeDraft('Tapas Night'));
     });
@@ -165,7 +165,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a live contest named "Balcony Cook-off"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       const created = await saveDraft(app, jar, completeDraft('Balcony Cook-off'));
       await req(app, jar, { method: 'POST', url: `/drafts/${created.json().id}/publish` });
@@ -183,7 +183,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('a host creates a draft named "Tapas" and says nothing else about it', async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       const jar = await signedInHost(app, 'ana@example.com');
       response = await saveDraft(app, jar, { name: 'Tapas' });
     });
@@ -215,7 +215,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a host preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category, that has not said what kind of contest it is',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
         const created = await saveDraft(app, jar, withoutFormat('Tapas Night'));
         draftId = created.json().id as string;

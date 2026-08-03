@@ -42,12 +42,12 @@ export interface ClaimDeploymentDeps {
 export class ClaimDeployment {
   constructor(private readonly deps: ClaimDeploymentDeps) {}
 
-  isUnclaimed(): boolean {
-    return !this.deps.accounts.listAll().some((account) => account.role === 'admin');
+  async isUnclaimed(): Promise<boolean> {
+    return !(await this.deps.accounts.listAll()).some((account) => account.role === 'admin');
   }
 
   async execute(rawEmail: string): Promise<ClaimDeploymentResult> {
-    if (!this.isUnclaimed())
+    if (!(await this.isUnclaimed()))
       return {
         ok: false,
         error: { code: 'SETUP_COMPLETE', message: 'This deployment already has an administrator.' },
@@ -62,8 +62,8 @@ export class ClaimDeployment {
       // read part of the deployment's configuration.
       return { ok: false, error: { code: 'CLAIM_REFUSED', message: 'Claim refused.' } };
 
-    const outstanding = this.deps.invitations
-      .listAll()
+    const outstanding = (await this.deps.invitations
+      .listAll())
       .filter((invitation) => invitation.invitedRole === 'admin' && invitation.status === 'pending');
 
     const issued = await this.deps.inviteHost.execute(
@@ -74,7 +74,7 @@ export class ClaimDeployment {
     if (!issued.ok) return { ok: false, error: { code: 'CLAIM_REFUSED', message: 'Claim refused.' } };
 
     for (const previous of outstanding)
-      this.deps.invitations.markSuperseded(previous.id, issued.invitationId);
+      await this.deps.invitations.markSuperseded(previous.id, issued.invitationId);
 
     // A first-run deployment has no administrator to resend for it, so the link
     // in this answer is the only remedy when no mail server would take the message.

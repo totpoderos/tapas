@@ -10,9 +10,9 @@ export interface SignOutHostDeps {
 export class SignOutHost {
   constructor(private readonly deps: SignOutHostDeps) {}
 
-  execute(token: string | undefined): void {
+  async execute(token: string | undefined): Promise<void> {
     if (!token) return;
     const claims = this.deps.tokens.verify(token);
-    if (claims) this.deps.sessions.revoke(claims.jti);
+    if (claims) await this.deps.sessions.revoke(claims.jti);
   }
 }

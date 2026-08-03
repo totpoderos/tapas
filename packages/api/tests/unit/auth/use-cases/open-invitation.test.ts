@@ -11,9 +11,9 @@ function laterBy(millis: number): string {
   return new Date(Date.parse(ISSUED_AT) + millis).toISOString();
 }
 
-function pending() {
+async function pending() {
   const invitations = new FakeInvitationRepository();
-  invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN), issuedAt: ISSUED_AT }));
+  await invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN), issuedAt: ISSUED_AT }));
   return invitations;
 }
 
@@ -22,57 +22,57 @@ function clockAt(nowIso: string) {
   return { now: () => nowIso };
 }
 
-describe('OpenInvitation', () => {
-  it('names the address a good link was sent to', () => {
-    const useCase = new OpenInvitation({ invitations: pending(), clock: clockAt(ISSUED_AT) });
+describe('OpenInvitation', async () => {
+  it('names the address a good link was sent to', async () => {
+    const useCase = new OpenInvitation({ invitations: await pending(), clock: clockAt(ISSUED_AT) });
 
-    expect(useCase.execute(TOKEN)).toEqual({ ok: true, email: 'nuevo@example.com' });
+    expect(await useCase.execute(TOKEN)).toEqual({ ok: true, email: 'nuevo@example.com' });
   });
 
-  it('leaves the invitation exactly as it was', () => {
-    const invitations = pending();
+  it('leaves the invitation exactly as it was', async () => {
+    const invitations = await pending();
     const before = structuredClone(invitations.stored);
     const useCase = new OpenInvitation({ invitations, clock: clockAt(ISSUED_AT) });
 
-    useCase.execute(TOKEN);
-    useCase.execute(TOKEN);
+    await useCase.execute(TOKEN);
+    await useCase.execute(TOKEN);
 
     expect(invitations.stored).toEqual(before);
   });
 
-  it('refuses a link whose window has closed', () => {
+  it('refuses a link whose window has closed', async () => {
     const useCase = new OpenInvitation({
-      invitations: pending(),
+      invitations: await pending(),
       clock: clockAt(laterBy(ONE_DAY_MS)),
     });
 
-    const opened = useCase.execute(TOKEN);
+    const opened = await useCase.execute(TOKEN);
 
     expect(opened.ok).toBe(false);
     expect(opened).toMatchObject({ reason: 'expired' });
   });
 
-  it('leaves an expired invitation expired, however often it is opened', () => {
-    const invitations = pending();
+  it('leaves an expired invitation expired, however often it is opened', async () => {
+    const invitations = await pending();
     const useCase = new OpenInvitation({ invitations, clock: clockAt(laterBy(ONE_DAY_MS)) });
 
-    useCase.execute(TOKEN);
-    useCase.execute(TOKEN);
+    await useCase.execute(TOKEN);
+    await useCase.execute(TOKEN);
 
-    expect(useCase.execute(TOKEN).ok).toBe(false);
+    expect((await useCase.execute(TOKEN)).ok).toBe(false);
     expect(invitations.stored[0]!.status).toBe('pending');
   });
 
-  it('shows the caller the same refusal for unknown, accepted and expired', () => {
+  it('shows the caller the same refusal for unknown, accepted and expired', async () => {
     // Identical to whoever holds the link; the reason is for the log alone.
-    const invitations = pending();
+    const invitations = await pending();
     const inTime = new OpenInvitation({ invitations, clock: clockAt(ISSUED_AT) });
     const tooLate = new OpenInvitation({ invitations, clock: clockAt(laterBy(ONE_DAY_MS)) });
 
-    const unknown = inTime.execute('a-token-nobody-ever-issued');
-    const expired = tooLate.execute(TOKEN);
-    invitations.markAccepted('inv-1', laterBy(1000));
-    const accepted = inTime.execute(TOKEN);
+    const unknown = await inTime.execute('a-token-nobody-ever-issued');
+    const expired = await tooLate.execute(TOKEN);
+    await invitations.markAccepted('inv-1', laterBy(1000));
+    const accepted = await inTime.execute(TOKEN);
 
     const refusals = [unknown, expired, accepted];
     for (const refusal of refusals) expect(refusal.ok).toBe(false);
@@ -82,11 +82,11 @@ describe('OpenInvitation', () => {
     );
   });
 
-  it('names no address when it refuses', () => {
-    const invitations = pending();
-    invitations.markAccepted('inv-1', laterBy(1000));
+  it('names no address when it refuses', async () => {
+    const invitations = await pending();
+    await invitations.markAccepted('inv-1', laterBy(1000));
     const useCase = new OpenInvitation({ invitations, clock: clockAt(laterBy(2000)) });
 
-    expect(JSON.stringify(useCase.execute(TOKEN))).not.toContain('nuevo@example.com');
+    expect(JSON.stringify(await useCase.execute(TOKEN))).not.toContain('nuevo@example.com');
   });
 });

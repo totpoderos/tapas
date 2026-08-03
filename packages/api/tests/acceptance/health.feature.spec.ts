@@ -13,8 +13,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: Awaited<ReturnType<FastifyInstance['inject']>>;
 
-    Given('the API is running', () => {
-      ({ app } = makeTestApp());
+    Given('the API is running', async () => {
+      ({ app } = await makeTestApp());
     });
     When('a client requests the health endpoint', async () => {
       response = await app.inject({ method: 'GET', url: '/health' });

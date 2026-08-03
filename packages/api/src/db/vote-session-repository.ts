@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { Clock } from '../audit/audit-projection.js';
 import type { StoredScore, StoredVoteSession } from '../scoring/stored-vote-session.js';
 
@@ -9,26 +9,26 @@ export interface SessionCounts {
 }
 
 export interface VoteSessionRepository {
-  findSession(contestId: string, voterId: string): StoredVoteSession | undefined;
-  createSession(session: StoredVoteSession): void;
+  findSession(contestId: string, voterId: string): Promise<StoredVoteSession | undefined>;
+  createSession(session: StoredVoteSession): Promise<void>;
   /** Marks a session sent, recording when. */
-  markSent(voteSessionId: string, submittedAt: string): void;
-  findScore(voteSessionId: string, dishId: string, categoryId: string): StoredScore | undefined;
+  markSent(voteSessionId: string, submittedAt: string): Promise<void>;
+  findScore(voteSessionId: string, dishId: string, categoryId: string): Promise<StoredScore | undefined>;
   /** Inserts or updates a score by (voteSessionId, dishId, categoryId) — a judge may revise a draft score. */
-  upsertScore(score: StoredScore): void;
-  listScores(voteSessionId: string): StoredScore[];
+  upsertScore(score: StoredScore): Promise<void>;
+  listScores(voteSessionId: string): Promise<StoredScore[]>;
   /** Every score belonging to a `sent` session in this contest — draft (unsent) votes never count toward a tally. */
-  listSentScores(contestId: string): StoredScore[];
+  listSentScores(contestId: string): Promise<StoredScore[]>;
   /** Every vote session in this contest, any status — for the live draft/sent progress tally. */
-  listSessions(contestId: string): StoredVoteSession[];
+  listSessions(contestId: string): Promise<StoredVoteSession[]>;
   /**
    * How many votes are drafted and how many sent, in each of several contests at
    * once, for the host's contest list. One query for the whole list rather than
    * one per contest. Contests with no sessions are simply absent from the map.
    */
-  countSessionsByContest(contestIds: readonly string[]): Map<string, SessionCounts>;
+  countSessionsByContest(contestIds: readonly string[]): Promise<Map<string, SessionCounts>>;
   /** Removes every vote session in a contest and all the scores inside them. */
-  deleteByContest(contestId: string): void;
+  deleteByContest(contestId: string): Promise<void>;
 }
 
 interface SessionRow {
@@ -71,19 +71,19 @@ function toScore(row: ScoreRow): StoredScore {
 
 export class SqliteVoteSessionRepository implements VoteSessionRepository {
   constructor(
-    private readonly db: DatabaseSync,
+    private readonly db: Database,
     private readonly clock: Clock,
   ) {}
 
-  findSession(contestId: string, voterId: string): StoredVoteSession | undefined {
-    const row = this.db
+  async findSession(contestId: string, voterId: string): Promise<StoredVoteSession | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM vote_sessions WHERE contest_id = ? AND voter_id = ?`)
       .get(contestId, voterId) as unknown as SessionRow | undefined;
     return row ? toSession(row) : undefined;
   }
 
-  createSession(session: StoredVoteSession): void {
-    this.db
+  async createSession(session: StoredVoteSession): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO vote_sessions (id, contest_id, voter_id, status, created_at, submitted_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -98,22 +98,22 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
       );
   }
 
-  markSent(voteSessionId: string, submittedAt: string): void {
-    this.db
+  async markSent(voteSessionId: string, submittedAt: string): Promise<void> {
+    await this.db
       .prepare(`UPDATE vote_sessions SET status = 'sent', submitted_at = ? WHERE id = ?`)
       .run(submittedAt, voteSessionId);
   }
 
-  findScore(voteSessionId: string, dishId: string, categoryId: string): StoredScore | undefined {
-    const row = this.db
+  async findScore(voteSessionId: string, dishId: string, categoryId: string): Promise<StoredScore | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM scores WHERE vote_session_id = ? AND dish_id = ? AND category_id = ?`)
       .get(voteSessionId, dishId, categoryId) as unknown as ScoreRow | undefined;
     return row ? toScore(row) : undefined;
   }
 
-  upsertScore(score: StoredScore): void {
+  async upsertScore(score: StoredScore): Promise<void> {
     const now = this.clock.now();
-    this.db
+    await this.db
       .prepare(
         `INSERT INTO scores (id, vote_session_id, dish_id, category_id, value, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -124,15 +124,15 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
       .run(score.id, score.voteSessionId, score.dishId, score.categoryId, score.value, now, now);
   }
 
-  listScores(voteSessionId: string): StoredScore[] {
-    const rows = this.db
+  async listScores(voteSessionId: string): Promise<StoredScore[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM scores WHERE vote_session_id = ? ORDER BY dish_id, category_id`)
       .all(voteSessionId) as unknown as ScoreRow[];
     return rows.map(toScore);
   }
 
-  listSentScores(contestId: string): StoredScore[] {
-    const rows = this.db
+  async listSentScores(contestId: string): Promise<StoredScore[]> {
+    const rows = await this.db
       .prepare(
         `SELECT scores.* FROM scores
          JOIN vote_sessions ON vote_sessions.id = scores.vote_session_id
@@ -143,18 +143,18 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
     return rows.map(toScore);
   }
 
-  listSessions(contestId: string): StoredVoteSession[] {
-    const rows = this.db
+  async listSessions(contestId: string): Promise<StoredVoteSession[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM vote_sessions WHERE contest_id = ? ORDER BY voter_id`)
       .all(contestId) as unknown as SessionRow[];
     return rows.map(toSession);
   }
 
-  countSessionsByContest(contestIds: readonly string[]): Map<string, SessionCounts> {
+  async countSessionsByContest(contestIds: readonly string[]): Promise<Map<string, SessionCounts>> {
     // `IN ()` is not valid SQL, so nothing to ask about means nothing to ask.
     if (contestIds.length === 0) return new Map();
     const placeholders = contestIds.map(() => '?').join(', ');
-    const rows = this.db
+    const rows = await this.db
       .prepare(
         `SELECT contest_id, status, COUNT(*) AS howMany FROM vote_sessions
           WHERE contest_id IN (${placeholders})
@@ -182,13 +182,13 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
    * no foreign key doing it for us, and deleting the sessions first would orphan
    * every score in the contest.
    */
-  deleteByContest(contestId: string): void {
-    this.db
+  async deleteByContest(contestId: string): Promise<void> {
+    await this.db
       .prepare(
         `DELETE FROM scores WHERE vote_session_id IN
            (SELECT id FROM vote_sessions WHERE contest_id = ?)`,
       )
       .run(contestId);
-    this.db.prepare(`DELETE FROM vote_sessions WHERE contest_id = ?`).run(contestId);
+    await this.db.prepare(`DELETE FROM vote_sessions WHERE contest_id = ?`).run(contestId);
   }
 }

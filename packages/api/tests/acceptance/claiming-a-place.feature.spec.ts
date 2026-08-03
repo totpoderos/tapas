@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import type { DatabaseSync } from 'node:sqlite';
 import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
@@ -50,21 +51,21 @@ function completeContent(name: string): DraftContent {
 }
 
 /** Publishes a live contest directly against the app's own database, returning its join code. */
-function publishLiveContest(db: DatabaseSync, joinCode: string): string {
-  const drafts = new SqliteDraftRepository(db);
-  const contests = new SqliteContestRepository(db);
-  const roster = new SqliteRosterRepository(db);
-  const auditLog = new SqliteAuditLogRepository(db);
+async function publishLiveContest(db: DatabaseSync, joinCode: string): Promise<string> {
+  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
+  const contests = new SqliteContestRepository(new SqliteDatabase(db));
+  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
+  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
   let sequence = 0;
   const ids = { next: () => `audit-${joinCode}-${++sequence}` };
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock: CLOCK, ids }));
 
-  const created = new CreateDraft({ drafts, audit, clock: CLOCK, ids }).execute(
+  const created = await new CreateDraft({ drafts, audit, clock: CLOCK, ids }).execute(
     'host-1',
     completeContent('Tapas'),
   );
   if (!created.ok) throw new Error('expected draft creation to succeed');
-  const published = new PublishContest({
+  const published = await new PublishContest({
     drafts,
     contests,
     roster,
@@ -77,10 +78,10 @@ function publishLiveContest(db: DatabaseSync, joinCode: string): string {
 }
 
 /** Directly claims a place (used to set up an already-taken place), returning the voter cookie. */
-function claimDirectly(db: DatabaseSync, joinCode: string, participantId: string): string {
-  const claim = new ClaimPlace({
-    contests: new SqliteContestRepository(db),
-    roster: new SqliteRosterRepository(db),
+async function claimDirectly(db: DatabaseSync, joinCode: string, participantId: string): Promise<string> {
+  const claim = await new ClaimPlace({
+    contests: new SqliteContestRepository(new SqliteDatabase(db)),
+    roster: new SqliteRosterRepository(new SqliteDatabase(db)),
     tokens: new HmacJwtTokenIssuer('test-secret-that-is-at-least-32-characters', new SystemClock()),
     clock: new SystemClock(),
   }).execute(joinCode, participantId);
@@ -94,9 +95,9 @@ describeFeature(feature, ({ Scenario }) => {
     let db: DatabaseSync;
     let response: LightMyRequestResponse;
 
-    Given('a live contest whose participants are "María", "Pau" and "Ana"', () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS1');
+    Given('a live contest whose participants are "María", "Pau" and "Ana"', async () => {
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS1');
     });
     When('someone looks up the contest by its join code', async () => {
       response = await app.inject({ method: 'GET', url: '/contests/TAPAS1/places' });
@@ -124,8 +125,8 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a live contest where "Ana"\'s place is already taken', async () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS4');
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS4');
       await app.inject({
         method: 'POST',
         url: '/contests/TAPAS4/claim',
@@ -135,7 +136,7 @@ describeFeature(feature, ({ Scenario }) => {
     When('someone looks up the contest by its join code', async () => {
       response = await app.inject({ method: 'GET', url: '/contests/TAPAS4/places' });
     });
-    Then('"Ana"\'s place is marked as taken', () => {
+    Then('"Ana"\'s place is marked as taken', async () => {
       expect(response.statusCode).toBe(200);
       const places = response.json().places as { displayName: string; taken: boolean }[];
       const ana = places.find((place) => place.displayName === 'Ana');
@@ -162,8 +163,8 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a live contest where every place has been taken', async () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS5');
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS5');
       for (const id of ['maria', 'pau', 'ana', 'marcos']) {
         await app.inject({
           method: 'POST',
@@ -189,9 +190,9 @@ describeFeature(feature, ({ Scenario }) => {
     let db: DatabaseSync;
     let response: LightMyRequestResponse;
 
-    Given('a live contest that includes a place for "Ana"', () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS1');
+    Given('a live contest that includes a place for "Ana"', async () => {
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS1');
     });
     When('a person claims "Ana"\'s place with the join code', async () => {
       response = await app.inject({
@@ -216,10 +217,10 @@ describeFeature(feature, ({ Scenario }) => {
     let db: DatabaseSync;
     let response: LightMyRequestResponse;
 
-    Given('a live contest where "Ana"\'s place is already taken', () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS1');
-      claimDirectly(db, 'TAPAS1', 'ana');
+    Given('a live contest where "Ana"\'s place is already taken', async () => {
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS1');
+      await claimDirectly(db, 'TAPAS1', 'ana');
     });
     When('another person tries to claim "Ana"\'s place', async () => {
       response = await app.inject({
@@ -239,9 +240,9 @@ describeFeature(feature, ({ Scenario }) => {
     let db: DatabaseSync;
     let response: LightMyRequestResponse;
 
-    Given('a live contest that has no place for "Zoe"', () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS1');
+    Given('a live contest that has no place for "Zoe"', async () => {
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS1');
     });
     When('a person tries to claim "Zoe"\'s place with the join code', async () => {
       response = await app.inject({
@@ -259,8 +260,8 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('An unknown join code is refused', ({ Given, When, Then }) => {
     let app: FastifyInstance;
 
-    Given('no contest has the join code "GHOST1"', () => {
-      ({ app } = makeTestApp());
+    Given('no contest has the join code "GHOST1"', async () => {
+      ({ app } = await makeTestApp());
     });
     When('someone looks up the contest by code "GHOST1"', async () => {
       // asserted in Then
@@ -279,10 +280,10 @@ describeFeature(feature, ({ Scenario }) => {
     let cookie: string;
     let response: LightMyRequestResponse;
 
-    Given('a person who has claimed "Ana"\'s place in a live contest', () => {
-      ({ app, db } = makeTestApp());
-      contestId = publishLiveContest(db, 'TAPAS1');
-      cookie = claimDirectly(db, 'TAPAS1', 'ana');
+    Given('a person who has claimed "Ana"\'s place in a live contest', async () => {
+      ({ app, db } = await makeTestApp());
+      contestId = await publishLiveContest(db, 'TAPAS1');
+      cookie = await claimDirectly(db, 'TAPAS1', 'ana');
     });
     When('they return to that contest with their token, no code given', async () => {
       response = await app.inject({
@@ -303,10 +304,10 @@ describeFeature(feature, ({ Scenario }) => {
     let cookie: string;
     let response: LightMyRequestResponse;
 
-    Given('a person who has claimed a place in a live contest', () => {
-      ({ app, db } = makeTestApp());
-      publishLiveContest(db, 'TAPAS1');
-      cookie = claimDirectly(db, 'TAPAS1', 'ana');
+    Given('a person who has claimed a place in a live contest', async () => {
+      ({ app, db } = await makeTestApp());
+      await publishLiveContest(db, 'TAPAS1');
+      cookie = await claimDirectly(db, 'TAPAS1', 'ana');
     });
     When('they try to do a host-only action using their token', async () => {
       response = await app.inject({

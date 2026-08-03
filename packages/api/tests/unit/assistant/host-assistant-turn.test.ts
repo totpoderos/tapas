@@ -20,7 +20,7 @@ function turnDeps(overrides: Partial<TurnDeps> & Pick<TurnDeps, 'assistant'>): T
   return { confirmationSecret: SECRET, execute: vi.fn(async () => ({ ok: true, body: {} })), ...overrides };
 }
 
-describe('runAssistantMessage', () => {
+describe('runAssistantMessage', async () => {
   it('replies without executing anything when the assistant proposes no tool', async () => {
     const execute = vi.fn();
     const turn = await runAssistantMessage(
@@ -75,7 +75,7 @@ describe('runAssistantMessage', () => {
   });
 });
 
-describe('runAssistantMessage over several proposed calls', () => {
+describe('runAssistantMessage over several proposed calls', async () => {
   /** Answers the name-settling read with one contest; records what was actually run. */
   function executeStub() {
     const ran: string[] = [];
@@ -213,7 +213,7 @@ describe('runAssistantMessage over several proposed calls', () => {
   });
 });
 
-describe('runConfirmedAction', () => {
+describe('runConfirmedAction', async () => {
   it('executes when the token matches the action', async () => {
     const execute = vi.fn(async () => ({ ok: true, body: { status: 'closed' } }));
     const token = confirmationTokenFor(SECRET, 'close_contest', { contest: 'Tapas Night' });

@@ -75,7 +75,7 @@ describeFeature(feature, ({ Scenario }) => {
               clarifications: [],
             }),
           );
-          ({ app } = makeTestApp(undefined, {}, llmClient));
+          ({ app } = await makeTestApp(undefined, {}, llmClient));
           cookie = await signedInHost(app);
         },
       );

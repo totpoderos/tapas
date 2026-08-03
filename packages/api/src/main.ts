@@ -5,7 +5,7 @@ import { buildServer } from './server.js';
 
 const env = loadEnv();
 const db = openDatabase(env.DATABASE_PATH);
-runMigrations(db);
+await runMigrations(db);
 const app = buildServer(buildProductionDeps(db, env));
 
 app

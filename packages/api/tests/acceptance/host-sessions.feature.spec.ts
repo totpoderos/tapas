@@ -67,8 +67,8 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
     let response: LightMyRequestResponse;
 
-    Given('no host is registered with "ana@example.com"', () => {
-      ({ app } = makeTestApp());
+    Given('no host is registered with "ana@example.com"', async () => {
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
     });
     When('a host registers and signs in through the API as "ana@example.com"', async () => {
@@ -92,7 +92,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
     });
@@ -114,8 +114,8 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
     });
     When('a draft is requested through the API', async () => {
@@ -139,7 +139,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" who owns a draft', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = new CookieJar();
       await registerAndLogin(app, anaJar, 'ana@example.com');
       const created = await request(app, anaJar, {
@@ -170,7 +170,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host "ana@example.com" whose session has aged out', async () => {
       clock = new MutableClock('2026-07-19T10:00:00.000Z');
-      ({ app } = makeTestApp(clock));
+      ({ app } = await makeTestApp(clock));
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
 
@@ -204,7 +204,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
     });
@@ -231,7 +231,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host "ana@example.com" whose session has aged out', async () => {
       clock = new MutableClock('2026-07-19T10:00:00.000Z');
-      ({ app } = makeTestApp(clock));
+      ({ app } = await makeTestApp(clock));
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'ana@example.com');
       clock.advance((ACCESS_TTL_SECONDS + 60) * 1000);

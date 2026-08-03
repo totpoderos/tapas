@@ -27,9 +27,9 @@ export interface MyScores {
 export class GetMyScores {
   constructor(private readonly deps: GetMyScoresDeps) {}
 
-  execute(contestId: string, voterId: string): MyScores {
-    const session = this.deps.voteSessions.findSession(contestId, voterId);
+  async execute(contestId: string, voterId: string): Promise<MyScores> {
+    const session = await this.deps.voteSessions.findSession(contestId, voterId);
     if (!session) return { scores: [], status: 'draft' };
-    return { scores: this.deps.voteSessions.listScores(session.id), status: session.status };
+    return { scores: await this.deps.voteSessions.listScores(session.id), status: session.status };
   }
 }

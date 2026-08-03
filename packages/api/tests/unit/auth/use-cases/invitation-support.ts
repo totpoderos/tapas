@@ -6,35 +6,35 @@ import type {
 export class FakeInvitationRepository implements HostInvitationRepository {
   readonly stored: StoredInvitation[] = [];
 
-  insert(invitation: StoredInvitation): void {
+  async insert(invitation: StoredInvitation): Promise<void> {
     this.stored.push(invitation);
   }
 
-  findByTokenHash(tokenHash: string): StoredInvitation | undefined {
+  async findByTokenHash(tokenHash: string): Promise<StoredInvitation | undefined> {
     return this.stored.find((invitation) => invitation.tokenHash === tokenHash);
   }
 
-  findById(id: string): StoredInvitation | undefined {
+  async findById(id: string): Promise<StoredInvitation | undefined> {
     return this.stored.find((invitation) => invitation.id === id);
   }
 
-  listAll(): StoredInvitation[] {
+  async listAll(): Promise<StoredInvitation[]> {
     return [...this.stored];
   }
 
-  markAccepted(id: string, acceptedAt: string): void {
+  async markAccepted(id: string, acceptedAt: string): Promise<void> {
     this.patch(id, { status: 'accepted', acceptedAt });
   }
 
-  markRevoked(id: string, revokedAt: string): void {
+  async markRevoked(id: string, revokedAt: string): Promise<void> {
     this.patch(id, { status: 'revoked', revokedAt });
   }
 
-  markSuperseded(id: string, supersededBy: string): void {
+  async markSuperseded(id: string, supersededBy: string): Promise<void> {
     this.patch(id, { status: 'superseded', supersededBy });
   }
 
-  recordHandoff(id: string, messageSent: boolean): void {
+  async recordHandoff(id: string, messageSent: boolean): Promise<void> {
     this.patch(id, { messageSent });
   }
 

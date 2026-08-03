@@ -10,8 +10,8 @@ import type { CloseContestDeps, CloseContestResult, StatusChangeContext } from '
 export class CloseContest {
   constructor(private readonly deps: CloseContestDeps) {}
 
-  execute(contestId: string, context: StatusChangeContext): CloseContestResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string, context: StatusChangeContext): Promise<CloseContestResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
     if (contest.status !== 'live') {
@@ -22,8 +22,8 @@ export class CloseContest {
     }
 
     const closedAt = this.deps.clock.now();
-    this.deps.contests.updateStatus(contestId, 'closed', closedAt, null);
-    this.deps.audit.record(
+    await this.deps.contests.updateStatus(contestId, 'closed', closedAt, null);
+    await this.deps.audit.record(
       {
         type: 'contest.closed',
         contestId,

@@ -144,8 +144,8 @@ async function playContest(
  */
 const state: { db: DatabaseSync } = { db: undefined as unknown as DatabaseSync };
 
-function freshApp(): FastifyInstance {
-  const made = makeTestApp();
+async function freshApp(): Promise<FastifyInstance> {
+  const made = await makeTestApp();
   state.db = made.db;
   return made.app;
 }
@@ -194,7 +194,7 @@ describeFeature(feature, ({ Scenario }) => {
     let draftId: string;
 
     Given('a host with a contest they are still preparing', async () => {
-      app = freshApp();
+      app = await freshApp();
       host = await signIn(app, 'h@x.es');
       draftId = await draftFor(app, host);
     });
@@ -217,7 +217,7 @@ describeFeature(feature, ({ Scenario }) => {
     let played: Played;
 
     Given('a running contest with places claimed, dishes entered and votes cast', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
     });
     When('its host deletes it, reproducing its name', async () => {
@@ -249,7 +249,7 @@ describeFeature(feature, ({ Scenario }) => {
     let played: Played;
 
     Given('a contest that has been fully voted, closed, and revealed', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app, { close: true, reveal: true });
     });
     When('its host deletes it, reproducing its name', async () => {
@@ -278,7 +278,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a running contest that a host has deleted', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
       await deleteContest(app, played.host, played.contestId, CONTEST_NAME);
     });
@@ -296,7 +296,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest belonging to another host', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
     });
     When('a host tries to delete it', async () => {
@@ -322,7 +322,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
     });
     When('it is deleted with nobody signed in', async () => {
@@ -343,7 +343,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest its host has already deleted', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
       const first = await deleteContest(app, played.host, played.contestId, CONTEST_NAME);
       expect(first.statusCode).toBe(204);
@@ -362,7 +362,7 @@ describeFeature(feature, ({ Scenario }) => {
     let played: Played;
 
     Given('a contest that was prepared, published and closed', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app, { close: true });
       // It really does have a history to lose.
       const log = await request(app, played.host, {
@@ -386,7 +386,7 @@ describeFeature(feature, ({ Scenario }) => {
     let draftId: string;
 
     Given('a host with a contest they are still preparing', async () => {
-      app = freshApp();
+      app = await freshApp();
       host = await signIn(app, 'h@x.es');
       draftId = await draftFor(app, host);
     });
@@ -411,7 +411,7 @@ describeFeature(feature, ({ Scenario }) => {
     let played: Played;
 
     Given('a running contest with named participants and dishes entered', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
     });
     When('its host deletes it, reproducing its name', async () => {
@@ -436,7 +436,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest its host has already deleted', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app);
       await deleteContest(app, played.host, played.contestId, CONTEST_NAME);
     });
@@ -459,7 +459,7 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a running contest with places claimed', async () => {
-        app = freshApp();
+        app = await freshApp();
         played = await playContest(app, { send: false });
       });
       When('its host tries to delete it without reproducing its name', async () => {
@@ -485,7 +485,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a running contest with places claimed', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app, { send: false });
     });
     When('its host tries to delete it giving the wrong name', async () => {
@@ -509,7 +509,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a running contest that a participant was voting in', async () => {
-      app = freshApp();
+      app = await freshApp();
       played = await playContest(app, { send: false });
     });
     When('its host deletes it and the participant tries to send their vote', async () => {
@@ -540,7 +540,7 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a running contest that a participant was voting in', async () => {
-        app = freshApp();
+        app = await freshApp();
         played = await playContest(app, { send: false });
       });
       When('its host deletes it and the participant looks for the results', async () => {

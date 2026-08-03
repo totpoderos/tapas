@@ -1,11 +1,11 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { StoredHostPat } from '../auth/stored-host-pat.js';
 
 export interface HostPatRepository {
-  insert(pat: StoredHostPat): void;
-  findById(id: string): StoredHostPat | undefined;
-  findByTokenHash(tokenHash: string): StoredHostPat | undefined;
-  revoke(id: string): void;
+  insert(pat: StoredHostPat): Promise<void>;
+  findById(id: string): Promise<StoredHostPat | undefined>;
+  findByTokenHash(tokenHash: string): Promise<StoredHostPat | undefined>;
+  revoke(id: string): Promise<void>;
 }
 
 interface HostPatRow {
@@ -27,31 +27,31 @@ function toPat(row: HostPatRow): StoredHostPat {
 }
 
 export class SqliteHostPatRepository implements HostPatRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  insert(pat: StoredHostPat): void {
-    this.db
+  async insert(pat: StoredHostPat): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO host_pats (id, host_id, token_hash, created_at, revoked_at) VALUES (?, ?, ?, ?, ?)`,
       )
       .run(pat.id, pat.hostId, pat.tokenHash, pat.createdAt, pat.revokedAt);
   }
 
-  findById(id: string): StoredHostPat | undefined {
-    const row = this.db.prepare(`SELECT * FROM host_pats WHERE id = ?`).get(id) as unknown as
+  async findById(id: string): Promise<StoredHostPat | undefined> {
+    const row = await this.db.prepare(`SELECT * FROM host_pats WHERE id = ?`).get(id) as unknown as
       HostPatRow | undefined;
     return row ? toPat(row) : undefined;
   }
 
-  findByTokenHash(tokenHash: string): StoredHostPat | undefined {
-    const row = this.db
+  async findByTokenHash(tokenHash: string): Promise<StoredHostPat | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM host_pats WHERE token_hash = ?`)
       .get(tokenHash) as unknown as HostPatRow | undefined;
     return row ? toPat(row) : undefined;
   }
 
-  revoke(id: string): void {
-    this.db
+  async revoke(id: string): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_pats SET revoked_at = ? WHERE id = ?`)
       .run(new Date().toISOString(), id);
   }

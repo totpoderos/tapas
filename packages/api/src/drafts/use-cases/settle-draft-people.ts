@@ -22,34 +22,34 @@ export type PeopleChangeResult =
   | { readonly ok: false; readonly error: PeopleFailure };
 
 /** Resolves a contest name to one of the host's drafts and loads it. Drafts only. */
-function resolveDraft(
+async function resolveDraft(
   deps: SettleDraftPeopleDeps,
   hostId: string,
   contestName: string,
-): { readonly id: string; readonly content: DraftContent } | ContestDetailsResult {
-  const resolved = deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
+): Promise<{ readonly id: string; readonly content: DraftContent } | ContestDetailsResult> {
+  const resolved = await deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
   if (resolved.kind !== 'one') {
     return { candidates: resolved.kind === 'several' ? resolved.candidates : [] };
   }
-  const only = deps.drafts.findById(resolved.contest.id);
+  const only = await deps.drafts.findById(resolved.contest.id);
   if (!only) return { candidates: [] };
   return { id: only.id, content: only.content };
 }
 
 /** Applies one change to a draft's people or format and saves it. */
-function changePeople(
+async function changePeople(
   deps: SettleDraftPeopleDeps,
   hostId: string,
   contestName: string,
   change: (content: DraftContent) => DraftContent | PeopleFailure,
-): PeopleChangeResult {
-  const resolved = resolveDraft(deps, hostId, contestName);
+): Promise<PeopleChangeResult> {
+  const resolved = await resolveDraft(deps, hostId, contestName);
   if (!('content' in resolved)) return { ok: true, result: resolved };
 
   const changed = change(resolved.content);
   if ('code' in changed) return { ok: false, error: changed };
 
-  const saved = deps.updateDraft.execute(resolved.id, hostId, changed);
+  const saved = await deps.updateDraft.execute(resolved.id, hostId, changed);
   return { ok: true, result: { details: draftDetailsOf(resolved.id, saved.ok ? changed : resolved.content) } };
 }
 
@@ -86,8 +86,8 @@ function findPerson(people: readonly Person[], displayName: string): Person | Pe
 export class SetDraftFormat {
   constructor(private readonly deps: SettleDraftPeopleDeps) {}
 
-  execute(hostId: string, contestName: string, format: ContestFormat): PeopleChangeResult {
-    return changePeople(this.deps, hostId, contestName, (content) => ({ ...content, format }));
+  async execute(hostId: string, contestName: string, format: ContestFormat): Promise<PeopleChangeResult> {
+    return await changePeople(this.deps, hostId, contestName, (content) => ({ ...content, format }));
   }
 }
 
@@ -106,13 +106,13 @@ export class SetDraftPartner {
   constructor(private readonly deps: SettleDraftPeopleDeps) {}
 
   /** `partnerName` of `null` leaves `personName` without a partner. */
-  execute(
+  async execute(
     hostId: string,
     contestName: string,
     personName: string,
     partnerName: string | null,
-  ): PeopleChangeResult {
-    return changePeople(this.deps, hostId, contestName, (content) => {
+  ): Promise<PeopleChangeResult> {
+    return await changePeople(this.deps, hostId, contestName, (content) => {
       const people = content.participants ?? [];
 
       const person = findPerson(people, personName);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryMailer } from '../../../src/mail/mailer.js';
 
-describe('InMemoryMailer', () => {
+describe('InMemoryMailer', async () => {
   it('records what it was asked to send, in order', async () => {
     const mailer = new InMemoryMailer();
 

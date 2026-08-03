@@ -8,9 +8,9 @@ import { FakeInvitationRepository, FIXED_CLOCK, SequentialIds } from './invitati
 
 const CONFIGURED = 'operator@example.com';
 
-function makeUseCase(...existing: HostAccount[]) {
+async function makeUseCase(...existing: HostAccount[]) {
   const accounts = new FakeHostAccountRepository();
-  for (const account of existing) accounts.insert(account);
+  for (const account of existing) await accounts.insert(account);
   const invitations = new FakeInvitationRepository();
   const mailer = new InMemoryMailer();
   const inviteHost = new InviteHost({
@@ -37,18 +37,18 @@ function makeUseCase(...existing: HostAccount[]) {
 const administrator = HostAccount.register('a1', 'someone@example.com', 'hash', 'admin');
 const ordinaryHost = HostAccount.register('h1', 'bob@example.com', 'hash');
 
-describe('ClaimDeployment', () => {
-  it('reports a deployment with no administrator as unclaimed', () => {
-    expect(makeUseCase().useCase.isUnclaimed()).toBe(true);
-    expect(makeUseCase(ordinaryHost).useCase.isUnclaimed()).toBe(true);
+describe('ClaimDeployment', async () => {
+  it('reports a deployment with no administrator as unclaimed', async () => {
+    await expect((await makeUseCase()).useCase.isUnclaimed()).resolves.toBe(true);
+    await expect((await makeUseCase(ordinaryHost)).useCase.isUnclaimed()).resolves.toBe(true);
   });
 
-  it('reports a deployment with an administrator as claimed', () => {
-    expect(makeUseCase(administrator).useCase.isUnclaimed()).toBe(false);
+  it('reports a deployment with an administrator as claimed', async () => {
+    await expect((await makeUseCase(administrator)).useCase.isUnclaimed()).resolves.toBe(false);
   });
 
   it('invites the configured address, for the administrator role', async () => {
-    const { useCase, invitations, mailer } = makeUseCase();
+    const { useCase, invitations, mailer } = await makeUseCase();
 
     const claimed = await useCase.execute(CONFIGURED);
 
@@ -59,7 +59,7 @@ describe('ClaimDeployment', () => {
   });
 
   it('refuses any other address, and sends nothing', async () => {
-    const { useCase, invitations, mailer } = makeUseCase();
+    const { useCase, invitations, mailer } = await makeUseCase();
 
     const claimed = await useCase.execute('someone-else@example.com');
 
@@ -69,7 +69,7 @@ describe('ClaimDeployment', () => {
   });
 
   it('never says what the configured address is', async () => {
-    const { useCase } = makeUseCase();
+    const { useCase } = await makeUseCase();
 
     const claimed = await useCase.execute('someone-else@example.com');
 
@@ -77,13 +77,13 @@ describe('ClaimDeployment', () => {
   });
 
   it('matches the configured address regardless of case and surrounding space', async () => {
-    const { useCase } = makeUseCase();
+    const { useCase } = await makeUseCase();
 
     expect((await useCase.execute('  Operator@Example.COM  ')).ok).toBe(true);
   });
 
   it('refuses once the deployment has an administrator', async () => {
-    const { useCase, mailer } = makeUseCase(administrator);
+    const { useCase, mailer } = await makeUseCase(administrator);
 
     expect(await useCase.execute(CONFIGURED)).toMatchObject({
       ok: false,
@@ -93,7 +93,7 @@ describe('ClaimDeployment', () => {
   });
 
   it('claiming again supersedes the outstanding invitation rather than leaving two live links', async () => {
-    const { useCase, invitations, mailer } = makeUseCase();
+    const { useCase, invitations, mailer } = await makeUseCase();
 
     await useCase.execute(CONFIGURED);
     const second = await useCase.execute(CONFIGURED);

@@ -30,7 +30,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
       const { email, password } = request.body;
       const loginOutcome = await deps.authenticateHost.execute(email, password);
       if (!loginOutcome.ok) {
-        deps.securityLog.record({
+        await deps.securityLog.record({
           type: 'sign_in.refused',
           actorId: loginOutcome.hostId,
           sourceIp: request.ip,
@@ -39,7 +39,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
         const status = loginOutcome.error.code === 'ACCOUNT_LOCKED' ? 423 : 401;
         return reply.code(status).send({ error: loginOutcome.error });
       }
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'sign_in.succeeded',
         actorId: loginOutcome.hostId,
         sourceIp: request.ip,
@@ -51,7 +51,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
 
   app.post('/auth/refresh', async (request, reply) => {
     const refreshToken = request.cookies[REFRESH_COOKIE];
-    const refreshOutcome = refreshToken ? deps.refreshSession.execute(refreshToken) : undefined;
+    const refreshOutcome = refreshToken ? await deps.refreshSession.execute(refreshToken) : undefined;
     if (!refreshOutcome || !refreshOutcome.ok) {
       clearSessionCookies(reply);
       return reply
@@ -64,7 +64,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
 
   app.post('/auth/logout', async (request, reply) => {
     const token = request.cookies[REFRESH_COOKIE] ?? request.cookies[ACCESS_COOKIE];
-    deps.signOutHost.execute(token);
+    await deps.signOutHost.execute(token);
     clearSessionCookies(reply);
     return reply.code(200).send({});
   });
@@ -89,7 +89,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
   app.get('/auth/me', { preHandler: requireSession }, async (request, reply) => {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-    const account = deps.hostAccounts.findById(request.hostSession.id);
+    const account = await deps.hostAccounts.findById(request.hostSession.id);
     if (!account) return reply.code(401).send(notSignedIn);
     return reply.code(200).send({ hostId: account.id, role: account.role });
   });
@@ -97,9 +97,9 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
   app.post('/auth/pats', { preHandler: requireSession }, async (request, reply) => {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-    const issued = deps.issuePat.execute(request.hostSession.id);
+    const issued = await deps.issuePat.execute(request.hostSession.id);
     // Record only that a token was issued — never the token itself.
-    deps.securityLog.record({
+    await deps.securityLog.record({
       type: 'pat.issued',
       actorId: request.hostSession.id,
       sourceIp: request.ip,
@@ -113,7 +113,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: ServerDeps): void
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-      const revoked = deps.revokePat.execute(request.params.id, request.hostSession.id);
+      const revoked = await deps.revokePat.execute(request.params.id, request.hostSession.id);
       if (!revoked.ok)
         return reply
           .code(REVOKE_PAT_ERROR_STATUS[revoked.error.code])

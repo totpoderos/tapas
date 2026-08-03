@@ -42,16 +42,16 @@ const EMPTY_SCORING: ScoringConfig = {
  * {@link ResolveContestByName}, so a shared name behaves here exactly as it does
  * everywhere else.
  */
-function resolveDraft(
+async function resolveDraft(
   deps: ShapeDraftScoringDeps,
   hostId: string,
   contestName: string,
-): { readonly id: string; readonly content: DraftContent } | ContestDetailsResult {
-  const resolved = deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
+): Promise<{ readonly id: string; readonly content: DraftContent } | ContestDetailsResult> {
+  const resolved = await deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
   if (resolved.kind !== 'one') {
     return { candidates: resolved.kind === 'several' ? resolved.candidates : [] };
   }
-  const only = deps.drafts.findById(resolved.contest.id);
+  const only = await deps.drafts.findById(resolved.contest.id);
   if (!only) return { candidates: [] };
   return { id: only.id, content: only.content };
 }
@@ -64,20 +64,20 @@ function resolveDraft(
  * spread what it did not touch. A draft with no scoring yet gets a blank one to
  * change, so the first asking does not have to be a different asking.
  */
-function changeScoring(
+async function changeScoring(
   deps: ShapeDraftScoringDeps,
   hostId: string,
   contestName: string,
   change: (scoring: ScoringConfig) => ScoringConfig | ScoringFailure,
-): ScoringChangeResult {
-  const resolved = resolveDraft(deps, hostId, contestName);
+): Promise<ScoringChangeResult> {
+  const resolved = await resolveDraft(deps, hostId, contestName);
   if (!('content' in resolved)) return { ok: true, result: resolved };
 
   const changed = change(resolved.content.scoring ?? EMPTY_SCORING);
   if ('code' in changed) return { ok: false, error: changed };
 
   const content: DraftContent = { ...resolved.content, scoring: changed };
-  const saved = deps.updateDraft.execute(resolved.id, hostId, content);
+  const saved = await deps.updateDraft.execute(resolved.id, hostId, content);
   return { ok: true, result: { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) } };
 }
 
@@ -96,9 +96,9 @@ const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().t
 export class AddScoringCategory {
   constructor(private readonly deps: ShapeDraftScoringDeps) {}
 
-  execute(hostId: string, contestName: string, categoryName: string): ScoringChangeResult {
+  async execute(hostId: string, contestName: string, categoryName: string): Promise<ScoringChangeResult> {
     const wanted = categoryName.trim();
-    return changeScoring(this.deps, hostId, contestName, (scoring) => {
+    return await changeScoring(this.deps, hostId, contestName, (scoring) => {
       if (scoring.categories.some((c) => sameName(c.name, wanted))) {
         return {
           code: 'ALREADY_JUDGED_ON',
@@ -123,9 +123,9 @@ export class AddScoringCategory {
 export class RemoveScoringCategory {
   constructor(private readonly deps: ShapeDraftScoringDeps) {}
 
-  execute(hostId: string, contestName: string, categoryName: string): ScoringChangeResult {
+  async execute(hostId: string, contestName: string, categoryName: string): Promise<ScoringChangeResult> {
     const wanted = categoryName.trim();
-    return changeScoring(this.deps, hostId, contestName, (scoring) => {
+    return await changeScoring(this.deps, hostId, contestName, (scoring) => {
       const remaining = scoring.categories.filter((c) => !sameName(c.name, wanted));
       if (remaining.length === scoring.categories.length) {
         return {
@@ -151,8 +151,8 @@ export class RemoveScoringCategory {
 export class SetScoreRange {
   constructor(private readonly deps: ShapeDraftScoringDeps) {}
 
-  execute(hostId: string, contestName: string, range: ScoreRange): ScoringChangeResult {
-    return changeScoring(this.deps, hostId, contestName, (scoring) => ({ ...scoring, range }));
+  async execute(hostId: string, contestName: string, range: ScoreRange): Promise<ScoringChangeResult> {
+    return await changeScoring(this.deps, hostId, contestName, (scoring) => ({ ...scoring, range }));
   }
 }
 
@@ -160,7 +160,7 @@ export class SetScoreRange {
 export class SetScoreUniqueness {
   constructor(private readonly deps: ShapeDraftScoringDeps) {}
 
-  execute(hostId: string, contestName: string, uniquePerCategory: boolean): ScoringChangeResult {
-    return changeScoring(this.deps, hostId, contestName, (scoring) => ({ ...scoring, uniquePerCategory }));
+  async execute(hostId: string, contestName: string, uniquePerCategory: boolean): Promise<ScoringChangeResult> {
+    return await changeScoring(this.deps, hostId, contestName, (scoring) => ({ ...scoring, uniquePerCategory }));
   }
 }

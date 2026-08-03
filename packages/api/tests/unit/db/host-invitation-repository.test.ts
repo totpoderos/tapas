@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runMigrations } from '../../../src/db/migrate.js';
 import {
@@ -20,97 +21,97 @@ const INVITATION: StoredInvitation = {
   messageSent: null,
 };
 
-describe('SqliteHostInvitationRepository', () => {
+describe('SqliteHostInvitationRepository', async () => {
   let db: DatabaseSync;
   let invitations: SqliteHostInvitationRepository;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new DatabaseSync(':memory:');
-    runMigrations(db);
-    invitations = new SqliteHostInvitationRepository(db);
+    await runMigrations(new SqliteDatabase(db));
+    invitations = new SqliteHostInvitationRepository(new SqliteDatabase(db));
   });
 
-  it('round-trips an invitation, found by its token hash', () => {
-    invitations.insert(INVITATION);
+  it('round-trips an invitation, found by its token hash', async () => {
+    await invitations.insert(INVITATION);
 
-    expect(invitations.findByTokenHash('the-hash')).toEqual(INVITATION);
+    expect(await invitations.findByTokenHash('the-hash')).toEqual(INVITATION);
   });
 
-  it('finds nothing for a hash it never stored', () => {
-    invitations.insert(INVITATION);
+  it('finds nothing for a hash it never stored', async () => {
+    await invitations.insert(INVITATION);
 
-    expect(invitations.findByTokenHash('some-other-hash')).toBeUndefined();
+    expect(await invitations.findByTokenHash('some-other-hash')).toBeUndefined();
   });
 
-  it('marks an invitation accepted', () => {
-    invitations.insert(INVITATION);
+  it('marks an invitation accepted', async () => {
+    await invitations.insert(INVITATION);
 
-    invitations.markAccepted('inv-1', '2026-07-29T11:00:00.000Z');
+    await invitations.markAccepted('inv-1', '2026-07-29T11:00:00.000Z');
 
-    expect(invitations.findByTokenHash('the-hash')).toMatchObject({
+    expect(await invitations.findByTokenHash('the-hash')).toMatchObject({
       status: 'accepted',
       acceptedAt: '2026-07-29T11:00:00.000Z',
     });
   });
 
-  it('records a handoff that succeeded and one that did not', () => {
-    invitations.insert(INVITATION);
+  it('records a handoff that succeeded and one that did not', async () => {
+    await invitations.insert(INVITATION);
 
-    invitations.recordHandoff('inv-1', true);
-    expect(invitations.findById('inv-1')?.messageSent).toBe(true);
+    await invitations.recordHandoff('inv-1', true);
+    expect((await invitations.findById('inv-1'))?.messageSent).toBe(true);
 
-    invitations.recordHandoff('inv-1', false);
-    expect(invitations.findById('inv-1')?.messageSent).toBe(false);
+    await invitations.recordHandoff('inv-1', false);
+    expect((await invitations.findById('inv-1'))?.messageSent).toBe(false);
   });
 
-  it('leaves an invitation from before anything could fail to send unrecorded', () => {
+  it('leaves an invitation from before anything could fail to send unrecorded', async () => {
     // Null is not "did not send" — it is "nothing was ever observed". Existing
     // rows were sent by a mailer that could not fail; giving them an outcome
     // would be inventing history.
-    invitations.insert(INVITATION);
+    await invitations.insert(INVITATION);
 
-    expect(invitations.findById('inv-1')?.messageSent).toBeNull();
+    expect((await invitations.findById('inv-1'))?.messageSent).toBeNull();
   });
 
-  it('refuses to store two invitations with the same token hash', () => {
-    invitations.insert(INVITATION);
+  it('refuses to store two invitations with the same token hash', async () => {
+    await invitations.insert(INVITATION);
 
-    expect(() => invitations.insert({ ...INVITATION, id: 'inv-2' })).toThrow();
+    await expect(invitations.insert({ ...INVITATION, id: 'inv-2' })).rejects.toThrow();
   });
 
-  it('finds an invitation by id — how an administrator names one', () => {
-    invitations.insert(INVITATION);
+  it('finds an invitation by id — how an administrator names one', async () => {
+    await invitations.insert(INVITATION);
 
-    expect(invitations.findById('inv-1')).toEqual(INVITATION);
-    expect(invitations.findById('inv-nobody-issued')).toBeUndefined();
+    expect(await invitations.findById('inv-1')).toEqual(INVITATION);
+    expect(await invitations.findById('inv-nobody-issued')).toBeUndefined();
   });
 
-  it('marks an invitation revoked, with the moment it happened', () => {
-    invitations.insert(INVITATION);
+  it('marks an invitation revoked, with the moment it happened', async () => {
+    await invitations.insert(INVITATION);
 
-    invitations.markRevoked('inv-1', '2026-07-29T11:00:00.000Z');
+    await invitations.markRevoked('inv-1', '2026-07-29T11:00:00.000Z');
 
-    expect(invitations.findById('inv-1')).toMatchObject({
+    expect(await invitations.findById('inv-1')).toMatchObject({
       status: 'revoked',
       revokedAt: '2026-07-29T11:00:00.000Z',
     });
   });
 
-  it('marks an invitation superseded, pointing at what replaced it', () => {
-    invitations.insert(INVITATION);
+  it('marks an invitation superseded, pointing at what replaced it', async () => {
+    await invitations.insert(INVITATION);
 
-    invitations.markSuperseded('inv-1', 'inv-2');
+    await invitations.markSuperseded('inv-1', 'inv-2');
 
-    expect(invitations.findById('inv-1')).toMatchObject({
+    expect(await invitations.findById('inv-1')).toMatchObject({
       status: 'superseded',
       supersededBy: 'inv-2',
     });
   });
 
-  it('lists every invitation, oldest first', () => {
-    invitations.insert({ ...INVITATION, id: 'inv-2', tokenHash: 'h2', issuedAt: '2026-07-30T10:00:00.000Z' });
-    invitations.insert(INVITATION);
+  it('lists every invitation, oldest first', async () => {
+    await invitations.insert({ ...INVITATION, id: 'inv-2', tokenHash: 'h2', issuedAt: '2026-07-30T10:00:00.000Z' });
+    await invitations.insert(INVITATION);
 
-    expect(invitations.listAll().map((invitation) => invitation.id)).toEqual(['inv-1', 'inv-2']);
+    expect((await invitations.listAll()).map((invitation) => invitation.id)).toEqual(['inv-1', 'inv-2']);
   });
 });

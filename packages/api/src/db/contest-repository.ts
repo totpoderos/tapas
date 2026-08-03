@@ -1,23 +1,23 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { CloseRule, ContestFormat, RevealStrategy } from '@tapas/domain';
 import type { StoredContest } from '../contests/stored-contest.js';
 import { deserializeMaterialized, serializeMaterialized } from '../contests/materialized-codec.js';
 
 export interface ContestRepository {
-  insert(contest: StoredContest): void;
-  findById(id: string): StoredContest | undefined;
-  findByJoinCode(joinCode: string): StoredContest | undefined;
+  insert(contest: StoredContest): Promise<void>;
+  findById(id: string): Promise<StoredContest | undefined>;
+  findByJoinCode(joinCode: string): Promise<StoredContest | undefined>;
   /** Every contest a host owns, whatever its state — backs the host's contest list. */
-  findByHost(hostId: string): StoredContest[];
+  findByHost(hostId: string): Promise<StoredContest[]>;
   /** Persists a status transition (close/reveal) — the rest of a contest is immutable after publish. */
   updateStatus(
     id: string,
     status: StoredContest['status'],
     closedAt: string | null,
     revealedAt: string | null,
-  ): void;
+  ): Promise<void>;
   /** Removes the contest for good, releasing its join code for reuse. */
-  delete(id: string): void;
+  delete(id: string): Promise<void>;
 }
 
 interface ContestRow {
@@ -55,10 +55,10 @@ function toContest(row: ContestRow): StoredContest {
 }
 
 export class SqliteContestRepository implements ContestRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  insert(contest: StoredContest): void {
-    this.db
+  async insert(contest: StoredContest): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO contests
            (id, host_id, name, join_code, status, materialized, format, close_rule, reveal_strategy, created_at, closed_at, revealed_at)
@@ -80,38 +80,38 @@ export class SqliteContestRepository implements ContestRepository {
       );
   }
 
-  findById(id: string): StoredContest | undefined {
-    const row = this.db.prepare(`SELECT * FROM contests WHERE id = ?`).get(id) as unknown as
+  async findById(id: string): Promise<StoredContest | undefined> {
+    const row = await this.db.prepare(`SELECT * FROM contests WHERE id = ?`).get(id) as unknown as
       ContestRow | undefined;
     return row ? toContest(row) : undefined;
   }
 
-  findByJoinCode(joinCode: string): StoredContest | undefined {
-    const row = this.db
+  async findByJoinCode(joinCode: string): Promise<StoredContest | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM contests WHERE join_code = ?`)
       .get(joinCode) as unknown as ContestRow | undefined;
     return row ? toContest(row) : undefined;
   }
 
-  findByHost(hostId: string): StoredContest[] {
-    const rows = this.db
+  async findByHost(hostId: string): Promise<StoredContest[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM contests WHERE host_id = ? ORDER BY created_at`)
       .all(hostId) as unknown as ContestRow[];
     return rows.map(toContest);
   }
 
-  updateStatus(
+  async updateStatus(
     id: string,
     status: StoredContest['status'],
     closedAt: string | null,
     revealedAt: string | null,
-  ): void {
-    this.db
+  ): Promise<void> {
+    await this.db
       .prepare(`UPDATE contests SET status = ?, closed_at = ?, revealed_at = ? WHERE id = ?`)
       .run(status, closedAt, revealedAt, id);
   }
 
-  delete(id: string): void {
-    this.db.prepare(`DELETE FROM contests WHERE id = ?`).run(id);
+  async delete(id: string): Promise<void> {
+    await this.db.prepare(`DELETE FROM contests WHERE id = ?`).run(id);
   }
 }

@@ -73,7 +73,7 @@ describeFeature(feature, ({ Scenario }) => {
       let publishResponse: LightMyRequestResponse;
 
       Given('a signed-in host "ana@example.com"', async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
       });
       When('that host saves a complete draft and publishes it through the API', async () => {
@@ -110,7 +110,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" with a saved draft', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       await request(app, anaJar, {
         method: 'POST',
@@ -145,7 +145,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a signed-in host "ana@example.com" with a saved draft named "Summer Tapas"',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
         const created = await request(app, jar, {
           method: 'POST',
@@ -175,7 +175,7 @@ describeFeature(feature, ({ Scenario }) => {
     let draftId: string;
 
     Given('a signed-in host "ana@example.com" with a saved draft', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       const created = await request(app, jar, {
         method: 'POST',
@@ -202,7 +202,7 @@ describeFeature(feature, ({ Scenario }) => {
     let contestId: string;
 
     Given('a signed-in host "ana@example.com" who has published a contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       const created = await request(app, jar, {
         method: 'POST',
@@ -243,7 +243,7 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a signed-in host "ana@example.com" who owns a draft', async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         anaJar = await signedInHost(app, 'ana@example.com');
         const created = await request(app, anaJar, {
           method: 'POST',
@@ -274,7 +274,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a draft exists', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const ownerJar = await signedInHost(app, 'ana@example.com');
       const created = await request(app, ownerJar, {
         method: 'POST',

@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { runMigrations } from '../../../src/db/migrate.js';
 import { SqliteContestRepository } from '../../../src/db/contest-repository.js';
@@ -14,7 +15,7 @@ import type { StoredContest } from '../../../src/contests/stored-contest.js';
  * it must mean is "this contest does not say", never a guess. A fake would have
  * let us assert that without ever writing a null.
  */
-describe('the rules a contest keeps', () => {
+describe('the rules a contest keeps', async () => {
   let db: DatabaseSync;
   let contests: SqliteContestRepository;
 
@@ -39,39 +40,39 @@ describe('the rules a contest keeps', () => {
     ...over,
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     db = new DatabaseSync(':memory:');
-    runMigrations(db);
-    contests = new SqliteContestRepository(db);
+    await runMigrations(new SqliteDatabase(db));
+    contests = new SqliteContestRepository(new SqliteDatabase(db));
   });
 
-  it('reads back the format a contest was published with', () => {
-    contests.insert(stored({ format: 'couples' }));
+  it('reads back the format a contest was published with', async () => {
+    await contests.insert(stored({ format: 'couples' }));
 
-    expect(contests.findById('c1')?.format).toBe('couples');
+    expect((await contests.findById('c1'))?.format).toBe('couples');
   });
 
-  it('says nothing about the format of a contest that recorded none', () => {
-    contests.insert(stored());
+  it('says nothing about the format of a contest that recorded none', async () => {
+    await contests.insert(stored());
 
-    const read = contests.findById('c1');
+    const read = await contests.findById('c1');
     expect(read).toBeDefined();
     expect(read).not.toHaveProperty('format');
   });
 
-  it('does not read a format into a contest that simply does not say', () => {
-    contests.insert(stored());
+  it('does not read a format into a contest that simply does not say', async () => {
+    await contests.insert(stored());
 
     // 'solo' is a real format a host can choose, so it must never be what an
     // unrecorded format looks like — that would tell the host something untrue
     // about how their own contest is being scored.
-    expect(contests.findById('c1')?.format).toBeUndefined();
+    expect((await contests.findById('c1'))?.format).toBeUndefined();
   });
 
-  it('keeps the format through the host’s whole contest list', () => {
-    contests.insert(stored({ format: 'solo_with_partners' }));
+  it('keeps the format through the host’s whole contest list', async () => {
+    await contests.insert(stored({ format: 'solo_with_partners' }));
 
-    const [listed] = contests.findByHost('host-1');
+    const [listed] = await contests.findByHost('host-1');
     expect(listed?.format).toBe('solo_with_partners');
   });
 });

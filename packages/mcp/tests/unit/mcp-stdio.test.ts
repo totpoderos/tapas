@@ -11,7 +11,7 @@ const ENV: Env = {
   MCP_CONFIRMATION_SECRET: 'a-confirmation-secret-of-32-chars!!',
 };
 
-describe('createConfiguredMcpServer', () => {
+describe('createConfiguredMcpServer', async () => {
   it('builds a server that exposes the whole tool catalog to a client', async () => {
     const server = createConfiguredMcpServer(ENV);
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();

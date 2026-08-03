@@ -19,8 +19,8 @@ export interface SaveScoreDeps {
 export class SaveScore {
   constructor(private readonly deps: SaveScoreDeps) {}
 
-  execute(contestId: string, voterId: string, input: ScoreInput): SaveScoreResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string, voterId: string, input: ScoreInput): Promise<SaveScoreResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
     if (contest.status !== 'live')
@@ -29,7 +29,7 @@ export class SaveScore {
     const checked = checkScore(contest.materialized, voterId, input);
     if (!checked.ok) return { ok: false, error: checked.error };
 
-    let session = this.deps.voteSessions.findSession(contestId, voterId);
+    let session = await this.deps.voteSessions.findSession(contestId, voterId);
     if (session?.status === 'sent') {
       return {
         ok: false,
@@ -45,13 +45,13 @@ export class SaveScore {
         createdAt: this.deps.clock.now(),
         submittedAt: null,
       };
-      this.deps.voteSessions.createSession(session);
+      await this.deps.voteSessions.createSession(session);
     }
 
     // Reuse the existing row's id on a revision — the upsert's ON CONFLICT
     // keeps the original id regardless, so a freshly generated one here would
     // silently mismatch what is actually persisted.
-    const existing = this.deps.voteSessions.findScore(session.id, input.dishId, input.categoryId);
+    const existing = await this.deps.voteSessions.findScore(session.id, input.dishId, input.categoryId);
     const score = {
       id: existing?.id ?? this.deps.ids.next(),
       voteSessionId: session.id,
@@ -59,7 +59,7 @@ export class SaveScore {
       categoryId: input.categoryId,
       value: input.value,
     };
-    this.deps.voteSessions.upsertScore(score);
+    await this.deps.voteSessions.upsertScore(score);
     return { ok: true, score };
   }
 }

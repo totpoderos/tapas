@@ -5,7 +5,7 @@ export class FakeRosterRepository implements RosterRepository {
   private key(contestId: string, participantId: string): string {
     return `${contestId}:${participantId}`;
   }
-  seed(contestId: string, places: readonly RosterSeed[]): void {
+  async seed(contestId: string, places: readonly RosterSeed[]): Promise<void> {
     for (const place of places) {
       this.places.set(this.key(contestId, place.participantId), {
         contestId,
@@ -15,40 +15,40 @@ export class FakeRosterRepository implements RosterRepository {
       });
     }
   }
-  listAvailable(contestId: string): RosterPlace[] {
+  async listAvailable(contestId: string): Promise<RosterPlace[]> {
     return [...this.places.values()].filter(
       (p) => p.contestId === contestId && p.claimedAt === null,
     );
   }
-  listClaimed(contestId: string): RosterPlace[] {
+  async listClaimed(contestId: string): Promise<RosterPlace[]> {
     return [...this.places.values()].filter(
       (p) => p.contestId === contestId && p.claimedAt !== null,
     );
   }
-  listAll(contestId: string): RosterPlace[] {
+  async listAll(contestId: string): Promise<RosterPlace[]> {
     return [...this.places.values()].filter((p) => p.contestId === contestId);
   }
-  countClaimedByContest(contestIds: readonly string[]): Map<string, number> {
+  async countClaimedByContest(contestIds: readonly string[]): Promise<Map<string, number>> {
     const wanted = new Set(contestIds);
     const counts = new Map<string, number>();
     for (const place of this.places.values()) {
       if (!wanted.has(place.contestId) || place.claimedAt === null) continue;
-      counts.set(place.contestId, (counts.get(place.contestId) ?? 0) + 1);
+      counts.set(place.contestId, ((counts.get(place.contestId)) ?? 0) + 1);
     }
     // Absent rather than zero, matching the real one: the caller decides what
     // "no rows" means for the contest it asked about.
     return counts;
   }
-  find(contestId: string, participantId: string): RosterPlace | undefined {
+  async find(contestId: string, participantId: string): Promise<RosterPlace | undefined> {
     return this.places.get(this.key(contestId, participantId));
   }
-  claim(contestId: string, participantId: string, claimedAt: string): boolean {
+  async claim(contestId: string, participantId: string, claimedAt: string): Promise<boolean> {
     const place = this.places.get(this.key(contestId, participantId));
     if (!place || place.claimedAt !== null) return false;
     this.places.set(this.key(contestId, participantId), { ...place, claimedAt });
     return true;
   }
-  deleteByContest(contestId: string): void {
+  async deleteByContest(contestId: string): Promise<void> {
     for (const [key, place] of this.places) {
       if (place.contestId === contestId) this.places.delete(key);
     }

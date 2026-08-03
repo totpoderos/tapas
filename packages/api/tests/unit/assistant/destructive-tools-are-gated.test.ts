@@ -32,7 +32,7 @@ const destructive = TOOL_CATALOG.filter((tool) => tool.destructive);
  * being added today: whatever lands in the catalog next inherits the check, and a
  * destructive tool that somehow bypassed confirmation would fail here.
  */
-describe('every destructive tool is confirmation-gated on the assistant path', () => {
+describe('every destructive tool is confirmation-gated on the assistant path', async () => {
   it('has destructive tools to check', () => {
     expect(destructive.length).toBeGreaterThan(0);
     expect(destructive.map((tool) => tool.name)).toContain('delete_contest');

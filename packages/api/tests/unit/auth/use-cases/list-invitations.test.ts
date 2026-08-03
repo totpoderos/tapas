@@ -9,28 +9,28 @@ function laterBy(millis: number): string {
   return new Date(Date.parse(ISSUED_AT) + millis).toISOString();
 }
 
-function listAt(nowIso: string, ...invitations: ReturnType<typeof pendingInvitation>[]) {
+async function listAt(nowIso: string, ...invitations: Awaited<ReturnType<typeof pendingInvitation>>[]) {
   const repository = new FakeInvitationRepository();
-  for (const invitation of invitations) repository.insert(invitation);
-  return new ListInvitations({ invitations: repository, clock: { now: () => nowIso } }).execute();
+  for (const invitation of invitations) await repository.insert(invitation);
+  return await new ListInvitations({ invitations: repository, clock: { now: () => nowIso } }).execute();
 }
 
-describe('ListInvitations', () => {
-  it('reports the address, standing and when it was issued', () => {
-    expect(listAt(laterBy(1000), pendingInvitation())).toEqual([
+describe('ListInvitations', async () => {
+  it('reports the address, standing and when it was issued', async () => {
+    expect(await listAt(laterBy(1000), pendingInvitation())).toEqual([
       { id: 'inv-1', email: 'nuevo@example.com', status: 'pending', issuedAt: ISSUED_AT },
     ]);
   });
 
-  it('shows an invitation past its window as expired, though it is stored as pending', () => {
+  it('shows an invitation past its window as expired, though it is stored as pending', async () => {
     const stored = pendingInvitation();
     expect(stored.status).toBe('pending');
 
-    expect(listAt(laterBy(ONE_DAY_MS), stored)[0]!.status).toBe('expired');
+    expect((await listAt(laterBy(ONE_DAY_MS), stored))[0]!.status).toBe('expired');
   });
 
-  it('reports each stored ending under its own name', () => {
-    const listed = listAt(
+  it('reports each stored ending under its own name', async () => {
+    const listed = await listAt(
       laterBy(1000),
       pendingInvitation({ id: 'a', status: 'accepted', acceptedAt: laterBy(500) }),
       pendingInvitation({ id: 'b', status: 'revoked', revokedAt: laterBy(500) }),
@@ -44,10 +44,10 @@ describe('ListInvitations', () => {
     ]);
   });
 
-  it('prefers the recorded ending over expiry when both are true', () => {
+  it('prefers the recorded ending over expiry when both are true', async () => {
     // Revoked a day ago and long past its window: an administrator should see
     // what was done, not what time did.
-    const listed = listAt(
+    const listed = await listAt(
       laterBy(ONE_DAY_MS * 3),
       pendingInvitation({ status: 'revoked', revokedAt: laterBy(500) }),
     );
@@ -55,11 +55,11 @@ describe('ListInvitations', () => {
     expect(listed[0]!.status).toBe('revoked');
   });
 
-  it('reveals no token or hash', () => {
-    const serialized = JSON.stringify(listAt(laterBy(1000), pendingInvitation()));
+  it('reveals no token or hash', async () => {
+    const serialized = JSON.stringify(await listAt(laterBy(1000), pendingInvitation()));
 
     expect(serialized).not.toContain('the-hash');
-    expect(Object.keys(listAt(laterBy(1000), pendingInvitation())[0]!)).toEqual([
+    expect(Object.keys((await listAt(laterBy(1000), pendingInvitation()))[0]!)).toEqual([
       'id',
       'email',
       'status',
@@ -67,7 +67,7 @@ describe('ListInvitations', () => {
     ]);
   });
 
-  it('lists nothing when nobody has been invited', () => {
-    expect(listAt(laterBy(1000))).toEqual([]);
+  it('lists nothing when nobody has been invited', async () => {
+    expect(await listAt(laterBy(1000))).toEqual([]);
   });
 });

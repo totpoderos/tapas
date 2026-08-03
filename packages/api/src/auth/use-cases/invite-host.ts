@@ -58,7 +58,7 @@ export class InviteHost {
       return { ok: false, error: { code: 'INVALID_EMAIL', message: emailResult.error.message } };
 
     const email = emailResult.email.value;
-    if (this.deps.accounts.findByEmail(email))
+    if (await this.deps.accounts.findByEmail(email))
       return {
         ok: false,
         error: { code: 'EMAIL_TAKEN', message: 'That address is already registered.' },
@@ -86,7 +86,7 @@ export class InviteHost {
     // code did not keep: a transport that threw turned a stored, live
     // invitation into a failed request carrying neither the link nor the id
     // needed to resend it.
-    this.deps.invitations.insert(invitation);
+    await this.deps.invitations.insert(invitation);
 
     let messageSent = true;
     try {
@@ -98,7 +98,7 @@ export class InviteHost {
       // and resending is the remedy.
       messageSent = false;
     }
-    this.deps.invitations.recordHandoff(invitation.id, messageSent);
+    await this.deps.invitations.recordHandoff(invitation.id, messageSent);
 
     return messageSent
       ? { ok: true, invitationId: invitation.id, messageSent: true }

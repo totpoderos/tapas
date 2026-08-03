@@ -7,7 +7,7 @@ import { withParticipantIds, type DraftUseCaseDeps, type DraftWriteResult } from
 export class CreateDraft {
   constructor(private readonly deps: DraftUseCaseDeps) {}
 
-  execute(hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): DraftWriteResult {
+  async execute(hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): Promise<DraftWriteResult> {
     // Participants may arrive without ids (the assistant sends names); assign
     // them before the domain sees the draft — see withParticipantIds.
     const withIds = withParticipantIds(content, this.deps.ids);
@@ -23,8 +23,8 @@ export class CreateDraft {
       createdAt: now,
       updatedAt: now,
     };
-    this.deps.drafts.insert(stored);
-    this.deps.audit.record(
+    await this.deps.drafts.insert(stored);
+    await this.deps.audit.record(
       { type: 'draft.saved', contestId: stored.id, actorId: hostId, after: content },
       provenance,
     );

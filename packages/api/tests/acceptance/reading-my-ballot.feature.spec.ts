@@ -105,7 +105,7 @@ describeFeature(feature, ({ Scenario }) => {
     let ballot: Ballot;
 
     Given('a live contest a participant has joined, where everyone is on their own with partners kept apart', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const joinCode = await liveContest(app);
       voter = new CookieJar();
       const claim = await request(app, voter, {
@@ -141,7 +141,7 @@ describeFeature(feature, ({ Scenario }) => {
     let ballot: Ballot;
 
     Given('a live contest a participant has joined, where couples cook together', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const joinCode = await liveContest(app, couplesContent('Two by Two'));
       voter = new CookieJar();
       const claim = await request(app, voter, {
@@ -174,7 +174,7 @@ describeFeature(feature, ({ Scenario }) => {
     let ballot: Ballot;
 
     Given('a live contest where one cook never named their dish', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       host = new CookieJar();
       await seedHost(app, 'ballot-unnamed@x.es', STRONG_PASSWORD);
       await request(app, host, { method: 'POST', url: '/auth/login', payload: { email: 'ballot-unnamed@x.es', password: STRONG_PASSWORD } });
@@ -195,8 +195,8 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(200);
       ballot = response.json();
     });
-    Then('that dish is called by the name of the cook whose it is', () => {
-      expect(ballot.dishes.find((dish) => dish.dishId === 'D-bruno')?.name).toBe('Bruno');
+    Then('that dish is called by the name of the cook whose it is', async () => {
+      expect((ballot.dishes.find((dish) => dish.dishId === 'D-bruno'))?.name).toBe('Bruno');
     });
     And('it is called the same thing when the results are revealed', async () => {
       /*
@@ -216,7 +216,7 @@ describeFeature(feature, ({ Scenario }) => {
       const revealed = await request(app, ana, { method: 'GET', url: `/contests/${contestId}/reveal` });
       expect(revealed.statusCode).toBe(200);
       const standings = revealed.json().overall.standings as { dishId: string; name: string }[];
-      expect(standings.find((standing) => standing.dishId === 'D-bruno')?.name).toBe('Bruno');
+      expect((standings.find((standing) => standing.dishId === 'D-bruno'))?.name).toBe('Bruno');
     });
   });
 
@@ -226,7 +226,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a live contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const joinCode = await liveContest(app);
       const probe = new CookieJar();
       const claim = await request(app, probe, { method: 'POST', url: `/contests/${joinCode}/claim`, payload: { participantId: 'C' } });

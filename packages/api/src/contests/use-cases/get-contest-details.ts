@@ -26,30 +26,33 @@ export interface GetContestDetailsDeps {
 export class GetContestDetails {
   constructor(private readonly deps: GetContestDetailsDeps) {}
 
-  execute(hostId: string, name: string): ContestDetailsResult {
-    const resolved = this.deps.resolveContestByName.execute(hostId, name);
+  async execute(hostId: string, name: string): Promise<ContestDetailsResult> {
+    const resolved = await this.deps.resolveContestByName.execute(hostId, name);
     if (resolved.kind === 'none') return { candidates: [] };
     if (resolved.kind === 'several') return { candidates: resolved.candidates };
 
     const { contest } = resolved;
     return {
-      details: contest.status === 'draft' ? this.draftDetails(contest.id) : this.contestDetails(contest.id),
+      details:
+        contest.status === 'draft'
+          ? await this.draftDetails(contest.id)
+          : await this.contestDetails(contest.id),
     };
   }
 
-  private draftDetails(id: string): ContestDetails {
+  private async draftDetails(id: string): Promise<ContestDetails> {
     // The same view every draft edit answers with, so a host reading their draft
     // back sees exactly what a change to it just reported.
-    return draftDetailsOf(id, this.deps.drafts.findById(id)?.content ?? { name: '' });
+    return draftDetailsOf(id, (await this.deps.drafts.findById(id))?.content ?? { name: '' });
   }
 
-  private contestDetails(id: string): ContestDetails {
-    const contest = this.deps.contests.findById(id);
+  private async contestDetails(id: string): Promise<ContestDetails> {
+    const contest = await this.deps.contests.findById(id);
     return {
       id,
       name: contest?.name ?? '',
       status: contest?.status ?? 'live',
-      participants: this.deps.roster.listAll(id).map((place) => place.displayName),
+      participants: (await this.deps.roster.listAll(id)).map((place) => place.displayName),
       categories: (contest?.materialized.categories ?? []).map((category) => category.name),
     };
   }

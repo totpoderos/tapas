@@ -11,8 +11,8 @@ import type { PublishContestDeps, PublishContestResult } from './shared.js';
 export class PublishContest {
   constructor(private readonly deps: PublishContestDeps) {}
 
-  execute(draftId: string, hostId: string): PublishContestResult {
-    const draft = findOwnedDraft(this.deps.drafts, draftId, hostId);
+  async execute(draftId: string, hostId: string): Promise<PublishContestResult> {
+    const draft = await findOwnedDraft(this.deps.drafts, draftId, hostId);
     if (!draft) return { ok: false, error: { code: 'DRAFT_NOT_FOUND', message: 'No such draft.' } };
 
     const joinCode = this.deps.joinCodes.next();
@@ -38,19 +38,19 @@ export class PublishContest {
       closedAt: null,
       revealedAt: null,
     };
-    this.deps.contests.insert(stored);
+    await this.deps.contests.insert(stored);
     // Seed the roster: one open place per listed participant, keyed by the id
     // the compiled view uses — so a claim links straight to the scoring rules.
-    this.deps.roster.seed(
+    await this.deps.roster.seed(
       stored.id,
       (draft.content.participants ?? []).map((participant) => ({
         participantId: participant.id,
         displayName: participant.displayName,
       })),
     );
-    this.deps.drafts.delete(draftId); // retire the draft — it is a contest now
+    await this.deps.drafts.delete(draftId); // retire the draft — it is a contest now
 
-    this.deps.audit.record(
+    await this.deps.audit.record(
       {
         type: 'contest.published',
         contestId: stored.id,

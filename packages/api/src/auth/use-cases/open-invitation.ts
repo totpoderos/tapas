@@ -27,8 +27,8 @@ export interface OpenInvitationDeps {
 export class OpenInvitation {
   constructor(private readonly deps: OpenInvitationDeps) {}
 
-  execute(rawToken: string): OpenInvitationResult {
-    const found = this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
+  async execute(rawToken: string): Promise<OpenInvitationResult> {
+    const found = await this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
     const usability = usabilityOf(found, this.deps.clock.now());
     if (!usability.usable)
       return { ok: false, error: INVITATION_UNUSABLE, reason: usability.reason };

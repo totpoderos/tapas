@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import type { DraftContent, Person } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -79,7 +80,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" with Ana and Bob taking part', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await saveDraft(app, jar, content('Tapas Night', people('Ana', 'Bob')));
     });
@@ -89,8 +90,8 @@ describeFeature(feature, ({ Scenario }) => {
     Then('Ana, Bob and Carmen are taking part in the draft', async () => {
       expect((await draftParticipants(app, jar, id)).map((p) => p.displayName)).toEqual(['Ana', 'Bob', 'Carmen']);
     });
-    And('the audit log records the change', () => {
-      expect(new SqliteAuditLogRepository(db).findByContest(id).some((e) => e.type === 'draft.updated')).toBe(true);
+    And('the audit log records the change', async () => {
+      expect((await new SqliteAuditLogRepository(new SqliteDatabase(db)).findByContest(id)).some((e) => e.type === 'draft.updated')).toBe(true);
     });
   });
 
@@ -100,7 +101,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" with Ana, Bob and Carmen taking part', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await saveDraft(app, jar, content('Tapas Night', people('Ana', 'Bob', 'Carmen')));
     });
@@ -118,7 +119,7 @@ describeFeature(feature, ({ Scenario }) => {
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night" where Ana and Bob are a couple', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await saveDraft(app, jar, content('Tapas Night', [
         { id: 'ana', displayName: 'Ana', partnerId: 'bob' },
@@ -143,7 +144,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing two drafts both named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       firstId = await saveDraft(app, jar, content('Tapas Night', people('Ana')));
       await saveDraft(app, jar, content('Tapas Night', people('Bob')));
@@ -166,7 +167,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a published contest named "Balcony Cook-off"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Balcony Cook-off');
     });
@@ -185,7 +186,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host, and a second host preparing a draft named "Their Draft"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       const bobJar = await signedInHost(app, 'bob@example.com');
       await saveDraft(app, bobJar, content('Their Draft', people('Bob')));
@@ -203,7 +204,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('adding a participant is attempted with no one signed in', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       response = await app.inject({ method: 'POST', url: '/drafts/participants', payload: { contest: 'X', participant: 'Y' } });
     });
     Then('the request is refused as not authorized', () => {

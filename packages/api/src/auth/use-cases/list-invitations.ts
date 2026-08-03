@@ -30,9 +30,9 @@ export interface ListInvitationsDeps {
 export class ListInvitations {
   constructor(private readonly deps: ListInvitationsDeps) {}
 
-  execute(): InvitationSummary[] {
+  async execute(): Promise<InvitationSummary[]> {
     const now = this.deps.clock.now();
-    return this.deps.invitations.listAll().map((invitation) => {
+    return (await this.deps.invitations.listAll()).map((invitation) => {
       const usability = usabilityOf(invitation, now);
       return {
         id: invitation.id,

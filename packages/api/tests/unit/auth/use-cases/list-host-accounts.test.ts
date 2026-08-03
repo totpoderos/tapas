@@ -5,21 +5,21 @@ import type { HostAccountRepository } from '../../../../src/db/host-account-repo
 
 class FakeHostAccounts implements HostAccountRepository {
   constructor(private readonly accounts: HostAccount[]) {}
-  insert(): void {}
-  update(): void {}
-  findByEmail(): undefined {
+  async insert(): Promise<void> {}
+  async update(): Promise<void> {}
+  async findByEmail(): Promise<undefined> {
     return undefined;
   }
-  findById(): undefined {
+  async findById(): Promise<undefined> {
     return undefined;
   }
-  listAll(): HostAccount[] {
+  async listAll(): Promise<HostAccount[]> {
     return this.accounts;
   }
 }
 
-describe('ListHostAccounts', () => {
-  it('lists every host account, saying which are administrators', () => {
+describe('ListHostAccounts', async () => {
+  it('lists every host account, saying which are administrators', async () => {
     const useCase = new ListHostAccounts({
       hostAccounts: new FakeHostAccounts([
         HostAccount.rehydrate('h1', 'ana@example.com', 'hash', 'admin', 0, null),
@@ -27,27 +27,27 @@ describe('ListHostAccounts', () => {
       ]),
     });
 
-    expect(useCase.execute()).toEqual([
+    expect(await useCase.execute()).toEqual([
       { email: 'ana@example.com', isAdministrator: true },
       { email: 'bob@example.com', isAdministrator: false },
     ]);
   });
 
-  it('reveals no account-security state', () => {
+  it('reveals no account-security state', async () => {
     const useCase = new ListHostAccounts({
       hostAccounts: new FakeHostAccounts([
         HostAccount.rehydrate('h1', 'ana@example.com', 'secret-hash', 'admin', 4, '2026-01-01T00:00:00.000Z'),
       ]),
     });
 
-    const serialized = JSON.stringify(useCase.execute());
+    const serialized = JSON.stringify(await useCase.execute());
     expect(serialized).not.toContain('secret-hash');
     expect(serialized).not.toContain('2026-01-01');
-    expect(Object.keys(useCase.execute()[0]!)).toEqual(['email', 'isAdministrator']);
+    expect(Object.keys((await useCase.execute())[0]!)).toEqual(['email', 'isAdministrator']);
   });
 
-  it('lists nothing when there are no accounts', () => {
+  it('lists nothing when there are no accounts', async () => {
     const useCase = new ListHostAccounts({ hostAccounts: new FakeHostAccounts([]) });
-    expect(useCase.execute()).toEqual([]);
+    expect(await useCase.execute()).toEqual([]);
   });
 });

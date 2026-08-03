@@ -32,7 +32,7 @@ function input(overrides: Partial<MergeContestDraftInput> = {}): MergeContestDra
   };
 }
 
-describe('MergeContestDraft', () => {
+describe('MergeContestDraft', async () => {
   it('fills in the field the reply answers and clears the clarification', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({
