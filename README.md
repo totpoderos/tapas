@@ -6,7 +6,13 @@ Tapas is an AI-augmented app for organized tapas competitions: a host opens a co
 
 It is also a master's thesis project, so three things are first-class deliverables alongside the features: **security** (OWASP-mapped, with a written [threat model](docs/threat-model.md)), **evaluated AI** (three AI surfaces, each with its own eval set and committed thresholds), and **accessibility** (WCAG 2.1 AA, gated in CI).
 
-> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **1126 unit/acceptance tests + 76 Playwright E2E**, all axe-clean. Both apps read in **English or Spanish**. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/tapas-contest-app/proposal.md), [design](openspec/changes/tapas-contest-app/design.md), [tasks](openspec/changes/tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/tapas-contest-app/glossary.md).
+> **Status:** feature-complete and playable end to end — create (by form *or* chat) → publish → join → submit a dish → score → send → reveal, with a host control room and a unified audit log. **2458 unit/acceptance tests + 337 Playwright E2E**, all axe-clean. Both apps read in **English or Spanish**. Design is spec-driven with [OpenSpec](https://github.com/Fission-AI/OpenSpec) in [`openspec/`](openspec/) — see the [proposal](openspec/changes/archive/2026-07-28-tapas-contest-app/proposal.md), [design](openspec/changes/archive/2026-07-28-tapas-contest-app/design.md), [tasks](openspec/changes/archive/2026-07-28-tapas-contest-app/tasks.md) (the authoritative build log), and [glossary](openspec/changes/archive/2026-07-28-tapas-contest-app/glossary.md).
+
+## Finding your way around
+
+[`openwiki/`](openwiki/) is a generated wiki that sits over this README, [`docs/`](docs/) and [`openspec/`](openspec/): it says *where* to look rather than repeating what those say. Start at [`openwiki/quickstart.md`](openwiki/quickstart.md), then follow it into the [architecture](openwiki/architecture/overview.md), the [domain model](openwiki/architecture/domain-model.md), the [contest lifecycle](openwiki/workflows/contest-lifecycle.md), the [AI surfaces and their evals](openwiki/integrations/ai-surfaces.md), [security and operations](openwiki/operations/security-and-ops.md), or the [testing approach](openwiki/testing.md).
+
+It is generated, so it lags: [`openwiki/.last-update.json`](openwiki/.last-update.json) records the commit it was built from. Where it disagrees with `openspec/specs/` — the record of what is actually built — the specs win.
 
 ## The idea
 
@@ -46,7 +52,7 @@ Open the **host app**, sign up, create a contest (form or chat), publish it, and
 ## How to test
 
 ```bash
-npm test          # 1126 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
+npm test          # 2458 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
 npm run test:e2e  # whole-system E2E (Playwright: real API + both apps + SQLite + a mail catcher), axe-gated
                   # needs the Docker daemon running — Playwright starts Mailpit itself
 npm run typecheck
@@ -145,6 +151,7 @@ AI is integrated in three distinct places, each with the same discipline (schema
 ## Repository layout
 
 ```
+openwiki/              # generated wiki: a navigation layer over this README, docs/ and openspec/
 openspec/              # spec-driven design (source of truth for the plan)
   changes/tapas-contest-app/
     proposal.md        # why + what
