@@ -35,7 +35,16 @@ async function server() {
   starting ??= (async () => {
     const env = loadEnv();
     const database = await openConfiguredDatabase(env);
-    await runMigrations(database);
+    /*
+     * Where the migrations are, said explicitly.
+     *
+     * `runMigrations` finds them relative to its own source file, which is right
+     * until the source is bundled: then the only file left is this one, and
+     * "two directories up from migrate.ts" points somewhere that does not exist.
+     * The platform ships the .sql files beside the bundle (see `includeFiles`),
+     * and this is the path they land at.
+     */
+    await runMigrations(database, new URL('../packages/api/migrations', import.meta.url).pathname);
     const app = buildServer(buildProductionDeps(database, env));
     await app.ready();
     return app;

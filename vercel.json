@@ -4,6 +4,11 @@
   "outputDirectory": "packages/host-web/dist",
   "installCommand": "npm install --include=dev",
   "framework": null,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "packages/api/migrations/**"
+    }
+  },
   "rewrites": [
     { "source": "/auth/:path*", "destination": "/api" },
     { "source": "/drafts/:path*", "destination": "/api" },
