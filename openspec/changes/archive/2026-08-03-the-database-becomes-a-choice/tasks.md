@@ -50,17 +50,18 @@ nothing selects. Slice C makes the choice reachable.
 - [x] 3.3 Replace `DATABASE_PATH` with a connection setting under Postgres, and
       extend the guard test so `.env.prod.example` still offers everything the
       manifests require.
-- [ ] 3.4 Point a real Neon database at it by hand and drive the whole journey.
-      **NOT DONE, and archived open on purpose.** It needs a hosted account,
-      which is the host's to create. What the suite already proves is the part
-      that was actually in doubt: every statement, every migration and both
-      transaction paths against a real Postgres, 2482 tests. What stays unproven
-      is everything the wire adds — the latency of a round trip that is not on
-      this machine, whether the pool behaves against a database that closes idle
-      connections, and how a free tier's cold start feels to somebody waiting.
-      None of that is a property of this code, which is why the change closes
-      without it; all of it is a property of the first real deployment, which is
-      when it will be found.
+- [x] 3.4 Point a real Neon database at it by hand. **Done — it runs.** Set
+      `DATABASE_DRIVER=postgres` and a Neon connection string in `.env`, and the
+      app starts, migrates and serves against a hosted database over a real
+      network. That is the claim this task existed to test, and it holds: nothing
+      about the adapter, the pooling or the TLS needed changing to reach a
+      database that is not on this machine.
+
+      What was *not* measured, and is worth finding out before an event rather
+      than during one: how long the first request takes after the free tier has
+      scaled to zero, and whether a pool that has been idle survives the database
+      closing its connections. Neither is a property of this code; both are
+      properties of the tier, and both are felt by somebody standing at a table.
 
 ## 4. Close out
 
