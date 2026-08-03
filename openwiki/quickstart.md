@@ -102,8 +102,10 @@ Each workspace under `packages/` keeps `src/` for source only, with a sibling
   behavior changes.
 - **Known rough edges and deliberately-parked work** are tracked in
   [`docs/backlog.md`](../docs/backlog.md) (e.g. tie resolution is unbuilt, no
-  reminder notifications, the `admin` role/`requireRole()` is deliberately
-  parked). Check there before assuming something is a bug versus a known gap.
+  reminder notifications, an administrator cannot be changed once a deployment
+  is claimed). Check there before assuming something is a bug versus a known
+  gap — and note its *Retired* section, which keeps entries that turned out to
+  be built rather than deleting them.
 
 ## Backlog
 

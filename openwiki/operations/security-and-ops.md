@@ -50,13 +50,18 @@ risk: confirmation tokens have no nonce store and are technically replayable
 - CSRF relies on `SameSite` cookies rather than a synchroniser token
   (`docs/threat-model.md`).
 
-Note: [`docs/backlog.md`](../../docs/backlog.md) still lists the `admin` role
-and `requireRole()` middleware as unbuilt. That entry is stale — administrative
-work **is** a guarded category (`packages/api/src/http/require-administrator.ts`,
-`admin-routes.ts`), a deployment names its administrator in
-`ADMIN_BOOTSTRAP_EMAIL` and only that address may claim it, and a unique index
-caps administrators at one. `docs/threat-model.md` records G3 as CLOSED. Trust
-the threat model and the code over that backlog entry.
+- **An administrator cannot be changed.** `ADMIN_BOOTSTRAP_EMAIL` is read only
+  while the deployment is unclaimed; afterwards the administrator is a row, a
+  unique index caps administrators at one, and nothing invites a second. Changing
+  it means editing SQLite by hand (`docs/backlog.md`).
+
+Note on one contradiction you will meet: administrative work **is** built
+(`packages/api/src/http/require-administrator.ts`, `admin-routes.ts`, the
+`admin-bootstrap` and `administrative-access` capabilities), and
+[`docs/backlog.md`](../../docs/backlog.md) now records it as retired. But
+[`docs/threat-model.md`](../../docs/threat-model.md) still disagrees with itself:
+§3.1's residual-risk line says the `admin` role does not exist, while the §4 gaps
+table records G3 as **CLOSED**. The code and the G3 row are right.
 - CSP/HSTS ride Helmet's defaults rather than being explicitly hardened.
 - Contest `get/close/reveal` use cases carry no *internal* ownership check —
   it lives only at the route layer; a future non-route caller would bypass it.

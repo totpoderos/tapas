@@ -4,9 +4,9 @@ What is known to be missing, and why it is written down here.
 
 Until 2026-07-28 this lived as unchecked boxes in `openspec/changes/tapas-contest-app/tasks.md` — the change that carried the whole build. That change was archived (it was never going to reach 85/85 as a single unit, and its specs describe behaviour that is built), which took the remaining items off the board entirely. This file is where they live now.
 
-**How to pick something up:** `/opsx:propose <describe it>`, then `/opsx:apply`. Each item below is its own change. Nothing here is tracked by an active OpenSpec change — `openspec list` is deliberately empty.
+**How to pick something up:** `/opsx:propose <describe it>`, then `/opsx:apply`. Each item below is its own change. Run `openspec list` first — nothing here is tracked by an active change, but there may be an unrelated one open.
 
-**What the system currently does** is `openspec/specs/` — 22 capabilities, 104 requirements, `openspec validate --specs --strict` clean. That, not this file, is the record of built behaviour.
+**What the system currently does** is `openspec/specs/` — 27 capabilities, 188 requirements, `openspec validate --specs --strict` clean. That, not this file, is the record of built behaviour. Counts drift; the specs do not. Check before quoting a number from here — a generated wiki has already copied a stale pair out of this paragraph once.
 
 ---
 
@@ -38,12 +38,6 @@ No way to nudge participants who have not sent their votes. Needs a notifier —
 
 The participant app is mobile-first but not installable. Needs a manifest and a service worker, offline-tolerant over cached contest state. Consolidated here from 5C.1, which delivered everything else in that slice.
 
-### The `admin` role and `requireRole()` (was 2.7b)
-
-Three roles were designed (`admin` / `host` / `voter`); two exist. Ownership checks — the primary control under OWASP A01 — are enforced everywhere and are the load-bearing part; what is missing is the `admin` role itself and a `requireRole()` middleware.
-
-**Deliberately parked by the project owner.** Do not start it without asking.
-
 ---
 
 ## Known rough edges
@@ -64,6 +58,42 @@ The prominent calls-to-action (`Score the dishes →`, `See the results →`) no
 
 `packages/mcp/src/confirmation-token.ts` documents it: a deterministic HMAC over tool and arguments, with no nonce store, so a token for a given action always validates. Bounded in practice — a replayed delete hits `CONTEST_NOT_FOUND` — but true single-use remains future hardening. Recorded in [`docs/threat-model.md`](threat-model.md) §3.9.
 
+### An administrator cannot be changed
+
+`ADMIN_BOOTSTRAP_EMAIL` names who may *claim* an unclaimed deployment, and it is read only while `isUnclaimed()` is true (`packages/api/src/auth/use-cases/claim-deployment.ts`). Once claimed, the administrator is a row, a unique index caps administrators at one, and `admin-routes.ts` invites with the default `host` role — so there is no path to transfer, replace, or add one. Changing it means editing SQLite by hand: demote the row, change the variable, re-claim.
+
+Deliberate as far as it goes — the claim is secured by the address being fixed out of band, not by the email round-trip — but a deployment whose administrator leaves has no remedy in the app. A transfer path (the sitting administrator names a successor, who accepts by invitation) is the shape that would close it.
+
 ### There is no alerting
 
 Security events and the audit log are recorded but nothing watches them; the design's "alert on >N failed logins" is unbuilt. Destructive actions are audited as domain events with actor and confirmation, but carry no source IP and sit outside the security-event stream. Recorded in [`docs/threat-model.md`](threat-model.md) §3.9.
+
+---
+
+## Retired
+
+Kept rather than deleted: an entry that says "not built" long after it was built
+is worse than no entry, and knowing one was wrong is worth more than a clean file.
+
+### The `admin` role and `requireRole()` (was 2.7b) — BUILT
+
+Listed here as unbuilt and "deliberately parked" well after it shipped, which is
+how a generated wiki came to repeat it. It contradicted
+[`docs/threat-model.md`](threat-model.md), where G3 has been recorded **CLOSED**
+for some time.
+
+Administrative work is a guarded category: `packages/api/src/http/require-administrator.ts`
+reads the role from the account store rather than the session (a refreshed
+session carries the old claim forward, so a demotion would otherwise never take
+effect), and a personal access token is refused administrative work whoever
+issued it. The role is assigned by a real path — a deployment names its
+administrator in `ADMIN_BOOTSTRAP_EMAIL` and only that address may claim it, with
+a unique index capping administrators at one. Two capabilities cover it:
+`openspec/specs/admin-bootstrap/` and `openspec/specs/administrative-access/`.
+
+One detail of the original design genuinely never landed: there is no generic
+`requireRole()`. What shipped is `requireAdministrator`, a specific guard for the
+one role that exists beyond `host` and `voter`. A generic middleware would have
+been a parameter with a single possible value.
+
+What does remain open is above, under *An administrator cannot be changed*.
