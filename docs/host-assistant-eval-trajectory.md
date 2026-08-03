@@ -231,3 +231,68 @@ now evidence rather than guesswork.
 
 These are the numbers task 6.3 will enforce; they live here (committed) rather
 than in a report (gitignored) so the gate has a stable, reviewed source.
+
+---
+
+## Describing `scoring` moved the model to one call (case set `20cf6f427b8e`)
+
+`gemma4:31b-cloud`, temperature 0, seed 1, 51 cases.
+
+| Metric | Observed | Gate |
+|---|---|---|
+| Tool-selection accuracy | 96.4 | floor 90 |
+| Tool-argument accuracy | 100.0 | floor 90 |
+| Clarification accuracy | 100.0 | floor 90 |
+| Schema validity | 100.0 | floor 95 |
+| False-tool rate | 0.0 | ceiling 5 |
+| Chaining correctness | 100.0 | floor 80 |
+| Confirmation surfacing | 100.0 | floor 90 |
+
+Gate passes. One case diverges — `single-set-format` — which is the one-case
+spread the floors were set to absorb.
+
+**The trajectory change, and how it was told from a regression.** `create_draft`
+carried no description of its `scoring` argument at all, so the model reached for
+it only for a name and settled everything else afterwards through the small
+tools. Describing the shape changed what the tool is for: the model now answers a
+whole-contest message with one `create_draft` carrying the lot.
+
+Measured against the old ground truth for `multi-setup-without-saying-the-format`
+— eight ordered calls — that read as seven missing tools and took tool-selection
+accuracy to **87.3%, below its floor**. The gate failed, correctly: something had
+changed. What it could not say is whether the change was bad.
+
+Three filtered runs settled it, and the method is worth repeating:
+
+| Catalog | Result |
+|---|---|
+| Before this change | **ok** — the eight-call split |
+| Range fix and scoring descriptions only | **diff** — one `create_draft` |
+| Plus the optional category id | **diff** — one `create_draft`, no invented ids |
+
+So the descriptions caused it, not the optional id. And the one call the model
+now sends is better by every measure the case exists to check: everything the
+host asked for arrives, nothing they did not say is invented — `format` is
+correctly absent — and it is schema-valid.
+
+```json
+{"name": "Tapas",
+ "participants": [{"displayName": "Carlos"}, {"displayName": "Alba"}, {"displayName": "Juan"}],
+ "scoring": {"categories": [{"name": "Taste"}, {"name": "Originality"}],
+             "range": {"type": "fixed", "min": 1, "max": 5},
+             "uniquePerCategory": false}}
+```
+
+The case was therefore re-baselined rather than the floor lowered: it moves to
+`single_tool` expecting one `create_draft`, keeping `forbidden: ['set_format']`,
+which is the part that carried its intent. Its old expectation is written into
+the case so a future run can tell a trajectory change from a real one.
+
+**What this says about the case set.** A case that pins a sequence of tool calls
+is measuring how the model gets there, not whether it arrives. That is worth
+having — chaining is a real capability — but it dates the moment the surface
+gets better, and it cannot notice that the new route is the superior one. Where a
+message has one right outcome and several reasonable routes, the outcome belongs
+in an acceptance test that reads the draft back, and the eval should pin only
+what is genuinely about the model's judgement. Here that is the one thing the
+host never said.

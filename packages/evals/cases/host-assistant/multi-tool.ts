@@ -1,7 +1,7 @@
 import type { HostAssistantCaseInput } from '../../src/host-assistant/case.js';
 
 /**
- * Multi-tool chaining (11) — the host asks for several things; the assistant
+ * Multi-tool chaining (10) — the host asks for several things; the assistant
  * must propose every tool in the right order. Ground truth pins arguments only
  * where the host stated them (the first action of a chain); it does NOT pin an
  * argument that only becomes known after the first tool runs — e.g. the draft
@@ -82,45 +82,6 @@ export const MULTI_TOOL_CASES: HostAssistantCaseInput[] = [
         { name: 'add_category', arguments: { contest: 'Tapas Night', category: 'Presentation' } },
         { name: 'publish_contest' },
       ],
-    },
-  },
-  /*
-   * The reported bug, as the host actually typed it. Everything they asked for
-   * has to happen — and the one thing they did NOT say, what kind of contest it
-   * is, must not be chosen for them: picking "solo" decides a high-stakes rule
-   * the host never stated, which is what the extraction path refuses outright.
-   *
-   * Asking them for it is the panel's job, not the model's — this model returns
-   * no text at all alongside tool calls (eleven of eleven multi-tool cases), so
-   * an expectation about the words here would measure the adapter, not the
-   * assistant. See the trajectory doc.
-   */
-  {
-    id: 'multi-setup-without-saying-the-format',
-    group: 'multi_tool',
-    note: 'A whole contest set up in one message: do all of it, and invent no format.',
-    message:
-      'Create a new contest called Tapas. Add two categories: Taste and Originality. Add three participants: Carlos, Alba and Juan. Scoring range from 1 to 5 and allow duplicated scores.',
-    /*
-     * Every call is listed, repeats included, because chaining compares the
-     * whole sequence — a case naming `add_category` once against a run that
-     * rightly proposes it twice would read as a chaining failure. Arguments are
-     * pinned only where one call can be told from another by name alone: a
-     * repeated tool is matched by name, so pinning the second `add_category`
-     * would score it against the first and measure ordering twice.
-     */
-    expect: {
-      tools: [
-        { name: 'create_draft', arguments: { name: 'Tapas' } },
-        { name: 'add_category' },
-        { name: 'add_category' },
-        { name: 'add_participant' },
-        { name: 'add_participant' },
-        { name: 'add_participant' },
-        { name: 'set_score_range', arguments: { contest: 'Tapas', min: 1, max: 5 } },
-        { name: 'set_score_uniqueness', arguments: { contest: 'Tapas', uniquePerCategory: false } },
-      ],
-      forbidden: ['set_format'],
     },
   },
   {
