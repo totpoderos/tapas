@@ -52,6 +52,21 @@
 }
 
 /*
+ * One field and the action that sends it — laid out the way the sign-in, claim
+ * and accept-invite forms already lay theirs out: a single column with a real
+ * gap, and the button as wide as the field.
+ *
+ * Without this the button sat directly against the input's lower edge, close
+ * enough to read as part of the field rather than as the thing that submits it,
+ * and its text-width box under a full-width input left the card looking ragged.
+ * The three other one-field forms in the app were right; this was the odd one.
+ */
+.inviteForm {
+  display: grid;
+  gap: 16px;
+}
+
+/*
  * Two actions on a row, side by side. They are not allowed to wrap: a stacked
  * pair doubles the row's height, and a table where some rows are twice as tall
  * as others is much harder to read down. The table scrolls sideways inside its
