@@ -90,3 +90,17 @@ Feature: Directing a contest from the chat panel
     Given a signed-in host with the chat panel open
     When they ask in one message to set up a contest judged on two things with three people taking part
     Then the panel shows the contest judged on both, with all three taking part
+
+  # The second half of the same report: everything asked for happened, and the
+  # contest still could not be published, because nobody had said what kind of
+  # contest it was and nothing on screen mentioned it until publishing refused.
+  Scenario: A contest built in one message says what it still needs
+    Given a signed-in host with the chat panel open
+    When they ask in one message to set up a contest judged on two things with three people taking part
+    Then the panel says it still needs what kind of contest it is
+
+  Scenario: Saying the missing thing leaves nothing still needed
+    Given a host whose chat-built contest only lacks what kind of contest it is
+    When they tell the assistant everyone is on their own
+    Then the panel says what kind of contest it now is
+    And the panel does not say anything is still needed

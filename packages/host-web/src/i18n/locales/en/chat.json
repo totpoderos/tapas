@@ -38,6 +38,12 @@
   "severalWhichOne": "Several contests have that name — which one?",
   "severalRecap": "Several contests have that name.",
   "notReached": "Not done yet: {{actions}}. Ask again when you’re ready.",
+  "stillNeeded": "Before you can publish it, this contest still needs to say {{things}}.",
+  "needs": {
+    "format": "what kind of contest it is",
+    "participants": "who is taking part",
+    "scoring": "how it is scored"
+  },
   "noContestByName": "No contest by that name.",
   "noDraftByName": "No draft by that name to change.",
   "noContestsYet": "You have no contests yet.",

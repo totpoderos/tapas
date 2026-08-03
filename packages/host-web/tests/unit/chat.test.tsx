@@ -386,6 +386,79 @@ describe('Chat panel', () => {
     expect(await screen.findByText('Ana & Bob, Carmen & Dan')).toBeInTheDocument();
   });
 
+  /*
+   * The reported bug, at the layer that can see it. A contest built entirely in
+   * this panel was one unasked question short of publishable — its format — and
+   * nothing on screen said so until publishing refused, by which point the host
+   * had left for the review form. What is outstanding is said where it can still
+   * be acted on.
+   */
+  it('says what a draft still needs after the assistant changes it', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'set_score_uniqueness',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas',
+          status: 'draft',
+          participants: ['Carlos', 'Alba', 'Juan'],
+          categories: ['Taste', 'Originality'],
+          stillNeeded: ['format'],
+        },
+      },
+    });
+    renderChat();
+    await send('allow duplicate scores in Tapas');
+
+    expect(await screen.findByText(/still needs to say what kind of contest it is/i)).toBeInTheDocument();
+  });
+
+  it('names each thing a draft still needs', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'create_draft',
+      text: '',
+      // The draft as it comes back from creating one: the answer IS the draft,
+      // so what it still needs rides at the top level, not under `details`.
+      result: { id: 'd1', name: 'Tapas', stillNeeded: ['format', 'participants', 'scoring'] },
+    });
+    renderChat();
+    await send('create a contest called Tapas');
+
+    const said = await screen.findByText(/still needs to say/i);
+    expect(said).toHaveTextContent(/what kind of contest it is/i);
+    expect(said).toHaveTextContent(/who is taking part/i);
+    expect(said).toHaveTextContent(/how it is scored/i);
+  });
+
+  /*
+   * A ready draft must not carry an empty warning. An unfinished contest and a
+   * finished one have to read differently, which is the whole point of saying it.
+   */
+  it('says nothing is needed for a draft that has said everything', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'set_format',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas',
+          status: 'draft',
+          participants: ['Carlos'],
+          categories: ['Taste'],
+        },
+      },
+    });
+    renderChat();
+    await send('everyone on their own in Tapas');
+
+    expect(await screen.findByText('Carlos')).toBeInTheDocument();
+    expect(screen.queryByText(/still needs/i)).not.toBeInTheDocument();
+  });
+
   it('shows no pairing row for a contest that keeps nobody apart', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({
       kind: 'result',

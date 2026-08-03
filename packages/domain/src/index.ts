@@ -22,6 +22,8 @@ export type { CompileError, CompileErrorCode, CompileResult } from './compile.js
 export { Draft } from './draft/draft.js';
 export type { DraftResult, DraftInvariantError } from './draft/draft.js';
 export type { DraftContent, CloseRule, RevealStrategy } from './draft/draft-content.js';
+export { stillNeeded } from './draft/still-needed.js';
+export type { DraftGap } from './draft/still-needed.js';
 
 export { Contest } from './contest/contest.js';
 export type {

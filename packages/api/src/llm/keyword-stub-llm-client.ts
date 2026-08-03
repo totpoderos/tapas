@@ -10,6 +10,7 @@ import type { LLMClient, LLMCompletion, LLMCompletionRequest } from '@tapas/shar
  *   "set up X with A and B, and C and D taking part"
  *                                       → create_draft + add_category × N + add_participant × N,
  *                                         all in one completion (a message may ask for several things)
+ *   "everyone on their own in X"        → set_format { contest, format: 'solo' }
  *   "start a draft called X"            → create_draft { name: "X" }  (reversible)
  *   "close <name>"                      → close_contest { contest }    (destructive)
  *   "list my contests"                  → list_my_contests {}          (reversible)
@@ -31,6 +32,9 @@ const REMOVE_FROM = /\bremove\s+["']?(.+?)["']?\s+from\s+["']?(.+?)["']?\s*$/i;
 // "set up <name> judged on <a, b> with <c, d, e> taking part"
 const SET_UP_WITH = /\bset up\s+["']?(.+?)["']?\s+judged on\s+(.+?)\s+with\s+(.+?)\s+taking part/i;
 const FIND_NAMED = /\bfind\b(?:\s+the)?(?:\s+contest)?\s+["']?(.+?)["']?\s*$/i;
+// "everyone on their own in <name>" — the answer to the one question a host who
+// sets a contest up in one message never thinks to answer.
+const EVERYONE_ON_THEIR_OWN = /\beveryone(?:'s| is)? on their own in\s+["']?(.+?)["']?\s*$/i;
 
 export class KeywordStubLLMClient implements LLMClient {
   async complete(request: LLMCompletionRequest): Promise<LLMCompletion> {
@@ -61,6 +65,14 @@ export class KeywordStubLLMClient implements LLMClient {
             arguments: { contest, participant },
           })),
         ],
+      };
+    }
+
+    const formatMatch = EVERYONE_ON_THEIR_OWN.exec(text);
+    if (formatMatch) {
+      return {
+        text: '',
+        toolCalls: [{ name: 'set_format', arguments: { contest: formatMatch[1], format: 'solo' } }],
       };
     }
 

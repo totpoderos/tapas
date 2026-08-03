@@ -38,6 +38,12 @@
   "severalWhichOne": "Varios concursos tienen ese nombre. ¿Cuál de ellos?",
   "severalRecap": "Varios concursos tienen ese nombre.",
   "notReached": "Sin hacer todavía: {{actions}}. Pídemelo de nuevo cuando quieras.",
+  "stillNeeded": "Antes de poder publicarlo, a este concurso todavía le falta decir {{things}}.",
+  "needs": {
+    "format": "qué tipo de concurso es",
+    "participants": "quién participa",
+    "scoring": "cómo se puntúa"
+  },
   "noContestByName": "No hay ningún concurso con ese nombre.",
   "noDraftByName": "No hay ningún borrador con ese nombre para modificar.",
   "noContestsYet": "Aún no tienes concursos.",
