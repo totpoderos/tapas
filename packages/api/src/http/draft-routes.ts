@@ -1,4 +1,4 @@
-import type { ContestFormat, DraftContent, ScoreRange } from '@tapas/domain';
+import { stillNeeded, type ContestFormat, type DraftContent, type ScoreRange } from '@tapas/domain';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { StoredDraft } from '../drafts/stored-draft.js';
 import type { DraftFailureCode } from '../drafts/use-cases/shared.js';
@@ -29,6 +29,22 @@ function publishErrorStatus(code: PublishFailureCode): number {
 /** Strips diagnostics: the assistant endpoints expose the draft and its questions, nothing else. */
 function publicDraftResult(result: ExtractContestDraftResult | MergeContestDraftResult) {
   return { draft: result.draft, clarifications: result.clarifications };
+}
+
+/**
+ * A draft, answered with what it still has to say before it can be published.
+ *
+ * Every route that answers with a draft answers this way, so a draft read by its
+ * name and the same draft read by its id say the same thing about themselves —
+ * one of them staying quiet is the asymmetry this repo keeps finding.
+ *
+ * Absent rather than empty when there is nothing left, following `pairs`: a
+ * reader that has to tell "needs nothing" from "was not asked" is a reader that
+ * will one day draw an empty warning on a finished contest.
+ */
+function draftAnswer(draft: StoredDraft): StoredDraft | (StoredDraft & { stillNeeded: readonly string[] }) {
+  const needed = stillNeeded(draft.content);
+  return needed.length > 0 ? { ...draft, stillNeeded: needed } : draft;
 }
 
 const notSignedIn = { error: { code: 'NOT_SIGNED_IN', message: 'Sign in required.' } };
@@ -73,7 +89,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       );
       if (!created.ok)
         return reply.code(DRAFT_ERROR_STATUS[created.error.code]).send({ error: created.error });
-      return reply.code(201).send(created.draft);
+      return reply.code(201).send(draftAnswer(created.draft));
     },
   );
 
@@ -147,7 +163,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       );
       if (!renamed.ok)
         return reply.code(DRAFT_ERROR_STATUS[renamed.error.code]).send({ error: renamed.error });
-      return reply.code(200).send(renamed.draft);
+      return reply.code(200).send(draftAnswer(renamed.draft));
     },
   );
 
@@ -173,7 +189,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (id === undefined) return;
       const draft = deps.drafts.findById(id);
       if (!draft) return reply.code(200).send({ candidates: [] });
-      return reply.code(200).send(draft);
+      return reply.code(200).send(draftAnswer(draft));
     },
   );
 
@@ -311,7 +327,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       const draft = loadOwnedDraft(request, reply);
       if (!draft) return reply;
-      return reply.code(200).send(draft);
+      return reply.code(200).send(draftAnswer(draft));
     },
   );
 
@@ -328,7 +344,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       );
       if (!renamed.ok)
         return reply.code(DRAFT_ERROR_STATUS[renamed.error.code]).send({ error: renamed.error });
-      return reply.code(200).send(renamed.draft);
+      return reply.code(200).send(draftAnswer(renamed.draft));
     },
   );
 
@@ -347,7 +363,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       );
       if (!updated.ok)
         return reply.code(DRAFT_ERROR_STATUS[updated.error.code]).send({ error: updated.error });
-      return reply.code(200).send(updated.draft);
+      return reply.code(200).send(draftAnswer(updated.draft));
     },
   );
 

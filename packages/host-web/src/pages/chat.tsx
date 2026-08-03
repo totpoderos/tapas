@@ -123,6 +123,38 @@ function shapeOf(result: unknown, t: TFunction, language: string): ResultShape {
   return { kind: 'done' };
 }
 
+/**
+ * What a draft has not said yet, read from either shape a draft comes back in:
+ * on its details, for the edits that answer with them, and at the top level for
+ * the answers that are the draft itself.
+ *
+ * Two carriers, one reading. The API decides this once, from the same judgement
+ * publishing makes — the panel only puts words to it.
+ */
+function stillNeededOf(result: unknown): readonly string[] {
+  if (!result || typeof result !== 'object') return [];
+  const record = result as Record<string, unknown>;
+  const details = record.details as Record<string, unknown> | undefined;
+  const raw = record.stillNeeded ?? details?.stillNeeded;
+  return Array.isArray(raw) ? raw.map(String) : [];
+}
+
+/**
+ * What is left to say, as a sentence.
+ *
+ * Said as something outstanding, never as a failure: nothing went wrong, the
+ * host simply has not said it yet. An unknown entry is dropped rather than shown
+ * raw — a key on screen would read as a fault in the contest.
+ */
+function stillNeededText(gaps: readonly string[], t: TFunction, language: string): string | undefined {
+  const said = gaps
+    .map((gap) => t(`chat.needs.${gap}`, { defaultValue: '' }))
+    .filter((phrase) => phrase !== '');
+  if (said.length === 0) return undefined;
+  const things = new Intl.ListFormat(language, { type: 'conjunction' }).format(said);
+  return t('chat.stillNeeded', { things });
+}
+
 /** Reads the pairings defensively — anything that is not two names is dropped. */
 function readPairs(raw: readonly unknown[]): readonly (readonly [string, string])[] {
   return raw.flatMap((pair) =>
@@ -402,6 +434,22 @@ export function Chat() {
         const sentence = said || t('chat.doneRecap', { action: labelFor(turn.action, t) });
         add({ kind: 'assistant', text: sentence });
         setHistory((h) => [...h, { role: 'assistant', content: sentence }]);
+      }
+
+      /*
+       * What the draft still has to say before it can be published, whenever the
+       * assistant has just changed one. Said here, where the host can act on it,
+       * rather than left for publishing to refuse — a contest built entirely in
+       * this panel used to be one unasked question short of ready, with nothing
+       * on screen to say so.
+       *
+       * It goes into the model's history too, so the next turn can ask the host
+       * for it instead of proposing a publish that cannot succeed.
+       */
+      const outstanding = stillNeededText(stillNeededOf(turn.result), t, i18n.language);
+      if (outstanding) {
+        add({ kind: 'note', text: outstanding });
+        setHistory((h) => [...h, { role: 'assistant', content: outstanding }]);
       }
     } else {
       add({ kind: 'assistant', text: turn.message });

@@ -288,6 +288,38 @@ test('one message asking for several things gets all of them', async ({ page }) 
   await expect(page.getByText(/not done yet/i)).toHaveCount(0);
 });
 
+/*
+ * The second half of the same report. Everything asked for happened and the
+ * contest still would not publish: nobody had said what kind of contest it was,
+ * and nothing said so until the host tried to publish and was turned away — by
+ * which point they had left for the review form to fix it there.
+ */
+test('a contest built in one message says what it still needs', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-still-needed@sobremesa.es');
+  await page.goto('/chat');
+
+  await sendMessage(
+    page,
+    'set up Tapas judged on Taste and Originality with Carlos, Alba and Juan taking part',
+  );
+
+  await expect(page.getByText(/still needs to say what kind of contest it is/i)).toBeVisible();
+});
+
+test('saying the missing thing leaves nothing still needed', async ({ page }) => {
+  await signInFreshHost(page.request, 'e2e-chat-format-said@sobremesa.es');
+  // A contest exactly as the chat leaves it: everything said but its format.
+  const { format: _unsaid, ...withoutFormat } = completeContent('Tapas');
+  await page.request.post('/drafts', { data: withoutFormat });
+  await page.goto('/chat');
+
+  await sendMessage(page, 'everyone on their own in Tapas');
+
+  // The contest as it now stands, with nothing left outstanding on it.
+  await expect(page.locator('dl').last()).toContainText('A, B, C, D');
+  await expect(page.getByText(/still needs to say/i)).toHaveCount(0);
+});
+
 test('the chat panel is keyboard-operable and has no accessibility violations', async ({ page }) => {
   await signInFreshHost(page.request, 'e2e-chat-a11y@sobremesa.es');
   const id = await liveContest(page.request, 'Balcony Cook-off');

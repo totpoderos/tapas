@@ -1,4 +1,4 @@
-import type { DraftContent } from '@tapas/domain';
+import { stillNeeded, type DraftContent, type DraftGap } from '@tapas/domain';
 import type { ContestSummary } from './contest-summary.js';
 
 /**
@@ -24,6 +24,16 @@ export interface ContestDetails {
    * the one person who asked for it.
    */
   readonly pairs?: readonly (readonly [string, string])[];
+  /**
+   * What this draft has not said yet, and so cannot be published without —
+   * absent once there is nothing left, and never carried by a live contest,
+   * which has nothing left by definition.
+   *
+   * The same judgement publishing makes, answered before the host tries it. A
+   * host who built a contest by chat used to meet it only as a refusal, at the
+   * one moment they could no longer do anything about it from where they were.
+   */
+  readonly stillNeeded?: readonly DraftGap[];
 }
 
 /**
@@ -68,6 +78,7 @@ export function draftDetailsOf(id: string, content: DraftContent): ContestDetail
     pairs.push([person.displayName, partnerName]);
   }
 
+  const needed = stillNeeded(content);
   return {
     id,
     name: content.name,
@@ -75,5 +86,6 @@ export function draftDetailsOf(id: string, content: DraftContent): ContestDetail
     participants: people.map((p) => p.displayName),
     categories: (content.scoring?.categories ?? []).map((c) => c.name),
     ...(pairs.length > 0 ? { pairs } : {}),
+    ...(needed.length > 0 ? { stillNeeded: needed } : {}),
   };
 }

@@ -1,5 +1,6 @@
 import { compile, type CompileErrorCode } from '../compile.js';
 import type { CloseRule, DraftContent, RevealStrategy } from '../draft/draft-content.js';
+import { stillNeeded, type DraftGap } from '../draft/still-needed.js';
 import type { ContestDraft, MaterializedContest } from '../model.js';
 
 export type PublishErrorCode = 'INCOMPLETE_DRAFT' | CompileErrorCode;
@@ -47,7 +48,7 @@ export class Contest {
   static publish(draft: PublishableDraft, joinCode: string): PublishResult {
     const contestDraft = toContestDraft(draft.content);
     if (!contestDraft) {
-      return { ok: false, error: { code: 'INCOMPLETE_DRAFT', message: stillNeeded(draft.content) } };
+      return { ok: false, error: { code: 'INCOMPLETE_DRAFT', message: refusal(draft.content) } };
     }
 
     const compiled = compile(contestDraft);
@@ -70,9 +71,15 @@ export class Contest {
   }
 }
 
+/** How publishing says each thing a draft can still be short of. */
+const SAID_AS: Record<DraftGap, string> = {
+  format: 'what kind of contest it is',
+  participants: 'who is taking part',
+  scoring: 'how it is scored',
+};
+
 /**
- * What the draft still has to say before it can be published, in the host's own
- * terms.
+ * Why the draft was turned away, in the host's own terms.
  *
  * Three things are required and all three used to be reported as one sentence —
  * "The draft is missing its scoring rules" — whichever was actually absent. A
@@ -80,13 +87,12 @@ export class Contest {
  * its scoring settled and no format at all, and its host was told to go and fix
  * the scoring, which was already complete. A refusal that names the wrong thing
  * is worse than a vague one: it sends somebody to work on what is not broken.
+ *
+ * The judgement itself is `stillNeeded`, which anybody can ask before trying to
+ * publish. This only puts words to what it answered.
  */
-function stillNeeded(content: DraftContent): string {
-  const missing = [
-    !content.format && 'what kind of contest it is',
-    !content.participants && 'who is taking part',
-    !content.scoring && 'how it is scored',
-  ].filter((part): part is string => typeof part === 'string');
+function refusal(content: DraftContent): string {
+  const missing = stillNeeded(content).map((gap) => SAID_AS[gap]);
 
   // "a, b, or c" — the last one joined with "or", because any of them alone is
   // enough to stop a publish.
