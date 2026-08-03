@@ -55,13 +55,16 @@ risk: confirmation tokens have no nonce store and are technically replayable
   unique index caps administrators at one, and nothing invites a second. Changing
   it means editing SQLite by hand (`docs/backlog.md`).
 
-Note on one contradiction you will meet: administrative work **is** built
+Administrative work **is** built
 (`packages/api/src/http/require-administrator.ts`, `admin-routes.ts`, the
-`admin-bootstrap` and `administrative-access` capabilities), and
-[`docs/backlog.md`](../../docs/backlog.md) now records it as retired. But
-[`docs/threat-model.md`](../../docs/threat-model.md) still disagrees with itself:
-§3.1's residual-risk line says the `admin` role does not exist, while the §4 gaps
-table records G3 as **CLOSED**. The code and the G3 row are right.
+`admin-bootstrap` and `administrative-access` capabilities); G3 in
+[`docs/threat-model.md`](../../docs/threat-model.md) records it CLOSED, and G10
+records what closing it cost — a deployment has exactly one administrator and
+nothing transfers the role. What never landed is a *generic* `requireRole()`:
+`requireAdministrator` guards the one role beyond `host` and `voter`. Both
+[`docs/backlog.md`](../../docs/backlog.md) and §3.1 of the threat model said
+otherwise until recently, and each now records that it did — worth knowing if
+you meet an older copy.
 - CSP/HSTS ride Helmet's defaults rather than being explicitly hardened.
 - Contest `get/close/reveal` use cases carry no *internal* ownership check —
   it lives only at the route layer; a future non-route caller would bypass it.

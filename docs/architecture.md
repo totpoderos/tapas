@@ -294,4 +294,4 @@ verification record are in [infra-generation.md](infra-generation.md).
 - [threat-model.md](threat-model.md) — OWASP Top 10 mapping, with code references and named gaps
 - [infra-generation.md](infra-generation.md) — how the Docker/compose/CI/CD artifacts were generated and verified
 - [eval-trajectory.md](eval-trajectory.md) · [host-assistant-eval-trajectory.md](host-assistant-eval-trajectory.md) — the AI surfaces, measured
-- [design.md](../openspec/changes/tapas-contest-app/design.md) — the full design record
+- [design.md](../openspec/changes/archive/2026-07-28-tapas-contest-app/design.md) — the full design record
