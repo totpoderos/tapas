@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { TOOL_CATALOG } from '../../src/tool-catalog.js';
+import { TOOL_CATALOG, parseToolArguments } from '../../src/tool-catalog.js';
+
+const toolNamed = (name: string) => TOOL_CATALOG.find((tool) => tool.name === name)!;
 
 describe('MCP tool catalog', async () => {
   it('exposes get_contest as a read-only, host-scoped tool', async () => {
@@ -137,6 +139,52 @@ describe('MCP tool catalog', async () => {
       path: '/drafts',
       body: { name: 'Summer Tapas' },
     });
+  });
+
+  /*
+   * A category's id is identity the API assigns and keeps. A model asked for
+   * "judged on Taste and Originality" has none to give and the host has never
+   * been shown one, so demanding it refused a call in which everything the host
+   * actually said had arrived. The same reasoning `personShape` already carries.
+   */
+  it('accepts a category the model named but did not identify', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ name: 'Taste' }, { name: 'Originality' }],
+        range: { type: 'fixed', min: 1, max: 5 },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(true);
+  });
+
+  it('keeps an id the model did supply', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ id: 'kept', name: 'Taste' }],
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(true);
+    expect(parsed.ok && (parsed.args.scoring as { categories: unknown[] }).categories[0]).toEqual({
+      id: 'kept',
+      name: 'Taste',
+    });
+  });
+
+  it('still refuses a category with no name', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), {
+      name: 'Tapas',
+      scoring: {
+        categories: [{ id: 'c1' }],
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+    expect(parsed.ok).toBe(false);
   });
 
   it('maps rename_contest to a PATCH carrying the old name and the new one', async () => {

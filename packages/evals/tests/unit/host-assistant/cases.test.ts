@@ -16,11 +16,11 @@ import { HA_GROUPS, HA_TOOL_NAMES, parseHostAssistantCases } from '../../../src/
 describe('host-assistant frozen case set', () => {
   const cases = parseHostAssistantCases(HOST_ASSISTANT_CASES);
 
-  it('has 51 cases split 20 / 11 / 6 / 8 / 6 across the five groups', () => {
-    expect(cases).toHaveLength(51);
+  it('has 52 cases split 21 / 11 / 6 / 8 / 6 across the five groups', () => {
+    expect(cases).toHaveLength(52);
     const counts = Object.fromEntries(HA_GROUPS.map((group) => [group, cases.filter((c) => c.group === group).length]));
     expect(counts).toEqual({
-      single_tool: 20,
+      single_tool: 21,
       multi_tool: 11,
       clarification: 6,
       destructive: 8,

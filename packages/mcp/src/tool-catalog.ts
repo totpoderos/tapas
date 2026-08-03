@@ -396,7 +396,22 @@ const closeContest: McpTool = {
 // API remains the authoritative validator (two-phase, design.md §11B.3).
 const scoringShape = z
   .object({
-    categories: z.array(z.object({ id: z.string().min(1), name: z.string().min(1) }).strict()).min(1),
+    categories: z
+      .array(
+        z
+          .object({
+            // Optional for the same reason a participant's is: an id is internal
+            // identity, not something a host states, so a model asked for
+            // "judged on Taste and Originality" has none to give. The API names
+            // any category that arrives without one (see `withCategoryIds`).
+            // Supply an existing id to go on meaning the same category — that is
+            // what stops an edit quietly making new ones.
+            id: z.string().min(1).optional().describe('Existing category id; omit for a new one.'),
+            name: z.string().min(1),
+          })
+          .strict(),
+      )
+      .min(1),
     range: z.union([
       z.object({ type: z.literal('fixed'), min: z.number(), max: z.number() }).strict(),
       z.object({ type: z.literal('auto') }).strict(),

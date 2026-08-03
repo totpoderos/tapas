@@ -1,10 +1,12 @@
 import type { HostAssistantCaseInput } from '../../src/host-assistant/case.js';
 
 /**
- * Single-tool selection (10) — the host asks for one thing; the assistant must
- * pick the right (non-destructive) tool and fill its arguments from what the
- * host said. Ground truth pins the arguments because they are all recoverable
- * from the message (an id or a name the host stated).
+ * Single-tool selection (21) — the assistant must answer with one right
+ * (non-destructive) tool and fill its arguments from what the host said. Ground
+ * truth pins the arguments because they are all recoverable from the message (an
+ * id or a name the host stated) — with one deliberate exception at the end,
+ * where the host asks for a whole contest at once and how the model packs it is
+ * trajectory rather than correctness.
  */
 export const SINGLE_TOOL_CASES: HostAssistantCaseInput[] = [
   {
@@ -150,5 +152,32 @@ export const SINGLE_TOOL_CASES: HostAssistantCaseInput[] = [
     expect: {
       tools: [{ name: 'set_partner', arguments: { contest: 'Tapas Night', person: 'Ana', partner: 'Bob' } }],
     },
+  },
+  /*
+   * The reported prompt as the host actually typed it — `multi-setup-without-
+   * saying-the-format` plus the one thing they had left out. Saying what kind of
+   * contest it is changes the trajectory completely: with nothing missing, the
+   * model stops splitting the work across create_draft + add_category +
+   * set_score_range and packs the whole setup into one create_draft. It lives
+   * here rather than beside its sibling because that is what it measures — one
+   * message, one action — and a multi-tool case must expect a chain.
+   *
+   * No case reached this path, which is how two bugs lived in it: a range
+   * written the way `set_score_range` takes one, and a category id the model had
+   * no business inventing.
+   *
+   * The one case in this group that does NOT pin its arguments. One create_draft
+   * carrying everything and a run of smaller calls are both complete answers to
+   * this message; which the model picks is trajectory, not correctness, and
+   * pinning one packing would score a change of mind as a regression. What the
+   * arguments actually look like belongs in the trajectory doc, from a real run.
+   */
+  {
+    id: 'single-setup-saying-the-format',
+    group: 'single_tool',
+    note: 'A whole contest in one message, nothing left out — the one-shot path.',
+    message:
+      'Create a new contest called Tapas. Add two categories: Taste and Originality, add three participants: Carlos, Alba and Juan. Scoring range from 1 to 5 and allow duplicated scores. The contest is everyone on their own',
+    expect: { tools: [{ name: 'create_draft' }] },
   },
 ];

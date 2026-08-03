@@ -44,4 +44,23 @@ describe('hostAssistantTools', async () => {
       required: ['contest'],
     });
   });
+
+  /*
+   * The schema is what the model actually reads, so it is what has to stop
+   * asking. A parse that accepts a category with no id while the advertised
+   * schema still lists it as required would leave the model dutifully inventing
+   * one — which is the thing this is here to prevent.
+   */
+  it('does not ask the model to identify a scoring category, only to name it', async () => {
+    const tools = await hostAssistantTools();
+    const createDraft = tools.find((tool) => tool.name === 'create_draft');
+    const categories = (
+      createDraft?.inputSchema as {
+        properties: { scoring: { properties: { categories: { items: Record<string, unknown> } } } };
+      }
+    ).properties.scoring.properties.categories.items;
+
+    expect(categories).toMatchObject({ properties: { id: { type: 'string' }, name: { type: 'string' } } });
+    expect(categories.required).toEqual(['name']);
+  });
 });
