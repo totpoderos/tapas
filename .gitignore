@@ -26,3 +26,9 @@ test-results/
 # Eval reports are generated artifacts; the trajectory is curated in docs/.
 reports/
 playwright/.cache/
+
+# The thesis presentations. Kept on disk, out of the repository: they are
+# multi-megabyte binaries that change every time a slide moves, and each save
+# would store a whole new copy. They rode into three commits on a `git add -A`
+# before this rule existed.
+docs/*.pptx
