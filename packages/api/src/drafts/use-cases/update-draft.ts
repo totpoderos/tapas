@@ -1,7 +1,7 @@
 import { Draft, type DraftContent } from '@tapas/domain';
 import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { StoredDraft } from '../stored-draft.js';
-import { withParticipantIds, draftNotFound, findOwnedDraft, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
+import { withAssignedIds, draftNotFound, findOwnedDraft, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
 
 /**
  * Replaces the whole content of a host's own draft — how it is scored, who is
@@ -17,7 +17,7 @@ export class UpdateDraft {
     const existing = await findOwnedDraft(this.deps.drafts, draftId, hostId);
     if (!existing) return { ok: false, error: draftNotFound };
 
-    const edited = Draft.rehydrate(existing.id, existing.hostId, existing.content).withContent(withParticipantIds(content, this.deps.ids));
+    const edited = Draft.rehydrate(existing.id, existing.hostId, existing.content).withContent(withAssignedIds(content, this.deps.ids));
     if (!edited.ok) return { ok: false, error: edited.error };
 
     const updated: StoredDraft = { ...existing, content: edited.draft.content, updatedAt: this.deps.clock.now() };

@@ -1,16 +1,17 @@
 import { Draft, type DraftContent } from '@tapas/domain';
 import { IN_APP, type AuditProvenance } from '../../audit/audit-projection.js';
 import type { StoredDraft } from '../stored-draft.js';
-import { withParticipantIds, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
+import { withAssignedIds, type DraftUseCaseDeps, type DraftWriteResult } from './shared.js';
 
 /** Creates a new draft for a host. Invariants are enforced by the domain `Draft`. */
 export class CreateDraft {
   constructor(private readonly deps: DraftUseCaseDeps) {}
 
   async execute(hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): Promise<DraftWriteResult> {
-    // Participants may arrive without ids (the assistant sends names); assign
-    // them before the domain sees the draft — see withParticipantIds.
-    const withIds = withParticipantIds(content, this.deps.ids);
+    // Participants and categories may both arrive without ids (the assistant
+    // sends names); assign them before the domain sees the draft — see
+    // withAssignedIds.
+    const withIds = withAssignedIds(content, this.deps.ids);
     const created = Draft.create(this.deps.ids.next(), hostId, withIds);
     if (!created.ok) return { ok: false, error: created.error };
 

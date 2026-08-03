@@ -32,7 +32,19 @@ Not included, deliberately: reconciling the ids of drafts already stored. Catego
 
 - `assistant-tool-surface`: setting up a whole contest in one go SHALL NOT require the assistant to supply an internal id for a scoring category — the same rule the surface already holds for a contest ("named, never quoted by id") and for a participant, applied to the one place it was missed.
 - `validate-and-publish-contest`: publishing SHALL be refused for a draft whose scoring categories do not have distinct identities, stated as the sibling of the existing duplicate-participant rule.
-- `prepare-a-contest`: a scoring category SHALL keep its identity while a contest is being prepared — across a rename, across an edit, and whichever way it was added — so that what a host is judging on is one thing however they got there.
+
+<!--
+  `prepare-a-contest` was listed here and has been withdrawn — see design.md,
+  "A category's identity has no domain-level observable". Nothing in a draft
+  reads a category by id (the only readers are saving a score and gathering a
+  tally, both after publish, where categories are already fixed), so "a category
+  keeps its identity while a contest is being prepared" cannot be stated as a
+  scenario without either naming the id — which the spec-leakage rule forbids —
+  or asserting nothing. It is a real invariant and it is now held by unit,
+  component and integration tests; it is not a requirement this capability can
+  express, and a spec that cannot be tested does not belong in one.
+-->
+
 
 ## Impact
 

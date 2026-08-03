@@ -44,6 +44,52 @@ describe('CreateDraft', async () => {
     expect(entry?.toolArgs).toMatchObject({ name: 'Via chat' });
   });
 
+  /*
+   * A category's id is internal identity, not something a host states — the same
+   * as a participant's. A model asked for "judged on Taste and Originality" has
+   * no id to give, and the host has never been shown one, so the API assigns it
+   * here rather than leaving the caller to invent one.
+   */
+  it('gives a category with no id one of its own', async () => {
+    const { deps } = makeDraftDeps();
+
+    const creation = await new CreateDraft(deps).execute('host-1', {
+      name: 'Tapas',
+      participants: [],
+      scoring: {
+        categories: [{ name: 'Taste' }, { name: 'Originality' }] as never,
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+
+    if (!creation.ok) throw new Error('expected success');
+    const categories = creation.draft.content.scoring?.categories ?? [];
+    expect(categories.map((category) => category.name)).toEqual(['Taste', 'Originality']);
+    for (const category of categories) expect(category.id).toBeTruthy();
+    expect(new Set(categories.map((category) => category.id)).size).toBe(2);
+  });
+
+  it('leaves a category that already has an id alone', async () => {
+    const { deps } = makeDraftDeps();
+
+    const creation = await new CreateDraft(deps).execute('host-1', {
+      name: 'Tapas',
+      participants: [],
+      scoring: {
+        categories: [{ id: 'kept', name: 'Taste' }, { name: 'Originality' }] as never,
+        range: { type: 'auto' },
+        uniquePerCategory: false,
+      },
+    });
+
+    if (!creation.ok) throw new Error('expected success');
+    const categories = creation.draft.content.scoring?.categories ?? [];
+    expect(categories[0]?.id).toBe('kept');
+    expect(categories[1]?.id).toBeTruthy();
+    expect(categories[1]?.id).not.toBe('kept');
+  });
+
   it('records an unmarked call as the app', async () => {
     // The default matters: a direct call is a host working in the app.
     const { deps, auditLog } = makeDraftDeps();
