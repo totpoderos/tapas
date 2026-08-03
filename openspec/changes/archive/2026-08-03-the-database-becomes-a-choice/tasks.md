@@ -50,14 +50,22 @@ nothing selects. Slice C makes the choice reachable.
 - [x] 3.3 Replace `DATABASE_PATH` with a connection setting under Postgres, and
       extend the guard test so `.env.prod.example` still offers everything the
       manifests require.
-- [ ] 3.4 Point a real Neon database at it by hand and drive the whole journey —
-      create, publish, join, submit, score, send, reveal. The suite proves the
-      statements; this proves the connection, the pooling and the latency.
+- [ ] 3.4 Point a real Neon database at it by hand and drive the whole journey.
+      **NOT DONE, and archived open on purpose.** It needs a hosted account,
+      which is the host's to create. What the suite already proves is the part
+      that was actually in doubt: every statement, every migration and both
+      transaction paths against a real Postgres, 2482 tests. What stays unproven
+      is everything the wire adds — the latency of a round trip that is not on
+      this machine, whether the pool behaves against a database that closes idle
+      connections, and how a free tier's cold start feels to somebody waiting.
+      None of that is a property of this code, which is why the change closes
+      without it; all of it is a property of the first real deployment, which is
+      when it will be found.
 
 ## 4. Close out
 
-- [ ] 4.1 Full local gate under both databases, plus typecheck, lint and
+- [x] 4.1 Full local gate under both databases, plus typecheck, lint and
       `openspec validate --strict`.
-- [ ] 4.2 Record in `design.md` what the Postgres run actually cost in wall-clock
+- [x] 4.2 Record in `design.md` what the Postgres run actually cost in wall-clock
       against the in-memory one, so the next person choosing a default knows.
-- [ ] 4.3 Archive the change.
+- [x] 4.3 Archive the change.
