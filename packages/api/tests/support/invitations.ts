@@ -43,7 +43,7 @@ export async function invitationSentTo(
 ): Promise<{ test: TestApp; token: string; link: string; id: string; adminCookie: string }> {
   const test = await makeTestApp(clock);
   await seedHost(test.app, ADMINISTRATOR, STRONG_PASSWORD);
-  promoteToAdministrator(test.db, ADMINISTRATOR);
+  promoteToAdministrator(test.database, ADMINISTRATOR);
 
   const adminCookie = await signInAdministrator(test);
 

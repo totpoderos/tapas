@@ -1,7 +1,6 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
+import type { Database } from '../../../src/db/database.js';
+import { freshDatabase } from '../../support/test-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { runMigrations } from '../../../src/db/migrate.js';
 import {
   SqliteHostInvitationRepository,
   type StoredInvitation,
@@ -22,13 +21,12 @@ const INVITATION: StoredInvitation = {
 };
 
 describe('SqliteHostInvitationRepository', async () => {
-  let db: DatabaseSync;
+  let database: Database;
   let invitations: SqliteHostInvitationRepository;
 
   beforeEach(async () => {
-    db = new DatabaseSync(':memory:');
-    await runMigrations(new SqliteDatabase(db));
-    invitations = new SqliteHostInvitationRepository(new SqliteDatabase(db));
+    ({ database } = await freshDatabase());
+    invitations = new SqliteHostInvitationRepository(database);
   });
 
   it('round-trips an invitation, found by its token hash', async () => {

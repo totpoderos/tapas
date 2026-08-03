@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../../src/db/database.js';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
@@ -22,8 +21,8 @@ const WRONG_PASSWORD = 'Wr0ng!Passw0rd';
 const OPERATOR = 'operator@example.com';
 
 /** Reads the security log straight from the app's own database. */
-async function securityLog(db: DatabaseSync): Promise<SecurityEvent[]> {
-  return await new SqliteSecurityEventLog(new SqliteDatabase(db), new SystemClock(), new UuidIdGenerator()).list();
+async function securityLog(database: Database): Promise<SecurityEvent[]> {
+  return await new SqliteSecurityEventLog(database, new SystemClock(), new UuidIdGenerator()).list();
 }
 
 async function register(app: FastifyInstance, email: string): Promise<void> {
@@ -46,17 +45,17 @@ function readCookie(response: LightMyRequestResponse, name: string): string {
 describeFeature(feature, ({ Scenario }) => {
   Scenario('A successful sign-in is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
 
     Given('a registered host "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
     });
     When('that host signs in through the API', async () => {
       await login(app, 'ana@example.com', STRONG_PASSWORD);
     });
     Then('the security log records a successful sign-in for that host', async () => {
-      const events = await securityLog(db);
+      const events = await securityLog(database);
       const signIn = events.find((event) => event.type === 'sign_in.succeeded');
       expect(signIn).toBeTruthy();
       expect(signIn?.actorId).toBeTruthy();
@@ -66,17 +65,17 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A refused sign-in is recorded with its reason', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
 
     Given('a registered host "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
     });
     When('a sign-in is attempted for "ana@example.com" with the wrong password', async () => {
       await login(app, 'ana@example.com', WRONG_PASSWORD);
     });
     Then('the security log records a refused sign-in noting the credentials were invalid', async () => {
-      const refused = (await securityLog(db)).find((event) => event.type === 'sign_in.refused');
+      const refused = (await securityLog(database)).find((event) => event.type === 'sign_in.refused');
       expect(refused?.reason).toBe('bad_password');
     });
   });
@@ -85,16 +84,16 @@ describeFeature(feature, ({ Scenario }) => {
     'A refused sign-in for an unknown account is still recorded',
     ({ Given, When, Then }) => {
       let app: FastifyInstance;
-      let db: DatabaseSync;
+      let database: Database;
 
       Given('no host is registered with "nobody@example.com"', async () => {
-        ({ app, db } = await makeTestApp());
+        ({ app, database } = await makeTestApp());
       });
       When('a sign-in is attempted for "nobody@example.com"', async () => {
         await login(app, 'nobody@example.com', STRONG_PASSWORD);
       });
       Then('the security log records a refused sign-in for an unknown account', async () => {
-        const refused = (await securityLog(db)).find((event) => event.type === 'sign_in.refused');
+        const refused = (await securityLog(database)).find((event) => event.type === 'sign_in.refused');
         expect(refused?.reason).toBe('unknown_account');
         expect(refused?.actorId).toBeNull();
       });
@@ -103,28 +102,28 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('The security log never stores the attempted password', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
 
     Given('a registered host "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
     });
     When('a sign-in is attempted for "ana@example.com" with the wrong password', async () => {
       await login(app, 'ana@example.com', WRONG_PASSWORD);
     });
     Then('no security log entry contains the attempted password', async () => {
-      const serialized = JSON.stringify(await securityLog(db));
+      const serialized = JSON.stringify(await securityLog(database));
       expect(serialized).not.toContain(WRONG_PASSWORD);
     });
   });
 
   Scenario('Issuing a personal access token is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
       cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
     });
@@ -132,18 +131,18 @@ describeFeature(feature, ({ Scenario }) => {
       await app.inject({ method: 'POST', url: '/auth/pats', headers: { cookie } });
     });
     Then('the security log records that a token was issued for that host', async () => {
-      const issued = (await securityLog(db)).find((event) => event.type === 'pat.issued');
+      const issued = (await securityLog(database)).find((event) => event.type === 'pat.issued');
       expect(issued?.actorId).toBeTruthy();
     });
   });
 
   Scenario('Using a personal access token is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let token: string;
 
     Given('a signed-in host "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
       const cookie = readCookie(
         await login(app, 'ana@example.com', STRONG_PASSWORD),
@@ -161,19 +160,19 @@ describeFeature(feature, ({ Scenario }) => {
       });
     });
     Then('the security log records that the token was used', async () => {
-      const used = (await securityLog(db)).find((event) => event.type === 'pat.used');
+      const used = (await securityLog(database)).find((event) => event.type === 'pat.used');
       expect(used?.actorId).toBeTruthy();
     });
   });
 
   Scenario('The security log never stores a full token', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
     let token: string;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
       cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
     });
@@ -182,18 +181,18 @@ describeFeature(feature, ({ Scenario }) => {
       token = issued.json().token;
     });
     Then('no security log entry contains the full token', async () => {
-      const serialized = JSON.stringify(await securityLog(db));
+      const serialized = JSON.stringify(await securityLog(database));
       expect(serialized).not.toContain(token);
     });
   });
 
   Scenario('A host refused administrative work is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'bob@example.com');
       cookie = readCookie(await login(app, 'bob@example.com', STRONG_PASSWORD), 'access_token');
     });
@@ -202,7 +201,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(403);
     });
     Then('the security log records a refused administrative attempt for that host', async () => {
-      const refused = (await securityLog(db)).find((event) => event.type === 'admin_access.refused');
+      const refused = (await securityLog(database)).find((event) => event.type === 'admin_access.refused');
       expect(refused?.actorId).toBeTruthy();
       expect(refused?.sourceIp).toBeTruthy();
     });
@@ -210,13 +209,13 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A token refused administrative work is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let token: string;
 
     Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
-      promoteToAdministrator(db, 'ana@example.com');
+      await promoteToAdministrator(database, 'ana@example.com');
       const cookie = readCookie(
         await login(app, 'ana@example.com', STRONG_PASSWORD),
         'access_token',
@@ -235,7 +234,7 @@ describeFeature(feature, ({ Scenario }) => {
     Then(
       'the security log records a refused administrative attempt for that administrator',
       async () => {
-        const refused = (await securityLog(db)).find((event) => event.type === 'admin_access.refused');
+        const refused = (await securityLog(database)).find((event) => event.type === 'admin_access.refused');
         expect(refused?.actorId).toBeTruthy();
       },
     );
@@ -243,13 +242,13 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Administrative work that succeeds is not noise in the log', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
-      promoteToAdministrator(db, 'ana@example.com');
+      await promoteToAdministrator(database, 'ana@example.com');
       cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
     });
     When('that administrator does administrative work successfully', async () => {
@@ -257,20 +256,20 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(200);
     });
     Then('no refused administrative attempt is recorded', async () => {
-      const refused = (await securityLog(db)).find((event) => event.type === 'admin_access.refused');
+      const refused = (await securityLog(database)).find((event) => event.type === 'admin_access.refused');
       expect(refused).toBeUndefined();
     });
   });
 
   Scenario('Issuing an invitation is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
-      promoteToAdministrator(db, 'ana@example.com');
+      await promoteToAdministrator(database, 'ana@example.com');
       cookie = readCookie(await login(app, 'ana@example.com', STRONG_PASSWORD), 'access_token');
     });
     When('that administrator invites "nuevo@example.com"', async () => {
@@ -283,7 +282,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(201);
     });
     Then('the security log records an invitation issued by that administrator', async () => {
-      const issued = (await securityLog(db)).find((event) => event.type === 'invitation.issued');
+      const issued = (await securityLog(database)).find((event) => event.type === 'invitation.issued');
       expect(issued?.actorId).toBeTruthy();
       expect(issued?.sourceIp).toBeTruthy();
     });
@@ -305,19 +304,19 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(201);
     });
     Then('the security log records the invitation accepted', async () => {
-      const accepted = (await securityLog(test.db)).find((event) => event.type === 'invitation.accepted');
+      const accepted = (await securityLog(test.database)).find((event) => event.type === 'invitation.accepted');
       expect(accepted?.sourceIp).toBeTruthy();
     });
   });
 
   Scenario('A refused acceptance is recorded', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       await register(app, 'ana@example.com');
-      promoteToAdministrator(db, 'ana@example.com');
+      await promoteToAdministrator(database, 'ana@example.com');
     });
     When('someone tries to accept with a link that no invitation ever had', async () => {
       const response = await app.inject({
@@ -328,7 +327,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(404);
     });
     Then('the security log records a refused acceptance', async () => {
-      const refused = (await securityLog(db)).find((event) => event.type === 'invitation.refused');
+      const refused = (await securityLog(database)).find((event) => event.type === 'invitation.refused');
       expect(refused?.sourceIp).toBeTruthy();
     });
   });
@@ -352,7 +351,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(404);
     });
     Then('the security log records a refused acceptance noting the link had expired', async () => {
-      const refused = (await securityLog(test.db)).find((event) => event.type === 'invitation.refused');
+      const refused = (await securityLog(test.database)).find((event) => event.type === 'invitation.refused');
       expect(refused?.reason).toBe('expired');
     });
   });
@@ -372,7 +371,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(revoked.statusCode).toBe(200);
     });
     Then('the security log records that invitation revoked by that administrator', async () => {
-      const event = (await securityLog(sent.test.db)).find((e) => e.type === 'invitation.revoked');
+      const event = (await securityLog(sent.test.database)).find((e) => e.type === 'invitation.revoked');
       expect(event?.actorId).toBeTruthy();
       expect(event?.sourceIp).toBeTruthy();
     });
@@ -393,7 +392,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(resent.statusCode).toBe(201);
     });
     Then('the security log records that invitation resent by that administrator', async () => {
-      const event = (await securityLog(sent.test.db)).find((e) => e.type === 'invitation.resent');
+      const event = (await securityLog(sent.test.database)).find((e) => e.type === 'invitation.resent');
       expect(event?.actorId).toBeTruthy();
     });
   });
@@ -412,7 +411,7 @@ describeFeature(feature, ({ Scenario }) => {
       });
     });
     Then("no security log entry contains either invitation's link", async () => {
-      const serialized = JSON.stringify(await securityLog(sent.test.db));
+      const serialized = JSON.stringify(await securityLog(sent.test.database));
       for (const message of sent.test.mailer.sent) {
         const token = message.link.slice(message.link.lastIndexOf('/') + 1);
         expect(serialized).not.toContain(token);
@@ -440,7 +439,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(refused.statusCode).toBe(404);
     });
     Then('the security log records a refused acceptance noting the link had been revoked', async () => {
-      const event = (await securityLog(sent.test.db)).find((e) => e.type === 'invitation.refused');
+      const event = (await securityLog(sent.test.database)).find((e) => e.type === 'invitation.refused');
       expect(event?.reason).toBe('revoked');
     });
   });
@@ -465,7 +464,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(refused.statusCode).toBe(404);
     });
     Then('the security log records a refused acceptance noting the link had been superseded', async () => {
-      const event = (await securityLog(sent.test.db)).find((e) => e.type === 'invitation.refused');
+      const event = (await securityLog(sent.test.database)).find((e) => e.type === 'invitation.refused');
       expect(event?.reason).toBe('superseded');
     });
   });
@@ -485,7 +484,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(claimed.statusCode).toBe(201);
     });
     Then('the security log records that the deployment was claimed', async () => {
-      const event = (await securityLog(test.db)).find((e) => e.type === 'admin_bootstrap.claimed');
+      const event = (await securityLog(test.database)).find((e) => e.type === 'admin_bootstrap.claimed');
       expect(event?.sourceIp).toBeTruthy();
     });
   });
@@ -507,7 +506,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(accepted.statusCode).toBe(201);
     });
     Then("the security log records that the deployment's administrator was created", async () => {
-      const event = (await securityLog(test.db)).find((e) => e.type === 'admin_bootstrap.completed');
+      const event = (await securityLog(test.database)).find((e) => e.type === 'admin_bootstrap.completed');
       expect(event?.actorId).toBeTruthy();
     });
   });
@@ -527,11 +526,11 @@ describeFeature(feature, ({ Scenario }) => {
       expect(refused.statusCode).toBe(403);
     });
     Then('the security log records a refused claim', async () => {
-      const event = (await securityLog(test.db)).find((e) => e.type === 'admin_bootstrap.refused');
+      const event = (await securityLog(test.database)).find((e) => e.type === 'admin_bootstrap.refused');
       expect(event?.sourceIp).toBeTruthy();
     });
     And('no security log entry reveals "operator@example.com"', async () => {
-      expect(JSON.stringify(await securityLog(test.db))).not.toContain(OPERATOR);
+      expect(JSON.stringify(await securityLog(test.database))).not.toContain(OPERATOR);
     });
   });
 
@@ -543,7 +542,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com" whose mail server will take nothing', async () => {
       test = await makeTestApp();
       await register(test.app, 'ana@example.com');
-      promoteToAdministrator(test.db, 'ana@example.com');
+      await promoteToAdministrator(test.database, 'ana@example.com');
       cookie = readCookie(
         await login(test.app, 'ana@example.com', STRONG_PASSWORD),
         'access_token',
@@ -561,13 +560,13 @@ describeFeature(feature, ({ Scenario }) => {
       link = invited.json().link;
     });
     Then('the security log records that the message did not go out', async () => {
-      const event = (await securityLog(test.db)).find((e) => e.type === 'invitation.not_sent');
+      const event = (await securityLog(test.database)).find((e) => e.type === 'invitation.not_sent');
       expect(event?.actorId).toBeTruthy();
       expect(event?.sourceIp).toBeTruthy();
     });
     And("no security log entry contains that invitation's link", async () => {
       const token = link.slice(link.lastIndexOf('/') + 1);
-      expect(JSON.stringify(await securityLog(test.db))).not.toContain(token);
+      expect(JSON.stringify(await securityLog(test.database))).not.toContain(token);
     });
   });
 
@@ -578,7 +577,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       await register(test.app, 'ana@example.com');
-      promoteToAdministrator(test.db, 'ana@example.com');
+      await promoteToAdministrator(test.database, 'ana@example.com');
       cookie = readCookie(
         await login(test.app, 'ana@example.com', STRONG_PASSWORD),
         'access_token',
@@ -593,7 +592,7 @@ describeFeature(feature, ({ Scenario }) => {
       });
     });
     Then('no failed-message entry is recorded', async () => {
-      expect((await securityLog(test.db)).find((e) => e.type === 'invitation.not_sent')).toBeUndefined();
+      expect((await securityLog(test.database)).find((e) => e.type === 'invitation.not_sent')).toBeUndefined();
     });
   });
 
@@ -601,12 +600,12 @@ describeFeature(feature, ({ Scenario }) => {
     'A refusal for an unknown link is not recorded as an expiry',
     ({ Given, When, Then }) => {
       let app: FastifyInstance;
-      let db: DatabaseSync;
+      let database: Database;
 
       Given('an administrator "ana@example.com"', async () => {
-        ({ app, db } = await makeTestApp());
+        ({ app, database } = await makeTestApp());
         await register(app, 'ana@example.com');
-        promoteToAdministrator(db, 'ana@example.com');
+        await promoteToAdministrator(database, 'ana@example.com');
       });
       When('someone tries to accept with a link that no invitation ever had', async () => {
         await app.inject({
@@ -616,7 +615,7 @@ describeFeature(feature, ({ Scenario }) => {
         });
       });
       Then('the security log does not describe that refusal as an expiry', async () => {
-        const refused = (await securityLog(db)).find((event) => event.type === 'invitation.refused');
+        const refused = (await securityLog(database)).find((event) => event.type === 'invitation.refused');
         expect(refused).toBeTruthy();
         expect(refused?.reason).not.toBe('expired');
       });
@@ -630,7 +629,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       await register(test.app, 'ana@example.com');
-      promoteToAdministrator(test.db, 'ana@example.com');
+      await promoteToAdministrator(test.database, 'ana@example.com');
     });
     When('that administrator invites "nuevo@example.com"', async () => {
       const cookie = readCookie(
@@ -646,7 +645,7 @@ describeFeature(feature, ({ Scenario }) => {
       link = test.mailer.sent.at(-1)!.link;
     });
     Then("no security log entry contains that invitation's link", async () => {
-      const serialized = JSON.stringify(await securityLog(test.db));
+      const serialized = JSON.stringify(await securityLog(test.database));
       expect(serialized).not.toContain(link.slice(link.lastIndexOf('/') + 1));
     });
   });

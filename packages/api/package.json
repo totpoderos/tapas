@@ -18,8 +18,10 @@
     "@tapas/domain": "*",
     "@tapas/mcp": "*",
     "@tapas/shared": "*",
+    "@types/pg": "^8.20.3",
     "fastify": "^5.2.1",
     "nodemailer": "^9.0.3",
+    "pg": "^8.22.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

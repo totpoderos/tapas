@@ -1,7 +1,6 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
+import type { Database } from '../../../src/db/database.js';
+import { freshDatabase } from '../../support/test-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { runMigrations } from '../../../src/db/migrate.js';
 import { SqliteContestRepository } from '../../../src/db/contest-repository.js';
 import type { StoredContest } from '../../../src/contests/stored-contest.js';
 
@@ -16,7 +15,7 @@ import type { StoredContest } from '../../../src/contests/stored-contest.js';
  * let us assert that without ever writing a null.
  */
 describe('the rules a contest keeps', async () => {
-  let db: DatabaseSync;
+  let database: Database;
   let contests: SqliteContestRepository;
 
   const stored = (over: Partial<StoredContest> = {}): StoredContest => ({
@@ -41,9 +40,8 @@ describe('the rules a contest keeps', async () => {
   });
 
   beforeEach(async () => {
-    db = new DatabaseSync(':memory:');
-    await runMigrations(new SqliteDatabase(db));
-    contests = new SqliteContestRepository(new SqliteDatabase(db));
+    ({ database } = await freshDatabase());
+    contests = new SqliteContestRepository(database);
   });
 
   it('reads back the format a contest was published with', async () => {

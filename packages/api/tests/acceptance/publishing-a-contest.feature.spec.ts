@@ -1,6 +1,5 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
+import { freshDatabase } from '../support/test-database.js';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import type { DraftContent } from '@tapas/domain';
 import { expect } from 'vitest';
@@ -11,8 +10,7 @@ import {
   GetContest,
   ListHostDrafts,
   PublishContest,
-  runMigrations,
-  SqliteAuditLogRepository,
+    SqliteAuditLogRepository,
   SqliteContestRepository,
   SqliteDraftRepository,
   SqliteRosterRepository,
@@ -24,12 +22,11 @@ const feature = await loadFeature(
 );
 
 async function makeContestWorkspace() {
-  const db = new DatabaseSync(':memory:');
-  await runMigrations(new SqliteDatabase(db));
-  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
-  const contests = new SqliteContestRepository(new SqliteDatabase(db));
-  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
-  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
+  const { database } = await freshDatabase();
+  const drafts = new SqliteDraftRepository(database);
+  const contests = new SqliteContestRepository(database);
+  const roster = new SqliteRosterRepository(database);
+  const auditLog = new SqliteAuditLogRepository(database);
   let auditSequence = 0;
   const ids = { next: () => `audit-${++auditSequence}` };
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };

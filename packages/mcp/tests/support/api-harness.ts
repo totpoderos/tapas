@@ -1,16 +1,15 @@
-import { DatabaseSync } from 'node:sqlite';
 import { seedHostIn } from '../../../api/tests/support/test-server.js';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import {
   BcryptPasswordHasher,
   buildProductionDeps,
   buildServer,
-  runMigrations,
-  StubLLMClient,
+    StubLLMClient,
   type Clock,
   type Env,
 } from '@tapas/api';
-import { SqliteDatabase } from '@tapas/api';
+import type { Database } from '@tapas/api';
+import { freshDatabase } from '../../../api/tests/support/test-database.js';
 
 /**
  * A real, fully-wired API over in-memory SQLite, listening on an ephemeral port
@@ -24,7 +23,9 @@ const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 const BASE_ENV: Env = {
   NODE_ENV: 'test',
   API_PORT: 3000,
+  DATABASE_DRIVER: 'sqlite',
   DATABASE_PATH: ':memory:',
+  DATABASE_URL: '',
   JWT_SECRET: 'test-secret-that-is-at-least-32-characters',
   HOST_WEB_ORIGIN: 'http://localhost:5173',
   PARTICIPANT_WEB_ORIGIN: 'http://localhost:5174',
@@ -48,16 +49,18 @@ const FIXED_CLOCK: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
 export interface RunningApi {
   readonly app: FastifyInstance;
   readonly baseUrl: string;
-  /** The in-memory database behind the API — lets an integration test read the audit log directly. */
-  readonly db: DatabaseSync;
+  /**
+   * The database behind the API — lets an integration test read the audit log
+   * directly. The port rather than a SQLite connection, so a spec here reads the
+   * same way whichever database is serving.
+   */
+  readonly database: Database;
   close(): Promise<void>;
 }
 
 /** Builds the API and starts it listening on a free port; returns its base URL. */
 export async function startApi(): Promise<RunningApi> {
-  const db = new DatabaseSync(':memory:');
-  const database = new SqliteDatabase(db);
-  await runMigrations(database);
+  const { database, handle } = await freshDatabase();
   const deps = buildProductionDeps(database, BASE_ENV, FIXED_CLOCK, new BcryptPasswordHasher(4), new StubLLMClient());
   const app = buildServer(deps);
   await app.listen({ port: 0, host: '127.0.0.1' });
@@ -66,10 +69,10 @@ export async function startApi(): Promise<RunningApi> {
   return {
     app,
     baseUrl: `http://127.0.0.1:${address.port}`,
-    db,
+    database,
     close: async () => {
       await app.close();
-      db.close();
+      handle?.close();
     },
   };
 }
@@ -118,11 +121,11 @@ export function asBearer(app: FastifyInstance, token: string, method: 'GET' | 'P
 /** Gives a host an account and logs them in, then issues a personal access token. */
 export async function hostWithToken(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
 ): Promise<string> {
   const jar = new CookieJar();
-  await seedHostIn(db, email, STRONG_PASSWORD);
+  await seedHostIn(database, email, STRONG_PASSWORD);
   await asHost(app, jar, 'POST', '/auth/login', { email, password: STRONG_PASSWORD });
   const issued = await asHost(app, jar, 'POST', '/auth/pats');
   return issued.json().token as string;
@@ -193,41 +196,41 @@ export async function publishNamedContestAs(
 /** Gives a host an account and publishes a live contest with a specific name; returns its id and token. */
 export async function hostWithNamedContest(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
   name: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, db, email);
+  const token = await hostWithToken(app, database, email);
   return { token, contestId: await publishNamedContestAs(app, token, name) };
 }
 
 /** Gives a host an account, saves a simple draft as them, and returns its id and token. */
 export async function hostWithDraft(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
 ): Promise<{ token: string; draftId: string }> {
-  const token = await hostWithToken(app, db, email);
+  const token = await hostWithToken(app, database, email);
   return { token, draftId: await saveDraftAs(app, token) };
 }
 
 /** Gives a host an account, publishes a simple live contest as them, and returns its id and token. */
 export async function hostWithPublishedContest(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, db, email);
+  const token = await hostWithToken(app, database, email);
   return { token, contestId: await publishContestAs(app, token) };
 }
 
 /** Gives a host an account and publishes then closes a contest — the state a reveal needs. */
 export async function hostWithClosedContest(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const token = await hostWithToken(app, db, email);
+  const token = await hostWithToken(app, database, email);
   const contestId = await publishContestAs(app, token);
   await asBearer(app, token, 'POST', `/contests/${contestId}/close`);
   return { token, contestId };
@@ -236,10 +239,10 @@ export async function hostWithClosedContest(
 /** Gives a host an account and takes a contest all the way to revealed. */
 export async function hostWithRevealedContest(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   email: string,
 ): Promise<{ token: string; contestId: string }> {
-  const { token, contestId } = await hostWithClosedContest(app, db, email);
+  const { token, contestId } = await hostWithClosedContest(app, database, email);
   await asBearer(app, token, 'POST', `/contests/${contestId}/reveal`);
   return { token, contestId };
 }

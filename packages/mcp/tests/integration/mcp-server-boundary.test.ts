@@ -1,7 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { SqliteAuditLogRepository } from '@tapas/api';
-import { SqliteDatabase } from '@tapas/api';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildMcpServer } from '../../src/mcp-server.js';
 import { hostWithToken, startApi, type RunningApi } from '../support/api-harness.js';
@@ -38,7 +37,7 @@ describe('MCP server boundary', async () => {
 
   it('rejects a tool call whose arguments break the tool schema', async () => {
     api = await startApi();
-    const client = await connect(await hostWithToken(api.app, api.db, 'ana@example.com'));
+    const client = await connect(await hostWithToken(api.app, api.database, 'ana@example.com'));
 
     // get_contest requires a string contestId; a number is the wrong type. The SDK
     // validates against the tool schema, so the call is rejected — surfaced either
@@ -66,7 +65,7 @@ describe('MCP server boundary', async () => {
    */
   it("carries the API's reason for a refusal, not just its code", async () => {
     api = await startApi();
-    const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+    const token = await hostWithToken(api.app, api.database, 'ana@example.com');
     const client = await connect(token);
 
     await client.callTool({ name: 'create_draft', arguments: { name: 'Tapas Night' } });
@@ -85,7 +84,7 @@ describe('MCP server boundary', async () => {
 
   it('records an audit entry for an action taken through the server', async () => {
     api = await startApi();
-    const client = await connect(await hostWithToken(api.app, api.db, 'ana@example.com'));
+    const client = await connect(await hostWithToken(api.app, api.database, 'ana@example.com'));
 
     const result = (await client.callTool({
       name: 'create_draft',
@@ -93,7 +92,7 @@ describe('MCP server boundary', async () => {
     })) as ToolResult;
     const draftId = JSON.parse(result.content[0]!.text).id as string;
 
-    const entries = await new SqliteAuditLogRepository(new SqliteDatabase(api.db)).findByContest(draftId);
+    const entries = await new SqliteAuditLogRepository(api.database).findByContest(draftId);
     expect(entries.some((entry) => entry.type === 'draft.saved')).toBe(true);
   });
 });

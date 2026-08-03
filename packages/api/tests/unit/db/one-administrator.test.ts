@@ -1,8 +1,7 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
+import type { Database } from '../../../src/db/database.js';
+import { freshDatabase } from '../../support/test-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { HostAccount } from '@tapas/domain';
-import { runMigrations } from '../../../src/db/migrate.js';
 import { SqliteHostAccountRepository } from '../../../src/db/host-account-repository.js';
 
 /**
@@ -11,13 +10,12 @@ import { SqliteHostAccountRepository } from '../../../src/db/host-account-reposi
  * cannot be.
  */
 describe('a deployment has at most one administrator', async () => {
-  let db: DatabaseSync;
+  let database: Database;
   let accounts: SqliteHostAccountRepository;
 
   beforeEach(async () => {
-    db = new DatabaseSync(':memory:');
-    await runMigrations(new SqliteDatabase(db));
-    accounts = new SqliteHostAccountRepository(new SqliteDatabase(db));
+    ({ database } = await freshDatabase());
+    accounts = new SqliteHostAccountRepository(database);
   });
 
   it('accepts the first administrator', async () => {

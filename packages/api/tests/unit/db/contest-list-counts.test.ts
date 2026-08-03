@@ -1,7 +1,6 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../../src/db/sqlite-database.js';
+import type { Database } from '../../../src/db/database.js';
+import { freshDatabase } from '../../support/test-database.js';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { runMigrations } from '../../../src/db/migrate.js';
 import { SqliteRosterRepository } from '../../../src/db/roster-repository.js';
 import { SqliteVoteSessionRepository } from '../../../src/db/vote-session-repository.js';
 
@@ -14,17 +13,16 @@ import { SqliteVoteSessionRepository } from '../../../src/db/vote-session-reposi
  * a fake would never have told us.
  */
 describe('counting a whole contest list at once', async () => {
-  let db: DatabaseSync;
+  let database: Database;
   let roster: SqliteRosterRepository;
   let voteSessions: SqliteVoteSessionRepository;
 
   const clock = { now: () => '2026-07-30T10:00:00.000Z' };
 
   beforeEach(async () => {
-    db = new DatabaseSync(':memory:');
-    await runMigrations(new SqliteDatabase(db));
-    roster = new SqliteRosterRepository(new SqliteDatabase(db));
-    voteSessions = new SqliteVoteSessionRepository(new SqliteDatabase(db), clock);
+    ({ database } = await freshDatabase());
+    roster = new SqliteRosterRepository(database);
+    voteSessions = new SqliteVoteSessionRepository(database, clock);
   });
 
   async function session(contestId: string, voterId: string, status: 'draft' | 'sent') {

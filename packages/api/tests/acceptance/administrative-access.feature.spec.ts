@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../../src/db/database.js';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
@@ -67,12 +66,12 @@ async function registerAndLogin(
 /** Registers the host, promotes them, then signs in — so the session carries the promoted role. */
 async function signInAsAdministrator(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   jar: CookieJar,
   email: string,
 ): Promise<void> {
   await seedHost(app, email, STRONG_PASSWORD);
-  promoteToAdministrator(db, email);
+  await promoteToAdministrator(database, email);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',
@@ -83,14 +82,14 @@ async function signInAsAdministrator(
 describeFeature(feature, ({ Scenario }) => {
   Scenario('An administrator sees the list of host accounts', ({ Given, And, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let adminJar: CookieJar;
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       adminJar = new CookieJar();
-      await signInAsAdministrator(app, db, adminJar, 'ana@example.com');
+      await signInAsAdministrator(app, database, adminJar, 'ana@example.com');
     });
     And('a host "bob@example.com"', async () => {
       await registerAndLogin(app, new CookieJar(), 'bob@example.com');
@@ -133,13 +132,13 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Being refused tells the host nothing about what exists', ({ Given, And, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let hostJar: CookieJar;
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
-      await signInAsAdministrator(app, db, new CookieJar(), 'ana@example.com');
+      ({ app, database } = await makeTestApp());
+      await signInAsAdministrator(app, database, new CookieJar(), 'ana@example.com');
     });
     And('a signed-in host "bob@example.com"', async () => {
       hostJar = new CookieJar();
@@ -174,14 +173,14 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("An administrator's token cannot do administrative work", ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let token: string;
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       const jar = new CookieJar();
-      await signInAsAdministrator(app, db, jar, 'ana@example.com');
+      await signInAsAdministrator(app, database, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
       token = issued.json().token;
     });
@@ -196,14 +195,14 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("An administrator's token can still do a host's work", ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let token: string;
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       const jar = new CookieJar();
-      await signInAsAdministrator(app, db, jar, 'ana@example.com');
+      await signInAsAdministrator(app, database, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
       token = issued.json().token;
     });
@@ -222,14 +221,14 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("An administrator's own app is told they are one", ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let jar: CookieJar;
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       jar = new CookieJar();
-      await signInAsAdministrator(app, db, jar, 'ana@example.com');
+      await signInAsAdministrator(app, database, jar, 'ana@example.com');
     });
     When('their app asks who it is talking to', async () => {
       response = await request(app, jar, { method: 'GET', url: '/auth/me' });
@@ -283,11 +282,11 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Asking records no refused administrative attempt', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let jar: CookieJar;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'bob@example.com');
     });
@@ -301,7 +300,7 @@ describeFeature(feature, ({ Scenario }) => {
       // every page load, and bury the one line that means somebody reached for
       // something they should not have.
       const refused = (
-        await new SqliteSecurityEventLog(new SqliteDatabase(db), new SystemClock(), new UuidIdGenerator()).list()
+        await new SqliteSecurityEventLog(database, new SystemClock(), new UuidIdGenerator()).list()
       ).find((event) => event.type === 'admin_access.refused');
       expect(refused).toBeUndefined();
     });

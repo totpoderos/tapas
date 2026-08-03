@@ -1,6 +1,5 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
+import { freshDatabase } from '../support/test-database.js';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import type { DraftContent } from '@tapas/domain';
 import { expect } from 'vitest';
@@ -12,8 +11,7 @@ import {
   GetDraft,
   ListHostDrafts,
   RenameDraft,
-  runMigrations,
-  SqliteAuditLogRepository,
+    SqliteAuditLogRepository,
   SqliteContestRepository,
   SqliteDishRepository,
   SqliteDraftRepository,
@@ -29,10 +27,9 @@ const feature = await loadFeature(
 );
 
 async function makeDraftWorkspace() {
-  const db = new DatabaseSync(':memory:');
-  await runMigrations(new SqliteDatabase(db));
-  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
-  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
+  const { database } = await freshDatabase();
+  const drafts = new SqliteDraftRepository(database);
+  const auditLog = new SqliteAuditLogRepository(database);
   let sequence = 0;
   const ids: IdGenerator = { next: () => `id-${++sequence}` };
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
@@ -45,13 +42,13 @@ async function makeDraftWorkspace() {
     // draft's stored content names participants, so it is erased rather than
     // copied into the log (which is what the old `draft.discarded` record did).
     deleteContest: new DeleteContest({
-      contests: new SqliteContestRepository(new SqliteDatabase(db)),
+      contests: new SqliteContestRepository(database),
       drafts,
-      roster: new SqliteRosterRepository(new SqliteDatabase(db)),
-      dishes: new SqliteDishRepository(new SqliteDatabase(db)),
-      voteSessions: new SqliteVoteSessionRepository(new SqliteDatabase(db), clock),
+      roster: new SqliteRosterRepository(database),
+      dishes: new SqliteDishRepository(database),
+      voteSessions: new SqliteVoteSessionRepository(database, clock),
       audit,
-      unitOfWork: new DatabaseUnitOfWork(new SqliteDatabase(db)),
+      unitOfWork: new DatabaseUnitOfWork(database),
     }),
     getDraft: new GetDraft(drafts),
     listHostDrafts: new ListHostDrafts(drafts),

@@ -96,7 +96,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -117,7 +117,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -142,7 +142,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste" and "Presentation"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste', 'Presentation'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -171,7 +171,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste" and "Presentation"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste', 'Presentation'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -195,7 +195,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -228,7 +228,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a draft named "Tapas Night"', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.database, 'ana@example.com');
       await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
       client = await connectAssistant(api.baseUrl, token);
     });
@@ -247,7 +247,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" scored between 1 and 10',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -265,7 +265,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a draft named "Tapas Night"', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.database, 'ana@example.com');
       await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
       client = await connectAssistant(api.baseUrl, token);
     });
@@ -287,7 +287,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" where each score is used only once',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', {
           ...judgedOn('Taste'),
           uniquePerCategory: true,
@@ -310,7 +310,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste", scored between 1 and 10, with Ana and Bob taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'), ['Ana', 'Bob']);
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -335,7 +335,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a published contest named "Tapas Night"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await publishNamedContestAs(api.app, token, 'Tapas Night');
         client = await connectAssistant(api.baseUrl, token);
       },
@@ -362,7 +362,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a personal access token and a draft named "Tapas Night"', async () => {
       const api = await startTrackedApi();
-      const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+      const token = await hostWithToken(api.app, api.database, 'ana@example.com');
       await saveScoredDraftAs(api.app, token, 'Tapas Night', judgedOn('Taste'));
       client = await connectAssistant(api.baseUrl, token);
     });

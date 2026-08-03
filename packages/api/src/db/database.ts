@@ -54,4 +54,15 @@ export interface Database {
   transaction<T>(work: () => Promise<T>): Promise<T>;
 
   close(): Promise<void>;
+
+  /**
+   * Runs the migrations with every other instance held back.
+   *
+   * Optional because it is only meaningful where more than one instance can
+   * start at once. SQLite has one process and one file and does not implement
+   * it; Postgres does, because a deployment that starts three instances
+   * together would otherwise have two of them applying `0001` at the same time,
+   * and the loser fails on a table that already exists.
+   */
+  withMigrationLock?<T>(work: () => Promise<T>): Promise<T>;
 }

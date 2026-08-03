@@ -1,5 +1,5 @@
-import type { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
+import type { Database } from '../../src/db/database.js';
 import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -142,11 +142,11 @@ async function playContest(
  * is deliberately no way to read it back — the contest whose ownership the audit
  * route checks no longer exists.
  */
-const state: { db: DatabaseSync } = { db: undefined as unknown as DatabaseSync };
+const state: { database: Database } = { database: undefined as unknown as Database };
 
 async function freshApp(): Promise<FastifyInstance> {
   const made = await makeTestApp();
-  state.db = made.db;
+  state.database = made.database;
   return made.app;
 }
 
@@ -159,9 +159,8 @@ interface AuditRow {
   occurred_at: string;
 }
 
-function tombstoneRows(contestId: string): AuditRow[] {
-  return state.db
-    .prepare('SELECT * FROM audit_log WHERE contest_id = ? ORDER BY occurred_at, id')
+async function tombstoneRows(contestId: string): Promise<AuditRow[]> {
+  return await state.database.prepare('SELECT * FROM audit_log WHERE contest_id = ? ORDER BY occurred_at, id')
     .all(contestId) as unknown as AuditRow[];
 }
 
@@ -231,16 +230,14 @@ describeFeature(feature, ({ Scenario }) => {
       });
       expect(gone.statusCode).toBe(404);
     });
-    And('every dish, score and vote cast in it is gone too', () => {
-      const { db } = state;
-      const rows = (table: string) =>
-        (
-          db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as unknown as { n: number }
-        ).n;
-      expect(rows('dishes')).toBe(0);
-      expect(rows('persons')).toBe(0);
-      expect(rows('vote_sessions')).toBe(0);
-      expect(rows('scores')).toBe(0);
+    And('every dish, score and vote cast in it is gone too', async () => {
+      const { database } = state;
+      const rows = async (table: string) =>
+        ((await database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get()) as { n: number }).n;
+      expect(await rows('dishes')).toBe(0);
+      expect(await rows('persons')).toBe(0);
+      expect(await rows('vote_sessions')).toBe(0);
+      expect(await rows('scores')).toBe(0);
     });
   });
 
@@ -374,8 +371,8 @@ describeFeature(feature, ({ Scenario }) => {
     When('its host deletes it, reproducing its name', async () => {
       await deleteContest(app, played.host, played.contestId, CONTEST_NAME);
     });
-    Then('none of that recorded history remains', () => {
-      const kinds = tombstoneRows(played.contestId).map((row) => row.type);
+    Then('none of that recorded history remains', async () => {
+      const kinds = (await tombstoneRows(played.contestId)).map((row) => row.type);
       expect(kinds).toEqual(['contest.deleted']);
     });
   });
@@ -395,8 +392,8 @@ describeFeature(feature, ({ Scenario }) => {
     });
     Then(
       'a single entry records that this host deleted this contest, and that they confirmed it',
-      () => {
-        const rows = tombstoneRows(draftId);
+      async () => {
+        const rows = await tombstoneRows(draftId);
         expect(rows).toHaveLength(1);
         expect(rows[0]!.type).toBe('contest.deleted');
         expect(rows[0]!.confirmation).toBe('host');
@@ -417,8 +414,8 @@ describeFeature(feature, ({ Scenario }) => {
     When('its host deletes it, reproducing its name', async () => {
       await deleteContest(app, played.host, played.contestId, CONTEST_NAME);
     });
-    Then('the entry left behind names none of them', () => {
-      const rows = tombstoneRows(played.contestId);
+    Then('the entry left behind names none of them', async () => {
+      const rows = await tombstoneRows(played.contestId);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.before_json).toBeNull();
       expect(rows[0]!.after_json).toBeNull();
@@ -523,10 +520,10 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(410);
       expect(response.json().error.code).toBe('CONTEST_DELETED');
     });
-    And('no vote is recorded', () => {
-      const { db } = state;
+    And('no vote is recorded', async () => {
+      const { database } = state;
       const rows = (
-        db.prepare('SELECT COUNT(*) AS n FROM vote_sessions').get() as unknown as { n: number }
+        await database.prepare('SELECT COUNT(*) AS n FROM vote_sessions').get() as unknown as { n: number }
       ).n;
       expect(rows).toBe(0);
     });

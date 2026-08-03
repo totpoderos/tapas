@@ -21,23 +21,23 @@ describe('seedHost', async () => {
   });
 
   it('does not store the password as given', async () => {
-    const { app, db } = await makeTestApp();
+    const { app, database } = await makeTestApp();
     await seedHost(app, 'ana@example.com', 'Str0ng!Passw0rd');
 
-    const row = db
+    const row = (await database
       .prepare('SELECT password_hash FROM host_accounts WHERE email = ?')
-      .get('ana@example.com') as { password_hash: string };
+      .get('ana@example.com')) as { password_hash: string };
 
     expect(row.password_hash).not.toContain('Str0ng!Passw0rd');
   });
 
   it('can seed an administrator too', async () => {
-    const { app, db } = await makeTestApp();
+    const { app, database } = await makeTestApp();
     await seedHost(app, 'ana@example.com', 'Str0ng!Passw0rd', 'admin');
 
-    const row = db
+    const row = (await database
       .prepare('SELECT role FROM host_accounts WHERE email = ?')
-      .get('ana@example.com') as { role: string };
+      .get('ana@example.com')) as { role: string };
 
     expect(row.role).toBe('admin');
   });
