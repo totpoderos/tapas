@@ -117,11 +117,25 @@ as of this writing.
 > destination still have to be shown to share each check individually* — see the
 > recurring-asymmetry note in §4.
 
-**Residual risk / gap:** the `admin` role and a `requireRole()` middleware named
-in the design do **not** exist (see §4). And contest `get/close/reveal` use cases
-carry no *internal* ownership check — it lives only at the route — so a future
-non-route caller of those use cases would bypass it (drafts do not have this
-weakness). Tracked for 6.11.
+**Residual risk / gap:** contest `get/close/reveal` use cases carry no *internal*
+ownership check — it lives only at the route — so a future non-route caller of
+those use cases would bypass it (drafts do not have this weakness). Tracked for
+6.11 as G6. The residual risk around roles is no longer the absence of one: it
+is that a deployment has exactly one administrator and nothing transfers the
+role, recorded as G10.
+
+> **This paragraph outlived its own gap.** It read "the `admin` role and a
+> `requireRole()` middleware named in the design do **not** exist (see §4)" for
+> some time after §4 recorded G3 as **CLOSED** — so this document contradicted
+> itself, and a generated wiki repeated the wrong half of it. Administrative work
+> has been a guarded category since
+> [require-administrator.ts](../packages/api/src/http/require-administrator.ts)
+> landed. One clause of the original was accurate and is worth keeping: there is
+> no generic `requireRole()`. What exists is `requireAdministrator`, a guard for
+> the one role beyond `host` and `voter`; a parameterised middleware with a
+> single possible argument would have been indirection, not design. The failure
+> here is the ordinary one — a gap was closed in the table and the prose that
+> pointed at it was not re-read.
 
 ### 3.2 Security Misconfiguration — A05
 
