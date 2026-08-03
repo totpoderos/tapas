@@ -63,12 +63,12 @@ function makeUseCase() {
   };
 }
 
-describe('ListMyContests', () => {
-  it('merges a host’s drafts and published contests, each marked with its state', () => {
+describe('ListMyContests', async () => {
+  it('merges a host’s drafts and published contests, each marked with its state', async () => {
     const { drafts, contests, listMyContests } = makeUseCase();
-    drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Summer Tapas', participants: [] } }));
-    contests.insert(contest({ id: 'c1', hostId: 'ana', name: 'Balcony Cook-off', status: 'live' }));
-    contests.insert(
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Summer Tapas', participants: [] } }));
+    await contests.insert(contest({ id: 'c1', hostId: 'ana', name: 'Balcony Cook-off', status: 'live' }));
+    await contests.insert(
       contest({
         id: 'c2',
         hostId: 'ana',
@@ -78,7 +78,7 @@ describe('ListMyContests', () => {
       }),
     );
 
-    const summaries = listMyContests.execute('ana');
+    const summaries = await listMyContests.execute('ana');
 
     expect(summaries).toHaveLength(3);
     const byName = Object.fromEntries(summaries.map((s) => [s.name, s.status]));
@@ -89,9 +89,9 @@ describe('ListMyContests', () => {
     });
   });
 
-  it('marks a contest whose voting has closed as closed', () => {
+  it('marks a contest whose voting has closed as closed', async () => {
     const { contests, listMyContests } = makeUseCase();
-    contests.insert(
+    await contests.insert(
       contest({
         id: 'c1',
         hostId: 'ana',
@@ -101,7 +101,7 @@ describe('ListMyContests', () => {
       }),
     );
 
-    expect(listMyContests.execute('ana')).toEqual([
+    expect(await listMyContests.execute('ana')).toEqual([
       {
         id: 'c1',
         name: 'Rooftop Rounds',
@@ -114,25 +114,25 @@ describe('ListMyContests', () => {
     ]);
   });
 
-  it('returns an empty list for a host with nothing', () => {
+  it('returns an empty list for a host with nothing', async () => {
     const { listMyContests } = makeUseCase();
-    expect(listMyContests.execute('ana')).toEqual([]);
+    expect(await listMyContests.execute('ana')).toEqual([]);
   });
 
-  it('returns only the given host’s items', () => {
+  it('returns only the given host’s items', async () => {
     const { drafts, contests, listMyContests } = makeUseCase();
-    drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Ana’s Tapas', participants: [] } }));
-    contests.insert(contest({ id: 'c1', hostId: 'bob', name: 'Bob’s Cook-off', status: 'live' }));
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Ana’s Tapas', participants: [] } }));
+    await contests.insert(contest({ id: 'c1', hostId: 'bob', name: 'Bob’s Cook-off', status: 'live' }));
 
-    const summaries = listMyContests.execute('ana');
+    const summaries = await listMyContests.execute('ana');
 
     expect(summaries).toHaveLength(1);
     expect(summaries[0]?.name).toBe('Ana’s Tapas');
   });
 
-  it('orders the most recently touched first', () => {
+  it('orders the most recently touched first', async () => {
     const { drafts, contests, listMyContests } = makeUseCase();
-    drafts.insert(
+    await drafts.insert(
       draft({
         id: 'd1',
         hostId: 'ana',
@@ -140,7 +140,7 @@ describe('ListMyContests', () => {
         updatedAt: '2026-07-18T10:00:00.000Z',
       }),
     );
-    contests.insert(
+    await contests.insert(
       contest({
         id: 'c1',
         hostId: 'ana',
@@ -150,7 +150,7 @@ describe('ListMyContests', () => {
       }),
     );
 
-    expect(listMyContests.execute('ana').map((s) => s.name)).toEqual(['Newer reveal', 'Older draft']);
+    expect((await listMyContests.execute('ana')).map((s) => s.name)).toEqual(['Newer reveal', 'Older draft']);
   });
 });
 
@@ -160,19 +160,19 @@ describe('ListMyContests', () => {
  * what it cannot have yet, never a zero — "not published" and "nobody has voted"
  * are different answers and a host must not have to tell them apart by guessing.
  */
-describe('ListMyContests — how each contest is going', () => {
-  it('reports how far along a live contest’s voting is', () => {
+describe('ListMyContests — how each contest is going', async () => {
+  it('reports how far along a live contest’s voting is', async () => {
     const { contests, roster, voteSessions, listMyContests } = makeUseCase();
-    contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
-    roster.seed('c1', [
+    await contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
+    await roster.seed('c1', [
       { participantId: 'p1', displayName: 'Isabel' },
       { participantId: 'p2', displayName: 'Tomás' },
       { participantId: 'p3', displayName: 'Núria' },
       { participantId: 'p4', displayName: 'Pau' },
     ]);
-    for (const id of ['p1', 'p2', 'p3', 'p4']) roster.claim('c1', id, '2026-07-20T10:00:00.000Z');
+    for (const id of ['p1', 'p2', 'p3', 'p4']) await roster.claim('c1', id, '2026-07-20T10:00:00.000Z');
     // Two sent, one still scoring, one has not started.
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 's1',
       contestId: 'c1',
       voterId: 'p1',
@@ -180,7 +180,7 @@ describe('ListMyContests — how each contest is going', () => {
       createdAt: 'x',
       submittedAt: 'y',
     });
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 's2',
       contestId: 'c1',
       voterId: 'p2',
@@ -188,7 +188,7 @@ describe('ListMyContests — how each contest is going', () => {
       createdAt: 'x',
       submittedAt: 'y',
     });
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 's3',
       contestId: 'c1',
       voterId: 'p3',
@@ -197,29 +197,29 @@ describe('ListMyContests — how each contest is going', () => {
       submittedAt: null,
     });
 
-    expect(listMyContests.execute('ana')[0]?.progress).toEqual({
+    expect((await listMyContests.execute('ana'))[0]?.progress).toEqual({
       claimedCount: 4,
       draftCount: 1,
       sentCount: 2,
     });
   });
 
-  it('reports a live contest nobody has joined as a real nothing, not as absent', () => {
+  it('reports a live contest nobody has joined as a real nothing, not as absent', async () => {
     const { contests, listMyContests } = makeUseCase();
-    contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
+    await contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
 
     // It is published, so the counts apply — they are simply all nought. That is
     // a different statement from a draft, which has no progress at all.
-    expect(listMyContests.execute('ana')[0]?.progress).toEqual({
+    expect((await listMyContests.execute('ana'))[0]?.progress).toEqual({
       claimedCount: 0,
       draftCount: 0,
       sentCount: 0,
     });
   });
 
-  it('reports a published contest’s rules in brief and its join code', () => {
+  it('reports a published contest’s rules in brief and its join code', async () => {
     const { contests, listMyContests } = makeUseCase();
-    contests.insert(
+    await contests.insert(
       contest({
         id: 'c1',
         hostId: 'ana',
@@ -229,35 +229,35 @@ describe('ListMyContests — how each contest is going', () => {
       }),
     );
 
-    const summary = listMyContests.execute('ana')[0];
+    const summary = (await listMyContests.execute('ana'))[0];
     expect(summary?.format).toBe('solo');
     expect(summary?.categoryCount).toBe(3);
     expect(summary?.joinCode).toBe('JOIN-c1');
   });
 
-  it('says nothing about the format of a contest that does not record one', () => {
+  it('says nothing about the format of a contest that does not record one', async () => {
     const { contests, listMyContests } = makeUseCase();
     // A contest that records no format: unknown, and left unknown rather
     // than guessed back out of the compiled dish shapes.
-    contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
+    await contests.insert(contest({ id: 'c1', hostId: 'ana', status: 'live' }));
 
-    expect(listMyContests.execute('ana')[0]).not.toHaveProperty('format');
+    expect((await listMyContests.execute('ana'))[0]).not.toHaveProperty('format');
   });
 
-  it('gives a contest being prepared no join code and no progress at all', () => {
+  it('gives a contest being prepared no join code and no progress at all', async () => {
     const { drafts, listMyContests } = makeUseCase();
-    drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
 
-    const summary = listMyContests.execute('ana')[0];
+    const summary = (await listMyContests.execute('ana'))[0];
     expect(summary).not.toHaveProperty('joinCode');
     expect(summary).not.toHaveProperty('progress');
     // Emphatically not zeroes: that would read as "nobody has voted".
     expect(summary?.progress).toBeUndefined();
   });
 
-  it('still reports the rules a draft has been given', () => {
+  it('still reports the rules a draft has been given', async () => {
     const { drafts, listMyContests } = makeUseCase();
-    drafts.insert(
+    await drafts.insert(
       draft({
         id: 'd1',
         hostId: 'ana',
@@ -276,26 +276,26 @@ describe('ListMyContests — how each contest is going', () => {
       }),
     );
 
-    const summary = listMyContests.execute('ana')[0];
+    const summary = (await listMyContests.execute('ana'))[0];
     expect(summary?.format).toBe('couples');
     expect(summary?.categoryCount).toBe(2);
   });
 
-  it('says nothing about the rules a draft has not been given', () => {
+  it('says nothing about the rules a draft has not been given', async () => {
     const { drafts, listMyContests } = makeUseCase();
-    drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Just a name' } }));
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana', content: { name: 'Just a name' } }));
 
-    const summary = listMyContests.execute('ana')[0];
+    const summary = (await listMyContests.execute('ana'))[0];
     expect(summary).not.toHaveProperty('format');
     expect(summary).not.toHaveProperty('categoryCount');
   });
 
-  it('asks for the counts once for the whole list, not once per contest', () => {
+  it('asks for the counts once for the whole list, not once per contest', async () => {
     const { drafts, contests, roster, voteSessions, listMyContests } = makeUseCase();
     for (let i = 0; i < 6; i += 1) {
-      contests.insert(contest({ id: `c${i}`, hostId: 'ana', status: 'live' }));
+      await contests.insert(contest({ id: `c${i}`, hostId: 'ana', status: 'live' }));
     }
-    drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
 
     const asks = { roster: 0, sessions: 0 };
     const countClaimed = roster.countClaimedByContest.bind(roster);
@@ -309,14 +309,14 @@ describe('ListMyContests — how each contest is going', () => {
       return countSessions(ids);
     };
 
-    expect(listMyContests.execute('ana')).toHaveLength(7);
+    expect(await listMyContests.execute('ana')).toHaveLength(7);
     // Six contests, one ask each way. Per-contest reads would be six and six.
     expect(asks).toEqual({ roster: 1, sessions: 1 });
   });
 
-  it('asks about nothing when the host has only drafts', () => {
+  it('asks about nothing when the host has only drafts', async () => {
     const { drafts, roster, listMyContests } = makeUseCase();
-    drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
+    await drafts.insert(draft({ id: 'd1', hostId: 'ana' }));
 
     let asked: readonly string[] | undefined;
     const countClaimed = roster.countClaimedByContest.bind(roster);
@@ -324,7 +324,7 @@ describe('ListMyContests — how each contest is going', () => {
       asked = ids;
       return countClaimed(ids);
     };
-    listMyContests.execute('ana');
+    await listMyContests.execute('ana');
 
     // An empty list of ids, which the repositories must short-circuit — `IN ()`
     // is not valid SQL.

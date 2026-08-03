@@ -13,7 +13,7 @@ const ONE_DAY_MS = 24 * 60 * 60 * 1000;
  * nobody holding a link that does not work can tell which of the five reasons
  * applied — including whether an invitation for that address ever existed.
  */
-describe('every reason a link does not work looks the same', () => {
+describe('every reason a link does not work looks the same', async () => {
   it('answers identically for unknown, accepted, expired, revoked and superseded', async () => {
     const accept = (test: TestApp, token: string): Promise<LightMyRequestResponse> =>
       test.app.inject({

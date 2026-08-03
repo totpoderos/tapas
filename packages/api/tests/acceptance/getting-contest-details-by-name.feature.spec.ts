@@ -70,7 +70,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await saveDraft(app, jar, 'Tapas Night');
     });
@@ -92,7 +92,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with a live contest named "Balcony Cook-off" with Ana and Bob taking part', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Balcony Cook-off');
     });
@@ -110,7 +110,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await saveDraft(app, jar, 'Tapas Night');
     });
@@ -128,7 +128,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host with two contests both named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'Tapas Night');
       await saveDraft(app, jar, 'Tapas Night');
@@ -149,7 +149,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host preparing a draft named "Tapas Night" with Ana and Bob taking part and a "Taste" category', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       await saveDraft(app, jar, 'Tapas Night');
     });
@@ -169,7 +169,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a host, and a second host with a contest named "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       const bobJar = await signedInHost(app, 'bob@example.com');
       await liveContest(app, bobJar, 'Tapas Night');
@@ -187,7 +187,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('someone not signed in asks for the details of "Tapas Night"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       response = await app.inject({ method: 'GET', url: '/contests/details?name=Tapas%20Night' });
     });
     Then('the request is refused as not authorized', () => {

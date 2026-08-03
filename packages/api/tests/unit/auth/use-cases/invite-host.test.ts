@@ -22,7 +22,7 @@ function makeUseCase(accounts = new FakeHostAccountRepository()) {
   return { useCase, invitations, mailer, accounts };
 }
 
-describe('InviteHost', () => {
+describe('InviteHost', async () => {
   it('creates a pending invitation for the address', async () => {
     const { useCase, invitations } = makeUseCase();
 
@@ -63,7 +63,7 @@ describe('InviteHost', () => {
 
   it('refuses an address that already has a host account', async () => {
     const accounts = new FakeHostAccountRepository();
-    accounts.insert(HostAccount.register('h1', 'taken@example.com', 'hash'));
+    await accounts.insert(HostAccount.register('h1', 'taken@example.com', 'hash'));
     const { useCase, invitations, mailer } = makeUseCase(accounts);
 
     const invited = await useCase.execute('taken@example.com', 'admin-1');

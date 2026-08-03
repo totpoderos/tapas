@@ -20,7 +20,7 @@ const CLAIM_ERROR_STATUS: Record<ClaimDeploymentErrorCode, number> = {
  */
 export function registerSetupRoutes(app: FastifyInstance, deps: ServerDeps): void {
   app.get('/setup/admin', { config: { rateLimit: SENSITIVE_RATE_LIMIT } }, async (_request, reply) => {
-    return reply.code(200).send({ unclaimed: deps.claimDeployment.isUnclaimed() });
+    return reply.code(200).send({ unclaimed: await deps.claimDeployment.isUnclaimed() });
   });
 
   app.post<{ Body: { email: string } }>(
@@ -32,7 +32,7 @@ export function registerSetupRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (!claimed.ok) {
         // The caller is told nothing useful, so the log is where an attempt to
         // take somebody else's deployment leaves its only trace.
-        deps.securityLog.record({
+        await deps.securityLog.record({
           type: 'admin_bootstrap.refused',
           actorId: null,
           sourceIp: request.ip,
@@ -42,13 +42,13 @@ export function registerSetupRoutes(app: FastifyInstance, deps: ServerDeps): voi
       }
 
       // Never records which address was configured — only that a claim happened.
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'admin_bootstrap.claimed',
         actorId: null,
         sourceIp: request.ip,
       });
       if (!claimed.messageSent) {
-        deps.securityLog.record({
+        await deps.securityLog.record({
           type: 'invitation.not_sent',
           actorId: null,
           sourceIp: request.ip,

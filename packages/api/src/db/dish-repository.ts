@@ -1,13 +1,13 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { StoredDish } from '../dishes/stored-dish.js';
 
 export interface DishRepository {
   /** Inserts or updates a dish by (contestId, dishId) — a cook may revise their dish. */
-  upsert(dish: StoredDish): void;
-  findByContest(contestId: string): StoredDish[];
-  find(contestId: string, dishId: string): StoredDish | undefined;
+  upsert(dish: StoredDish): Promise<void>;
+  findByContest(contestId: string): Promise<StoredDish[]>;
+  find(contestId: string, dishId: string): Promise<StoredDish | undefined>;
   /** Removes every dish entered in a contest. */
-  deleteByContest(contestId: string): void;
+  deleteByContest(contestId: string): Promise<void>;
 }
 
 interface DishRow {
@@ -31,10 +31,10 @@ function toDish(row: DishRow): StoredDish {
 }
 
 export class SqliteDishRepository implements DishRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  upsert(dish: StoredDish): void {
-    this.db
+  async upsert(dish: StoredDish): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO dishes (contest_id, dish_id, display_name, description, submitter_ids, submitted_at)
          VALUES (?, ?, ?, ?, ?, ?)
@@ -53,21 +53,21 @@ export class SqliteDishRepository implements DishRepository {
       );
   }
 
-  findByContest(contestId: string): StoredDish[] {
-    const rows = this.db
+  async findByContest(contestId: string): Promise<StoredDish[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM dishes WHERE contest_id = ? ORDER BY dish_id`)
       .all(contestId) as unknown as DishRow[];
     return rows.map(toDish);
   }
 
-  find(contestId: string, dishId: string): StoredDish | undefined {
-    const row = this.db
+  async find(contestId: string, dishId: string): Promise<StoredDish | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM dishes WHERE contest_id = ? AND dish_id = ?`)
       .get(contestId, dishId) as unknown as DishRow | undefined;
     return row ? toDish(row) : undefined;
   }
 
-  deleteByContest(contestId: string): void {
-    this.db.prepare(`DELETE FROM dishes WHERE contest_id = ?`).run(contestId);
+  async deleteByContest(contestId: string): Promise<void> {
+    await this.db.prepare(`DELETE FROM dishes WHERE contest_id = ?`).run(contestId);
   }
 }

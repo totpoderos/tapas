@@ -11,22 +11,22 @@ const PAT_TOKEN = 'a-personal-access-token';
 
 class FakePats implements HostPatRepository {
   constructor(private readonly pat?: StoredHostPat) {}
-  insert(): void {}
-  findById(): StoredHostPat | undefined {
+  async insert(): Promise<void> {}
+  async findById(): Promise<StoredHostPat | undefined> {
     return this.pat;
   }
-  findByTokenHash(tokenHash: string): StoredHostPat | undefined {
+  async findByTokenHash(tokenHash: string): Promise<StoredHostPat | undefined> {
     return this.pat && this.pat.tokenHash === tokenHash ? this.pat : undefined;
   }
-  revoke(): void {}
+  async revoke(): Promise<void> {}
 }
 
 class RecordingSecurityLog implements SecurityEventLog {
   readonly recorded: SecurityEventInput[] = [];
-  record(event: SecurityEventInput): void {
+  async record(event: SecurityEventInput): Promise<void> {
     this.recorded.push(event);
   }
-  list(): never[] {
+  async list(): Promise<never[]> {
     return [];
   }
 }
@@ -43,9 +43,9 @@ class StubTokenIssuer implements TokenIssuer {
 }
 
 const ALWAYS_ACTIVE: SessionStore = {
-  activate: () => {},
-  revoke: () => {},
-  isActive: () => true,
+  activate: async () => {},
+  revoke: async () => {},
+  isActive: async () => true,
 };
 
 function accessClaims(): VerifiedClaims {
@@ -70,7 +70,7 @@ function makeRequest(headers: Record<string, string>, cookies: Record<string, st
   return { headers, cookies, ip: '127.0.0.1' } as unknown as FastifyRequest;
 }
 
-describe('requireHostSession', () => {
+describe('requireHostSession', async () => {
   it('marks a cookie-borne request as authenticated by a session', async () => {
     const step = requireHostSession({
       tokens: new StubTokenIssuer(accessClaims()),

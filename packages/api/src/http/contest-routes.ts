@@ -69,12 +69,12 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
    * by-name routes, which reach it having already resolved a name the host owns.
    * Checking twice costs a lookup and means the newer door is not the weaker one.
    */
-  function owned(request: FastifyRequest, reply: FastifyReply, id: string) {
+  async function owned(request: FastifyRequest, reply: FastifyReply, id: string) {
     if (!request.hostSession) {
       void reply.code(401).send(notSignedIn);
       return undefined;
     }
-    const contest = deps.getContest.execute(id);
+    const contest = await deps.getContest.execute(id);
     if (!contest) {
       void reply.code(404).send({ error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } });
       return undefined;
@@ -100,17 +100,17 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
    * answers "none" rather than 403. A refusal would confirm that a contest by
    * that name exists, which is precisely what a different host must not learn.
    */
-  function named(
+  async function named(
     request: FastifyRequest<{ Querystring: { name?: string } }> | FastifyRequest<{ Body: { contest?: string } }>,
     reply: FastifyReply,
     name: string,
     options?: { readonly only?: 'draft' },
-  ): string | undefined {
+  ): Promise<string | undefined> {
     if (!request.hostSession) {
       void reply.code(401).send(notSignedIn);
       return undefined;
     }
-    const resolved = deps.resolveContestByName.execute(request.hostSession.id, name, options);
+    const resolved = await deps.resolveContestByName.execute(request.hostSession.id, name, options);
     if (resolved.kind === 'one') return resolved.contest.id;
     void reply.code(200).send({ candidates: resolved.kind === 'several' ? resolved.candidates : [] });
     return undefined;
@@ -128,7 +128,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-      const contest = deps.getContest.execute(request.params.id);
+      const contest = await deps.getContest.execute(request.params.id);
       if (!contest) {
         return reply
           .code(404)
@@ -136,7 +136,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
 
-      const entries = deps.auditLog.findByContest(request.params.id);
+      const entries = await deps.auditLog.findByContest(request.params.id);
       if (request.query.format !== 'csv') return reply.code(200).send(entries);
 
       // The filename is reduced to a conservative set by `auditFilename`, so a
@@ -166,9 +166,9 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
       const { name, only } = request.query;
       if (name === undefined) {
-        return reply.code(200).send(deps.listMyContests.execute(request.hostSession.id));
+        return reply.code(200).send(await deps.listMyContests.execute(request.hostSession.id));
       }
-      const found = deps.findContestsByName.execute(request.hostSession.id, name);
+      const found = await deps.findContestsByName.execute(request.hostSession.id, name);
       return reply.code(200).send(only === 'draft' ? found.filter((c) => c.status === 'draft') : found);
     },
   );
@@ -182,7 +182,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
       const name = request.query.name ?? '';
-      return reply.code(200).send(deps.getContestDetails.execute(request.hostSession.id, name));
+      return reply.code(200).send(await deps.getContestDetails.execute(request.hostSession.id, name));
     },
   );
 
@@ -196,7 +196,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     '/contests/by-name',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = named(request, reply, request.query.name ?? '');
+      const id = await named(request, reply, request.query.name ?? '');
       if (id === undefined) return;
       return performReadContest(request, reply, id);
     },
@@ -206,7 +206,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     '/contests/by-name/tally',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = named(request, reply, request.query.name ?? '');
+      const id = await named(request, reply, request.query.name ?? '');
       if (id === undefined) return;
       return performTally(request, reply, id);
     },
@@ -216,7 +216,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     '/contests/by-name/results',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = named(request, reply, request.query.name ?? '');
+      const id = await named(request, reply, request.query.name ?? '');
       if (id === undefined) return;
       return performResults(request, reply, id);
     },
@@ -226,7 +226,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     '/contests/by-name/close',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = named(request, reply, request.body?.contest ?? '');
+      const id = await named(request, reply, request.body?.contest ?? '');
       if (id === undefined) return;
       return performClose(request, reply, id);
     },
@@ -236,7 +236,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     '/contests/by-name/reveal',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = named(request, reply, request.body?.contest ?? '');
+      const id = await named(request, reply, request.body?.contest ?? '');
       if (id === undefined) return;
       return performReveal(request, reply, id);
     },
@@ -248,7 +248,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     // second door to the one action with no undo must not be a cheaper one.
     { preHandler: requireSession, config: { rateLimit: SENSITIVE_RATE_LIMIT } },
     async (request, reply) => {
-      const id = named(request, reply, request.query.name ?? '');
+      const id = await named(request, reply, request.query.name ?? '');
       if (id === undefined) return;
       return performDelete(request, reply, id, request.query.confirm);
     },
@@ -286,10 +286,10 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
    * alternative is two handlers that agree until the day one of them is changed.
    */
   async function performClose(request: FastifyRequest, reply: FastifyReply, id: string) {
-    const contest = owned(request, reply, id);
+    const contest = await owned(request, reply, id);
     if (!contest || !request.hostSession) return;
 
-    const closed = deps.closeContest.execute(id, {
+    const closed = await deps.closeContest.execute(id, {
       actorId: request.hostSession.id,
       confirmation: hostConfirmed(request),
       provenance: provenanceOfRequest(request),
@@ -301,10 +301,10 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
   }
 
   async function performReveal(request: FastifyRequest, reply: FastifyReply, id: string) {
-    const contest = owned(request, reply, id);
+    const contest = await owned(request, reply, id);
     if (!contest || !request.hostSession) return;
 
-    const revealed = deps.revealContest.execute(id, {
+    const revealed = await deps.revealContest.execute(id, {
       actorId: request.hostSession.id,
       confirmation: hostConfirmed(request),
       provenance: provenanceOfRequest(request),
@@ -323,7 +323,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
   ) {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-    const deleted = deps.deleteContest.execute(id, request.hostSession.id, {
+    const deleted = await deps.deleteContest.execute(id, request.hostSession.id, {
       confirmName,
       confirmation: hostConfirmed(request),
       provenance: provenanceOfRequest(request),
@@ -335,17 +335,17 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
   }
 
   async function performReadContest(request: FastifyRequest, reply: FastifyReply, id: string) {
-    const contest = owned(request, reply, id);
+    const contest = await owned(request, reply, id);
     if (!contest) return;
-    const fresh = ensureContestFresh(contest, { contests: deps.contests, clock: deps.clock });
+    const fresh = await ensureContestFresh(contest, { contests: deps.contests, clock: deps.clock });
     return reply.code(200).send(toContestDto(fresh, deps.participantWebOrigin));
   }
 
   async function performResults(request: FastifyRequest, reply: FastifyReply, id: string) {
-    const contest = owned(request, reply, id);
+    const contest = await owned(request, reply, id);
     if (!contest) return;
 
-    const results = deps.getResults.execute(id);
+    const results = await deps.getResults.execute(id);
     if (!results.ok) {
       return reply.code(GET_RESULTS_ERROR_STATUS[results.error.code]).send({ error: results.error });
     }
@@ -353,10 +353,10 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
   }
 
   async function performTally(request: FastifyRequest, reply: FastifyReply, id: string) {
-    const contest = owned(request, reply, id);
+    const contest = await owned(request, reply, id);
     if (!contest) return;
 
-    const tally = deps.getTally.execute(id);
+    const tally = await deps.getTally.execute(id);
     if (!tally.ok) {
       return reply.code(GET_TALLY_ERROR_STATUS[tally.error.code]).send({ error: tally.error });
     }
@@ -402,7 +402,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-      const contest = deps.getContest.execute(request.params.id);
+      const contest = await deps.getContest.execute(request.params.id);
       if (!contest) {
         return reply
           .code(404)
@@ -410,7 +410,7 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
       }
       if (contest.hostId !== request.hostSession.id) return reply.code(403).send(notAllowed);
 
-      const results = deps.getResults.execute(request.params.id);
+      const results = await deps.getResults.execute(request.params.id);
       if (!results.ok) {
         return reply
           .code(GET_RESULTS_ERROR_STATUS[results.error.code])
@@ -426,8 +426,8 @@ export function registerContestRoutes(app: FastifyInstance, deps: ServerDeps): v
        */
       const naming = dishNaming(
         contest.materialized,
-        deps.dishes.findByContest(contest.id),
-        deps.roster.listAll(contest.id),
+        await deps.dishes.findByContest(contest.id),
+        await deps.roster.listAll(contest.id),
       );
       return reply
         .code(200)

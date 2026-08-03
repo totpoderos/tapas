@@ -121,7 +121,7 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a contest nobody has claimed a place in', async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         hostJar = await signedInHost(app, 'ana@example.com');
         contestId = await publishLiveContest(app, hostJar);
       });
@@ -154,7 +154,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a contest where some participants have claimed a place, some have drafted scores, and one has sent a vote',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         hostJar = await signedInHost(app, 'ana@example.com');
         contestId = await publishLiveContest(app, hostJar);
         const joinCode = await joinCodeOf(app, hostJar, contestId);
@@ -197,7 +197,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest owned by one host', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       intruderJar = await signedInHost(app, 'bob@example.com');

@@ -71,7 +71,7 @@ describeFeature(feature, ({ Scenario }) => {
               clarifications: [],
             }),
           );
-          ({ app } = makeTestApp(undefined, {}, llmClient));
+          ({ app } = await makeTestApp(undefined, {}, llmClient));
           cookie = await signedInHost(app);
         },
       );
@@ -114,7 +114,7 @@ describeFeature(feature, ({ Scenario }) => {
               clarifications: ['How should dishes be scored?'],
             }),
           );
-          ({ app } = makeTestApp(undefined, {}, llmClient));
+          ({ app } = await makeTestApp(undefined, {}, llmClient));
           cookie = await signedInHost(app);
         },
       );
@@ -154,7 +154,7 @@ describeFeature(feature, ({ Scenario }) => {
             clarifications: [],
           }),
         );
-        ({ app } = makeTestApp(undefined, {}, llmClient));
+        ({ app } = await makeTestApp(undefined, {}, llmClient));
         cookie = await signedInHost(app);
       });
       When('the host replies about an unrelated field', async () => {
@@ -192,7 +192,7 @@ describeFeature(feature, ({ Scenario }) => {
               clarifications: [],
             }),
           );
-          ({ app } = makeTestApp(undefined, {}, llmClient));
+          ({ app } = await makeTestApp(undefined, {}, llmClient));
           cookie = await signedInHost(app);
         },
       );
@@ -223,8 +223,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
     });
     When('a draft merge is attempted', async () => {
       response = await app.inject({

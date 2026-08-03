@@ -44,8 +44,8 @@ export interface GetBallotDeps {
 export class GetBallot {
   constructor(private readonly deps: GetBallotDeps) {}
 
-  execute(contestId: string, voterId: string): GetBallotResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string, voterId: string): Promise<GetBallotResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
 
@@ -63,8 +63,8 @@ export class GetBallot {
      */
     const naming = dishNaming(
       materialized,
-      this.deps.dishes.findByContest(contestId),
-      this.deps.roster.listAll(contestId),
+      await this.deps.dishes.findByContest(contestId),
+      await this.deps.roster.listAll(contestId),
     );
     const dishes = materialized.dishes
       .filter((dish) => materialized.allowedVoters.get(dish.id)?.has(voterId))

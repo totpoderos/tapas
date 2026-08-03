@@ -5,7 +5,7 @@ import type { StoredDraft } from '../stored-draft.js';
 export class ListHostDrafts {
   constructor(private readonly drafts: DraftRepository) {}
 
-  execute(hostId: string): StoredDraft[] {
-    return this.drafts.findByHost(hostId);
+  async execute(hostId: string): Promise<StoredDraft[]> {
+    return await this.drafts.findByHost(hostId);
   }
 }

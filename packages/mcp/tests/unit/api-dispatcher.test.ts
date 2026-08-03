@@ -9,7 +9,7 @@ function fakeFetch(response: { ok: boolean; status: number; body: unknown }) {
   })) as unknown as typeof fetch;
 }
 
-describe('dispatchToApi', () => {
+describe('dispatchToApi', async () => {
   it('calls the API path with the host token as a bearer credential', async () => {
     const fetch = fakeFetch({ ok: true, status: 200, body: { id: 'c1' } });
 

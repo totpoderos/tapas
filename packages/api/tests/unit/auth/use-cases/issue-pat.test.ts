@@ -11,32 +11,32 @@ function makeIssuePat() {
   return { issuePat: new IssuePat({ pats, ids, clock }), pats };
 }
 
-describe('IssuePat', () => {
-  it('issues a usable token', () => {
+describe('IssuePat', async () => {
+  it('issues a usable token', async () => {
     const { issuePat } = makeIssuePat();
 
-    const issued = issuePat.execute('host-1');
+    const issued = await issuePat.execute('host-1');
 
     expect(issued.token).toBeTruthy();
     expect(issued.patId).toBeTruthy();
   });
 
-  it('stores only the hash of the token, scoped to the issuing host', () => {
+  it('stores only the hash of the token, scoped to the issuing host', async () => {
     const { issuePat, pats } = makeIssuePat();
 
-    const issued = issuePat.execute('host-1');
+    const issued = await issuePat.execute('host-1');
 
-    const stored = pats.findById(issued.patId);
+    const stored = await pats.findById(issued.patId);
     expect(stored?.hostId).toBe('host-1');
     expect(stored?.tokenHash).toBe(hashPatToken(issued.token));
     expect(stored?.tokenHash).not.toBe(issued.token);
   });
 
-  it('issues a different token each time', () => {
+  it('issues a different token each time', async () => {
     const { issuePat } = makeIssuePat();
 
-    const first = issuePat.execute('host-1');
-    const second = issuePat.execute('host-1');
+    const first = await issuePat.execute('host-1');
+    const second = await issuePat.execute('host-1');
 
     expect(first.token).not.toBe(second.token);
   });

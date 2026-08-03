@@ -39,15 +39,15 @@ export type RemoveParticipantResult =
  * it, so a shared name, a name only another host has, and a name nobody has all
  * behave the same way here as they do for every other operation.
  */
-function resolveDraft(
+async function resolveDraft(
   deps: ManageDraftParticipantsDeps,
   hostId: string,
   contestName: string,
-): { readonly id: string; readonly content: DraftContent } | ContestDetailsResult {
-  const resolved = deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
+): Promise<{ readonly id: string; readonly content: DraftContent } | ContestDetailsResult> {
+  const resolved = await deps.resolveContestByName.execute(hostId, contestName, { only: 'draft' });
   if (resolved.kind === 'none') return { candidates: [] };
   if (resolved.kind === 'several') return { candidates: resolved.candidates };
-  const only = deps.drafts.findById(resolved.contest.id);
+  const only = await deps.drafts.findById(resolved.contest.id);
   if (!only) return { candidates: [] };
   return { id: only.id, content: only.content };
 }
@@ -56,8 +56,8 @@ function resolveDraft(
 export class AddDraftParticipant {
   constructor(private readonly deps: ManageDraftParticipantsDeps) {}
 
-  execute(hostId: string, contestName: string, displayName: string): ContestDetailsResult {
-    const resolved = resolveDraft(this.deps, hostId, contestName);
+  async execute(hostId: string, contestName: string, displayName: string): Promise<ContestDetailsResult> {
+    const resolved = await resolveDraft(this.deps, hostId, contestName);
     if (!('content' in resolved)) return resolved;
 
     const person: Person = { id: this.deps.ids.next(), displayName: displayName.trim() };
@@ -65,7 +65,7 @@ export class AddDraftParticipant {
       ...resolved.content,
       participants: [...(resolved.content.participants ?? []), person],
     };
-    const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);
+    const saved = await this.deps.updateDraft.execute(resolved.id, hostId, content);
     return { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) };
   }
 }
@@ -80,8 +80,8 @@ export class AddDraftParticipant {
 export class RemoveDraftParticipant {
   constructor(private readonly deps: ManageDraftParticipantsDeps) {}
 
-  execute(hostId: string, contestName: string, displayName: string): RemoveParticipantResult {
-    const resolved = resolveDraft(this.deps, hostId, contestName);
+  async execute(hostId: string, contestName: string, displayName: string): Promise<RemoveParticipantResult> {
+    const resolved = await resolveDraft(this.deps, hostId, contestName);
     if (!('content' in resolved)) return { ok: true, result: resolved };
 
     const wanted = displayName.trim().toLowerCase();
@@ -131,7 +131,7 @@ export class RemoveDraftParticipant {
         ...(p.partnerId && removedIds.has(p.partnerId) ? { partnerId: undefined } : {}),
       }));
     const content: DraftContent = { ...resolved.content, participants };
-    const saved = this.deps.updateDraft.execute(resolved.id, hostId, content);
+    const saved = await this.deps.updateDraft.execute(resolved.id, hostId, content);
     return { ok: true, result: { details: draftDetailsOf(resolved.id, saved.ok ? content : resolved.content) } };
   }
 }

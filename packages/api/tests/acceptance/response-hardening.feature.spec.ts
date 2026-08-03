@@ -14,7 +14,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('any request is made to the API', async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       response = await app.inject({ method: 'GET', url: '/health' });
     });
     Then('the response carries the standard hardening headers', () => {
@@ -30,7 +30,7 @@ describeFeature(feature, ({ Scenario }) => {
     const hostAppOrigin = 'http://localhost:5173';
 
     When("a request arrives from the host app's origin", async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       response = await app.inject({
         method: 'GET',
         url: '/health',
@@ -46,7 +46,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     When('a request arrives from an unrecognized origin', async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       response = await app.inject({
         method: 'GET',
         url: '/health',
@@ -65,7 +65,7 @@ describeFeature(feature, ({ Scenario }) => {
       // set up happens in the When step, once we know the request shape
     });
     When('a request arrives over plain HTTP', async () => {
-      const { app } = makeTestApp(undefined, { NODE_ENV: 'production' });
+      const { app } = await makeTestApp(undefined, { NODE_ENV: 'production' });
       response = await app.inject({ method: 'GET', url: '/health' });
     });
     Then('the response redirects to the HTTPS equivalent', () => {

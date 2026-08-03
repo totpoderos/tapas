@@ -9,27 +9,27 @@ import { FakeRosterRepository } from '../voters/support.js';
 
 export class FakeContestRepository implements ContestRepository {
   private readonly store = new Map<string, StoredContest>();
-  insert(contest: StoredContest): void {
+  async insert(contest: StoredContest): Promise<void> {
     this.store.set(contest.id, contest);
   }
-  findById(id: string): StoredContest | undefined {
+  async findById(id: string): Promise<StoredContest | undefined> {
     return this.store.get(id);
   }
-  findByJoinCode(joinCode: string): StoredContest | undefined {
+  async findByJoinCode(joinCode: string): Promise<StoredContest | undefined> {
     return [...this.store.values()].find((contest) => contest.joinCode === joinCode);
   }
-  findByHost(hostId: string): StoredContest[] {
+  async findByHost(hostId: string): Promise<StoredContest[]> {
     return [...this.store.values()].filter((contest) => contest.hostId === hostId);
   }
-  delete(id: string): void {
+  async delete(id: string): Promise<void> {
     this.store.delete(id);
   }
-  updateStatus(
+  async updateStatus(
     id: string,
     status: StoredContest['status'],
     closedAt: string | null,
     revealedAt: string | null,
-  ): void {
+  ): Promise<void> {
     const contest = this.store.get(id);
     if (contest) this.store.set(id, { ...contest, status, closedAt, revealedAt });
   }

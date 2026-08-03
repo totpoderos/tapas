@@ -34,10 +34,10 @@ export function refuseDeletedContest(deps: RefuseDeletedContestDeps) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const contestId = request.voterSession?.contestId;
     if (!contestId) return; // no session — requireVoterSession has already answered
-    if (deps.contests.findById(contestId)) return; // still there, nothing to say
+    if (await deps.contests.findById(contestId)) return; // still there, nothing to say
 
-    const tombstoned = deps.auditLog
-      .findByContest(contestId)
+    const tombstoned = (await deps.auditLog
+      .findByContest(contestId))
       .some((entry) => entry.type === DELETED);
     if (tombstoned) await reply.code(410).send(contestDeleted);
   };

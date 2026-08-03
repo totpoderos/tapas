@@ -37,47 +37,47 @@ function makeDeps() {
 
 const AS_HOST = { actorId: 'host-1', confirmation: 'host' as const };
 
-describe('CloseContest', () => {
-  it('closes a live contest and records the close in the audit log', () => {
+describe('CloseContest', async () => {
+  it('closes a live contest and records the close in the audit log', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
-    contests.insert(liveContest());
+    await contests.insert(liveContest());
 
-    const outcome = new CloseContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
+    const outcome = await new CloseContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
     expect(outcome.contest.status).toBe('closed');
-    expect(contests.findById('contest-1')?.status).toBe('closed');
+    expect((await contests.findById('contest-1'))?.status).toBe('closed');
     const entry = auditLog.entries.at(-1);
     expect(entry?.type).toBe('contest.closed');
     expect(entry?.actorId).toBe('host-1');
     expect(entry?.confirmation).toBe('host');
   });
 
-  it('records auto when the host did not explicitly confirm', () => {
+  it('records auto when the host did not explicitly confirm', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
-    contests.insert(liveContest());
+    await contests.insert(liveContest());
 
-    new CloseContest({ contests, clock, audit }).execute('contest-1', { actorId: 'host-1', confirmation: 'auto' });
+    await new CloseContest({ contests, clock, audit }).execute('contest-1', { actorId: 'host-1', confirmation: 'auto' });
 
     expect(auditLog.entries.at(-1)?.confirmation).toBe('auto');
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest, recording nothing', () => {
+  it('reports CONTEST_NOT_FOUND for an unknown contest, recording nothing', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
 
-    const outcome = new CloseContest({ contests, clock, audit }).execute('unknown', AS_HOST);
+    const outcome = await new CloseContest({ contests, clock, audit }).execute('unknown', AS_HOST);
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
     expect(auditLog.entries).toHaveLength(0);
   });
 
-  it('refuses to close an already-closed contest, recording nothing', () => {
+  it('refuses to close an already-closed contest, recording nothing', async () => {
     const { contests, clock, audit, auditLog } = makeDeps();
-    contests.insert(liveContest({ status: 'closed', closedAt: '2026-07-20T10:00:00.000Z' }));
+    await contests.insert(liveContest({ status: 'closed', closedAt: '2026-07-20T10:00:00.000Z' }));
 
-    const outcome = new CloseContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
+    const outcome = await new CloseContest({ contests, clock, audit }).execute('contest-1', AS_HOST);
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('ALREADY_CLOSED');

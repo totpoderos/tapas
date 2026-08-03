@@ -9,13 +9,13 @@ export interface RevokePatDeps {
 export class RevokePat {
   constructor(private readonly deps: RevokePatDeps) {}
 
-  execute(patId: string, hostId: string): RevokePatResult {
-    const pat = this.deps.pats.findById(patId);
+  async execute(patId: string, hostId: string): Promise<RevokePatResult> {
+    const pat = await this.deps.pats.findById(patId);
     if (!pat) return { ok: false, error: { code: 'PAT_NOT_FOUND', message: 'No such token.' } };
     if (pat.hostId !== hostId)
       return { ok: false, error: { code: 'NOT_ALLOWED', message: 'Not allowed.' } };
 
-    this.deps.pats.revoke(patId);
+    await this.deps.pats.revoke(patId);
     return { ok: true };
   }
 }

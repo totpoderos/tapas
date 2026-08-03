@@ -11,25 +11,25 @@ class FakeHostAccounts implements HostAccountRepository {
   constructor(...accounts: HostAccount[]) {
     for (const account of accounts) this.byId.set(account.id, account);
   }
-  insert(): void {}
-  update(): void {}
-  findByEmail(): undefined {
+  async insert(): Promise<void> {}
+  async update(): Promise<void> {}
+  async findByEmail(): Promise<undefined> {
     return undefined;
   }
-  findById(id: string): HostAccount | undefined {
+  async findById(id: string): Promise<HostAccount | undefined> {
     return this.byId.get(id);
   }
-  listAll(): HostAccount[] {
+  async listAll(): Promise<HostAccount[]> {
     return [...this.byId.values()];
   }
 }
 
 class RecordingSecurityLog implements SecurityEventLog {
   readonly recorded: SecurityEventInput[] = [];
-  record(event: SecurityEventInput): void {
+  async record(event: SecurityEventInput): Promise<void> {
     this.recorded.push(event);
   }
-  list(): never[] {
+  async list(): Promise<never[]> {
     return [];
   }
 }
@@ -60,7 +60,7 @@ function makeRequest(hostSession?: HostSession): FastifyRequest {
   return { hostSession, ip: '127.0.0.1' } as unknown as FastifyRequest;
 }
 
-describe('requireAdministrator', () => {
+describe('requireAdministrator', async () => {
   it('lets an administrator on a cookie session through', async () => {
     const step = requireAdministrator({
       hostAccounts: new FakeHostAccounts(administrator('host-1')),

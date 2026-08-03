@@ -1,15 +1,15 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { AuditEntry, SourcePath } from '@tapas/shared';
 
 export interface AuditLogRepository {
-  append(entry: AuditEntry): void;
-  findByContest(contestId: string): AuditEntry[];
+  append(entry: AuditEntry): Promise<void>;
+  findByContest(contestId: string): Promise<AuditEntry[]>;
   /**
    * Removes a contest's recorded history. The ONLY caller is deleting a contest,
    * and it appends the tombstone straight afterwards — see `DeleteContest` for
    * why the log is reduced there and nowhere else in the system.
    */
-  deleteByContest(contestId: string): void;
+  deleteByContest(contestId: string): Promise<void>;
 }
 
 interface AuditRow {
@@ -51,10 +51,10 @@ function toEntry(row: AuditRow): AuditEntry {
 }
 
 export class SqliteAuditLogRepository implements AuditLogRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  append(entry: AuditEntry): void {
-    this.db
+  async append(entry: AuditEntry): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO audit_log
            (id, contest_id, actor_id, type, before_json, after_json, source_path, tool_name, tool_args, confirmation, occurred_at)
@@ -75,14 +75,14 @@ export class SqliteAuditLogRepository implements AuditLogRepository {
       );
   }
 
-  findByContest(contestId: string): AuditEntry[] {
-    const rows = this.db
+  async findByContest(contestId: string): Promise<AuditEntry[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM audit_log WHERE contest_id = ? ORDER BY occurred_at, id`)
       .all(contestId) as unknown as AuditRow[];
     return rows.map(toEntry);
   }
 
-  deleteByContest(contestId: string): void {
-    this.db.prepare(`DELETE FROM audit_log WHERE contest_id = ?`).run(contestId);
+  async deleteByContest(contestId: string): Promise<void> {
+    await this.db.prepare(`DELETE FROM audit_log WHERE contest_id = ?`).run(contestId);
   }
 }

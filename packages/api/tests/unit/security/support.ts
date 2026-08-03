@@ -4,7 +4,7 @@ export class FakeSecurityEventLog implements SecurityEventLog {
   private sequence = 0;
   private readonly events: SecurityEvent[] = [];
 
-  record(event: SecurityEventInput): void {
+  async record(event: SecurityEventInput): Promise<void> {
     this.events.push({
       id: `sec-${++this.sequence}`,
       type: event.type,
@@ -15,7 +15,7 @@ export class FakeSecurityEventLog implements SecurityEventLog {
     });
   }
 
-  list(): SecurityEvent[] {
+  async list(): Promise<SecurityEvent[]> {
     return [...this.events];
   }
 }

@@ -275,7 +275,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a contest that has been fully voted, closed, and revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await playContest(app, { close: true, reveal: true }));
     });
     When('a participant who took part reads the results', async () => {
@@ -286,7 +286,7 @@ describeFeature(feature, ({ Scenario }) => {
     Then('they see the overall winner by name', () => {
       expect(reveal.overall.winners.map((w) => w.name)).toEqual(['Tortilla']);
     });
-    And('they see the winner of each category', () => {
+    And('they see the winner of each category', async () => {
       const taste = reveal.categories.find((c) => c.categoryId === 'taste');
       expect(taste?.winners.map((w) => w.name)).toEqual(['Tortilla']);
     });
@@ -299,7 +299,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a contest that has been fully voted, closed, and revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await playContest(app, { close: true, reveal: true }));
     });
     When('a participant who took part reads the results', async () => {
@@ -323,7 +323,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a revealed contest that ended in a tie', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await tiedContest(app));
     });
     When('a participant who took part reads the results', async () => {
@@ -354,7 +354,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a revealed contest where two partners shared a dish', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await sharedDishContest(app));
     });
     When('a participant who took part reads the results', async () => {
@@ -382,7 +382,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a revealed contest where one cook never named their dish', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await contestWithAnUnnamedDish(app, 'unnamed@x.es'));
     });
     When('a participant who took part reads the results', async () => {
@@ -390,7 +390,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(200);
       reveal = response.json();
     });
-    Then('that dish is called by the name of the cook whose it is', () => {
+    Then('that dish is called by the name of the cook whose it is', async () => {
       const bobs = reveal.overall.standings.find((standing) => standing.dishId === 'D-bob');
       expect(bobs?.name).toBe('Bob');
     });
@@ -412,7 +412,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a revealed contest where partners shared a dish and never named it', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await coupleWithAnUnnamedDish(app));
     });
     When('a participant who took part reads the results', async () => {
@@ -420,7 +420,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(200);
       reveal = response.json();
     });
-    Then('that dish is called by both their names', () => {
+    Then('that dish is called by both their names', async () => {
       // Naming one of them would be the API choosing which half of a couple
       // cooked — the same reason `cooks` is a list rather than a field.
       const shared = reveal.overall.standings.find((standing) => standing.dishId === 'D-ana-bob');
@@ -435,7 +435,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest that has been fully voted and closed but not revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await playContest(app, { close: true, reveal: false }));
     });
     When('a participant who took part reads the results', async () => {
@@ -453,7 +453,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a revealed contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId } = await playContest(app, { close: true, reveal: true }));
     });
     When('the results are read with no participant token', async () => {
@@ -472,7 +472,7 @@ describeFeature(feature, ({ Scenario }) => {
     let turnout: Turnout;
 
     Given('a contest where one participant has sent their vote and one has not', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await contestInPlay(app));
     });
     When('a participant who took part reads how the voting stands', async () => {
@@ -494,7 +494,7 @@ describeFeature(feature, ({ Scenario }) => {
     let turnout: Turnout;
 
     Given('a contest where one participant has sent their vote and one has not', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await contestInPlay(app));
     });
     When('a participant who took part reads how the voting stands', async () => {
@@ -518,7 +518,7 @@ describeFeature(feature, ({ Scenario }) => {
     let turnout: Turnout;
 
     Given('a contest where one participant has scored some dishes but not sent', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, ana } = await contestInPlay(app)); // Bob has one score saved, unsent
     });
     When('a participant who took part reads how the voting stands', async () => {
@@ -527,7 +527,7 @@ describeFeature(feature, ({ Scenario }) => {
       body = response.body;
       turnout = response.json();
     });
-    Then('nothing in the answer says what has been scored, or how much', () => {
+    Then('nothing in the answer says what has been scored, or how much', async () => {
       /*
        * Bob has a score in a draft session; Carol has no session at all. If the
        * answer told them apart in any way, "how far someone has got" would be
@@ -554,7 +554,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest in play', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId } = await contestInPlay(app));
     });
     When('how the voting stands is read with no participant token', async () => {
@@ -573,7 +573,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a participant who took part in one of two contests in play', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ ana } = await contestInPlay(app));
       // A second contest, a different host, a roster with nobody in common.
       const other = new CookieJar();

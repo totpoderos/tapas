@@ -3,19 +3,19 @@ import type { HostAccountRepository, PasswordHasher, Session, SessionStore, Toke
 
 export class FakeHostAccountRepository implements HostAccountRepository {
   private readonly byEmail = new Map<string, HostAccount>();
-  insert(account: HostAccount): void {
+  async insert(account: HostAccount): Promise<void> {
     this.byEmail.set(account.email, account);
   }
-  update(account: HostAccount): void {
+  async update(account: HostAccount): Promise<void> {
     this.byEmail.set(account.email, account);
   }
-  findByEmail(email: string): HostAccount | undefined {
+  async findByEmail(email: string): Promise<HostAccount | undefined> {
     return this.byEmail.get(email);
   }
-  findById(id: string): HostAccount | undefined {
+  async findById(id: string): Promise<HostAccount | undefined> {
     return [...this.byEmail.values()].find((account) => account.id === id);
   }
-  listAll(): HostAccount[] {
+  async listAll(): Promise<HostAccount[]> {
     return [...this.byEmail.values()];
   }
 }
@@ -41,13 +41,13 @@ export class FakeTokenIssuer implements TokenIssuer {
 
 export class FakeSessionStore implements SessionStore {
   private readonly active = new Set<string>();
-  activate(jti: string, _hostId: string, _expiresAt: string): void {
+  async activate(jti: string, _hostId: string, _expiresAt: string): Promise<void> {
     this.active.add(jti);
   }
-  revoke(jti: string): void {
+  async revoke(jti: string): Promise<void> {
     this.active.delete(jti);
   }
-  isActive(jti: string): boolean {
+  async isActive(jti: string): Promise<boolean> {
     return this.active.has(jti);
   }
 }

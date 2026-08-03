@@ -13,16 +13,16 @@ import { withParticipantIds, draftNotFound, findOwnedDraft, type DraftUseCaseDep
 export class UpdateDraft {
   constructor(private readonly deps: DraftUseCaseDeps) {}
 
-  execute(draftId: string, hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): DraftWriteResult {
-    const existing = findOwnedDraft(this.deps.drafts, draftId, hostId);
+  async execute(draftId: string, hostId: string, content: DraftContent, provenance: AuditProvenance = IN_APP): Promise<DraftWriteResult> {
+    const existing = await findOwnedDraft(this.deps.drafts, draftId, hostId);
     if (!existing) return { ok: false, error: draftNotFound };
 
     const edited = Draft.rehydrate(existing.id, existing.hostId, existing.content).withContent(withParticipantIds(content, this.deps.ids));
     if (!edited.ok) return { ok: false, error: edited.error };
 
     const updated: StoredDraft = { ...existing, content: edited.draft.content, updatedAt: this.deps.clock.now() };
-    this.deps.drafts.update(updated);
-    this.deps.audit.record(
+    await this.deps.drafts.update(updated);
+    await this.deps.audit.record(
       { type: 'draft.updated', contestId: draftId, actorId: hostId, before: existing.content, after: edited.draft.content },
       provenance,
     );

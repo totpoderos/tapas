@@ -10,8 +10,8 @@ import type { GetResultsDeps, GetResultsResult } from './shared.js';
 export class GetResults {
   constructor(private readonly deps: GetResultsDeps) {}
 
-  execute(contestId: string): GetResultsResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string): Promise<GetResultsResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
     if (contest.status !== 'revealed') {
@@ -21,7 +21,7 @@ export class GetResults {
       };
     }
 
-    const entries = this.deps.voteSessions.listSentScores(contestId);
+    const entries = await this.deps.voteSessions.listSentScores(contestId);
     return { ok: true, results: tally(contest.materialized, entries) };
   }
 }

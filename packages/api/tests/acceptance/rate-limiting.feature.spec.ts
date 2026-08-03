@@ -36,7 +36,7 @@ describeFeature(feature, ({ Scenario }) => {
     let responses: LightMyRequestResponse[];
 
     When('many login attempts arrive in rapid succession from the same source', async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       responses = [];
       for (let attempt = 0; attempt < RATE_LIMIT + 1; attempt++) {
         responses.push(await attemptLogin(app));
@@ -54,7 +54,7 @@ describeFeature(feature, ({ Scenario }) => {
     When(
       'many attempts to join a contest arrive in rapid succession from the same source',
       async () => {
-        const { app } = makeTestApp();
+        const { app } = await makeTestApp();
         responses = [];
         for (let attempt = 0; attempt < RATE_LIMIT + 1; attempt++) {
           responses.push(await attemptJoin(app));
@@ -71,7 +71,7 @@ describeFeature(feature, ({ Scenario }) => {
     let responses: LightMyRequestResponse[];
 
     When('a handful of requests are made well within the limit', async () => {
-      const { app } = makeTestApp();
+      const { app } = await makeTestApp();
       responses = [];
       for (let attempt = 0; attempt < RATE_LIMIT - 1; attempt++) {
         responses.push(await attemptLogin(app));

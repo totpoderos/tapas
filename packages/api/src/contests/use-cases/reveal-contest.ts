@@ -10,8 +10,8 @@ import type { RevealContestDeps, RevealContestResult, StatusChangeContext } from
 export class RevealContest {
   constructor(private readonly deps: RevealContestDeps) {}
 
-  execute(contestId: string, context: StatusChangeContext): RevealContestResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string, context: StatusChangeContext): Promise<RevealContestResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
     if (contest.status === 'live') {
@@ -28,8 +28,8 @@ export class RevealContest {
     }
 
     const revealedAt = this.deps.clock.now();
-    this.deps.contests.updateStatus(contestId, 'revealed', contest.closedAt, revealedAt);
-    this.deps.audit.record(
+    await this.deps.contests.updateStatus(contestId, 'revealed', contest.closedAt, revealedAt);
+    await this.deps.audit.record(
       {
         type: 'contest.revealed',
         contestId,

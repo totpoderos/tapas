@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 
 /**
  * Runs a piece of work as one all-or-nothing database transaction.
@@ -14,28 +14,29 @@ import type { DatabaseSync } from 'node:sqlite';
  * point.
  */
 export interface UnitOfWork {
-  run<T>(work: () => T): T;
+  run<T>(work: () => Promise<T>): Promise<T>;
 }
 
-export class SqliteUnitOfWork implements UnitOfWork {
-  constructor(private readonly db: DatabaseSync) {}
+/**
+ * Hands the work to the database, which is the only thing that knows how its own
+ * transactions are carried.
+ *
+ * This used to spell out `BEGIN`/`COMMIT`/`ROLLBACK` itself, which was right
+ * while there was one database and one connection. A database serving many
+ * callers at once has to keep every statement of one transaction on a single
+ * connection, and which connection that is, is knowledge only its adapter has.
+ */
+export class DatabaseUnitOfWork implements UnitOfWork {
+  constructor(private readonly db: Database) {}
 
-  run<T>(work: () => T): T {
-    this.db.exec('BEGIN;');
-    try {
-      const result = work();
-      this.db.exec('COMMIT;');
-      return result;
-    } catch (error) {
-      this.db.exec('ROLLBACK;');
-      throw error;
-    }
+  run<T>(work: () => Promise<T>): Promise<T> {
+    return this.db.transaction(work);
   }
 }
 
 /** A pass-through for unit tests, where the fakes have no transaction to join. */
 export class DirectUnitOfWork implements UnitOfWork {
-  run<T>(work: () => T): T {
+  run<T>(work: () => Promise<T>): Promise<T> {
     return work();
   }
 }

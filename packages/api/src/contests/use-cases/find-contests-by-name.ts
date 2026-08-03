@@ -17,9 +17,9 @@ import type { ListMyContests } from './list-my-contests.js';
 export class FindContestsByName {
   constructor(private readonly listMyContests: ListMyContests) {}
 
-  execute(hostId: string, name: string): ContestSummary[] {
+  async execute(hostId: string, name: string): Promise<ContestSummary[]> {
     const wanted = name.trim().toLowerCase();
     if (wanted === '') return [];
-    return this.listMyContests.execute(hostId).filter((c) => c.name.toLowerCase() === wanted);
+    return (await this.listMyContests.execute(hostId)).filter((c) => c.name.toLowerCase() === wanted);
   }
 }

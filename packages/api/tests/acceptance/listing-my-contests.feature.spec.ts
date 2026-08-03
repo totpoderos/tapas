@@ -104,7 +104,7 @@ describeFeature(feature, ({ Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a signed-in host "ana@example.com"', async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         jar = await signedInHost(app, 'ana@example.com');
       });
       And('that host is preparing a contest named "Summer Tapas"', async () => {
@@ -143,7 +143,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
     });
     And('that host has a contest named "Rooftop Rounds" whose voting has closed', async () => {
@@ -164,7 +164,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "ana@example.com" with no contests', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('that host lists their contests', async () => {
@@ -184,7 +184,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a signed-in host "ana@example.com" who is preparing a contest named "Ana\'s Tapas"',
       async () => {
-        ({ app } = makeTestApp());
+        ({ app } = await makeTestApp());
         anaJar = await signedInHost(app, 'ana@example.com');
         await prepareContest(app, anaJar, "Ana's Tapas");
       },
@@ -210,8 +210,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
     });
     When('listing contests is attempted', async () => {
       response = await app.inject({ method: 'GET', url: '/contests' });

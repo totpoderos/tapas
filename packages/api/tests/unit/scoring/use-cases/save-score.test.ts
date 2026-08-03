@@ -25,9 +25,9 @@ function materialized(): MaterializedContest {
   };
 }
 
-function makeEnv() {
+async function makeEnv() {
   const contests = new FakeContestRepository();
-  contests.insert({
+  await contests.insert({
     id: 'contest-1',
     hostId: 'host-1',
     name: 'Tapas',
@@ -51,36 +51,36 @@ function makeEnv() {
   };
 }
 
-describe('SaveScore', () => {
-  it('saves a score for a dish open to the voter, creating their vote session', () => {
-    const { saveScore, voteSessions } = makeEnv();
+describe('SaveScore', async () => {
+  it('saves a score for a dish open to the voter, creating their vote session', async () => {
+    const { saveScore, voteSessions } = await makeEnv();
 
-    const outcome = saveScore.execute('contest-1', 'ana', {
+    const outcome = await saveScore.execute('contest-1', 'ana', {
       dishId: 'D-bob',
       categoryId: 'taste',
       value: 4,
     });
 
     expect(outcome.ok).toBe(true);
-    expect(voteSessions.findSession('contest-1', 'ana')?.status).toBe('draft');
+    expect((await voteSessions.findSession('contest-1', 'ana'))?.status).toBe('draft');
   });
 
-  it('revises the same score rather than adding a second', () => {
-    const { saveScore, getMyScores } = makeEnv();
+  it('revises the same score rather than adding a second', async () => {
+    const { saveScore, getMyScores } = await makeEnv();
 
-    saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
-    saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 5 });
+    await saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
+    await saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 5 });
 
-    const { scores, status } = getMyScores.execute('contest-1', 'ana');
+    const { scores, status } = await getMyScores.execute('contest-1', 'ana');
     expect(scores).toHaveLength(1);
     expect(scores[0]?.value).toBe(5);
     expect(status).toBe('draft'); // saving a score does not send the vote
   });
 
-  it('refuses a dish not open to the voter', () => {
-    const { saveScore } = makeEnv();
+  it('refuses a dish not open to the voter', async () => {
+    const { saveScore } = await makeEnv();
 
-    const outcome = saveScore.execute('contest-1', 'ana', {
+    const outcome = await saveScore.execute('contest-1', 'ana', {
       dishId: 'D-ana',
       categoryId: 'taste',
       value: 4,
@@ -90,10 +90,10 @@ describe('SaveScore', () => {
     if (!outcome.ok) expect(outcome.error.code).toBe('DISH_NOT_OPEN');
   });
 
-  it('refuses an out-of-range score', () => {
-    const { saveScore } = makeEnv();
+  it('refuses an out-of-range score', async () => {
+    const { saveScore } = await makeEnv();
 
-    const outcome = saveScore.execute('contest-1', 'ana', {
+    const outcome = await saveScore.execute('contest-1', 'ana', {
       dishId: 'D-bob',
       categoryId: 'taste',
       value: 9,
@@ -103,10 +103,10 @@ describe('SaveScore', () => {
     if (!outcome.ok) expect(outcome.error.code).toBe('OUT_OF_RANGE');
   });
 
-  it('refuses an unknown category', () => {
-    const { saveScore } = makeEnv();
+  it('refuses an unknown category', async () => {
+    const { saveScore } = await makeEnv();
 
-    const outcome = saveScore.execute('contest-1', 'ana', {
+    const outcome = await saveScore.execute('contest-1', 'ana', {
       dishId: 'D-bob',
       categoryId: 'ghost',
       value: 4,
@@ -116,10 +116,10 @@ describe('SaveScore', () => {
     if (!outcome.ok) expect(outcome.error.code).toBe('UNKNOWN_CATEGORY');
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
-    const { saveScore } = makeEnv();
+  it('reports CONTEST_NOT_FOUND for an unknown contest', async () => {
+    const { saveScore } = await makeEnv();
 
-    const outcome = saveScore.execute('ghost-contest', 'ana', {
+    const outcome = await saveScore.execute('ghost-contest', 'ana', {
       dishId: 'D-bob',
       categoryId: 'taste',
       value: 4,
@@ -129,11 +129,11 @@ describe('SaveScore', () => {
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');
   });
 
-  it('refuses to save once the contest has closed', () => {
-    const { saveScore, contests } = makeEnv();
-    contests.updateStatus('contest-1', 'closed', clock.now(), null);
+  it('refuses to save once the contest has closed', async () => {
+    const { saveScore, contests } = await makeEnv();
+    await contests.updateStatus('contest-1', 'closed', clock.now(), null);
 
-    const outcome = saveScore.execute('contest-1', 'ana', {
+    const outcome = await saveScore.execute('contest-1', 'ana', {
       dishId: 'D-bob',
       categoryId: 'taste',
       value: 4,
@@ -144,19 +144,19 @@ describe('SaveScore', () => {
   });
 });
 
-describe('GetMyScores', () => {
-  it('returns no scores before a voter has saved any, and calls it a draft', () => {
-    const { getMyScores } = makeEnv();
+describe('GetMyScores', async () => {
+  it('returns no scores before a voter has saved any, and calls it a draft', async () => {
+    const { getMyScores } = await makeEnv();
     // No session yet is a draft with nothing in it, not an absence — the app
     // needs an answer it can render either way.
-    expect(getMyScores.execute('contest-1', 'ana')).toEqual({ scores: [], status: 'draft' });
+    expect(await getMyScores.execute('contest-1', 'ana')).toEqual({ scores: [], status: 'draft' });
   });
 
-  it("returns a voter's saved scores", () => {
-    const { saveScore, getMyScores } = makeEnv();
-    saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
+  it("returns a voter's saved scores", async () => {
+    const { saveScore, getMyScores } = await makeEnv();
+    await saveScore.execute('contest-1', 'ana', { dishId: 'D-bob', categoryId: 'taste', value: 4 });
 
-    const { scores } = getMyScores.execute('contest-1', 'ana');
+    const { scores } = await getMyScores.execute('contest-1', 'ana');
 
     expect(scores).toHaveLength(1);
     expect(scores[0]?.dishId).toBe('D-bob');

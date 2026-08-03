@@ -60,18 +60,18 @@ const scored = (categories: string[], extra: Partial<DraftContent> = {}): DraftC
 const categoriesOf = (content: DraftContent | undefined) =>
   (content?.scoring?.categories ?? []).map((c) => c.name);
 
-describe('AddScoringCategory', () => {
-  it('adds something for the draft to be judged on', () => {
+describe('AddScoringCategory', async () => {
+  it('adds something for the draft to be judged on', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    const answer = new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    const answer = await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(answer.ok).toBe(true);
     expect(categoriesOf(current())).toEqual(['Taste', 'Presentation']);
   });
 
-  it('gives the new category an id of its own', () => {
+  it('gives the new category an id of its own', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     const ids = (current()?.scoring?.categories ?? []).map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
@@ -83,9 +83,9 @@ describe('AddScoringCategory', () => {
    * host unable to say which to remove. The form can allow it because it removes
    * by the row it drew; a conversation has only the name.
    */
-  it('refuses a name the draft is already judged on, and changes nothing', () => {
+  it('refuses a name the draft is already judged on, and changes nothing', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    const answer = new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Taste');
+    const answer = await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Taste');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -94,23 +94,23 @@ describe('AddScoringCategory', () => {
     expect(categoriesOf(current())).toEqual(['Taste']);
   });
 
-  it('treats a name that differs only by case or spacing as the same one', () => {
+  it('treats a name that differs only by case or spacing as the same one', async () => {
     const { deps } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    expect(new AddScoringCategory(deps).execute('h1', 'Tapas Night', '  taste ').ok).toBe(false);
+    expect((await new AddScoringCategory(deps).execute('h1', 'Tapas Night', '  taste ')).ok).toBe(false);
   });
 
-  it('settles the first category on a draft with no scoring at all', () => {
+  it('settles the first category on a draft with no scoring at all', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], { name: 'Tapas Night' });
-    const answer = new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Taste');
+    const answer = await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Taste');
 
     expect(answer.ok).toBe(true);
     expect(categoriesOf(current())).toEqual(['Taste']);
   });
 
-  it('offers the candidates when the name is not one draft', () => {
+  it('offers the candidates when the name is not one draft', async () => {
     const both = [summary('d1', 'Tapas Night'), summary('d2', 'Tapas Night')];
     const { deps } = workspace(both, scored(['Taste']));
-    const answer = new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    const answer = await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(answer.ok).toBe(true);
     if (!answer.ok) return;
@@ -118,9 +118,9 @@ describe('AddScoringCategory', () => {
     expect(answer.result.details).toBeUndefined();
   });
 
-  it('changes nothing for a name only a published contest has', () => {
+  it('changes nothing for a name only a published contest has', async () => {
     const { deps, current } = workspace([summary('c1', 'Tapas Night', 'live')], scored(['Taste']));
-    const answer = new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    const answer = await new AddScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(answer.ok).toBe(true);
     if (!answer.ok) return;
@@ -129,10 +129,10 @@ describe('AddScoringCategory', () => {
   });
 });
 
-describe('RemoveScoringCategory', () => {
-  it('stops the draft being judged on it', () => {
+describe('RemoveScoringCategory', async () => {
+  it('stops the draft being judged on it', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste', 'Presentation']));
-    const answer = new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    const answer = await new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(answer.ok).toBe(true);
     expect(categoriesOf(current())).toEqual(['Taste']);
@@ -142,9 +142,9 @@ describe('RemoveScoringCategory', () => {
    * Not a silent no-op: the host has just confirmed a removal, and reporting
    * "done" over an unchanged draft is the worst of both answers.
    */
-  it('refuses when the draft is not judged on it', () => {
+  it('refuses when the draft is not judged on it', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    const answer = new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    const answer = await new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -152,26 +152,26 @@ describe('RemoveScoringCategory', () => {
     expect(categoriesOf(current())).toEqual(['Taste']);
   });
 
-  it('leaves the range and the uniqueness choice as they were', () => {
+  it('leaves the range and the uniqueness choice as they were', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste', 'Presentation']));
-    new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
+    await new RemoveScoringCategory(deps).execute('h1', 'Tapas Night', 'Presentation');
 
     expect(current()?.scoring?.range).toEqual({ type: 'fixed', min: 1, max: 10 });
     expect(current()?.scoring?.uniquePerCategory).toBe(false);
   });
 });
 
-describe('SetScoreRange', () => {
-  it('sets an explicit range', () => {
+describe('SetScoreRange', async () => {
+  it('sets an explicit range', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'fixed', min: 1, max: 5 });
+    await new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'fixed', min: 1, max: 5 });
 
     expect(current()?.scoring?.range).toEqual({ type: 'fixed', min: 1, max: 5 });
   });
 
-  it('lets the range be worked out from the contest', () => {
+  it('lets the range be worked out from the contest', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'auto' });
+    await new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'auto' });
 
     expect(current()?.scoring?.range).toEqual({ type: 'auto' });
   });
@@ -181,48 +181,48 @@ describe('SetScoreRange', () => {
    * whole contest — which is what publishing checks, for the form and for the
    * assistant alike. Refusing here would be a validator the form does not share.
    */
-  it('keeps a range whose bounds make no range, for publishing to refuse', () => {
+  it('keeps a range whose bounds make no range, for publishing to refuse', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    const answer = new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'fixed', min: 5, max: 2 });
+    const answer = await new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'fixed', min: 5, max: 2 });
 
     expect(answer.ok).toBe(true);
     expect(current()?.scoring?.range).toEqual({ type: 'fixed', min: 5, max: 2 });
   });
 
-  it('leaves what the draft is judged on alone', () => {
+  it('leaves what the draft is judged on alone', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste', 'Presentation']));
-    new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'auto' });
+    await new SetScoreRange(deps).execute('h1', 'Tapas Night', { type: 'auto' });
 
     expect(categoriesOf(current())).toEqual(['Taste', 'Presentation']);
   });
 });
 
-describe('SetScoreUniqueness', () => {
-  it('requires a different score for each dish in a category', () => {
+describe('SetScoreUniqueness', async () => {
+  it('requires a different score for each dish in a category', async () => {
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], scored(['Taste']));
-    new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', true);
+    await new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', true);
 
     expect(current()?.scoring?.uniquePerCategory).toBe(true);
   });
 
-  it('lets a score be used more than once again', () => {
+  it('lets a score be used more than once again', async () => {
     const initial = scored(['Taste']);
     const { deps, current } = workspace([summary('d1', 'Tapas Night')], {
       ...initial,
       scoring: { ...initial.scoring!, uniquePerCategory: true },
     });
-    new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', false);
+    await new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', false);
 
     expect(current()?.scoring?.uniquePerCategory).toBe(false);
   });
 
   /* The rule the whole way of working rests on: one asking changes one thing. */
-  it('leaves the people and the rest of the scoring alone', () => {
+  it('leaves the people and the rest of the scoring alone', async () => {
     const { deps, current } = workspace(
       [summary('d1', 'Tapas Night')],
       scored(['Taste'], { participants: [{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: 'Bob' }] }),
     );
-    new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', true);
+    await new SetScoreUniqueness(deps).execute('h1', 'Tapas Night', true);
 
     expect((current()?.participants ?? []).map((p) => p.displayName)).toEqual(['Ana', 'Bob']);
     expect(categoriesOf(current())).toEqual(['Taste']);

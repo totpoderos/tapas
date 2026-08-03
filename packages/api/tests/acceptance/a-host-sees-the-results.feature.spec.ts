@@ -178,7 +178,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a contest that has been fully voted, closed, and revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, host } = await playContest(app, { close: true, reveal: true }));
     });
     When('its host reads the results', async () => {
@@ -192,7 +192,7 @@ describeFeature(feature, ({ Scenario }) => {
     Then('they see the overall winner by name', () => {
       expect(reveal.overall.winners.map((w) => w.name)).toEqual(['Tortilla']);
     });
-    And('they see the winner of each category', () => {
+    And('they see the winner of each category', async () => {
       const taste = reveal.categories.find((c) => c.categoryId === 'taste');
       expect(taste?.winners.map((w) => w.name)).toEqual(['Tortilla']);
     });
@@ -211,7 +211,7 @@ describeFeature(feature, ({ Scenario }) => {
     let reveal: Reveal;
 
     Given('a revealed contest in which two dishes finished level at the top', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, host } = await playContest(app, {
         close: true,
         reveal: true,
@@ -241,7 +241,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest that has been fully voted and closed but not revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, host } = await playContest(app, { close: true, reveal: false }));
     });
     When('its host reads the results', async () => {
@@ -259,7 +259,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a revealed contest belonging to another host', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId } = await playContest(app, { close: true, reveal: true }));
     });
     When('a host reads its results', async () => {
@@ -278,7 +278,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a revealed contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId } = await playContest(app, { close: true, reveal: true }));
     });
     When('the results are read with nobody signed in', async () => {
@@ -299,7 +299,7 @@ describeFeature(feature, ({ Scenario }) => {
     let participantReveal: Reveal;
 
     Given('a contest that has been fully voted, closed, and revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, host, ana } = await playContest(app, { close: true, reveal: true }));
     });
     When('its host and a participant who took part each read the results', async () => {
@@ -339,7 +339,7 @@ describeFeature(feature, ({ Scenario }) => {
     let participantReveal: Reveal;
 
     Given('a revealed contest where one cook never named their dish', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       ({ contestId, host, ana } = await contestWithAnUnnamedDish(app));
     });
     When('the host and a participant each read the results', async () => {
@@ -350,7 +350,7 @@ describeFeature(feature, ({ Scenario }) => {
       hostReveal = hostResponse.json();
       participantReveal = participantResponse.json();
     });
-    Then('that dish is called by the same name on both', () => {
+    Then('that dish is called by the same name on both', async () => {
       /*
        * Both build their naming from `dishNaming`, so this holds by
        * construction rather than by coincidence. It is asserted anyway: the two
@@ -359,7 +359,7 @@ describeFeature(feature, ({ Scenario }) => {
        * exists to prevent rather than to make untestable.
        */
       const nameOn = (reveal: Reveal) =>
-        reveal.overall.standings.find((standing) => standing.dishId === 'D-bob')?.name;
+        (reveal.overall.standings.find((standing) => standing.dishId === 'D-bob'))?.name;
       expect(nameOn(hostReveal)).toBe('Bob');
       expect(nameOn(participantReveal)).toBe('Bob');
     });

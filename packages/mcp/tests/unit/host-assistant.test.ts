@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { hostAssistantTools } from '../../src/host-assistant.js';
 
-describe('hostAssistantTools', () => {
+describe('hostAssistantTools', async () => {
   it('exposes every catalog tool as an LLM tool definition with a JSON-schema input', async () => {
     const tools = await hostAssistantTools();
 

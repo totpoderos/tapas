@@ -54,10 +54,10 @@ export function requireHostSession(deps: RequireHostSessionDeps) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
     const bearer = request.headers.authorization;
     if (bearer?.startsWith(BEARER_PREFIX)) {
-      const pat = deps.pats.findByTokenHash(hashPatToken(bearer.slice(BEARER_PREFIX.length)));
+      const pat = await deps.pats.findByTokenHash(hashPatToken(bearer.slice(BEARER_PREFIX.length)));
       if (pat && !pat.revokedAt) {
         request.hostSession = { id: pat.hostId, authenticatedBy: 'personal-access-token' };
-        deps.securityLog.record({ type: 'pat.used', actorId: pat.hostId, sourceIp: request.ip });
+        await deps.securityLog.record({ type: 'pat.used', actorId: pat.hostId, sourceIp: request.ip });
         return;
       }
       await reply.code(401).send(notSignedIn);
@@ -66,7 +66,7 @@ export function requireHostSession(deps: RequireHostSessionDeps) {
 
     const token = request.cookies[ACCESS_COOKIE];
     const claims = token ? deps.tokens.verify(token) : null;
-    if (!claims || claims.typ !== 'access' || !deps.sessions.isActive(claims.jti)) {
+    if (!claims || claims.typ !== 'access' || !await deps.sessions.isActive(claims.jti)) {
       await reply.code(401).send(notSignedIn);
       return;
     }

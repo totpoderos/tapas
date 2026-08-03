@@ -17,18 +17,18 @@ const summary = (
   status: ContestSummary['status'] = 'live',
 ): ContestSummary => ({ id, name, status, updatedAt: '2026-01-01T00:00:00.000Z' });
 
-describe('ResolveContestByName', () => {
-  it('resolves a name only one contest bears', () => {
+describe('ResolveContestByName', async () => {
+  it('resolves a name only one contest bears', async () => {
     const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-    const result = resolve.execute('h1', 'Tapas Night');
+    const result = await resolve.execute('h1', 'Tapas Night');
     expect(result.kind).toBe('one');
     if (result.kind !== 'one') return;
     expect(result.contest.id).toBe('c1');
   });
 
-  it('matches without regard to case', () => {
+  it('matches without regard to case', async () => {
     const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-    expect(resolve.execute('h1', 'tapas night').kind).toBe('one');
+    expect((await resolve.execute('h1', 'tapas night')).kind).toBe('one');
   });
 
   /*
@@ -36,18 +36,18 @@ describe('ResolveContestByName', () => {
    * "several", never to whichever came back first, so no action can land on a
    * contest the host did not mean.
    */
-  it('offers the candidates when several contests share the name', () => {
+  it('offers the candidates when several contests share the name', async () => {
     const both = [summary('c1', 'Tapas Night'), summary('c2', 'Tapas Night')];
     const resolve = new ResolveContestByName(findStub('h1', both));
-    const result = resolve.execute('h1', 'Tapas Night');
+    const result = await resolve.execute('h1', 'Tapas Night');
     expect(result.kind).toBe('several');
     if (result.kind !== 'several') return;
     expect(result.candidates.map((c) => c.id)).toEqual(['c1', 'c2']);
   });
 
-  it('reports nothing found for a name no contest bears', () => {
+  it('reports nothing found for a name no contest bears', async () => {
     const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-    expect(resolve.execute('h1', 'Sunday Roast').kind).toBe('none');
+    expect((await resolve.execute('h1', 'Sunday Roast')).kind).toBe('none');
   });
 
   /*
@@ -55,20 +55,20 @@ describe('ResolveContestByName', () => {
    * searched, so another host's contest is not there to refuse. That is also why
    * a 403 never leaks the existence of a contest by name.
    */
-  it('never reaches another host’s contest', () => {
+  it('never reaches another host’s contest', async () => {
     const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-    expect(resolve.execute('h2', 'Tapas Night').kind).toBe('none');
+    expect((await resolve.execute('h2', 'Tapas Night')).kind).toBe('none');
   });
 
-  it('reports nothing found for an empty name', () => {
+  it('reports nothing found for an empty name', async () => {
     const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-    expect(resolve.execute('h1', '   ').kind).toBe('none');
+    expect((await resolve.execute('h1', '   ')).kind).toBe('none');
   });
 
-  describe('narrowed to drafts', () => {
-    it('resolves a draft by name', () => {
+  describe('narrowed to drafts', async () => {
+    it('resolves a draft by name', async () => {
       const resolve = new ResolveContestByName(findStub('h1', [summary('d1', 'Tapas Night', 'draft')]));
-      const result = resolve.execute('h1', 'Tapas Night', { only: 'draft' });
+      const result = await resolve.execute('h1', 'Tapas Night', { only: 'draft' });
       expect(result.kind).toBe('one');
       if (result.kind !== 'one') return;
       expect(result.contest.id).toBe('d1');
@@ -80,24 +80,24 @@ describe('ResolveContestByName', () => {
      * re-running a contest under the same name would block every edit to the new
      * draft.
      */
-    it('ignores a published contest sharing the name', () => {
+    it('ignores a published contest sharing the name', async () => {
       const mixed = [summary('c1', 'Tapas Night'), summary('d1', 'Tapas Night', 'draft')];
       const resolve = new ResolveContestByName(findStub('h1', mixed));
-      const result = resolve.execute('h1', 'Tapas Night', { only: 'draft' });
+      const result = await resolve.execute('h1', 'Tapas Night', { only: 'draft' });
       expect(result.kind).toBe('one');
       if (result.kind !== 'one') return;
       expect(result.contest.id).toBe('d1');
     });
 
-    it('reports nothing found when only a published contest bears the name', () => {
+    it('reports nothing found when only a published contest bears the name', async () => {
       const resolve = new ResolveContestByName(findStub('h1', [summary('c1', 'Tapas Night')]));
-      expect(resolve.execute('h1', 'Tapas Night', { only: 'draft' }).kind).toBe('none');
+      expect((await resolve.execute('h1', 'Tapas Night', { only: 'draft' })).kind).toBe('none');
     });
 
-    it('offers the candidates when several drafts share the name', () => {
+    it('offers the candidates when several drafts share the name', async () => {
       const both = [summary('d1', 'Tapas Night', 'draft'), summary('d2', 'Tapas Night', 'draft')];
       const resolve = new ResolveContestByName(findStub('h1', both));
-      expect(resolve.execute('h1', 'Tapas Night', { only: 'draft' }).kind).toBe('several');
+      expect((await resolve.execute('h1', 'Tapas Night', { only: 'draft' })).kind).toBe('several');
     });
   });
 });

@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
@@ -18,14 +19,14 @@ const feature = await loadFeature(fileURLToPath(new URL('./host-authentication.f
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 const WRONG_PASSWORD = 'Wr0ng!Passw0rd';
 
-function makeAuthWorkspace() {
+async function makeAuthWorkspace() {
   const db = new DatabaseSync(':memory:');
-  runMigrations(db);
-  const accounts = new SqliteHostAccountRepository(db);
+  await runMigrations(new SqliteDatabase(db));
+  const accounts = new SqliteHostAccountRepository(new SqliteDatabase(db));
   const hasher = new BcryptPasswordHasher(4); // low cost keeps tests fast
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
   const tokens = new HmacJwtTokenIssuer('test-secret-that-is-at-least-32-characters', clock);
-  const sessions = new SqliteSessionStore(db);
+  const sessions = new SqliteSessionStore(new SqliteDatabase(db));
   let sequence = 0;
   const ids = { next: () => `host-${++sequence}` };
   return {
@@ -35,7 +36,7 @@ function makeAuthWorkspace() {
   };
 }
 
-type AuthWorkspace = ReturnType<typeof makeAuthWorkspace>;
+type AuthWorkspace = Awaited<ReturnType<typeof makeAuthWorkspace>>;
 
 describeFeature(feature, ({ Scenario }) => {
   Scenario('A host registers and can log in', ({ Given, When, Then, And }) => {
@@ -43,7 +44,7 @@ describeFeature(feature, ({ Scenario }) => {
     let registration: Awaited<ReturnType<RegisterHost['execute']>>;
     let loginOutcome: Awaited<ReturnType<AuthenticateHost['execute']>>;
 
-    Given('no host is registered with "ana@example.com"', () => void (workspace = makeAuthWorkspace()));
+    Given('no host is registered with "ana@example.com"', async () => void (workspace = await makeAuthWorkspace()));
     When('a host registers with email "ana@example.com" and a strong password', async () => {
       registration = await workspace.registerHost.execute('ana@example.com', STRONG_PASSWORD);
     });
@@ -64,11 +65,11 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('The password is never stored in the clear', ({ Given, Then }) => {
     let workspace: AuthWorkspace;
     Given('a registered host with email "ana@example.com"', async () => {
-      workspace = makeAuthWorkspace();
+      workspace = await makeAuthWorkspace();
       await workspace.registerHost.execute('ana@example.com', STRONG_PASSWORD);
     });
-    Then('the stored credentials do not reveal the password', () => {
-      const account = workspace.accounts.findByEmail('ana@example.com');
+    Then('the stored credentials do not reveal the password', async () => {
+      const account = await workspace.accounts.findByEmail('ana@example.com');
       expect(account?.passwordHash).toBeTruthy();
       expect(account?.passwordHash).not.toBe(STRONG_PASSWORD);
     });
@@ -78,7 +79,7 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: AuthWorkspace;
     let loginOutcome: Awaited<ReturnType<AuthenticateHost['execute']>>;
     Given('a registered host with email "ana@example.com"', async () => {
-      workspace = makeAuthWorkspace();
+      workspace = await makeAuthWorkspace();
       await workspace.registerHost.execute('ana@example.com', STRONG_PASSWORD);
     });
     When('the host tries to log in with the wrong password', async () => {
@@ -93,7 +94,7 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('Logging in with an unknown email is refused the same way', ({ Given, When, Then }) => {
     let workspace: AuthWorkspace;
     let loginOutcome: Awaited<ReturnType<AuthenticateHost['execute']>>;
-    Given('no host is registered with "nobody@example.com"', () => void (workspace = makeAuthWorkspace()));
+    Given('no host is registered with "nobody@example.com"', async () => void (workspace = await makeAuthWorkspace()));
     When('someone tries to log in with "nobody@example.com"', async () => {
       loginOutcome = await workspace.authenticateHost.execute('nobody@example.com', STRONG_PASSWORD);
     });
@@ -107,7 +108,7 @@ describeFeature(feature, ({ Scenario }) => {
     let workspace: AuthWorkspace;
     let registration: Awaited<ReturnType<RegisterHost['execute']>>;
     Given('a registered host with email "ana@example.com"', async () => {
-      workspace = makeAuthWorkspace();
+      workspace = await makeAuthWorkspace();
       await workspace.registerHost.execute('ana@example.com', STRONG_PASSWORD);
     });
     When('a host registers with email "ana@example.com" and a strong password', async () => {
@@ -122,7 +123,7 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('A weak password is refused', ({ Given, When, Then }) => {
     let workspace: AuthWorkspace;
     let registration: Awaited<ReturnType<RegisterHost['execute']>>;
-    Given('no host is registered with "ana@example.com"', () => void (workspace = makeAuthWorkspace()));
+    Given('no host is registered with "ana@example.com"', async () => void (workspace = await makeAuthWorkspace()));
     When('a host registers with email "ana@example.com" and the weak password "short"', async () => {
       registration = await workspace.registerHost.execute('ana@example.com', 'short');
     });
@@ -135,7 +136,7 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('The account locks after repeated failures', ({ Given, When, Then }) => {
     let workspace: AuthWorkspace;
     Given('a registered host with email "ana@example.com"', async () => {
-      workspace = makeAuthWorkspace();
+      workspace = await makeAuthWorkspace();
       await workspace.registerHost.execute('ana@example.com', STRONG_PASSWORD);
     });
     When('the host fails to log in 5 times', async () => {

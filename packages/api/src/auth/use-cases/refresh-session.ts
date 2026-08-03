@@ -18,15 +18,15 @@ const notSignedIn: RefreshResult = {
 export class RefreshSession {
   constructor(private readonly deps: RefreshSessionDeps) {}
 
-  execute(refreshToken: string): RefreshResult {
+  async execute(refreshToken: string): Promise<RefreshResult> {
     const claims = this.deps.tokens.verify(refreshToken);
-    if (!claims || claims.typ !== 'refresh' || !this.deps.sessions.isActive(claims.jti)) return notSignedIn;
+    if (!claims || claims.typ !== 'refresh' || !await this.deps.sessions.isActive(claims.jti)) return notSignedIn;
 
-    this.deps.sessions.revoke(claims.jti);
+    await this.deps.sessions.revoke(claims.jti);
 
     const session = this.deps.tokens.issue({ sub: claims.sub, role: claims.role });
     const expiresAt = new Date(Date.parse(this.deps.clock.now()) + REFRESH_TTL_SECONDS * 1000).toISOString();
-    this.deps.sessions.activate(session.sessionId, claims.sub, expiresAt);
+    await this.deps.sessions.activate(session.sessionId, claims.sub, expiresAt);
 
     return { ok: true, session, hostId: claims.sub, role: claims.role };
   }

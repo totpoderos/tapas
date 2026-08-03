@@ -57,18 +57,18 @@ const rosterRepo = {
   ],
 };
 
-const ballotFor = (contests: FakeContestRepository, contestId: string, voterId: string) =>
-  new GetBallot({ contests, dishes: dishesRepo as never, roster: rosterRepo as never }).execute(
+const ballotFor = async (contests: FakeContestRepository, contestId: string, voterId: string) =>
+  await new GetBallot({ contests, dishes: dishesRepo as never, roster: rosterRepo as never }).execute(
     contestId,
     voterId,
   );
 
-describe('GetBallot', () => {
-  it('returns only the dishes open to the voter, with names, categories, range, and mode', () => {
+describe('GetBallot', async () => {
+  it('returns only the dishes open to the voter, with names, categories, range, and mode', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(contestWith(materialized));
+    await contests.insert(contestWith(materialized));
 
-    const result = ballotFor(contests, 'c1', 'A');
+    const result = await ballotFor(contests, 'c1', 'A');
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -76,15 +76,15 @@ describe('GetBallot', () => {
     expect(ballot.dishes.map((d) => d.dishId).sort()).toEqual(['D-C', 'D-D']);
     // Submitted names are used; a dish nobody named is called by its cook —
     // the same thing the reveal calls it, because it is the same function.
-    expect(ballot.dishes.find((d) => d.dishId === 'D-C')?.name).toBe('Tortilla');
-    expect(ballot.dishes.find((d) => d.dishId === 'D-D')?.name).toBe('Diego');
+    expect((ballot.dishes.find((d) => d.dishId === 'D-C'))?.name).toBe('Tortilla');
+    expect((ballot.dishes.find((d) => d.dishId === 'D-D'))?.name).toBe('Diego');
     expect(ballot.range).toEqual({ min: 1, max: 5 });
     expect(ballot.categories).toEqual([{ id: 'c1', name: 'Taste' }]);
     expect(ballot.uniquePerCategory).toBe(false);
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
-    const result = ballotFor(new FakeContestRepository(), 'nope', 'A');
+  it('reports CONTEST_NOT_FOUND for an unknown contest', async () => {
+    const result = await ballotFor(new FakeContestRepository(), 'nope', 'A');
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe('CONTEST_NOT_FOUND');
   });

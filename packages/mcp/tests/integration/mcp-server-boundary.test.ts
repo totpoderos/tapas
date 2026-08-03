@@ -1,6 +1,7 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { SqliteAuditLogRepository } from '@tapas/api';
+import { SqliteDatabase } from '@tapas/api';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildMcpServer } from '../../src/mcp-server.js';
 import { hostWithToken, startApi, type RunningApi } from '../support/api-harness.js';
@@ -19,7 +20,7 @@ interface ToolResult {
   readonly content: readonly { readonly type: string; readonly text: string }[];
 }
 
-describe('MCP server boundary', () => {
+describe('MCP server boundary', async () => {
   let api: RunningApi | undefined;
   afterEach(async () => {
     await api?.close();
@@ -92,7 +93,7 @@ describe('MCP server boundary', () => {
     })) as ToolResult;
     const draftId = JSON.parse(result.content[0]!.text).id as string;
 
-    const entries = new SqliteAuditLogRepository(api.db).findByContest(draftId);
+    const entries = await new SqliteAuditLogRepository(new SqliteDatabase(api.db)).findByContest(draftId);
     expect(entries.some((entry) => entry.type === 'draft.saved')).toBe(true);
   });
 });

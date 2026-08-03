@@ -15,9 +15,9 @@ export class AuditRecorder {
     private readonly projection: AuditProjection,
   ) {}
 
-  record(event: DomainEvent, context: AuditContext): AuditEntry {
+  async record(event: DomainEvent, context: AuditContext): Promise<AuditEntry> {
     const entry = this.projection.project(event, context);
-    this.repo.append(entry);
+    await this.repo.append(entry);
     return entry;
   }
 
@@ -31,7 +31,7 @@ export class AuditRecorder {
    * content, so a delete that spared the log would not delete anyone's data —
    * see `DeleteContest` for the full reasoning.
    */
-  deleteByContest(contestId: string): void {
-    this.repo.deleteByContest(contestId);
+  async deleteByContest(contestId: string): Promise<void> {
+    await this.repo.deleteByContest(contestId);
   }
 }

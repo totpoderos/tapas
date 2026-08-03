@@ -2,6 +2,8 @@ export { buildServer, type ServerDeps } from './server.js';
 export { buildProductionDeps } from './composition.js';
 export { loadEnv, EnvValidationError, type Env } from './config/env.js';
 export { openDatabase, runMigrations } from './db/migrate.js';
+export { SqliteDatabase } from './db/sqlite-database.js';
+export type { Database, PreparedStatement, SqlValue } from './db/database.js';
 export {
   createAuditProjection,
   type AuditProjection,
@@ -87,7 +89,7 @@ export { CloseContest } from './contests/use-cases/close-contest.js';
 export { RevealContest } from './contests/use-cases/reveal-contest.js';
 export { GetResults } from './contests/use-cases/get-results.js';
 export { DeleteContest } from './contests/use-cases/delete-contest.js';
-export { SqliteUnitOfWork, DirectUnitOfWork, type UnitOfWork } from './db/unit-of-work.js';
+export { DatabaseUnitOfWork, DirectUnitOfWork, type UnitOfWork } from './db/unit-of-work.js';
 export { GetTally } from './contests/use-cases/get-tally.js';
 export { GetTurnout } from './contests/use-cases/get-turnout.js';
 export type {

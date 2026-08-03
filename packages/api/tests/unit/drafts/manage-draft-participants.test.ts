@@ -48,49 +48,49 @@ function workspace(matches: ContestSummary[], initial?: DraftContent) {
 
 const base = (participants: DraftContent['participants']): DraftContent => ({ name: 'Tapas Night', participants });
 
-describe('AddDraftParticipant', () => {
-  it('adds a participant to the resolved draft', () => {
+describe('AddDraftParticipant', async () => {
+  it('adds a participant to the resolved draft', async () => {
     const { deps, current } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: 'Bob' }]),
     );
-    const result = new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
+    const result = await new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
     expect(result.details?.participants).toEqual(['Ana', 'Bob', 'Carmen']);
     expect(current()?.participants?.map((p) => p.displayName)).toEqual(['Ana', 'Bob', 'Carmen']);
   });
 
-  it('offers candidates when two drafts share the name, and changes nothing', () => {
+  it('offers candidates when two drafts share the name, and changes nothing', async () => {
     const { deps, current } = workspace(
       [summary('d1', 'Tapas Night', 'draft'), summary('d2', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }]),
     );
-    const result = new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
+    const result = await new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
     expect(result.details).toBeUndefined();
     expect(result.candidates).toHaveLength(2);
     expect(current()?.participants).toHaveLength(1);
   });
 
-  it('finds no draft to change when only a published contest has the name', () => {
+  it('finds no draft to change when only a published contest has the name', async () => {
     const { deps } = workspace([summary('c1', 'Tapas Night', 'live')]);
-    const result = new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
+    const result = await new AddDraftParticipant(deps).execute('h1', 'Tapas Night', 'Carmen');
     expect(result.details).toBeUndefined();
     expect(result.candidates).toEqual([]);
   });
 });
 
-describe('RemoveDraftParticipant', () => {
-  it('removes a participant by name (case-insensitively)', () => {
+describe('RemoveDraftParticipant', async () => {
+  it('removes a participant by name (case-insensitively)', async () => {
     const { deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: 'Bob' }]),
     );
-    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
+    const answer = await new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
     expect(answer.ok).toBe(true);
     if (!answer.ok) return;
     expect(answer.result.details?.participants).toEqual(['Ana']);
   });
 
-  it('clears a pairing that named the removed participant', () => {
+  it('clears a pairing that named the removed participant', async () => {
     const { current, deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([
@@ -98,7 +98,7 @@ describe('RemoveDraftParticipant', () => {
         { id: 'b', displayName: 'Bob', partnerId: 'a' },
       ]),
     );
-    new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Bob');
+    await new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Bob');
     const ana = current()?.participants?.find((p) => p.id === 'a');
     expect(ana?.partnerId).toBeUndefined();
   });
@@ -108,12 +108,12 @@ describe('RemoveDraftParticipant', () => {
    * unchanged draft — which reads as "removed" to a host who has just confirmed
    * a removal. It refuses now, as removing a scoring category does.
    */
-  it('refuses when nobody by that name is taking part', () => {
+  it('refuses when nobody by that name is taking part', async () => {
     const { current, deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }]),
     );
-    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Nobody');
+    const answer = await new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Nobody');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -127,7 +127,7 @@ describe('RemoveDraftParticipant', () => {
    * taking away more than the host named is exactly what confirming exists to
    * prevent, and the confirmation they gave named one person.
    */
-  it('refuses a name two people share, and removes neither', () => {
+  it('refuses a name two people share, and removes neither', async () => {
     const { current, deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([
@@ -136,7 +136,7 @@ describe('RemoveDraftParticipant', () => {
         { id: 'b', displayName: 'Bob' },
       ]),
     );
-    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Ana');
+    const answer = await new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'Ana');
 
     expect(answer.ok).toBe(false);
     if (answer.ok) return;
@@ -144,12 +144,12 @@ describe('RemoveDraftParticipant', () => {
     expect(current()?.participants).toHaveLength(3);
   });
 
-  it('matches a name ignoring stray spaces, as every other name is matched', () => {
+  it('matches a name ignoring stray spaces, as every other name is matched', async () => {
     const { deps } = workspace(
       [summary('d1', 'Tapas Night', 'draft')],
       base([{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: ' Bob ' }]),
     );
-    const answer = new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
+    const answer = await new RemoveDraftParticipant(deps).execute('h1', 'Tapas Night', 'bob');
     expect(answer.ok).toBe(true);
   });
 });

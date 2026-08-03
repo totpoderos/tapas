@@ -28,13 +28,13 @@ export interface ListMyContestsDeps {
 export class ListMyContests {
   constructor(private readonly deps: ListMyContestsDeps) {}
 
-  execute(hostId: string): ContestSummary[] {
-    const drafts = this.deps.drafts.findByHost(hostId);
-    const published = this.deps.contests.findByHost(hostId);
+  async execute(hostId: string): Promise<ContestSummary[]> {
+    const drafts = await this.deps.drafts.findByHost(hostId);
+    const published = await this.deps.contests.findByHost(hostId);
 
     const ids = published.map((contest) => contest.id);
-    const claimed = this.deps.roster.countClaimedByContest(ids);
-    const sessions = this.deps.voteSessions.countSessionsByContest(ids);
+    const claimed = await this.deps.roster.countClaimedByContest(ids);
+    const sessions = await this.deps.voteSessions.countSessionsByContest(ids);
 
     const fromDrafts = drafts.map(draftSummary);
     const fromContests = published.map((contest) =>

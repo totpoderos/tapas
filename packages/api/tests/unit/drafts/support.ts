@@ -10,32 +10,32 @@ import {
 
 export class FakeDraftRepository implements DraftRepository {
   private readonly store = new Map<string, StoredDraft>();
-  insert(draft: StoredDraft): void {
+  async insert(draft: StoredDraft): Promise<void> {
     this.store.set(draft.id, draft);
   }
-  update(draft: StoredDraft): void {
+  async update(draft: StoredDraft): Promise<void> {
     this.store.set(draft.id, draft);
   }
-  findById(id: string): StoredDraft | undefined {
+  async findById(id: string): Promise<StoredDraft | undefined> {
     return this.store.get(id);
   }
-  findByHost(hostId: string): StoredDraft[] {
+  async findByHost(hostId: string): Promise<StoredDraft[]> {
     return [...this.store.values()].filter((draft) => draft.hostId === hostId);
   }
-  delete(id: string): void {
+  async delete(id: string): Promise<void> {
     this.store.delete(id);
   }
 }
 
 export class FakeAuditLog implements AuditLogRepository {
   readonly entries: AuditEntry[] = [];
-  append(entry: AuditEntry): void {
+  async append(entry: AuditEntry): Promise<void> {
     this.entries.push(entry);
   }
-  findByContest(contestId: string): AuditEntry[] {
+  async findByContest(contestId: string): Promise<AuditEntry[]> {
     return this.entries.filter((entry) => entry.contestId === contestId);
   }
-  deleteByContest(contestId: string): void {
+  async deleteByContest(contestId: string): Promise<void> {
     for (let i = this.entries.length - 1; i >= 0; i -= 1) {
       if (this.entries[i]!.contestId === contestId) this.entries.splice(i, 1);
     }

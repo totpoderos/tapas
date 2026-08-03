@@ -43,13 +43,13 @@ function liveContest(id: string, joinCode: string) {
   };
 }
 
-describe('ClaimPlace', () => {
-  it('claims an open place and issues a voter token carrying the participant id', () => {
+describe('ClaimPlace', async () => {
+  it('claims an open place and issues a voter token carrying the participant id', async () => {
     const { claimPlace, contests, roster, tokens } = makeClaimEnv();
-    contests.insert(liveContest('contest-1', 'TAPAS1'));
-    roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
+    await contests.insert(liveContest('contest-1', 'TAPAS1'));
+    await roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
 
-    const outcome = claimPlace.execute('TAPAS1', 'ana');
+    const outcome = await claimPlace.execute('TAPAS1', 'ana');
 
     expect(outcome.ok).toBe(true);
     if (outcome.ok) {
@@ -59,33 +59,33 @@ describe('ClaimPlace', () => {
       expect(claims?.sub).toBe('ana');
       expect(claims?.contestId).toBe('contest-1');
     }
-    expect(roster.find('contest-1', 'ana')?.claimedAt).toBeTruthy();
+    expect((await roster.find('contest-1', 'ana'))?.claimedAt).toBeTruthy();
   });
 
-  it('refuses an unknown join code', () => {
+  it('refuses an unknown join code', async () => {
     const { claimPlace } = makeClaimEnv();
-    const outcome = claimPlace.execute('GHOST1', 'ana');
+    const outcome = await claimPlace.execute('GHOST1', 'ana');
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('JOIN_CODE_NOT_FOUND');
   });
 
-  it('refuses a place that is not on the roster', () => {
+  it('refuses a place that is not on the roster', async () => {
     const { claimPlace, contests } = makeClaimEnv();
-    contests.insert(liveContest('contest-1', 'TAPAS1'));
+    await contests.insert(liveContest('contest-1', 'TAPAS1'));
 
-    const outcome = claimPlace.execute('TAPAS1', 'zoe');
+    const outcome = await claimPlace.execute('TAPAS1', 'zoe');
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('NO_SUCH_PLACE');
   });
 
-  it('refuses a place that is already taken', () => {
+  it('refuses a place that is already taken', async () => {
     const { claimPlace, contests, roster } = makeClaimEnv();
-    contests.insert(liveContest('contest-1', 'TAPAS1'));
-    roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
-    claimPlace.execute('TAPAS1', 'ana');
+    await contests.insert(liveContest('contest-1', 'TAPAS1'));
+    await roster.seed('contest-1', [{ participantId: 'ana', displayName: 'Ana' }]);
+    await claimPlace.execute('TAPAS1', 'ana');
 
-    const second = claimPlace.execute('TAPAS1', 'ana');
+    const second = await claimPlace.execute('TAPAS1', 'ana');
 
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.error.code).toBe('PLACE_TAKEN');

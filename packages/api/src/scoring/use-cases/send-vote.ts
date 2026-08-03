@@ -20,14 +20,14 @@ export interface SendVoteDeps {
 export class SendVote {
   constructor(private readonly deps: SendVoteDeps) {}
 
-  execute(contestId: string, voterId: string): SendVoteResult {
-    const contest = this.deps.contests.findById(contestId);
+  async execute(contestId: string, voterId: string): Promise<SendVoteResult> {
+    const contest = await this.deps.contests.findById(contestId);
     if (!contest)
       return { ok: false, error: { code: 'CONTEST_NOT_FOUND', message: 'No such contest.' } };
     if (contest.status !== 'live')
       return { ok: false, error: { code: 'CONTEST_CLOSED', message: 'This contest is closed.' } };
 
-    const stored = this.deps.voteSessions.findSession(contestId, voterId);
+    const stored = await this.deps.voteSessions.findSession(contestId, voterId);
     if (!stored) {
       return {
         ok: false,
@@ -43,13 +43,13 @@ export class SendVote {
       stored.createdAt,
       stored.submittedAt,
     );
-    const scores = this.deps.voteSessions.listScores(stored.id);
+    const scores = await this.deps.voteSessions.listScores(stored.id);
     const now = this.deps.clock.now();
 
     const sent = session.send(contest.materialized, scores, now);
     if (!sent.ok) return { ok: false, error: sent.error };
 
-    this.deps.voteSessions.markSent(stored.id, now);
+    await this.deps.voteSessions.markSent(stored.id, now);
 
     if (contest.closeRule.when === 'all_sent') {
       /*
@@ -60,12 +60,13 @@ export class SendVote {
        * contest refuses scores and dishes, so the rest of the evening was locked
        * out with their drafts stranded and closing has no undo.
        */
-      const places = this.deps.roster.listAll(contestId);
-      const allPlacesSent = places.every(
-        (place) => this.deps.voteSessions.findSession(contestId, place.participantId)?.status === 'sent',
+      const places = await this.deps.roster.listAll(contestId);
+      const sessions = await Promise.all(
+        places.map((place) => this.deps.voteSessions.findSession(contestId, place.participantId)),
       );
+      const allPlacesSent = sessions.every((session) => session?.status === 'sent');
       if (shouldAutoClose(contest.closeRule, { allPlacesSent }, now)) {
-        this.deps.contests.updateStatus(contestId, 'closed', now, null);
+        await this.deps.contests.updateStatus(contestId, 'closed', now, null);
       }
     }
 

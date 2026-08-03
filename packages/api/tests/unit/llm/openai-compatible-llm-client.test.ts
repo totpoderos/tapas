@@ -16,7 +16,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('OpenAiCompatibleLLMClient', () => {
+describe('OpenAiCompatibleLLMClient', async () => {
   it('gives up on a request that never completes, rather than hanging forever', async () => {
     // A stalled connection previously blocked an eval run indefinitely, with
     // no output and no error — the run looked identical to a slow model.

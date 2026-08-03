@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -87,7 +88,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       adminJar = new CookieJar();
       await signInAsAdministrator(app, db, adminJar, 'ana@example.com');
     });
@@ -103,7 +104,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(emails).toEqual(expect.arrayContaining(['ana@example.com', 'bob@example.com']));
       expect(emails).toHaveLength(2);
     });
-    And('each one shows whether it is an administrator', () => {
+    And('each one shows whether it is an administrator', async () => {
       const hosts: { email: string; isAdministrator: boolean }[] = response.json().hosts;
       const byEmail = new Map(hosts.map((host) => [host.email, host.isAdministrator]));
       expect(byEmail.get('ana@example.com')).toBe(true);
@@ -117,7 +118,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'bob@example.com');
     });
@@ -137,7 +138,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       await signInAsAdministrator(app, db, new CookieJar(), 'ana@example.com');
     });
     And('a signed-in host "bob@example.com"', async () => {
@@ -158,8 +159,8 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
     });
     When('the host accounts are asked for', async () => {
@@ -178,7 +179,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       const jar = new CookieJar();
       await signInAsAdministrator(app, db, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
@@ -200,7 +201,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com" who has issued a personal access token', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       const jar = new CookieJar();
       await signInAsAdministrator(app, db, jar, 'ana@example.com');
       const issued = await request(app, jar, { method: 'POST', url: '/auth/pats' });
@@ -226,7 +227,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       jar = new CookieJar();
       await signInAsAdministrator(app, db, jar, 'ana@example.com');
     });
@@ -248,7 +249,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'bob@example.com');
     });
@@ -268,8 +269,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp());
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp());
     });
     When('an app asks who it is talking to', async () => {
       response = await request(app, new CookieJar(), { method: 'GET', url: '/auth/me' });
@@ -286,7 +287,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      ({ app, db } = makeTestApp());
+      ({ app, db } = await makeTestApp());
       jar = new CookieJar();
       await registerAndLogin(app, jar, 'bob@example.com');
     });
@@ -294,14 +295,14 @@ describeFeature(feature, ({ Scenario }) => {
       const response = await request(app, jar, { method: 'GET', url: '/auth/me' });
       expect(response.statusCode).toBe(200);
     });
-    Then('the security log records no refused administrative attempt', () => {
+    Then('the security log records no refused administrative attempt', async () => {
       // The whole reason this endpoint exists rather than probing /admin/* and
       // reading a 403: that would fire this record for every ordinary host on
       // every page load, and bury the one line that means somebody reached for
       // something they should not have.
-      const refused = new SqliteSecurityEventLog(db, new SystemClock(), new UuidIdGenerator())
-        .list()
-        .find((event) => event.type === 'admin_access.refused');
+      const refused = (
+        await new SqliteSecurityEventLog(new SqliteDatabase(db), new SystemClock(), new UuidIdGenerator()).list()
+      ).find((event) => event.type === 'admin_access.refused');
       expect(refused).toBeUndefined();
     });
   });

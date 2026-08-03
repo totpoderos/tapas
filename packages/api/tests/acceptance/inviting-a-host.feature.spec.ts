@@ -86,7 +86,7 @@ function invitationRows(db: DatabaseSync, email: string): unknown[] {
 
 /** An administrator on an app whose mailer refuses everything, as a dead mail server would. */
 async function administratorWithNoMailServer(): Promise<{ test: TestApp; jar: CookieJar }> {
-  const test = makeTestApp();
+  const test = await makeTestApp();
   const jar = new CookieJar();
   await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
   test.mailer.failEverySend();
@@ -128,7 +128,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -151,7 +151,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await registerAndLogin(test.app, jar, 'bob@example.com');
     });
@@ -175,8 +175,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      test = makeTestApp();
+    Given('no one is signed in', async () => {
+      test = await makeTestApp();
     });
     When('someone tries to invite "nuevo@example.com"', async () => {
       response = await request(test.app, new CookieJar(), {
@@ -197,7 +197,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -222,7 +222,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -247,7 +247,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -445,7 +445,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       await signInAsAdministrator(test.app, test.db, new CookieJar(), 'ana@example.com');
     });
     When('someone tries to accept with a link that no invitation ever had', async () => {
@@ -729,7 +729,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host "bob@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await registerAndLogin(test.app, jar, 'bob@example.com');
     });
@@ -1105,7 +1105,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -1148,7 +1148,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('an administrator "ana@example.com"', async () => {
-      test = makeTestApp();
+      test = await makeTestApp();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -1195,7 +1195,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
-      test = makeTestAppWithoutMail();
+      test = await makeTestAppWithoutMail();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });
@@ -1228,7 +1228,7 @@ describeFeature(feature, ({ Scenario }) => {
     let jar: CookieJar;
 
     Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
-      test = makeTestAppWithoutMail();
+      test = await makeTestAppWithoutMail();
       jar = new CookieJar();
       await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
     });

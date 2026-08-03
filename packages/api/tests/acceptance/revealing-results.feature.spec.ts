@@ -128,7 +128,7 @@ describeFeature(feature, ({ Scenario }) => {
     let revealResponse: LightMyRequestResponse;
 
     Given('a closed contest where every judge has sent a vote', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       const joinCode = await joinCodeOf(app, hostJar, contestId);
@@ -164,7 +164,7 @@ describeFeature(feature, ({ Scenario }) => {
     let resultsResponse: LightMyRequestResponse;
 
     Given('a closed contest where two dishes are tied for the top score in a category', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       const joinCode = await joinCodeOf(app, hostJar, contestId);
@@ -196,7 +196,7 @@ describeFeature(feature, ({ Scenario }) => {
     let resultsResponse: LightMyRequestResponse;
 
     Given('a closed contest where one judge never sent their vote', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       const joinCode = await joinCodeOf(app, hostJar, contestId);
@@ -229,7 +229,7 @@ describeFeature(feature, ({ Scenario }) => {
     let revealResponse: LightMyRequestResponse;
 
     Given('a live contest that has not yet closed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
     });
@@ -252,7 +252,7 @@ describeFeature(feature, ({ Scenario }) => {
     let revealResponse: LightMyRequestResponse;
 
     Given('a contest that has already been revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       await request(app, hostJar, { method: 'POST', url: `/contests/${contestId}/close` });
@@ -277,7 +277,7 @@ describeFeature(feature, ({ Scenario }) => {
     let resultsResponse: LightMyRequestResponse;
 
     Given('a closed contest that has not yet been revealed', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       await request(app, hostJar, { method: 'POST', url: `/contests/${contestId}/close` });
@@ -301,7 +301,7 @@ describeFeature(feature, ({ Scenario }) => {
     let revealResponse: LightMyRequestResponse;
 
     Given('a closed contest owned by one host', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const hostJar = await signedInHost(app, 'ana@example.com');
       contestId = await publishLiveContest(app, hostJar);
       await request(app, hostJar, { method: 'POST', url: `/contests/${contestId}/close` });
@@ -331,7 +331,7 @@ describeFeature(feature, ({ Scenario }) => {
         'a closed contest scheduled to reveal at a set time, and that time has passed',
         async () => {
           const clock = new MutableClock('2026-07-21T09:00:00.000Z');
-          ({ app } = makeTestApp(clock));
+          ({ app } = await makeTestApp(clock));
           hostJar = await signedInHost(app, 'ana@example.com');
           contestId = await publishLiveContest(app, hostJar, {
             when: 'scheduled',

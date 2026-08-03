@@ -15,7 +15,7 @@ function makeCapturingLogStream() {
   return { stream, output: () => chunks.join('') };
 }
 
-describe('production error handling', () => {
+describe('production error handling', async () => {
   it('logs the real error server-side before returning a generic body', async () => {
     const { stream, output } = makeCapturingLogStream();
     const app = Fastify({ logger: { level: 'error', stream } });

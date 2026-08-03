@@ -19,12 +19,12 @@ export interface ClaimPlaceDeps {
 export class ClaimPlace {
   constructor(private readonly deps: ClaimPlaceDeps) {}
 
-  execute(joinCode: string, participantId: string): ClaimResult {
-    const contest = this.deps.contests.findByJoinCode(joinCode);
+  async execute(joinCode: string, participantId: string): Promise<ClaimResult> {
+    const contest = await this.deps.contests.findByJoinCode(joinCode);
     if (!contest)
       return { ok: false, error: { code: 'JOIN_CODE_NOT_FOUND', message: 'No such join code.' } };
 
-    const place = this.deps.roster.find(contest.id, participantId);
+    const place = await this.deps.roster.find(contest.id, participantId);
     if (!place)
       return {
         ok: false,
@@ -33,7 +33,7 @@ export class ClaimPlace {
     if (place.claimedAt)
       return { ok: false, error: { code: 'PLACE_TAKEN', message: 'That place is already taken.' } };
 
-    const claimed = this.deps.roster.claim(contest.id, participantId, this.deps.clock.now());
+    const claimed = await this.deps.roster.claim(contest.id, participantId, this.deps.clock.now());
     if (!claimed)
       return { ok: false, error: { code: 'PLACE_TAKEN', message: 'That place is already taken.' } };
 

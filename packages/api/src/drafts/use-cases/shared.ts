@@ -26,12 +26,12 @@ export type DraftWriteResult =
 export const draftNotFound: DraftFailure = { code: 'DRAFT_NOT_FOUND', message: 'No such draft.' };
 
 /** Ownership check (OWASP A01): returns the draft only if it belongs to the host. */
-export function findOwnedDraft(
+export async function findOwnedDraft(
   drafts: DraftRepository,
   draftId: string,
   hostId: string,
-): StoredDraft | undefined {
-  const draft = drafts.findById(draftId);
+): Promise<StoredDraft | undefined> {
+  const draft = await drafts.findById(draftId);
   return draft && draft.hostId === hostId ? draft : undefined;
 }
 

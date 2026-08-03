@@ -117,7 +117,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a host with a live contest named "Balcony Cook-off"', async () => {
-        ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+        ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
         jar = await signedInHost(app, 'ana@example.com');
         const contest = await liveContest(app, jar, 'Balcony Cook-off');
         joinCode = contest.joinCode;
@@ -145,7 +145,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
     let links: string[];
 
     Given('a host with two live contests, "Balcony Cook-off" and "Paella Sunday"', async () => {
-      ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+      ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
       jar = await signedInHost(app, 'ana@example.com');
       first = await liveContest(app, jar, 'Balcony Cook-off');
       second = await liveContest(app, jar, 'Paella Sunday');
@@ -172,7 +172,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
     Given(
       'a host with a live contest named "Balcony Cook-off" with Ana and Bob taking part',
       async () => {
-        ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+        ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
         jar = await signedInHost(app, 'ana@example.com');
         const contest = await liveContest(app, jar, 'Balcony Cook-off');
         joinCode = contest.joinCode;
@@ -207,7 +207,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
         address = 'https://tapas.example.org';
       });
       And('a host with a live contest named "Balcony Cook-off"', async () => {
-        ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+        ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
         jar = await signedInHost(app, 'ana@example.com');
         const contest = await liveContest(app, jar, 'Balcony Cook-off');
         link = (await read(app, jar, contest.id)).json().joinUrl as string;
@@ -233,7 +233,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
         address = 'https://join.sobremesa.es/';
       });
       And('a host with a live contest named "Balcony Cook-off"', async () => {
-        ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+        ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
         jar = await signedInHost(app, 'ana@example.com');
         const contest = await liveContest(app, jar, 'Balcony Cook-off');
         joinCode = contest.joinCode;
@@ -261,7 +261,7 @@ describeFeature(feature, ({ Background, Scenario }) => {
       let response: LightMyRequestResponse;
 
       Given('a host with a live contest named "Balcony Cook-off"', async () => {
-        ({ app } = makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
+        ({ app } = await makeTestApp(undefined, { PARTICIPANT_WEB_ORIGIN: address }));
         jar = await signedInHost(app, 'ana@example.com');
         const contest = await liveContest(app, jar, 'Balcony Cook-off');
         joinCode = contest.joinCode;

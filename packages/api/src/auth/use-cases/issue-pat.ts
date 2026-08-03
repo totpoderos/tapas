@@ -13,7 +13,7 @@ export interface IssuePatDeps {
 export class IssuePat {
   constructor(private readonly deps: IssuePatDeps) {}
 
-  execute(hostId: string): IssuePatResult {
+  async execute(hostId: string): Promise<IssuePatResult> {
     const token = generatePatToken();
     const pat = {
       id: this.deps.ids.next(),
@@ -22,7 +22,7 @@ export class IssuePat {
       createdAt: this.deps.clock.now(),
       revokedAt: null,
     };
-    this.deps.pats.insert(pat);
+    await this.deps.pats.insert(pat);
     return { patId: pat.id, token };
   }
 }

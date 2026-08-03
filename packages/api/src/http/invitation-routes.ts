@@ -21,7 +21,7 @@ export function registerInvitationRoutes(app: FastifyInstance, deps: ServerDeps)
     '/invites/:token',
     { config: { rateLimit: SENSITIVE_RATE_LIMIT } },
     async (request, reply) => {
-      const opened = deps.openInvitation.execute(request.params.token);
+      const opened = await deps.openInvitation.execute(request.params.token);
       if (!opened.ok) return reply.code(404).send({ error: opened.error });
       return reply.code(200).send({ email: opened.email });
     },
@@ -41,7 +41,7 @@ export function registerInvitationRoutes(app: FastifyInstance, deps: ServerDeps)
           // The caller is told nothing, so the log is the only place someone
           // guessing at links can be seen — and the only place a person who
           // simply arrived too late can be told apart from one.
-          deps.securityLog.record({
+          await deps.securityLog.record({
             type: 'invitation.refused',
             actorId: null,
             sourceIp: request.ip,
@@ -53,14 +53,14 @@ export function registerInvitationRoutes(app: FastifyInstance, deps: ServerDeps)
         });
       }
 
-      deps.securityLog.record({
+      await deps.securityLog.record({
         type: 'invitation.accepted',
         actorId: accepted.hostId,
         sourceIp: request.ip,
       });
       if (accepted.createdRole === 'admin') {
         // The deployment has just acquired the administrator it had none of.
-        deps.securityLog.record({
+        await deps.securityLog.record({
           type: 'admin_bootstrap.completed',
           actorId: accepted.hostId,
           sourceIp: request.ip,

@@ -6,7 +6,7 @@ function toolCallCompletion(args: Record<string, unknown>) {
   return { text: '', toolCalls: [{ name: 'propose_contest_draft', arguments: args }] };
 }
 
-describe('ExtractContestDraft', () => {
+describe('ExtractContestDraft', async () => {
   it('extracts every field the model determined, tagged with its source', async () => {
     const llmClient = new FakeLLMClient(
       toolCallCompletion({

@@ -51,9 +51,9 @@ async function signedInCookie(app: FastifyInstance): Promise<string> {
   return header();
 }
 
-describe('the assistant endpoints', () => {
+describe('the assistant endpoints', async () => {
   it('returns only the draft and its clarifications when extracting', async () => {
-    const { app } = makeTestApp(undefined, {}, new FakeLLMClient(PROPOSES_A_NAME));
+    const { app } = await makeTestApp(undefined, {}, new FakeLLMClient(PROPOSES_A_NAME));
     const cookie = await signedInCookie(app);
 
     const response = await app.inject({
@@ -69,7 +69,7 @@ describe('the assistant endpoints', () => {
   });
 
   it('returns only the draft and its clarifications when merging', async () => {
-    const { app } = makeTestApp(undefined, {}, new FakeLLMClient(PROPOSES_A_NAME));
+    const { app } = await makeTestApp(undefined, {}, new FakeLLMClient(PROPOSES_A_NAME));
     const cookie = await signedInCookie(app);
 
     const response = await app.inject({

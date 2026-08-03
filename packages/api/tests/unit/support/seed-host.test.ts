@@ -6,9 +6,9 @@ import { makeTestApp, seedHost } from '../../support/test-server.js';
  * worth one test: a seeded host must be able to sign in through the ordinary
  * path, or every spec leaning on it is built on a guess.
  */
-describe('seedHost', () => {
+describe('seedHost', async () => {
   it('gives a host an account they can sign in with', async () => {
-    const { app } = makeTestApp();
+    const { app } = await makeTestApp();
     await seedHost(app, 'ana@example.com', 'Str0ng!Passw0rd');
 
     const signedIn = await app.inject({
@@ -21,7 +21,7 @@ describe('seedHost', () => {
   });
 
   it('does not store the password as given', async () => {
-    const { app, db } = makeTestApp();
+    const { app, db } = await makeTestApp();
     await seedHost(app, 'ana@example.com', 'Str0ng!Passw0rd');
 
     const row = db
@@ -32,7 +32,7 @@ describe('seedHost', () => {
   });
 
   it('can seed an administrator too', async () => {
-    const { app, db } = makeTestApp();
+    const { app, db } = await makeTestApp();
     await seedHost(app, 'ana@example.com', 'Str0ng!Passw0rd', 'admin');
 
     const row = db

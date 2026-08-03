@@ -38,6 +38,6 @@ export interface SecurityEventInput {
 }
 
 export interface SecurityEventLog {
-  record(event: SecurityEventInput): void;
-  list(): SecurityEvent[];
+  record(event: SecurityEventInput): Promise<void>;
+  list(): Promise<SecurityEvent[]>;
 }

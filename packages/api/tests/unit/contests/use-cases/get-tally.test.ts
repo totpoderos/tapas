@@ -35,22 +35,22 @@ function liveContest() {
   };
 }
 
-describe('GetTally', () => {
-  it('counts claimed places, draft sessions, and sent sessions', () => {
+describe('GetTally', async () => {
+  it('counts claimed places, draft sessions, and sent sessions', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(liveContest());
+    await contests.insert(liveContest());
     const roster = new FakeRosterRepository();
-    roster.seed('contest-1', [
+    await roster.seed('contest-1', [
       { participantId: 'ana', displayName: 'Ana' },
       { participantId: 'bob', displayName: 'Bob' },
       { participantId: 'carol', displayName: 'Carol' },
     ]);
-    roster.claim('contest-1', 'ana', '2026-07-20T09:00:00.000Z');
-    roster.claim('contest-1', 'bob', '2026-07-20T09:00:00.000Z');
+    await roster.claim('contest-1', 'ana', '2026-07-20T09:00:00.000Z');
+    await roster.claim('contest-1', 'bob', '2026-07-20T09:00:00.000Z');
     // Carol never claims — should not count toward claimedCount.
 
     const voteSessions = new FakeVoteSessionRepository();
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 'vs-ana',
       contestId: 'contest-1',
       voterId: 'ana',
@@ -58,7 +58,7 @@ describe('GetTally', () => {
       createdAt: '2026-07-20T09:05:00.000Z',
       submittedAt: null,
     });
-    voteSessions.createSession({
+    await voteSessions.createSession({
       id: 'vs-bob',
       contestId: 'contest-1',
       voterId: 'bob',
@@ -67,7 +67,7 @@ describe('GetTally', () => {
       submittedAt: '2026-07-20T09:10:00.000Z',
     });
 
-    const outcome = new GetTally({ contests, roster, voteSessions }).execute('contest-1');
+    const outcome = await new GetTally({ contests, roster, voteSessions }).execute('contest-1');
 
     expect(outcome.ok).toBe(true);
     if (!outcome.ok) return;
@@ -80,16 +80,16 @@ describe('GetTally', () => {
     });
   });
 
-  it('reports how many places there are even when nobody has claimed one', () => {
+  it('reports how many places there are even when nobody has claimed one', async () => {
     const contests = new FakeContestRepository();
-    contests.insert(liveContest());
+    await contests.insert(liveContest());
     const roster = new FakeRosterRepository();
-    roster.seed('contest-1', [
+    await roster.seed('contest-1', [
       { participantId: 'ana', displayName: 'Ana' },
       { participantId: 'bob', displayName: 'Bob' },
     ]);
 
-    const outcome = new GetTally({
+    const outcome = await new GetTally({
       contests,
       roster,
       voteSessions: new FakeVoteSessionRepository(),
@@ -106,12 +106,12 @@ describe('GetTally', () => {
     });
   });
 
-  it('reports CONTEST_NOT_FOUND for an unknown contest', () => {
+  it('reports CONTEST_NOT_FOUND for an unknown contest', async () => {
     const contests = new FakeContestRepository();
     const roster = new FakeRosterRepository();
     const voteSessions = new FakeVoteSessionRepository();
 
-    const outcome = new GetTally({ contests, roster, voteSessions }).execute('unknown');
+    const outcome = await new GetTally({ contests, roster, voteSessions }).execute('unknown');
 
     expect(outcome.ok).toBe(false);
     if (!outcome.ok) expect(outcome.error.code).toBe('CONTEST_NOT_FOUND');

@@ -4,7 +4,7 @@ import { KeywordStubLLMClient } from '../../../src/index.js';
 const stub = new KeywordStubLLMClient();
 const ask = (content: string) => stub.complete({ messages: [{ role: 'user', content }] });
 
-describe('KeywordStubLLMClient (test-only assistant stub)', () => {
+describe('KeywordStubLLMClient (test-only assistant stub)', async () => {
   it('maps "start a draft called X" to a create_draft tool call', async () => {
     const out = await ask('Please start a draft called Summer Tapas');
     expect(out.toolCalls).toEqual([{ name: 'create_draft', arguments: { name: 'Summer Tapas' } }]);

@@ -14,8 +14,8 @@ const SOMEONE_ELSE = 'someone-else@example.com';
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 
 /** A deployment whose administrator has been named in configuration, and which nobody has claimed. */
-function unclaimedDeployment(configuredFor = OPERATOR): TestApp {
-  return makeTestApp(undefined, { ADMIN_BOOTSTRAP_EMAIL: configuredFor });
+async function unclaimedDeployment(configuredFor = OPERATOR): Promise<TestApp> {
+  return await makeTestApp(undefined, { ADMIN_BOOTSTRAP_EMAIL: configuredFor });
 }
 
 function claim(test: TestApp, email: string): Promise<LightMyRequestResponse> {
@@ -59,8 +59,8 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given(
       'a deployment configured for "operator@example.com" whose mail server will take nothing',
-      () => {
-        test = unclaimedDeployment();
+      async () => {
+        test = await unclaimedDeployment();
         test.mailer.failEverySend();
       },
     );
@@ -89,8 +89,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('anyone asks whether it is unclaimed', async () => {
       response = await askIfUnclaimed(test);
@@ -104,8 +104,8 @@ describeFeature(feature, ({ Scenario }) => {
   Scenario('The configured address claims the deployment', ({ Given, When, Then }) => {
     let test: TestApp;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it', async () => {
       const claimed = await claim(test, OPERATOR);
@@ -121,8 +121,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"someone-else@example.com" tries to claim it', async () => {
       response = await claim(test, SOMEONE_ELSE);
@@ -140,8 +140,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"someone-else@example.com" tries to claim it', async () => {
       response = await claim(test, SOMEONE_ELSE);
@@ -155,8 +155,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let cookie: string;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it and accepts with a strong password', async () => {
       ({ cookie } = await claimAndAccept(test));
@@ -181,8 +181,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let accepted: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it and accepts with a strong password', async () => {
       ({ accepted } = await claimAndAccept(test));
@@ -197,8 +197,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let firstToken: string;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it twice', async () => {
       await claim(test, OPERATOR);
@@ -224,8 +224,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it and accepts with a strong password', async () => {
       await claimAndAccept(test);
@@ -243,8 +243,8 @@ describeFeature(feature, ({ Scenario }) => {
     let test: TestApp;
     let response: LightMyRequestResponse;
 
-    Given('a deployment configured for "operator@example.com" with no administrator', () => {
-      test = unclaimedDeployment();
+    Given('a deployment configured for "operator@example.com" with no administrator', async () => {
+      test = await unclaimedDeployment();
     });
     When('"operator@example.com" claims it and accepts with a strong password', async () => {
       await claimAndAccept(test);

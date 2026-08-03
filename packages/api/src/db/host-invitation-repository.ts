@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { HostRole } from '@tapas/domain';
 
 /**
@@ -31,14 +31,14 @@ export interface StoredInvitation {
 }
 
 export interface HostInvitationRepository {
-  insert(invitation: StoredInvitation): void;
-  findByTokenHash(tokenHash: string): StoredInvitation | undefined;
-  findById(id: string): StoredInvitation | undefined;
-  listAll(): StoredInvitation[];
-  markAccepted(id: string, acceptedAt: string): void;
-  markRevoked(id: string, revokedAt: string): void;
-  markSuperseded(id: string, supersededBy: string): void;
-  recordHandoff(id: string, messageSent: boolean): void;
+  insert(invitation: StoredInvitation): Promise<void>;
+  findByTokenHash(tokenHash: string): Promise<StoredInvitation | undefined>;
+  findById(id: string): Promise<StoredInvitation | undefined>;
+  listAll(): Promise<StoredInvitation[]>;
+  markAccepted(id: string, acceptedAt: string): Promise<void>;
+  markRevoked(id: string, revokedAt: string): Promise<void>;
+  markSuperseded(id: string, supersededBy: string): Promise<void>;
+  recordHandoff(id: string, messageSent: boolean): Promise<void>;
 }
 
 interface InvitationRow {
@@ -72,10 +72,10 @@ function toInvitation(row: InvitationRow): StoredInvitation {
 }
 
 export class SqliteHostInvitationRepository implements HostInvitationRepository {
-  constructor(private readonly db: DatabaseSync) {}
+  constructor(private readonly db: Database) {}
 
-  insert(invitation: StoredInvitation): void {
-    this.db
+  async insert(invitation: StoredInvitation): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO host_invitations (id, email, token_hash, status, issued_by, issued_at, accepted_at, revoked_at, superseded_by, invited_role, message_sent)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -95,47 +95,47 @@ export class SqliteHostInvitationRepository implements HostInvitationRepository 
       );
   }
 
-  findByTokenHash(tokenHash: string): StoredInvitation | undefined {
-    const row = this.db
+  async findByTokenHash(tokenHash: string): Promise<StoredInvitation | undefined> {
+    const row = await this.db
       .prepare(`SELECT * FROM host_invitations WHERE token_hash = ?`)
       .get(tokenHash) as unknown as InvitationRow | undefined;
     return row ? toInvitation(row) : undefined;
   }
 
-  findById(id: string): StoredInvitation | undefined {
-    const row = this.db.prepare(`SELECT * FROM host_invitations WHERE id = ?`).get(id) as unknown as
+  async findById(id: string): Promise<StoredInvitation | undefined> {
+    const row = await this.db.prepare(`SELECT * FROM host_invitations WHERE id = ?`).get(id) as unknown as
       | InvitationRow
       | undefined;
     return row ? toInvitation(row) : undefined;
   }
 
-  listAll(): StoredInvitation[] {
-    const rows = this.db
+  async listAll(): Promise<StoredInvitation[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM host_invitations ORDER BY issued_at`)
       .all() as unknown as InvitationRow[];
     return rows.map(toInvitation);
   }
 
-  markAccepted(id: string, acceptedAt: string): void {
-    this.db
+  async markAccepted(id: string, acceptedAt: string): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_invitations SET status = 'accepted', accepted_at = ? WHERE id = ?`)
       .run(acceptedAt, id);
   }
 
-  markRevoked(id: string, revokedAt: string): void {
-    this.db
+  async markRevoked(id: string, revokedAt: string): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_invitations SET status = 'revoked', revoked_at = ? WHERE id = ?`)
       .run(revokedAt, id);
   }
 
-  markSuperseded(id: string, supersededBy: string): void {
-    this.db
+  async markSuperseded(id: string, supersededBy: string): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_invitations SET status = 'superseded', superseded_by = ? WHERE id = ?`)
       .run(supersededBy, id);
   }
 
-  recordHandoff(id: string, messageSent: boolean): void {
-    this.db
+  async recordHandoff(id: string, messageSent: boolean): Promise<void> {
+    await this.db
       .prepare(`UPDATE host_invitations SET message_sent = ? WHERE id = ?`)
       .run(Number(messageSent), id);
   }

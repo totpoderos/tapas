@@ -88,7 +88,7 @@ async function pairings(client: Client, contest: string): Promise<Record<string,
   const draft = body(await callTool(client, 'get_draft', { contest }));
   const content = draft.content as { participants?: readonly Pairing[] };
   const people = content.participants ?? [];
-  const nameOf = (id: string) => people.find((p) => p.id === id)?.displayName ?? id;
+  const nameOf = (id: string) => (people.find((p) => p.id === id))?.displayName ?? id;
   return Object.fromEntries(people.map((p) => [p.displayName, p.partnerId ? nameOf(p.partnerId) : null]));
 }
 

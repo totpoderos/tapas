@@ -37,7 +37,7 @@ export class AcceptInvitation {
   constructor(private readonly deps: AcceptInvitationDeps) {}
 
   async execute(rawToken: string, rawPassword: string): Promise<AcceptInvitationResult> {
-    const found = this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
+    const found = await this.deps.invitations.findByTokenHash(hashSecretToken(rawToken));
     const usability = usabilityOf(found, this.deps.clock.now());
     if (!usability.usable)
       return { ok: false, error: INVITATION_UNUSABLE, reason: usability.reason };
@@ -50,7 +50,7 @@ export class AcceptInvitation {
     );
     if (!registration.ok) return { ok: false, error: registration.error };
 
-    this.deps.invitations.markAccepted(invitation.id, this.deps.clock.now());
+    await this.deps.invitations.markAccepted(invitation.id, this.deps.clock.now());
     return { ok: true, hostId: registration.hostId, createdRole: invitation.invitedRole };
   }
 }

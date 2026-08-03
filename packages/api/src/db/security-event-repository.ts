@@ -1,4 +1,4 @@
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from './database.js';
 import type { Clock, IdGenerator } from '../audit/audit-projection.js';
 import type {
   SecurityEvent,
@@ -29,13 +29,13 @@ function toEvent(row: SecurityEventRow): SecurityEvent {
 /** Persists security events to `security_events`, stamping the id and timestamp at write time. */
 export class SqliteSecurityEventLog implements SecurityEventLog {
   constructor(
-    private readonly db: DatabaseSync,
+    private readonly db: Database,
     private readonly clock: Clock,
     private readonly ids: IdGenerator,
   ) {}
 
-  record(event: SecurityEventInput): void {
-    this.db
+  async record(event: SecurityEventInput): Promise<void> {
+    await this.db
       .prepare(
         `INSERT INTO security_events (id, type, actor_id, source_ip, reason, occurred_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -50,8 +50,8 @@ export class SqliteSecurityEventLog implements SecurityEventLog {
       );
   }
 
-  list(): SecurityEvent[] {
-    const rows = this.db
+  async list(): Promise<SecurityEvent[]> {
+    const rows = await this.db
       .prepare(`SELECT * FROM security_events ORDER BY occurred_at`)
       .all() as unknown as SecurityEventRow[];
     return rows.map(toEvent);

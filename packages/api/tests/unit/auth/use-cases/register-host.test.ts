@@ -11,14 +11,14 @@ function makeRegisterHost() {
   return { registerHost: new RegisterHost({ accounts, hasher: new FakePasswordHasher(), ids }), accounts };
 }
 
-describe('RegisterHost', () => {
+describe('RegisterHost', async () => {
   it('registers a host, storing a hashed password under the normalised email', async () => {
     const { registerHost, accounts } = makeRegisterHost();
 
     const registration = await registerHost.execute('Ana@Example.com', STRONG);
 
     expect(registration.ok).toBe(true);
-    const stored = accounts.findByEmail('ana@example.com');
+    const stored = await accounts.findByEmail('ana@example.com');
     expect(stored?.passwordHash).toBe(`hashed:${STRONG}`);
   });
 

@@ -2,16 +2,16 @@ import type { HostPatRepository, StoredHostPat } from '../../../src/index.js';
 
 export class FakeHostPatRepository implements HostPatRepository {
   private readonly store = new Map<string, StoredHostPat>();
-  insert(pat: StoredHostPat): void {
+  async insert(pat: StoredHostPat): Promise<void> {
     this.store.set(pat.id, pat);
   }
-  findById(id: string): StoredHostPat | undefined {
+  async findById(id: string): Promise<StoredHostPat | undefined> {
     return this.store.get(id);
   }
-  findByTokenHash(tokenHash: string): StoredHostPat | undefined {
+  async findByTokenHash(tokenHash: string): Promise<StoredHostPat | undefined> {
     return [...this.store.values()].find((pat) => pat.tokenHash === tokenHash);
   }
-  revoke(id: string): void {
+  async revoke(id: string): Promise<void> {
     const pat = this.store.get(id);
     if (pat) this.store.set(id, { ...pat, revokedAt: new Date().toISOString() });
   }

@@ -21,30 +21,30 @@ function completeContent(name: string): DraftContent {
   };
 }
 
-function seedDraft(
+async function seedDraft(
   drafts: FakeDraftRepository,
   id: string,
   hostId: string,
   content: DraftContent,
-): void {
-  drafts.insert({ id, hostId, content, status: 'draft', createdAt: 'seed', updatedAt: 'seed' });
+): Promise<void> {
+  await drafts.insert({ id, hostId, content, status: 'draft', createdAt: 'seed', updatedAt: 'seed' });
 }
 
-describe('PublishContest', () => {
-  it('publishes a complete draft: live contest, join code, draft retired, contest.published recorded', () => {
+describe('PublishContest', async () => {
+  it('publishes a complete draft: live contest, join code, draft retired, contest.published recorded', async () => {
     const { deps, drafts, contests, auditLog } = makePublishDeps();
-    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
+    await seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
 
-    const publishOutcome = new PublishContest(deps).execute('draft-1', 'host-1');
+    const publishOutcome = await new PublishContest(deps).execute('draft-1', 'host-1');
 
     expect(publishOutcome.ok).toBe(true);
     if (!publishOutcome.ok) return;
     expect(publishOutcome.contest.status).toBe('live');
     expect(publishOutcome.contest.joinCode).toBe('JOIN-1');
-    expect(contests.findById('draft-1')).toBeDefined();
-    expect(drafts.findById('draft-1')).toBeUndefined();
+    expect(await contests.findById('draft-1')).toBeDefined();
+    expect(await drafts.findById('draft-1')).toBeUndefined();
     expect(
-      auditLog.findByContest('draft-1').some((entry) => entry.type === 'contest.published'),
+      (await auditLog.findByContest('draft-1')).some((entry) => entry.type === 'contest.published'),
     ).toBe(true);
   });
 
@@ -56,58 +56,58 @@ describe('PublishContest', () => {
    * contest has to keep them, or the host can never be told what their own live
    * contest is being played by.
    */
-  it('keeps the rules the compiler consumes, so the contest can still say them', () => {
+  it('keeps the rules the compiler consumes, so the contest can still say them', async () => {
     const { deps, drafts, contests } = makePublishDeps();
-    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
+    await seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
 
-    new PublishContest(deps).execute('draft-1', 'host-1');
+    await new PublishContest(deps).execute('draft-1', 'host-1');
 
-    const stored = contests.findById('draft-1');
+    const stored = await contests.findById('draft-1');
     expect(stored?.format).toBe('solo_with_partners');
   });
 
-  it('seeds the roster with an open place per participant', () => {
+  it('seeds the roster with an open place per participant', async () => {
     const { deps, drafts, roster } = makePublishDeps();
-    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
+    await seedDraft(drafts, 'draft-1', 'host-1', completeContent('Summer'));
 
-    new PublishContest(deps).execute('draft-1', 'host-1');
+    await new PublishContest(deps).execute('draft-1', 'host-1');
 
-    const places = roster.listAvailable('draft-1');
+    const places = await roster.listAvailable('draft-1');
     expect(places.map((place) => place.participantId).sort()).toEqual(['A', 'B', 'C', 'D']);
   });
 
-  it('reports DRAFT_NOT_FOUND for an unknown draft', () => {
+  it('reports DRAFT_NOT_FOUND for an unknown draft', async () => {
     const { deps } = makePublishDeps();
 
-    const publishOutcome = new PublishContest(deps).execute('unknown', 'host-1');
+    const publishOutcome = await new PublishContest(deps).execute('unknown', 'host-1');
 
     expect(publishOutcome.ok).toBe(false);
     if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('DRAFT_NOT_FOUND');
   });
 
-  it("refuses to publish another host's draft", () => {
+  it("refuses to publish another host's draft", async () => {
     const { deps, drafts } = makePublishDeps();
-    seedDraft(drafts, 'draft-1', 'host-1', completeContent('Mine'));
+    await seedDraft(drafts, 'draft-1', 'host-1', completeContent('Mine'));
 
-    const publishOutcome = new PublishContest(deps).execute('draft-1', 'host-2');
+    const publishOutcome = await new PublishContest(deps).execute('draft-1', 'host-2');
 
     expect(publishOutcome.ok).toBe(false);
     if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('DRAFT_NOT_FOUND');
   });
 
-  it('rejects an incomplete draft and creates no contest', () => {
+  it('rejects an incomplete draft and creates no contest', async () => {
     const { deps, drafts, contests } = makePublishDeps();
-    seedDraft(drafts, 'draft-1', 'host-1', { name: 'Half-baked' });
+    await seedDraft(drafts, 'draft-1', 'host-1', { name: 'Half-baked' });
 
-    const publishOutcome = new PublishContest(deps).execute('draft-1', 'host-1');
+    const publishOutcome = await new PublishContest(deps).execute('draft-1', 'host-1');
 
     expect(publishOutcome.ok).toBe(false);
     if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('INCOMPLETE_DRAFT');
-    expect(contests.findById('draft-1')).toBeUndefined();
-    expect(drafts.findById('draft-1')).toBeDefined(); // not retired
+    expect(await contests.findById('draft-1')).toBeUndefined();
+    expect(await drafts.findById('draft-1')).toBeDefined(); // not retired
   });
 
-  it('surfaces the compiler rejection when a judge could score nothing', () => {
+  it('surfaces the compiler rejection when a judge could score nothing', async () => {
     const { deps, drafts } = makePublishDeps();
     const singleCouple: DraftContent = {
       name: 'Just us',
@@ -119,9 +119,9 @@ describe('PublishContest', () => {
       },
       participants: [person('A', 'B'), person('B', 'A')],
     };
-    seedDraft(drafts, 'draft-1', 'host-1', singleCouple);
+    await seedDraft(drafts, 'draft-1', 'host-1', singleCouple);
 
-    const publishOutcome = new PublishContest(deps).execute('draft-1', 'host-1');
+    const publishOutcome = await new PublishContest(deps).execute('draft-1', 'host-1');
 
     expect(publishOutcome.ok).toBe(false);
     if (!publishOutcome.ok) expect(publishOutcome.error.code).toBe('JUDGE_CANNOT_SCORE_ANY_DISH');

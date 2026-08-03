@@ -82,7 +82,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('they ask for something the assistant cannot act on without more detail', async () => {
@@ -112,7 +112,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('they ask the assistant to start a new draft called "Summer Tapas"', async () => {
@@ -144,7 +144,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('the assistant carries out a reversible action but offers no words of its own', async () => {
@@ -172,7 +172,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('an action the assistant tries cannot be carried out', async () => {
@@ -225,7 +225,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host with a running contest, chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
     });
@@ -259,7 +259,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host whom the assistant has asked to confirm closing their running contest', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
       llm.next = {
@@ -292,7 +292,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host who was asked to confirm closing one running contest', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       await liveContest(app, jar, 'First Contest');
       otherContestId = await liveContest(app, jar, 'Second Contest');
@@ -338,7 +338,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('they confirm a destructive action that cannot be carried out', async () => {
@@ -377,8 +377,8 @@ describeFeature(feature, ({ Scenario }) => {
     let app: FastifyInstance;
     let response: LightMyRequestResponse;
 
-    Given('no one is signed in', () => {
-      ({ app } = makeTestApp(undefined, {}, new ScriptedLLMClient()));
+    Given('no one is signed in', async () => {
+      ({ app } = await makeTestApp(undefined, {}, new ScriptedLLMClient()));
     });
     When('a message is sent to the assistant', async () => {
       response = await app.inject({
@@ -401,7 +401,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When(
@@ -460,7 +460,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host chatting with the assistant', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
     });
     When('they ask for one thing alone', async () => {
@@ -488,7 +488,7 @@ describeFeature(feature, ({ Scenario }) => {
 
       Given('a signed-in host with a draft ready to publish', async () => {
         llm = new ScriptedLLMClient();
-        ({ app } = makeTestApp(undefined, {}, llm));
+        ({ app } = await makeTestApp(undefined, {}, llm));
         jar = await signedInHost(app, 'ana@example.com');
         await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Ready') });
       });
@@ -532,7 +532,7 @@ describeFeature(feature, ({ Scenario }) => {
 
       Given('a signed-in host with a draft ready to publish', async () => {
         llm = new ScriptedLLMClient();
-        ({ app } = makeTestApp(undefined, {}, llm));
+        ({ app } = await makeTestApp(undefined, {}, llm));
         jar = await signedInHost(app, 'ana@example.com');
         await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Ready') });
       });
@@ -581,7 +581,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host with a draft judged on "Taste"', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       await request(app, jar, { method: 'POST', url: '/drafts', payload: completeContent('Tapas') });
     });

@@ -13,9 +13,9 @@ import {
 const TOKEN = 'a-token-that-was-issued';
 const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 
-function makeUseCase() {
+async function makeUseCase() {
   const invitations = new FakeInvitationRepository();
-  invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN) }));
+  await invitations.insert(pendingInvitation({ tokenHash: hashSecretToken(TOKEN) }));
   const accounts = new FakeHostAccountRepository();
   const registerHost = new RegisterHost({
     accounts,
@@ -26,26 +26,26 @@ function makeUseCase() {
   return { useCase, invitations, accounts };
 }
 
-describe('AcceptInvitation', () => {
+describe('AcceptInvitation', async () => {
   it('creates a host account for the address the invitation was sent to', async () => {
-    const { useCase, accounts } = makeUseCase();
+    const { useCase, accounts } = await makeUseCase();
 
     const accepted = await useCase.execute(TOKEN, STRONG_PASSWORD);
 
     expect(accepted.ok).toBe(true);
-    expect(accounts.findByEmail('nuevo@example.com')).toBeDefined();
+    expect(await accounts.findByEmail('nuevo@example.com')).toBeDefined();
   });
 
   it('creates an ordinary host, never an administrator', async () => {
-    const { useCase, accounts } = makeUseCase();
+    const { useCase, accounts } = await makeUseCase();
 
     await useCase.execute(TOKEN, STRONG_PASSWORD);
 
-    expect(accounts.findByEmail('nuevo@example.com')?.role).toBe('host');
+    expect((await accounts.findByEmail('nuevo@example.com'))?.role).toBe('host');
   });
 
   it('marks the invitation accepted', async () => {
-    const { useCase, invitations } = makeUseCase();
+    const { useCase, invitations } = await makeUseCase();
 
     await useCase.execute(TOKEN, STRONG_PASSWORD);
 
@@ -56,7 +56,7 @@ describe('AcceptInvitation', () => {
   });
 
   it('shows the same refusal for a link already accepted and one that never existed', async () => {
-    const { useCase } = makeUseCase();
+    const { useCase } = await makeUseCase();
     await useCase.execute(TOKEN, STRONG_PASSWORD);
 
     const again = await useCase.execute(TOKEN, STRONG_PASSWORD);
@@ -71,7 +71,7 @@ describe('AcceptInvitation', () => {
   });
 
   it('refuses a link whose window has closed, and creates no account', async () => {
-    const { invitations, accounts } = makeUseCase();
+    const { invitations, accounts } = await makeUseCase();
     const registerHost = new RegisterHost({
       accounts,
       hasher: new FakePasswordHasher(),
@@ -87,11 +87,11 @@ describe('AcceptInvitation', () => {
 
     expect(accepted.ok).toBe(false);
     expect(accepted).toMatchObject({ reason: 'expired' });
-    expect(accounts.findByEmail('nuevo@example.com')).toBeUndefined();
+    expect(await accounts.findByEmail('nuevo@example.com')).toBeUndefined();
   });
 
   it('refuses a password that fails the policy', async () => {
-    const { useCase, accounts } = makeUseCase();
+    const { useCase, accounts } = await makeUseCase();
 
     const accepted = await useCase.execute(TOKEN, 'short');
 
@@ -99,11 +99,11 @@ describe('AcceptInvitation', () => {
       ok: false,
       error: { code: 'WEAK_PASSWORD', message: 'Password does not meet the policy.' },
     });
-    expect(accounts.findByEmail('nuevo@example.com')).toBeUndefined();
+    expect(await accounts.findByEmail('nuevo@example.com')).toBeUndefined();
   });
 
   it('leaves the invitation pending after a refused password', async () => {
-    const { useCase, invitations } = makeUseCase();
+    const { useCase, invitations } = await makeUseCase();
 
     await useCase.execute(TOKEN, 'short');
 
@@ -112,7 +112,7 @@ describe('AcceptInvitation', () => {
   });
 
   it('names no address when it refuses an unusable link', async () => {
-    const { useCase } = makeUseCase();
+    const { useCase } = await makeUseCase();
 
     const refused = await useCase.execute('a-token-nobody-ever-issued', STRONG_PASSWORD);
 

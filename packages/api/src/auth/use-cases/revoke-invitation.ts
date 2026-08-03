@@ -28,8 +28,8 @@ export interface RevokeInvitationDeps {
 export class RevokeInvitation {
   constructor(private readonly deps: RevokeInvitationDeps) {}
 
-  execute(id: string): RevokeInvitationResult {
-    const invitation = this.deps.invitations.findById(id);
+  async execute(id: string): Promise<RevokeInvitationResult> {
+    const invitation = await this.deps.invitations.findById(id);
     if (!invitation)
       return {
         ok: false,
@@ -42,7 +42,7 @@ export class RevokeInvitation {
         error: { code: 'NOTHING_TO_REVOKE', message: 'That invitation is not live.' },
       };
 
-    this.deps.invitations.markRevoked(id, this.deps.clock.now());
+    await this.deps.invitations.markRevoked(id, this.deps.clock.now());
     return { ok: true };
   }
 }

@@ -140,7 +140,7 @@ describeFeature(feature, ({ Scenario }) => {
     let log: Entry[];
 
     Given('a signed-in host who has published a contest and then closed it', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       const id = await liveContest(app, jar, 'Summer Tapas');
       await request(app, jar, { method: 'POST', url: `/contests/${id}/close` });
@@ -176,7 +176,7 @@ describeFeature(feature, ({ Scenario }) => {
 
       Given('a signed-in host with a running contest', async () => {
         llm = new ScriptedLLMClient();
-        ({ app } = makeTestApp(undefined, {}, llm));
+        ({ app } = await makeTestApp(undefined, {}, llm));
         jar = await signedInHost(app, 'ana@example.com');
         contestId = await liveContest(app, jar, 'Balcony Cook-off');
       });
@@ -215,7 +215,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host who has published a contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, anaJar, 'Summer Tapas');
     });
@@ -237,7 +237,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest exists', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const ownerJar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, ownerJar, 'Summer Tapas');
     });
@@ -260,7 +260,7 @@ describeFeature(feature, ({ Scenario }) => {
     let contestId: string;
 
     Given('a signed-in host who has published a contest and then closed it', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       const id = await liveContest(app, jar, 'Summer Tapas');
       await request(app, jar, { method: 'POST', url: `/contests/${id}/close` });
@@ -302,7 +302,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a signed-in host who has published a contest', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       anaJar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, anaJar, 'Summer Tapas');
     });
@@ -333,7 +333,7 @@ describeFeature(feature, ({ Scenario }) => {
     let response: LightMyRequestResponse;
 
     Given('a contest exists', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       const ownerJar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, ownerJar, 'Summer Tapas');
     });
@@ -360,7 +360,7 @@ describeFeature(feature, ({ Scenario }) => {
     let file: LightMyRequestResponse;
 
     Given('a signed-in host who has published a contest and then closed it', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, jar, 'Summer Tapas');
       await request(app, jar, { method: 'POST', url: `/contests/${contestId}/close` });
@@ -404,7 +404,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host with a draft', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       draftId = await draftFor(app, jar, 'Summer Tapas');
     });
@@ -430,7 +430,7 @@ describeFeature(feature, ({ Scenario }) => {
     let renamed: Entry | undefined;
 
     Given('a signed-in host with a draft', async () => {
-      ({ app } = makeTestApp());
+      ({ app } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       draftId = await draftFor(app, jar, 'Summer Tapas');
     });
@@ -460,7 +460,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host who has renamed a draft in the app and had the assistant rename it too', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       draftId = await draftFor(app, jar, 'Summer Tapas');
       await request(app, jar, {
@@ -497,7 +497,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host who asked the assistant to rename a draft', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       const me = await request(app, jar, { method: 'GET', url: '/auth/me' });
       hostId = me.json().hostId;
@@ -525,7 +525,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a signed-in host with a running contest', async () => {
       llm = new ScriptedLLMClient();
-      ({ app } = makeTestApp(undefined, {}, llm));
+      ({ app } = await makeTestApp(undefined, {}, llm));
       jar = await signedInHost(app, 'ana@example.com');
       contestId = await liveContest(app, jar, 'Balcony Cook-off');
     });

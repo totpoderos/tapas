@@ -55,16 +55,16 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
   const requireSession = requireHostSession(deps);
 
   /** Loads a draft only if it belongs to the signed-in host, else sends 404/403 and returns null. */
-  function loadOwnedDraft(
+  async function loadOwnedDraft(
     request: FastifyRequest<{ Params: { id: string } }>,
     reply: FastifyReply,
-  ): StoredDraft | null {
+  ): Promise<StoredDraft | null> {
     const hostId = request.hostSession?.id;
     if (!hostId) {
       reply.code(401).send(notSignedIn);
       return null;
     }
-    const draft = deps.drafts.findById(request.params.id);
+    const draft = await deps.drafts.findById(request.params.id);
     if (!draft) {
       reply.code(404).send(draftNotFound);
       return null;
@@ -82,7 +82,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
 
-      const created = deps.createDraft.execute(
+      const created = await deps.createDraft.execute(
         request.hostSession.id,
         request.body,
         provenanceOfRequest(request),
@@ -95,7 +95,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
 
   app.get('/drafts', { preHandler: requireSession }, async (request, reply) => {
     if (!request.hostSession) return reply.code(401).send(notSignedIn);
-    return reply.code(200).send(deps.listHostDrafts.execute(request.hostSession.id));
+    return reply.code(200).send(await deps.listHostDrafts.execute(request.hostSession.id));
   });
 
   // Managing a draft's participants by name (drafts only — a published contest's
@@ -106,7 +106,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
       const { contest, participant } = request.body;
-      return reply.code(200).send(deps.addDraftParticipant.execute(request.hostSession.id, contest, participant));
+      return reply.code(200).send(await deps.addDraftParticipant.execute(request.hostSession.id, contest, participant));
     },
   );
 
@@ -119,7 +119,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
       const contest = request.query.contest ?? '';
       const participant = request.query.participant ?? '';
-      const answer = deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant);
+      const answer = await deps.removeDraftParticipant.execute(request.hostSession.id, contest, participant);
       // Understood and refused for a reason the host can act on — a name that
       // reaches nobody, or two people at once. The same 422 the scoring and
       // partner refusals use, so one kind of answer has one kind of status.
@@ -138,12 +138,12 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
    * name neither a target nor a rival candidate — a host who runs "Tapas Night"
    * every spring must still be able to prepare this year's.
    */
-  function namedDraft(request: FastifyRequest, reply: FastifyReply, name: string): string | undefined {
+  async function namedDraft(request: FastifyRequest, reply: FastifyReply, name: string): Promise<string | undefined> {
     if (!request.hostSession) {
       void reply.code(401).send(notSignedIn);
       return undefined;
     }
-    const resolved = deps.resolveContestByName.execute(request.hostSession.id, name, { only: 'draft' });
+    const resolved = await deps.resolveContestByName.execute(request.hostSession.id, name, { only: 'draft' });
     if (resolved.kind === 'one') return resolved.contest.id;
     void reply.code(200).send({ candidates: resolved.kind === 'several' ? resolved.candidates : [] });
     return undefined;
@@ -153,9 +153,9 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/by-name',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = namedDraft(request, reply, request.body?.contest ?? '');
+      const id = await namedDraft(request, reply, request.body?.contest ?? '');
       if (id === undefined) return;
-      const renamed = deps.renameDraft.execute(
+      const renamed = await deps.renameDraft.execute(
         id,
         request.hostSession!.id,
         request.body?.name ?? '',
@@ -171,9 +171,9 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/by-name/publish',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = namedDraft(request, reply, request.body?.contest ?? '');
+      const id = await namedDraft(request, reply, request.body?.contest ?? '');
       if (id === undefined) return;
-      const published = deps.publishContest.execute(id, request.hostSession!.id);
+      const published = await deps.publishContest.execute(id, request.hostSession!.id);
       if (!published.ok)
         return reply.code(publishErrorStatus(published.error.code)).send({ error: published.error });
       const { id: contestId, name, joinCode } = published.contest;
@@ -185,9 +185,9 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/by-name',
     { preHandler: requireSession },
     async (request, reply) => {
-      const id = namedDraft(request, reply, request.query.name ?? '');
+      const id = await namedDraft(request, reply, request.query.name ?? '');
       if (id === undefined) return;
-      const draft = deps.drafts.findById(id);
+      const draft = await deps.drafts.findById(id);
       if (!draft) return reply.code(200).send({ candidates: [] });
       return reply.code(200).send(draftAnswer(draft));
     },
@@ -224,7 +224,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireSession },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
-      const answer = deps.addScoringCategory.execute(
+      const answer = await deps.addScoringCategory.execute(
         request.hostSession.id,
         request.body?.contest ?? '',
         request.body?.category ?? '',
@@ -240,7 +240,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireSession },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
-      const answer = deps.removeScoringCategory.execute(
+      const answer = await deps.removeScoringCategory.execute(
         request.hostSession.id,
         request.query.contest ?? '',
         request.query.category ?? '',
@@ -262,7 +262,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
        */
       const range: ScoreRange =
         typeof min === 'number' && typeof max === 'number' ? { type: 'fixed', min, max } : { type: 'auto' };
-      const answer = deps.setScoreRange.execute(request.hostSession.id, request.body?.contest ?? '', range);
+      const answer = await deps.setScoreRange.execute(request.hostSession.id, request.body?.contest ?? '', range);
       return scoringAnswer(reply, answer);
     },
   );
@@ -272,7 +272,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireSession },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
-      const answer = deps.setScoreUniqueness.execute(
+      const answer = await deps.setScoreUniqueness.execute(
         request.hostSession.id,
         request.body?.contest ?? '',
         request.body?.uniquePerCategory === true,
@@ -291,7 +291,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     { preHandler: requireSession },
     async (request, reply) => {
       if (!request.hostSession) return reply.code(401).send(notSignedIn);
-      const answer = deps.setDraftFormat.execute(
+      const answer = await deps.setDraftFormat.execute(
         request.hostSession.id,
         request.body?.contest ?? '',
         request.body?.format as ContestFormat,
@@ -311,7 +311,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
        */
       const named = request.body?.partner;
       const partner = typeof named === 'string' && named.trim() !== '' ? named : null;
-      const answer = deps.setDraftPartner.execute(
+      const answer = await deps.setDraftPartner.execute(
         request.hostSession.id,
         request.body?.contest ?? '',
         request.body?.person ?? '',
@@ -325,7 +325,7 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/:id',
     { preHandler: requireSession },
     async (request, reply) => {
-      const draft = loadOwnedDraft(request, reply);
+      const draft = await loadOwnedDraft(request, reply);
       if (!draft) return reply;
       return reply.code(200).send(draftAnswer(draft));
     },
@@ -335,8 +335,8 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/:id',
     { preHandler: requireSession },
     async (request, reply) => {
-      if (!loadOwnedDraft(request, reply)) return reply;
-      const renamed = deps.renameDraft.execute(
+      if (!await loadOwnedDraft(request, reply)) return reply;
+      const renamed = await deps.renameDraft.execute(
         request.params.id,
         request.hostSession!.id,
         request.body.name,
@@ -354,8 +354,8 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/:id',
     { preHandler: requireSession },
     async (request, reply) => {
-      if (!loadOwnedDraft(request, reply)) return reply;
-      const updated = deps.updateDraft.execute(
+      if (!await loadOwnedDraft(request, reply)) return reply;
+      const updated = await deps.updateDraft.execute(
         request.params.id,
         request.hostSession!.id,
         request.body,
@@ -375,8 +375,8 @@ export function registerDraftRoutes(app: FastifyInstance, deps: ServerDeps): voi
     '/drafts/:id/publish',
     { preHandler: requireSession },
     async (request, reply) => {
-      if (!loadOwnedDraft(request, reply)) return reply;
-      const published = deps.publishContest.execute(request.params.id, request.hostSession!.id);
+      if (!await loadOwnedDraft(request, reply)) return reply;
+      const published = await deps.publishContest.execute(request.params.id, request.hostSession!.id);
       if (!published.ok)
         return reply
           .code(publishErrorStatus(published.error.code))
