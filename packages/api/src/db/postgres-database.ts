@@ -1,5 +1,21 @@
-import { Pool, type PoolClient } from 'pg';
+import pg, { Pool, type PoolClient } from 'pg';
 import type { Database, PreparedStatement, SqlValue, StatementResult } from './database.js';
+
+/*
+ * Count columns come back as numbers, not strings.
+ *
+ * Postgres answers `COUNT(*)` as `int8`, and the driver hands `int8` back as a
+ * string so that values beyond 2^53 survive. SQLite answers the same query with
+ * a number. Two repositories read counts — the roster's claimed places and the
+ * vote sessions per status — so left alone, the same code would compare a
+ * string against a number on one database and not the other, which is precisely
+ * the divergence this port exists to prevent.
+ *
+ * Safe here because these are counts of people at a dinner: a contest large
+ * enough to lose precision is not a contest. Set once, at module load, because
+ * the driver's parsers are global to the process.
+ */
+pg.types.setTypeParser(pg.types.builtins.INT8, (value: string) => Number(value));
 
 /**
  * Rewrites SQLite's `?` placeholders into Postgres's `$1 … $n`.
@@ -112,6 +128,25 @@ export class PostgresDatabase implements Database {
       throw error;
     } finally {
       this.pinned = null;
+      client.release();
+    }
+  }
+
+  /**
+   * A session-level advisory lock, held for the length of the migration run.
+   *
+   * The number is arbitrary but fixed — what matters is that every instance
+   * asks for the *same* one. Taken on a pinned connection because an advisory
+   * lock belongs to a session, and a pool would otherwise unlock it from a
+   * different one.
+   */
+  async withMigrationLock<T>(work: () => Promise<T>): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('SELECT pg_advisory_lock(4416337)');
+      return await work();
+    } finally {
+      await client.query('SELECT pg_advisory_unlock(4416337)');
       client.release();
     }
   }

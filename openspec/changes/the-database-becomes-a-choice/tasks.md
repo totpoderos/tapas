@@ -24,28 +24,30 @@ nothing selects. Slice C makes the choice reachable.
 
 ## 2. Slice B — a Postgres adapter behind the same port
 
-- [ ] 2.1 Write the acceptance-suite parameterisation first: one command runs the
+- [x] 2.1 Write the acceptance-suite parameterisation first: one command runs the
       specs against a named adapter, and it is red for Postgres before the
       adapter exists.
-- [ ] 2.2 Implement the Postgres adapter: pooled client, `?` → `$1…$n` rewriting,
+- [x] 2.2 Implement the Postgres adapter: pooled client, `?` → `$1…$n` rewriting,
       and a transaction that pins one connection for its whole life.
-- [ ] 2.3 Make `migrate.ts` async, and take an advisory lock under Postgres so
+- [x] 2.3 Make `migrate.ts` async, and take an advisory lock under Postgres so
       two instances starting together cannot both apply the same migration.
-- [ ] 2.4 Run the migrations against a real Postgres and fix what the schema
-      actually rejects — the search says only the `PRAGMA` differs, and this is
-      where that claim gets tested rather than trusted.
-- [ ] 2.5 Green the acceptance suite against Postgres, and keep it green against
+- [x] 2.4 Run the migrations against a real Postgres and fix what the schema
+      actually rejects. **Nothing was rejected**: all 19 apply unchanged,
+      including the partial unique index that caps administrators at one. The
+      claim held. What the *suite* then found was two differences the schema
+      could not show — see design.md.
+- [x] 2.5 Green the acceptance suite against Postgres, and keep it green against
       SQLite. Both, every time, from here on.
-- [ ] 2.6 Write down how to run it — one command, in the README, beside the other
+- [x] 2.6 Write down how to run it — one command, in the README, beside the other
       gates. With CI disabled, a guarantee nobody can run is not a guarantee.
 
 ## 3. Slice C — the choice, and the deployment that uses it
 
-- [ ] 3.1 Add `DATABASE_DRIVER=sqlite|postgres` to `env.ts`, defaulting to
+- [x] 3.1 Add `DATABASE_DRIVER=sqlite|postgres` to `env.ts`, defaulting to
       `sqlite` and refusing anything else at boot, beside `MAIL_TRANSPORT`.
-- [ ] 3.2 Select the adapter in the composition root, the one place every
+- [x] 3.2 Select the adapter in the composition root, the one place every
       implementation is already chosen.
-- [ ] 3.3 Replace `DATABASE_PATH` with a connection setting under Postgres, and
+- [x] 3.3 Replace `DATABASE_PATH` with a connection setting under Postgres, and
       extend the guard test so `.env.prod.example` still offers everything the
       manifests require.
 - [ ] 3.4 Point a real Neon database at it by hand and drive the whole journey —

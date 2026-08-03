@@ -12,6 +12,7 @@
   "scripts": {
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",
+    "test:pg": "docker start tapas-test-pg >/dev/null 2>&1 || docker run -d --name tapas-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=tapas_test -p 55432:5432 postgres:17-alpine >/dev/null && sleep 5; TEST_DATABASE=postgres vitest run",
     "test:watch": "vitest",
     "eval:creation": "npm run eval:creation -w @tapas/evals --",
     "eval:host-assistant": "npm run eval:host-assistant -w @tapas/evals --",

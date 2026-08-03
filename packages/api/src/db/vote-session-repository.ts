@@ -156,22 +156,28 @@ export class SqliteVoteSessionRepository implements VoteSessionRepository {
     const placeholders = contestIds.map(() => '?').join(', ');
     const rows = await this.db
       .prepare(
-        `SELECT contest_id, status, COUNT(*) AS howMany FROM vote_sessions
+        `SELECT contest_id, status, COUNT(*) AS how_many FROM vote_sessions
           WHERE contest_id IN (${placeholders})
           GROUP BY contest_id, status`,
       )
       .all(...contestIds) as unknown as {
       contest_id: string;
       status: string;
-      howMany: number;
+      /*
+       * snake_case like every other column, and not merely as a convention:
+       * Postgres folds an unquoted alias to lower case, so `AS howMany` comes
+       * back as `howmany` and reads as undefined. The schema already spells
+       * every column this way; an alias is a column too.
+       */
+      how_many: number;
     }[];
 
     const counts = new Map<string, SessionCounts>();
     for (const row of rows) {
       const soFar = counts.get(row.contest_id) ?? { draftCount: 0, sentCount: 0 };
       counts.set(row.contest_id, {
-        draftCount: soFar.draftCount + (row.status === 'draft' ? Number(row.howMany) : 0),
-        sentCount: soFar.sentCount + (row.status === 'sent' ? Number(row.howMany) : 0),
+        draftCount: soFar.draftCount + (row.status === 'draft' ? Number(row.how_many) : 0),
+        sentCount: soFar.sentCount + (row.status === 'sent' ? Number(row.how_many) : 0),
       });
     }
     return counts;

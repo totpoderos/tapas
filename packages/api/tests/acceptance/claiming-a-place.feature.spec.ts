@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../../src/db/database.js';
 import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -51,11 +50,11 @@ function completeContent(name: string): DraftContent {
 }
 
 /** Publishes a live contest directly against the app's own database, returning its join code. */
-async function publishLiveContest(db: DatabaseSync, joinCode: string): Promise<string> {
-  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
-  const contests = new SqliteContestRepository(new SqliteDatabase(db));
-  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
-  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
+async function publishLiveContest(database: Database, joinCode: string): Promise<string> {
+  const drafts = new SqliteDraftRepository(database);
+  const contests = new SqliteContestRepository(database);
+  const roster = new SqliteRosterRepository(database);
+  const auditLog = new SqliteAuditLogRepository(database);
   let sequence = 0;
   const ids = { next: () => `audit-${joinCode}-${++sequence}` };
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock: CLOCK, ids }));
@@ -78,10 +77,10 @@ async function publishLiveContest(db: DatabaseSync, joinCode: string): Promise<s
 }
 
 /** Directly claims a place (used to set up an already-taken place), returning the voter cookie. */
-async function claimDirectly(db: DatabaseSync, joinCode: string, participantId: string): Promise<string> {
+async function claimDirectly(database: Database, joinCode: string, participantId: string): Promise<string> {
   const claim = await new ClaimPlace({
-    contests: new SqliteContestRepository(new SqliteDatabase(db)),
-    roster: new SqliteRosterRepository(new SqliteDatabase(db)),
+    contests: new SqliteContestRepository(database),
+    roster: new SqliteRosterRepository(database),
     tokens: new HmacJwtTokenIssuer('test-secret-that-is-at-least-32-characters', new SystemClock()),
     clock: new SystemClock(),
   }).execute(joinCode, participantId);
@@ -92,12 +91,12 @@ async function claimDirectly(db: DatabaseSync, joinCode: string, participantId: 
 describeFeature(feature, ({ Scenario }) => {
   Scenario('The whole roster is shown for a valid code', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest whose participants are "María", "Pau" and "Ana"', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS1');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS1');
     });
     When('someone looks up the contest by its join code', async () => {
       response = await app.inject({ method: 'GET', url: '/contests/TAPAS1/places' });
@@ -121,12 +120,12 @@ describeFeature(feature, ({ Scenario }) => {
     And,
   }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest where "Ana"\'s place is already taken', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS4');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS4');
       await app.inject({
         method: 'POST',
         url: '/contests/TAPAS4/claim',
@@ -159,12 +158,12 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A contest with no place left still names its roster', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest where every place has been taken', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS5');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS5');
       for (const id of ['maria', 'pau', 'ana', 'marcos']) {
         await app.inject({
           method: 'POST',
@@ -187,12 +186,12 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A participant claims their place', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest that includes a place for "Ana"', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS1');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS1');
     });
     When('a person claims "Ana"\'s place with the join code', async () => {
       response = await app.inject({
@@ -214,13 +213,13 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A place already taken cannot be claimed again', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest where "Ana"\'s place is already taken', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS1');
-      await claimDirectly(db, 'TAPAS1', 'ana');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS1');
+      await claimDirectly(database, 'TAPAS1', 'ana');
     });
     When('another person tries to claim "Ana"\'s place', async () => {
       response = await app.inject({
@@ -237,12 +236,12 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A place that is not on the list cannot be claimed', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let response: LightMyRequestResponse;
 
     Given('a live contest that has no place for "Zoe"', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS1');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS1');
     });
     When('a person tries to claim "Zoe"\'s place with the join code', async () => {
       response = await app.inject({
@@ -275,15 +274,15 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A returning participant is recognised by their token', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let cookie: string;
     let response: LightMyRequestResponse;
 
     Given('a person who has claimed "Ana"\'s place in a live contest', async () => {
-      ({ app, db } = await makeTestApp());
-      contestId = await publishLiveContest(db, 'TAPAS1');
-      cookie = await claimDirectly(db, 'TAPAS1', 'ana');
+      ({ app, database } = await makeTestApp());
+      contestId = await publishLiveContest(database, 'TAPAS1');
+      cookie = await claimDirectly(database, 'TAPAS1', 'ana');
     });
     When('they return to that contest with their token, no code given', async () => {
       response = await app.inject({
@@ -300,14 +299,14 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("A participant's token does not grant host access", ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let cookie: string;
     let response: LightMyRequestResponse;
 
     Given('a person who has claimed a place in a live contest', async () => {
-      ({ app, db } = await makeTestApp());
-      await publishLiveContest(db, 'TAPAS1');
-      cookie = await claimDirectly(db, 'TAPAS1', 'ana');
+      ({ app, database } = await makeTestApp());
+      await publishLiveContest(database, 'TAPAS1');
+      cookie = await claimDirectly(database, 'TAPAS1', 'ana');
     });
     When('they try to do a host-only action using their token', async () => {
       response = await app.inject({

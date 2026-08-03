@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Database } from './database.js';
+import { PostgresDatabase } from './postgres-database.js';
 import { SqliteDatabase } from './sqlite-database.js';
 
 const DEFAULT_MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'migrations');
@@ -17,6 +18,17 @@ export function openDatabase(path: string): Database {
   return new SqliteDatabase(path);
 }
 
+/** The database a deployment's configuration asks for. */
+export function openConfiguredDatabase(config: {
+  readonly DATABASE_DRIVER: 'sqlite' | 'postgres';
+  readonly DATABASE_PATH: string;
+  readonly DATABASE_URL: string;
+}): Database {
+  return config.DATABASE_DRIVER === 'postgres'
+    ? new PostgresDatabase(config.DATABASE_URL)
+    : new SqliteDatabase(config.DATABASE_PATH);
+}
+
 /**
  * Apply any not-yet-applied `*.sql` migrations in filename order, each in its
  * own transaction, recording applied names in `_migrations`. Idempotent:
@@ -27,6 +39,13 @@ export async function runMigrations(
   db: Database,
   migrationsDir: string = DEFAULT_MIGRATIONS_DIR,
 ): Promise<string[]> {
+  // One instance applies them; the rest wait and find nothing to do. A database
+  // that cannot have two instances does not offer the lock, and does not need to.
+  const apply = () => applyPending(db, migrationsDir);
+  return db.withMigrationLock ? db.withMigrationLock(apply) : apply();
+}
+
+async function applyPending(db: Database, migrationsDir: string): Promise<string[]> {
   await db.exec(
     'CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);',
   );

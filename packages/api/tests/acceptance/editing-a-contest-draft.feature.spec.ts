@@ -1,10 +1,9 @@
 import { fileURLToPath } from 'node:url';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
+import type { Database } from '../../src/db/database.js';
 import type { DraftContent, Person } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import type { DatabaseSync } from 'node:sqlite';
 import { SqliteAuditLogRepository } from '../../src/index.js';
 import { makeTestApp, seedHost } from '../support/test-server.js';
 
@@ -140,12 +139,12 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario("A host changes their draft's scoring and participants", ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let jar: CookieJar;
     let id: string;
 
     Given('a host preparing a draft named "Tapas Night"', async () => {
-      ({ app, db } = await makeTestApp());
+      ({ app, database } = await makeTestApp());
       jar = await signedInHost(app, 'ana@example.com');
       id = await createDraft(app, jar, content('Tapas Night'));
     });
@@ -168,7 +167,7 @@ describeFeature(feature, ({ Scenario }) => {
       expect(names).toEqual(['Ana', 'Bob', 'Carmen']);
     });
     And('the audit log records the change to the draft', async () => {
-      const entries = await new SqliteAuditLogRepository(new SqliteDatabase(db)).findByContest(id);
+      const entries = await new SqliteAuditLogRepository(database).findByContest(id);
       expect(entries.some((e) => e.type === 'draft.updated')).toBe(true);
     });
   });

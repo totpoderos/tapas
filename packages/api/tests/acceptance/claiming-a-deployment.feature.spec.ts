@@ -78,8 +78,7 @@ describeFeature(feature, ({ Scenario }) => {
       const link: string = response.json().link;
       const accepted = await accept(test, link.slice(link.lastIndexOf('/') + 1));
       expect(accepted.statusCode).toBe(201);
-      const row = test.db
-        .prepare('SELECT role FROM host_accounts WHERE email = ?')
+      const row = await test.database.prepare('SELECT role FROM host_accounts WHERE email = ?')
         .get(OPERATOR) as { role: string } | undefined;
       expect(row?.role).toBe('admin');
     });
@@ -161,9 +160,8 @@ describeFeature(feature, ({ Scenario }) => {
     When('"operator@example.com" claims it and accepts with a strong password', async () => {
       ({ cookie } = await claimAndAccept(test));
     });
-    Then('an administrator account exists for "operator@example.com"', () => {
-      const row = test.db
-        .prepare('SELECT role FROM host_accounts WHERE email = ?')
+    Then('an administrator account exists for "operator@example.com"', async () => {
+      const row = await test.database.prepare('SELECT role FROM host_accounts WHERE email = ?')
         .get(OPERATOR) as { role: string } | undefined;
       expect(row?.role).toBe('admin');
     });

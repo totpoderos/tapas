@@ -95,7 +95,7 @@ async function claim(app: FastifyInstance): Promise<LightMyRequestResponse> {
 const appFor = async (nodeEnv: Env['NODE_ENV']) => (await makeTestApp(undefined, { NODE_ENV: nodeEnv })).app;
 
 describe('session cookies follow how the site is served', async () => {
-  describe.each([['production'], ['test']] as const)('in %s', (nodeEnv) => {
+  describe.each([['production'], ['test']] as const)('in %s', async (nodeEnv) => {
     it("restricts the host's session to secure connections, cross-site", async () => {
       const response = await login(await appFor(nodeEnv));
       const access = cookie(response, 'access_token');

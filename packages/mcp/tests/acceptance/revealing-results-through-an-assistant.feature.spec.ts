@@ -62,7 +62,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a closed contest ready to reveal', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithClosedContest(api.app, api.db, 'ana@example.com');
+      const host = await hostWithClosedContest(api.app, api.database, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to reveal it without a confirmation', async () => {
@@ -83,7 +83,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a closed contest and the confirmation to reveal it', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithClosedContest(api.app, api.db, 'ana@example.com');
+      const host = await hostWithClosedContest(api.app, api.database, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, host.token);
       confirmationToken = body(await callTool(client, 'trigger_reveal', { contest: 'Tapas' }))
         .confirmationToken as string;
@@ -103,7 +103,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('a host with a revealed contest', async () => {
       const api = await startTrackedApi();
-      const host = await hostWithRevealedContest(api.app, api.db, 'ana@example.com');
+      const host = await hostWithRevealedContest(api.app, api.database, 'ana@example.com');
       client = await connectAssistant(api.baseUrl, host.token);
     });
     When('the assistant is asked to read its results', async () => {

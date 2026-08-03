@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../../src/db/database.js';
 import type { DraftContent } from '@tapas/domain';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
@@ -45,11 +44,11 @@ function twoJudgesContent(): DraftContent {
   };
 }
 
-async function publishLiveContest(db: DatabaseSync, joinCode: string): Promise<{ contestId: string }> {
-  const drafts = new SqliteDraftRepository(new SqliteDatabase(db));
-  const contests = new SqliteContestRepository(new SqliteDatabase(db));
-  const roster = new SqliteRosterRepository(new SqliteDatabase(db));
-  const auditLog = new SqliteAuditLogRepository(new SqliteDatabase(db));
+async function publishLiveContest(database: Database, joinCode: string): Promise<{ contestId: string }> {
+  const drafts = new SqliteDraftRepository(database);
+  const contests = new SqliteContestRepository(database);
+  const roster = new SqliteRosterRepository(database);
+  const auditLog = new SqliteAuditLogRepository(database);
   let sequence = 0;
   const ids = { next: () => `audit-${joinCode}-${++sequence}` };
   const audit = new AuditRecorder(auditLog, createAuditProjection({ clock: CLOCK, ids }));
@@ -71,10 +70,10 @@ async function publishLiveContest(db: DatabaseSync, joinCode: string): Promise<{
   return { contestId: published.contest.id };
 }
 
-async function claimCookie(db: DatabaseSync, joinCode: string, participantId: string): Promise<string> {
+async function claimCookie(database: Database, joinCode: string, participantId: string): Promise<string> {
   const claim = await new ClaimPlace({
-    contests: new SqliteContestRepository(new SqliteDatabase(db)),
-    roster: new SqliteRosterRepository(new SqliteDatabase(db)),
+    contests: new SqliteContestRepository(database),
+    roster: new SqliteRosterRepository(database),
     tokens: new HmacJwtTokenIssuer(SECRET, new SystemClock()),
     clock: new SystemClock(),
   }).execute(joinCode, participantId);
@@ -107,16 +106,16 @@ async function myScores(
 describeFeature(feature, ({ Scenario }) => {
   Scenario('A judge scores a dish that is open to them', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given("a live contest where Ana may score Bob's dish, scored 1 to 5", async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
     });
     When('Ana scores Bob\'s dish 4 for "Taste"', async () => {
       response = await saveScore(app, contestId, anaCookie, {
@@ -133,15 +132,15 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A judge revises a score before sending', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
 
     Given('a live contest where Ana has scored Bob\'s dish 4 for "Taste"', async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
       await saveScore(app, contestId, anaCookie, {
         dishId: 'D-bob',
         categoryId: 'taste',
@@ -173,16 +172,16 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A judge may not score their own dish', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given('a live contest where Ana has her own dish', async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
     });
     When('Ana tries to score her own dish for "Taste"', async () => {
       response = await saveScore(app, contestId, anaCookie, {
@@ -199,16 +198,16 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A score outside the allowed range is refused', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given("a live contest where Ana may score Bob's dish, scored 1 to 5", async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
     });
     When('Ana tries to score Bob\'s dish 9 for "Taste"', async () => {
       response = await saveScore(app, contestId, anaCookie, {
@@ -225,16 +224,16 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A score in an unknown category is refused', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given("a live contest where Ana may score Bob's dish, scored 1 to 5", async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
     });
     When("Ana tries to score Bob's dish 4 in a category that does not exist", async () => {
       response = await saveScore(app, contestId, anaCookie, {
@@ -251,16 +250,16 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A judge sees their own draft scores', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given('a live contest where Ana has scored Bob\'s dish 4 for "Taste"', async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
       await saveScore(app, contestId, anaCookie, {
         dishId: 'D-bob',
         categoryId: 'taste',
@@ -281,16 +280,16 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A judge is told their vote is still a draft', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
 
     Given('a live contest where Ana has scored Bob\'s dish 4 for "Taste"', async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-      anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-      await claimCookie(db, 'TAPAS1', 'bob');
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+      anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+      await claimCookie(database, 'TAPAS1', 'bob');
       await saveScore(app, contestId, anaCookie, { dishId: 'D-bob', categoryId: 'taste', value: 4 });
     });
     When('Ana looks at her scores', async () => {
@@ -304,7 +303,7 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('A judge sees that their vote has been sent', ({ Given, When, Then, And }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let anaCookie: string;
     let response: LightMyRequestResponse;
@@ -312,10 +311,10 @@ describeFeature(feature, ({ Scenario }) => {
     Given(
       'a live contest where Ana has scored every dish open to her and sent her vote',
       async () => {
-        ({ app, db } = await makeTestApp());
-        ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
-        anaCookie = await claimCookie(db, 'TAPAS1', 'ana');
-        await claimCookie(db, 'TAPAS1', 'bob');
+        ({ app, database } = await makeTestApp());
+        ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
+        anaCookie = await claimCookie(database, 'TAPAS1', 'ana');
+        await claimCookie(database, 'TAPAS1', 'bob');
         await saveScore(app, contestId, anaCookie, {
           dishId: 'D-bob',
           categoryId: 'taste',
@@ -347,13 +346,13 @@ describeFeature(feature, ({ Scenario }) => {
 
   Scenario('Scoring requires having claimed a place', ({ Given, When, Then }) => {
     let app: FastifyInstance;
-    let db: DatabaseSync;
+    let database: Database;
     let contestId: string;
     let response: LightMyRequestResponse;
 
     Given('a live contest', async () => {
-      ({ app, db } = await makeTestApp());
-      ({ contestId } = await publishLiveContest(db, 'TAPAS1'));
+      ({ app, database } = await makeTestApp());
+      ({ contestId } = await publishLiveContest(database, 'TAPAS1'));
     });
     When('a score is saved with no participant token', async () => {
       response = await app.inject({

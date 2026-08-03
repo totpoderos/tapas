@@ -55,10 +55,13 @@ Open the **host app**, sign up, create a contest (form or chat), publish it, and
 npm test          # 2458 unit + integration + acceptance (Vitest, incl. Gherkin .feature specs)
 npm run test:e2e  # whole-system E2E (Playwright: real API + both apps + SQLite + a mail catcher), axe-gated
                   # needs the Docker daemon running — Playwright starts Mailpit itself
+npm run test:pg   # the same suite against a real Postgres (starts one in Docker)
 npm run typecheck
 npm run lint
 npm run audit:ci  # supply-chain gate: blocks on high/critical advisories
 ```
+
+**Two databases, one suite.** The app runs on SQLite or Postgres, chosen by `DATABASE_DRIVER`, and the repositories are written once — the differences live in one adapter each. `npm test` uses SQLite because in-memory is what makes the suite fast; `npm run test:pg` runs the *same* specs against a real Postgres, and both must pass before a release. Two ways of storing the same thing that are only ever exercised separately will drift, and the drift will be found by a host rather than by a test.
 
 The E2E boots a real API (in-memory SQLite) and both frontends and drives Chromium — including the cross-app payoff: a host reveals results and a waiting participant sees them without reloading. **Accessibility is a hard gate** — axe-core runs inside the E2E, so a violation fails the build.
 

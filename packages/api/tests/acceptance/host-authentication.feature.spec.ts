@@ -1,6 +1,5 @@
-import { DatabaseSync } from 'node:sqlite';
-import { SqliteDatabase } from '../../src/db/sqlite-database.js';
 import { fileURLToPath } from 'node:url';
+import { freshDatabase } from '../support/test-database.js';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
 import {
@@ -8,8 +7,7 @@ import {
   BcryptPasswordHasher,
   HmacJwtTokenIssuer,
   RegisterHost,
-  runMigrations,
-  SqliteHostAccountRepository,
+    SqliteHostAccountRepository,
   SqliteSessionStore,
   type Clock,
 } from '../../src/index.js';
@@ -20,13 +18,12 @@ const STRONG_PASSWORD = 'Str0ng!Passw0rd';
 const WRONG_PASSWORD = 'Wr0ng!Passw0rd';
 
 async function makeAuthWorkspace() {
-  const db = new DatabaseSync(':memory:');
-  await runMigrations(new SqliteDatabase(db));
-  const accounts = new SqliteHostAccountRepository(new SqliteDatabase(db));
+  const { database } = await freshDatabase();
+  const accounts = new SqliteHostAccountRepository(database);
   const hasher = new BcryptPasswordHasher(4); // low cost keeps tests fast
   const clock: Clock = { now: () => '2026-07-19T10:00:00.000Z' };
   const tokens = new HmacJwtTokenIssuer('test-secret-that-is-at-least-32-characters', clock);
-  const sessions = new SqliteSessionStore(new SqliteDatabase(db));
+  const sessions = new SqliteSessionStore(database);
   let sequence = 0;
   const ids = { next: () => `host-${++sequence}` };
   return {

@@ -1,10 +1,10 @@
 import { loadEnv } from './config/env.js';
 import { buildProductionDeps } from './composition.js';
-import { openDatabase, runMigrations } from './db/migrate.js';
+import { openConfiguredDatabase, runMigrations } from './db/migrate.js';
 import { buildServer } from './server.js';
 
 const env = loadEnv();
-const db = openDatabase(env.DATABASE_PATH);
+const db = openConfiguredDatabase(env);
 await runMigrations(db);
 const app = buildServer(buildProductionDeps(db, env));
 

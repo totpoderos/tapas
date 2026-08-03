@@ -38,7 +38,18 @@ const EnvSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     API_PORT: z.coerce.number().int().positive().default(3000),
+    /*
+     * Which database serves this deployment.
+     *
+     * `sqlite` needs nothing installed, which is why it is the default and why
+     * running this for the first time requires no setup. `postgres` is for a
+     * deployment that cannot keep a disk — it reads DATABASE_URL and ignores
+     * DATABASE_PATH. Anything else is refused here rather than discovered on
+     * the first write.
+     */
+    DATABASE_DRIVER: z.enum(['sqlite', 'postgres']).default('sqlite'),
     DATABASE_PATH: z.string().min(1).default('./tapas.sqlite'),
+    DATABASE_URL: z.string().default(''),
     // Keys the session-token HMAC. A short key is brute-forceable, so a real
     // length floor is enforced (threat-model G2); use 64+ random chars in prod.
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
@@ -123,6 +134,13 @@ const EnvSchema = z
         code: z.ZodIssueCode.custom,
         path: ['MAIL_FROM'],
         message: 'MAIL_FROM must be overridden in production (the committed dev default is not allowed)',
+      });
+    }
+    if (env.DATABASE_DRIVER === 'postgres' && env.DATABASE_URL.trim() === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DATABASE_URL'],
+        message: 'DATABASE_URL is required when DATABASE_DRIVER is postgres',
       });
     }
     if (env.ADMIN_BOOTSTRAP_EMAIL === ADMIN_BOOTSTRAP_DEV_DEFAULT) {

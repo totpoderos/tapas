@@ -1,5 +1,5 @@
 import { fileURLToPath } from 'node:url';
-import type { DatabaseSync } from 'node:sqlite';
+import type { Database } from '../../src/db/database.js';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
@@ -67,12 +67,12 @@ async function registerAndLogin(
 
 async function signInAsAdministrator(
   app: FastifyInstance,
-  db: DatabaseSync,
+  database: Database,
   jar: CookieJar,
   email: string,
 ): Promise<void> {
   await seedHost(app, email, STRONG_PASSWORD);
-  promoteToAdministrator(db, email);
+  await promoteToAdministrator(database, email);
   await request(app, jar, {
     method: 'POST',
     url: '/auth/login',
@@ -80,21 +80,21 @@ async function signInAsAdministrator(
   });
 }
 
-function invitationRows(db: DatabaseSync, email: string): unknown[] {
-  return db.prepare('SELECT * FROM host_invitations WHERE email = ?').all(email);
+async function invitationRows(database: Database, email: string): Promise<unknown[]> {
+  return await database.prepare('SELECT * FROM host_invitations WHERE email = ?').all(email);
 }
 
 /** An administrator on an app whose mailer refuses everything, as a dead mail server would. */
 async function administratorWithNoMailServer(): Promise<{ test: TestApp; jar: CookieJar }> {
   const test = await makeTestApp();
   const jar = new CookieJar();
-  await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+  await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
   test.mailer.failEverySend();
   return { test, jar };
 }
 
-function storedInvitation(db: DatabaseSync, email: string) {
-  return db.prepare('SELECT * FROM host_invitations WHERE email = ?').get(email) as
+async function storedInvitation(database: Database, email: string) {
+  return (await database.prepare('SELECT * FROM host_invitations WHERE email = ?').get(email)) as
     | { message_sent: number | null }
     | undefined;
 }
@@ -130,7 +130,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       const response = await request(test.app, jar, {
@@ -140,8 +140,8 @@ describeFeature(feature, ({ Scenario }) => {
       });
       expect(response.statusCode).toBe(201);
     });
-    Then('an invitation for "nuevo@example.com" is pending', () => {
-      expect(invitationRows(test.db, INVITED)).toHaveLength(1);
+    Then('an invitation for "nuevo@example.com" is pending', async () => {
+      expect(await invitationRows(test.database, INVITED)).toHaveLength(1);
     });
   });
 
@@ -166,8 +166,8 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(403);
       expect(response.json().error.code).toBe('NOT_ALLOWED');
     });
-    And('no invitation exists for "nuevo@example.com"', () => {
-      expect(invitationRows(test.db, INVITED)).toHaveLength(0);
+    And('no invitation exists for "nuevo@example.com"', async () => {
+      expect(await invitationRows(test.database, INVITED)).toHaveLength(0);
     });
   });
 
@@ -199,7 +199,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     And('a host "bob@example.com"', async () => {
       await registerAndLogin(test.app, new CookieJar(), 'bob@example.com');
@@ -224,7 +224,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       await request(test.app, jar, {
@@ -249,7 +249,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       await request(test.app, jar, {
@@ -258,8 +258,8 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { email: INVITED },
       });
     });
-    Then('the stored invitation does not contain the link', () => {
-      const stored = JSON.stringify(invitationRows(test.db, INVITED));
+    Then('the stored invitation does not contain the link', async () => {
+      const stored = JSON.stringify(await invitationRows(test.database, INVITED));
       expect(stored).not.toContain(tokenFromLink(test.mailer.sent[0]!.link));
     });
   });
@@ -328,10 +328,10 @@ describeFeature(feature, ({ Scenario }) => {
       });
       expect(response.statusCode).toBe(201);
     });
-    Then('a host account exists for "nuevo@example.com"', () => {
-      const row = test.db
+    Then('a host account exists for "nuevo@example.com"', async () => {
+      const row = (await test.database
         .prepare('SELECT email FROM host_accounts WHERE email = ?')
-        .get(INVITED) as { email: string } | undefined;
+        .get(INVITED)) as { email: string } | undefined;
       expect(row?.email).toBe(INVITED);
     });
     And('that person can sign in with that address and password', async () => {
@@ -361,10 +361,10 @@ describeFeature(feature, ({ Scenario }) => {
       const accepted = await acceptWith(sent.test, newestToken(sent.test));
       expect(accepted.statusCode).toBe(201);
     });
-    Then('the account created is not an administrator', () => {
-      const row = sent.test.db
+    Then('the account created is not an administrator', async () => {
+      const row = (await sent.test.database
         .prepare('SELECT role FROM host_accounts WHERE email = ?')
-        .get(INVITED) as { role: string } | undefined;
+        .get(INVITED)) as { role: string } | undefined;
       expect(row?.role).toBe('host');
     });
   });
@@ -383,10 +383,10 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { password: STRONG_PASSWORD },
       });
     });
-    Then('the account created is not an administrator', () => {
-      const row = test.db
+    Then('the account created is not an administrator', async () => {
+      const row = (await test.database
         .prepare('SELECT role FROM host_accounts WHERE email = ?')
-        .get(INVITED) as { role: string } | undefined;
+        .get(INVITED)) as { role: string } | undefined;
       expect(row?.role).toBe('host');
     });
   });
@@ -446,7 +446,7 @@ describeFeature(feature, ({ Scenario }) => {
 
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
-      await signInAsAdministrator(test.app, test.db, new CookieJar(), 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, new CookieJar(), 'ana@example.com');
     });
     When('someone tries to accept with a link that no invitation ever had', async () => {
       response = await test.app.inject({
@@ -542,9 +542,8 @@ describeFeature(feature, ({ Scenario }) => {
       });
       expect(response.statusCode).toBe(201);
     });
-    Then('a host account exists for "nuevo@example.com"', () => {
-      const row = test.db
-        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+    Then('a host account exists for "nuevo@example.com"', async () => {
+      const row = await test.database.prepare('SELECT email FROM host_accounts WHERE email = ?')
         .get(INVITED) as { email: string } | undefined;
       expect(row?.email).toBe(INVITED);
     });
@@ -574,8 +573,8 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(404);
       expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
     });
-    And('no host account exists for "nuevo@example.com"', () => {
-      const row = test.db.prepare('SELECT email FROM host_accounts WHERE email = ?').get(INVITED);
+    And('no host account exists for "nuevo@example.com"', async () => {
+      const row = await test.database.prepare('SELECT email FROM host_accounts WHERE email = ?').get(INVITED);
       expect(row).toBeUndefined();
     });
   });
@@ -763,8 +762,8 @@ describeFeature(feature, ({ Scenario }) => {
       expect(response.statusCode).toBe(404);
       expect(response.json().error.code).toBe('INVITATION_UNUSABLE');
     });
-    And('no host account exists for "nuevo@example.com"', () => {
-      const row = sent.test.db
+    And('no host account exists for "nuevo@example.com"', async () => {
+      const row = await sent.test.database
         .prepare('SELECT email FROM host_accounts WHERE email = ?')
         .get(INVITED);
       expect(row).toBeUndefined();
@@ -903,9 +902,8 @@ describeFeature(feature, ({ Scenario }) => {
       const accepted = await acceptWith(sent.test, newestToken(sent.test));
       expect(accepted.statusCode).toBe(201);
     });
-    Then('a host account exists for "nuevo@example.com"', () => {
-      const row = sent.test.db
-        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+    Then('a host account exists for "nuevo@example.com"', async () => {
+      const row = await sent.test.database.prepare('SELECT email FROM host_accounts WHERE email = ?')
         .get(INVITED) as { email: string } | undefined;
       expect(row?.email).toBe(INVITED);
     });
@@ -1067,8 +1065,8 @@ describeFeature(feature, ({ Scenario }) => {
     Then('inviting is not refused', () => {
       expect(response.statusCode).toBe(201);
     });
-    And('an invitation for "nuevo@example.com" is pending', () => {
-      expect(invitationRows(test.db, INVITED)).toHaveLength(1);
+    And('an invitation for "nuevo@example.com" is pending', async () => {
+      expect(await invitationRows(test.database, INVITED)).toHaveLength(1);
     });
     And('the administrator is told the message did not go out', () => {
       expect(response.json().messageSent).toBe(false);
@@ -1107,7 +1105,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       response = await request(test.app, jar, {
@@ -1137,9 +1135,9 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { email: INVITED },
       });
     });
-    Then('the stored invitation does not contain the link', () => {
+    Then('the stored invitation does not contain the link', async () => {
       const token = tokenFromLink(response.json().link);
-      expect(JSON.stringify(invitationRows(test.db, INVITED))).not.toContain(token);
+      expect(JSON.stringify(await invitationRows(test.database, INVITED))).not.toContain(token);
     });
   });
 
@@ -1150,7 +1148,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com"', async () => {
       test = await makeTestApp();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       await request(test.app, jar, {
@@ -1159,8 +1157,8 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { email: INVITED },
       });
     });
-    Then('the invitation records that its message went out', () => {
-      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(1);
+    Then('the invitation records that its message went out', async () => {
+      expect((await storedInvitation(test.database, INVITED))?.message_sent).toBe(1);
     });
   });
 
@@ -1178,8 +1176,8 @@ describeFeature(feature, ({ Scenario }) => {
         payload: { email: INVITED },
       });
     });
-    Then('the invitation records that its message did not go out', () => {
-      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(0);
+    Then('the invitation records that its message did not go out', async () => {
+      expect((await storedInvitation(test.database, INVITED))?.message_sent).toBe(0);
     });
   });
 
@@ -1197,7 +1195,7 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
       test = await makeTestAppWithoutMail();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       response = await request(test.app, jar, {
@@ -1230,13 +1228,13 @@ describeFeature(feature, ({ Scenario }) => {
     Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
       test = await makeTestAppWithoutMail();
       jar = new CookieJar();
-      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+      await signInAsAdministrator(test.app, test.database, jar, 'ana@example.com');
     });
     When('the administrator invites "nuevo@example.com"', async () => {
       await request(test.app, jar, { method: 'POST', url: '/admin/invites', payload: { email: INVITED } });
     });
-    Then('the invitation records that its message did not go out', () => {
-      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(0);
+    Then('the invitation records that its message did not go out', async () => {
+      expect((await storedInvitation(test.database, INVITED))?.message_sent).toBe(0);
     });
   });
 
@@ -1284,9 +1282,8 @@ describeFeature(feature, ({ Scenario }) => {
       });
       expect(response.statusCode).toBe(201);
     });
-    Then('a host account exists for "nuevo@example.com"', () => {
-      const row = test.db
-        .prepare('SELECT email FROM host_accounts WHERE email = ?')
+    Then('a host account exists for "nuevo@example.com"', async () => {
+      const row = await test.database.prepare('SELECT email FROM host_accounts WHERE email = ?')
         .get(INVITED) as { email: string } | undefined;
       expect(row?.email).toBe(INVITED);
     });

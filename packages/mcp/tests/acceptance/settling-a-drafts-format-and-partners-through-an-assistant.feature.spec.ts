@@ -115,7 +115,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" where everyone is on their own',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -141,7 +141,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" with Ana, Bob, Carmen and Dan taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -170,7 +170,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" where Ana and Bob are partners, with Carmen and Dan also taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana', partner: 'Bob' },
           { displayName: 'Bob', partner: 'Ana' },
@@ -202,7 +202,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" where Ana and Bob are partners',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana', partner: 'Bob' },
           { displayName: 'Bob', partner: 'Ana' },
@@ -229,7 +229,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" with Ana and Bob taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -261,7 +261,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" with two people called "Ana", and Bob taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Ana' },
@@ -294,7 +294,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" with Ana and Bob taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -325,7 +325,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" judged on "Taste", with Ana and Bob taking part',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -356,7 +356,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a draft named "Tapas Night" with Ana and Bob taking part, nobody paired',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await draftWithPeople(api, token, 'Tapas Night', [
           { displayName: 'Ana' },
           { displayName: 'Bob' },
@@ -396,7 +396,7 @@ describeFeature(feature, ({ Scenario }) => {
       'a host with a personal access token and a published contest named "Tapas Night"',
       async () => {
         const api = await startTrackedApi();
-        const token = await hostWithToken(api.app, api.db, 'ana@example.com');
+        const token = await hostWithToken(api.app, api.database, 'ana@example.com');
         await publishNamedContestAs(api.app, token, 'Tapas Night');
         client = await connectAssistant(api.baseUrl, token);
       },
