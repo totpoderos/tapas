@@ -3,7 +3,14 @@ import type { DatabaseSync } from 'node:sqlite';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describeFeature, loadFeature } from '@amiceli/vitest-cucumber';
 import { expect } from 'vitest';
-import { MutableClock, makeTestApp, promoteToAdministrator, seedHost, type TestApp } from '../support/test-server.js';
+import {
+  MutableClock,
+  makeTestApp,
+  makeTestAppWithoutMail,
+  promoteToAdministrator,
+  seedHost,
+  type TestApp,
+} from '../support/test-server.js';
 import { invitationSentTo, signInAdministrator, tokenFromLink } from '../support/invitations.js';
 
 const ISSUED_AT = '2026-07-29T10:00:00.000Z';
@@ -1170,6 +1177,63 @@ describeFeature(feature, ({ Scenario }) => {
         url: '/admin/invites',
         payload: { email: INVITED },
       });
+    });
+    Then('the invitation records that its message did not go out', () => {
+      expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(0);
+    });
+  });
+
+  /*
+   * A deployment configured to send nothing. Distinct from the failing-transport
+   * scenarios above, which prove the flow copes when a send goes wrong: these
+   * prove the *setting* selects that path deliberately, and that production is
+   * willing to boot that way.
+   */
+  Scenario('A deployment that hands every invitation over by hand', ({ Given, When, Then, And }) => {
+    let test: Omit<TestApp, 'mailer'>;
+    let jar: CookieJar;
+    let response: LightMyRequestResponse;
+
+    Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
+      test = makeTestAppWithoutMail();
+      jar = new CookieJar();
+      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      response = await request(test.app, jar, {
+        method: 'POST',
+        url: '/admin/invites',
+        payload: { email: INVITED },
+      });
+    });
+    Then('inviting is not refused', () => {
+      expect(response.statusCode).toBe(201);
+    });
+    And('the link is offered to that administrator', () => {
+      expect(response.json().messageSent).toBe(false);
+      expect(response.json().link).toContain('/accept-invite/');
+    });
+    And('the invited person can accept with it and become a host', async () => {
+      const accepted = await test.app.inject({
+        method: 'POST',
+        url: `/invites/${tokenFromLink(response.json().link)}/accept`,
+        payload: { password: STRONG_PASSWORD },
+      });
+      expect(accepted.statusCode).toBe(201);
+    });
+  });
+
+  Scenario('A deployment that sends no mail says so about every invitation', ({ Given, When, Then }) => {
+    let test: Omit<TestApp, 'mailer'>;
+    let jar: CookieJar;
+
+    Given('an administrator "ana@example.com" on a deployment that sends no mail', async () => {
+      test = makeTestAppWithoutMail();
+      jar = new CookieJar();
+      await signInAsAdministrator(test.app, test.db, jar, 'ana@example.com');
+    });
+    When('the administrator invites "nuevo@example.com"', async () => {
+      await request(test.app, jar, { method: 'POST', url: '/admin/invites', payload: { email: INVITED } });
     });
     Then('the invitation records that its message did not go out', () => {
       expect(storedInvitation(test.db, INVITED)?.message_sent).toBe(0);

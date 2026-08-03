@@ -54,14 +54,20 @@ services:
       # secret, but the API refuses to boot in production while it is still the
       # committed example — otherwise whoever holds that inbox could claim it.
       ADMIN_BOOTSTRAP_EMAIL: ${ADMIN_BOOTSTRAP_EMAIL:?set ADMIN_BOOTSTRAP_EMAIL}
-      # Mail is the only route to a host account, so the API refuses to boot in
-      # production while these still point at a local catcher.
-      MAIL_HOST: ${MAIL_HOST:?set MAIL_HOST}
+      # How invitations are handed over: `smtp` sends them, `none` says this
+      # deployment has no mail server and the administrator passes the link on
+      # themselves (the invitation answer carries it). Under `smtp` the API
+      # refuses to boot in production while these still point at a local
+      # catcher — the falls-back-to-the-dev-default form below is deliberate,
+      # so that refusal comes from the API with its own reason rather than from
+      # compose with a variable name.
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_HOST: ${MAIL_HOST:-localhost}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_SECURE: ${MAIL_SECURE:-false}
       MAIL_USER: ${MAIL_USER:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
-      MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM}
+      MAIL_FROM: ${MAIL_FROM:-no-reply@tapas.example}
       # CORS allowlist = the public app origins.
       HOST_WEB_ORIGIN: https://${HOST_DOMAIN:?set HOST_DOMAIN}
       PARTICIPANT_WEB_ORIGIN: https://${PARTICIPANT_DOMAIN:?set PARTICIPANT_DOMAIN}
