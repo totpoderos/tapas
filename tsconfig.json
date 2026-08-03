@@ -3,7 +3,7 @@
   "extends": "./tsconfig.base.json",
   // The serverless entry point, which belongs to no workspace: it sits at the
   // repository root because that is where a platform looks for it. Without this
-  // it was the one file that builds the whole server and was never type-checked
+  // it is the one file that builds the whole server, and nothing else checks it
   // — `npm run typecheck` walks the workspaces, and this is not one.
-  "include": ["api"]
+  "include": ["serverless"]
 }
