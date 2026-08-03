@@ -47,6 +47,21 @@ const CONTEST_NAME = z
     "The exact name of the contest, as the host says it (case-insensitive). Never an id — the host does not see ids. If the answer comes back with `candidates`, the host has more than one contest with that name and nothing was changed: ask them which one they mean before trying again. An empty `candidates` list means no contest has that name.",
   );
 
+/**
+ * A number as a model writes one. A model asked for a score of 5 sends `"5"`
+ * about as often as `5`, and JSON keeps those apart where the host's meaning
+ * does not — so a string that spells a finite number is read as that number.
+ * Only that: `"abc"`, `true` and `null` are still refused, because there the
+ * host's meaning genuinely is not a number.
+ */
+const modelNumber = z.preprocess(
+  (value) =>
+    typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))
+      ? Number(value)
+      : value,
+  z.number(),
+);
+
 /** The protocol-level confirmation a destructive tool carries. Never forwarded to the API. */
 const CONFIRMATION_TOKEN = z
   .string()
@@ -248,8 +263,8 @@ const setScoreRange: McpTool = {
   scope: 'host',
   inputSchema: {
     contest: CONTEST_NAME,
-    min: z.number().optional().describe('The lowest score. Omit (with max) to work the range out from the contest.'),
-    max: z.number().optional().describe('The highest score. Omit (with min) to work the range out from the contest.'),
+    min: modelNumber.optional().describe('The lowest score. Omit (with max) to work the range out from the contest.'),
+    max: modelNumber.optional().describe('The highest score. Omit (with min) to work the range out from the contest.'),
   },
   toRequest: (args) => ({
     method: 'PUT',
@@ -394,6 +409,39 @@ const closeContest: McpTool = {
 // are filled in over time and fully validated by the API at publish. Defined
 // here rather than imported from the domain so the adapter stays decoupled; the
 // API remains the authoritative validator (two-phase, design.md §11B.3).
+
+/**
+ * The range, as a model gives it, made into the tagged shape the domain keeps.
+ *
+ * `set_score_range` — the tool a host reaches for to do this one thing — takes a
+ * bare `min`/`max` pair, so a model sends the same bare pair here and leaves off
+ * the `type` this union is told apart by. That is the asymmetry, not a wrong
+ * request: the host said "1 to 5" and every part of it arrived.
+ *
+ * The tag is added only where what arrived determines it — both bounds is a
+ * fixed range, neither is one the contest works out for itself. A half-given
+ * range is still refused, because guessing which the host meant would settle a
+ * scoring rule they never stated.
+ */
+function withRangeType(value: unknown): unknown {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return value;
+  const range = value as Record<string, unknown>;
+  if ('type' in range) return value;
+  const hasMin = range.min !== undefined && range.min !== null;
+  const hasMax = range.max !== undefined && range.max !== null;
+  if (hasMin && hasMax) return { type: 'fixed', min: range.min, max: range.max };
+  if (!hasMin && !hasMax) return { type: 'auto' };
+  return value;
+}
+
+const scoreRangeShape = z.preprocess(
+  withRangeType,
+  z.union([
+    z.object({ type: z.literal('fixed'), min: modelNumber, max: modelNumber }).strict(),
+    z.object({ type: z.literal('auto') }).strict(),
+  ]),
+);
+
 const scoringShape = z
   .object({
     categories: z
@@ -411,12 +459,14 @@ const scoringShape = z
           })
           .strict(),
       )
-      .min(1),
-    range: z.union([
-      z.object({ type: z.literal('fixed'), min: z.number(), max: z.number() }).strict(),
-      z.object({ type: z.literal('auto') }).strict(),
-    ]),
-    uniquePerCategory: z.boolean(),
+      .min(1)
+      .describe('What the dishes are judged on, e.g. [{ "name": "Taste" }]. Naming each is enough.'),
+    range: scoreRangeShape.describe(
+      'The range scores are given within: { "type": "fixed", "min": 1, "max": 5 } for a fixed range, or { "type": "auto" } (with no bounds) to let the contest work its own range out, which is a ranking.',
+    ),
+    uniquePerCategory: z
+      .boolean()
+      .describe('true = each score may be used only once per category; false = scores may repeat.'),
   })
   .strict();
 

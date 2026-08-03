@@ -3,6 +3,18 @@ import { TOOL_CATALOG, parseToolArguments } from '../../src/tool-catalog.js';
 
 const toolNamed = (name: string) => TOOL_CATALOG.find((tool) => tool.name === name)!;
 
+/**
+ * A model's arguments for `create_draft`, with only the scoring varied — the
+ * rest is the same well-formed draft every time, so what each case asserts is
+ * the scoring and nothing else.
+ */
+const draftScoring = (scoring: unknown) => ({
+  name: 'Tapas',
+  format: 'solo',
+  participants: [{ displayName: 'Carlos' }],
+  scoring: { categories: [{ id: 'c1', name: 'Taste' }], uniquePerCategory: false, ...(scoring as object) },
+});
+
 describe('MCP tool catalog', async () => {
   it('exposes get_contest as a read-only, host-scoped tool', async () => {
     const getContest = TOOL_CATALOG.find((tool) => tool.name === 'get_contest');
@@ -185,6 +197,60 @@ describe('MCP tool catalog', async () => {
       },
     });
     expect(parsed.ok).toBe(false);
+  });
+
+  /*
+   * The reported bug: a host who said "scoring range from 1 to 5" got "the
+   * details didn't look right (scoring.range: Invalid input)" and no contest at
+   * all. Everything they said had arrived — the model wrote the range the way
+   * `set_score_range` takes one, `{min, max}`, with the bounds as the strings
+   * that spell them. Two shapes for one thing, and the host paid for it.
+   */
+  it('reads a range a model wrote as a bare min/max pair as a fixed range', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), draftScoring({ range: { min: 1, max: 5 } }));
+    expect(parsed.ok).toBe(true);
+    expect(parsed.ok && parsed.args.scoring).toMatchObject({ range: { type: 'fixed', min: 1, max: 5 } });
+  });
+
+  it('reads bounds a model wrote as the strings that spell them', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), draftScoring({ range: { min: '1', max: '5' } }));
+    expect(parsed.ok).toBe(true);
+    expect(parsed.ok && parsed.args.scoring).toMatchObject({ range: { type: 'fixed', min: 1, max: 5 } });
+  });
+
+  it('reads a range with no bounds at all as one the contest works out for itself', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), draftScoring({ range: {} }));
+    expect(parsed.ok && parsed.args.scoring).toMatchObject({ range: { type: 'auto' } });
+  });
+
+  /*
+   * Half a range is not a range. Reading it as either kind would settle a
+   * scoring rule the host never stated, which is the one thing the assistant
+   * may not do — so it is refused and the host is asked.
+   */
+  it('refuses a range given only one bound rather than guessing which kind it is', () => {
+    const parsed = parseToolArguments(toolNamed('create_draft'), draftScoring({ range: { min: 1 } }));
+    expect(parsed.ok).toBe(false);
+  });
+
+  it('still refuses a bound that is not a number at all', () => {
+    for (const min of ['high', true, null, [1]]) {
+      expect(parseToolArguments(toolNamed('create_draft'), draftScoring({ range: { min, max: 5 } })).ok).toBe(false);
+    }
+  });
+
+  it('leaves a range the model tagged itself exactly as it wrote it', () => {
+    const parsed = parseToolArguments(
+      toolNamed('create_draft'),
+      draftScoring({ range: { type: 'fixed', min: 1, max: 5 } }),
+    );
+    expect(parsed.ok && parsed.args.scoring).toMatchObject({ range: { type: 'fixed', min: 1, max: 5 } });
+  });
+
+  /** The sibling path, which a model reaches for just as often — the same tolerance. */
+  it('reads set_score_range bounds written as strings', () => {
+    const parsed = parseToolArguments(toolNamed('set_score_range'), { contest: 'Tapas', min: '1', max: '5' });
+    expect(parsed.ok && parsed.args).toMatchObject({ contest: 'Tapas', min: 1, max: 5 });
   });
 
   it('maps rename_contest to a PATCH carrying the old name and the new one', async () => {

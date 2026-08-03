@@ -1,12 +1,16 @@
 import type { HostAssistantCaseInput } from '../../src/host-assistant/case.js';
 
 /**
- * Single-tool selection (21) — the assistant must answer with one right
+ * Single-tool selection (22) — the assistant must answer with one right
  * (non-destructive) tool and fill its arguments from what the host said. Ground
  * truth pins the arguments because they are all recoverable from the message (an
- * id or a name the host stated) — with one deliberate exception at the end,
- * where the host asks for a whole contest at once and how the model packs it is
- * trajectory rather than correctness.
+ * id or a name the host stated).
+ *
+ * The last case is the exception on both counts: the host asks for a whole
+ * contest rather than one thing, and its arguments are not pinned. It is here
+ * because one message that the model answers with one call is what this group
+ * measures — a multi-tool case must expect a chain, and there is no longer a
+ * chain to expect.
  */
 export const SINGLE_TOOL_CASES: HostAssistantCaseInput[] = [
   {
@@ -152,6 +156,39 @@ export const SINGLE_TOOL_CASES: HostAssistantCaseInput[] = [
     expect: {
       tools: [{ name: 'set_partner', arguments: { contest: 'Tapas Night', person: 'Ana', partner: 'Bob' } }],
     },
+  },
+  /*
+   * The reported bug, as the host actually typed it. Everything they asked for
+   * has to happen — and the one thing they did NOT say, what kind of contest it
+   * is, must not be chosen for them: picking "solo" decides a high-stakes rule
+   * the host never stated, which is what the extraction path refuses outright.
+   *
+   * It was a multi_tool case expecting eight ordered calls — create_draft, then
+   * add_category twice, add_participant three times, set_score_range,
+   * set_score_uniqueness — because that is what the model did when it was
+   * written. Describing `scoring` to the model changed that: with the shape
+   * spelled out, create_draft is usable in one go and the model uses it in one
+   * go, sending the whole setup in a single call and still leaving the format
+   * out. Measured against the old ground truth that read as seven missing tools
+   * and took tool-selection accuracy to 87.3%, below its floor — a re-baseline,
+   * not a regression. The old expectation is kept here so a future run can tell
+   * a trajectory change from a real one:
+   *
+   *   create_draft{name} → add_category ×2 → add_participant ×3
+   *     → set_score_range{1,5} → set_score_uniqueness{false}
+   *
+   * `forbidden` is what actually carries the case's intent and is unchanged: the
+   * model must not reach for set_format. That everything asked for arrives is
+   * pinned where it can be pinned honestly — the acceptance feature for setting
+   * up a whole contest, which reads the draft back.
+   */
+  {
+    id: 'single-setup-without-saying-the-format',
+    group: 'single_tool',
+    note: 'A whole contest set up in one message: do all of it, and invent no format.',
+    message:
+      'Create a new contest called Tapas. Add two categories: Taste and Originality. Add three participants: Carlos, Alba and Juan. Scoring range from 1 to 5 and allow duplicated scores.',
+    expect: { tools: [{ name: 'create_draft' }], forbidden: ['set_format'] },
   },
   /*
    * The reported prompt as the host actually typed it — `multi-setup-without-
