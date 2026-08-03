@@ -49,5 +49,13 @@ asking, which only evals can gate.
 ## 3. Close out
 
 - [ ] 3.1 Look at it by hand: the reported prompt, in a browser, from empty to
-      published without leaving the chat.
-- [ ] 3.2 `openspec validate --strict`, then archive the change.
+      published without leaving the chat. **NOT DONE, and left open on purpose.**
+      Signing into the host app needs the host's own credentials, so this is the
+      host's to do. Both halves were verified separately against the real things
+      — the reported prompt against the live model in the eval (all eight calls,
+      in order, no invented format), and the panel in a real browser end to end
+      (the note appears; saying the format clears it) — but nobody has yet sat
+      down and gone from an empty chat to a published contest in one sitting.
+      That is the check that has found something no test could in four
+      consecutive slices, and it has not been made here.
+- [x] 3.2 `openspec validate --strict`, then archive the change.
