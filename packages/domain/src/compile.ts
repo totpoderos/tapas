@@ -19,17 +19,40 @@ export type CompileErrorCode =
   | 'INVALID_RANGE'
   | 'JUDGE_CANNOT_SCORE_ANY_DISH';
 
+/**
+ * The facts a refusal is about, apart from the sentence it is written into.
+ *
+ * A sentence is written in one language, and whoever reads it cannot put it into
+ * another — so a panel that has to tell a Spanish-speaking host why their
+ * contest will not go live needs the people and the categories as values, not
+ * already glued into English. These are exactly the values the message
+ * interpolates, under names its translations use.
+ *
+ * Data, never words: a display name and a category name are the host's own text
+ * and are carried through untouched, to be shown inside whatever sentence the
+ * reader writes around them.
+ */
+export type RefusalDetails = Readonly<Record<string, string | number | readonly string[]>>;
+
 export interface CompileError {
   readonly code: CompileErrorCode;
+  /**
+   * English, and staying that way. It is the whole of what a reader with no
+   * words of its own gets — a connected assistant, a log line, an API client —
+   * so a screen with translations reads {@link CompileError.details} instead
+   * rather than this being taken away from them.
+   */
   readonly message: string;
+  /** Absent when the refusal is about nothing in particular, which is a decision, not an omission. */
+  readonly details?: RefusalDetails;
 }
 
 export type CompileResult =
   | { readonly ok: true; readonly contest: MaterializedContest }
   | { readonly ok: false; readonly error: CompileError };
 
-function fail(code: CompileErrorCode, message: string): CompileResult {
-  return { ok: false, error: { code, message } };
+function fail(code: CompileErrorCode, message: string, details?: RefusalDetails): CompileResult {
+  return { ok: false, error: details ? { code, message, details } : { code, message } };
 }
 
 /**
@@ -72,14 +95,30 @@ export function compile(draft: ContestDraft): CompileResult {
       return fail(
         'DUPLICATE_CATEGORY_ID',
         `"${first}" and "${category.name}" are the same thing to be judged on, so they cannot both be scored.`,
+        { first, second: category.name },
       );
     }
     categoriesById.set(category.id, category.name);
   }
 
+  /*
+   * The people half of the rule above, and it used to be the one that read
+   * worse: `Duplicate participant id "p3f7a"` named the id the two share, which
+   * is the one thing about them a host has never been seen and could not go
+   * looking for. It names them the way the host named them, exactly as the
+   * category version does — the code keeps its `_ID`, which is the defect's
+   * name rather than what the host is told.
+   */
   const byId = new Map<PersonId, Person>();
   for (const p of people) {
-    if (byId.has(p.id)) return fail('DUPLICATE_PERSON_ID', `Duplicate participant id "${p.id}".`);
+    const first = byId.get(p.id);
+    if (first) {
+      return fail(
+        'DUPLICATE_PERSON_ID',
+        `"${first.displayName}" and "${p.displayName}" are the same person taking part, so they cannot both be scored.`,
+        { first: first.displayName, second: p.displayName },
+      );
+    }
     byId.set(p.id, p);
   }
 
@@ -88,10 +127,14 @@ export function compile(draft: ContestDraft): CompileResult {
     if (p.partnerId === undefined) continue;
     const partner = byId.get(p.partnerId);
     if (!partner) {
-      return fail('MISSING_PARTNER', `"${p.displayName}" names a partner that is not a participant.`);
+      return fail('MISSING_PARTNER', `"${p.displayName}" names a partner that is not a participant.`, {
+        person: p.displayName,
+      });
     }
     if (partner.partnerId !== p.id) {
-      return fail('INCONSISTENT_PARTNER', `The partnership for "${p.displayName}" is not reciprocal.`);
+      return fail('INCONSISTENT_PARTNER', `The partnership for "${p.displayName}" is not reciprocal.`, {
+        person: p.displayName,
+      });
     }
   }
 
@@ -100,14 +143,22 @@ export function compile(draft: ContestDraft): CompileResult {
   if (draft.format === 'couples') {
     for (const p of people) {
       if (p.partnerId === undefined) {
-        return fail('UNPARTNERED_IN_COUPLES', `"${p.displayName}" has no partner, and this contest is for couples.`);
+        return fail(
+          'UNPARTNERED_IN_COUPLES',
+          `"${p.displayName}" has no partner, and this contest is for couples.`,
+          { person: p.displayName },
+        );
       }
     }
   }
 
   const { range } = draft.scoring;
   if (range.type === 'fixed' && (range.min < 1 || range.max < range.min)) {
-    return fail('INVALID_RANGE', `Fixed score range 1-based and non-empty required (got ${range.min}..${range.max}).`);
+    return fail(
+      'INVALID_RANGE',
+      `Fixed score range 1-based and non-empty required (got ${range.min}..${range.max}).`,
+      { min: range.min, max: range.max },
+    );
   }
 
   const dishes = buildDishes(draft, people);
@@ -137,6 +188,7 @@ export function compile(draft: ContestDraft): CompileResult {
       return fail(
         'JUDGE_CANNOT_SCORE_ANY_DISH',
         `"${p.displayName}" would be able to score no dishes.`,
+        { person: p.displayName },
       );
     }
   }

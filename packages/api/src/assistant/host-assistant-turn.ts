@@ -34,7 +34,19 @@ export interface ConfirmRequest {
 /** One thing the assistant did, or was stopped by. The pieces a run is made of. */
 export type AssistantStep =
   | { readonly kind: 'result'; readonly action: string; readonly text: string; readonly result: unknown }
-  | { readonly kind: 'failed'; readonly action: string; readonly message: string }
+  | {
+      readonly kind: 'failed';
+      readonly action: string;
+      readonly message: string;
+      /**
+       * The refusal as the API classified it, when it classified one. The panel
+       * has its own words for the refusals it knows and falls back to `message`
+       * for the rest, so this is what lets a host read in Spanish why their
+       * contest would not go live — the same sentence the form shows them.
+       */
+      readonly code?: string;
+      readonly details?: Readonly<Record<string, unknown>>;
+    }
   | {
       readonly kind: 'confirm';
       readonly action: string;
@@ -73,14 +85,37 @@ export type ToolOutcome =
  * stuck. Falls back to a plain sentence when a response carries no message.
  */
 export function refusalMessage(body: unknown): string {
-  if (body && typeof body === 'object' && 'error' in body) {
-    const error = (body as { error: unknown }).error;
-    if (error && typeof error === 'object' && 'message' in error) {
-      const message = (error as { message: unknown }).message;
-      if (typeof message === 'string' && message.trim()) return message.trim();
-    }
-  }
-  return 'It could not be carried out.';
+  return refusalOf(body).message;
+}
+
+/**
+ * The refusal whole: its sentence, and — when the API classified one — the code
+ * and the facts behind it.
+ *
+ * The sentence alone was all that used to be carried on, which left the panel
+ * unable to say any of this in the host's language: a sentence is written in one
+ * language and the reader cannot put it into another. The routes have always
+ * sent `{ error }` wholesale; it was this step that narrowed it to a string.
+ */
+export function refusalOf(body: unknown): {
+  readonly message: string;
+  readonly code?: string;
+  readonly details?: Readonly<Record<string, unknown>>;
+} {
+  const fallback = 'It could not be carried out.';
+  if (!body || typeof body !== 'object' || !('error' in body)) return { message: fallback };
+
+  const error = (body as { error: unknown }).error;
+  if (!error || typeof error !== 'object') return { message: fallback };
+
+  const { message, code, details } = error as { message?: unknown; code?: unknown; details?: unknown };
+  return {
+    message: typeof message === 'string' && message.trim() ? message.trim() : fallback,
+    ...(typeof code === 'string' && code ? { code } : {}),
+    ...(details && typeof details === 'object' && !Array.isArray(details)
+      ? { details: details as Readonly<Record<string, unknown>> }
+      : {}),
+  };
 }
 
 export interface TurnDeps {
@@ -213,7 +248,7 @@ async function runOneCall(
     const probe = resolutionRequestFor(tool, parsed.args);
     if (probe) {
       const found = await deps.execute(probe, { toolName: tool.name, toolArgs: parsed.args });
-      if (!found.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(found.body) };
+      if (!found.ok) return { kind: 'failed', action: tool.name, ...refusalOf(found.body) };
       const resolution = readResolution(found.body);
       if (resolution.kind === 'unresolved') {
         return {
@@ -228,7 +263,7 @@ async function runOneCall(
   }
 
   const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
-  if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
+  if (!outcome.ok) return { kind: 'failed', action: tool.name, ...refusalOf(outcome.body) };
   return { kind: 'result', action: tool.name, text: completionText, result: outcome.body };
 }
 
@@ -251,6 +286,6 @@ export async function runConfirmedAction(confirm: ConfirmRequest, deps: TurnDeps
   }
 
   const outcome = await deps.execute(tool.toRequest(parsed.args), { toolName: tool.name, toolArgs: parsed.args });
-  if (!outcome.ok) return { kind: 'failed', action: tool.name, message: refusalMessage(outcome.body) };
+  if (!outcome.ok) return { kind: 'failed', action: tool.name, ...refusalOf(outcome.body) };
   return { kind: 'result', action: tool.name, text: '', result: outcome.body };
 }

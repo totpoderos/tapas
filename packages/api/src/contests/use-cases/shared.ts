@@ -1,4 +1,4 @@
-import type { PublishErrorCode, TallyResult } from '@tapas/domain';
+import type { PublishErrorCode, RefusalDetails, TallyResult } from '@tapas/domain';
 import type { Clock } from '../../audit/audit-projection.js';
 import type { AuditProvenance } from '../../audit/audit-projection.js';
 import type { AuditRecorder } from '../../audit/audit-recorder.js';
@@ -15,7 +15,10 @@ export type PublishFailureCode = 'DRAFT_NOT_FOUND' | PublishErrorCode;
 
 export interface PublishFailure {
   readonly code: PublishFailureCode;
+  /** English, for a reader with no words of its own. See the domain's `RefusalDetails`. */
   readonly message: string;
+  /** The facts the refusal is about, so a screen can say the same thing in the host's language. */
+  readonly details?: RefusalDetails;
 }
 
 export interface PublishContestDeps {

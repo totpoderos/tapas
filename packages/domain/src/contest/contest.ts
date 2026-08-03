@@ -1,4 +1,4 @@
-import { compile, type CompileErrorCode } from '../compile.js';
+import { compile, type CompileErrorCode, type RefusalDetails } from '../compile.js';
 import type { CloseRule, DraftContent, RevealStrategy } from '../draft/draft-content.js';
 import { stillNeeded, type DraftGap } from '../draft/still-needed.js';
 import type { ContestDraft, MaterializedContest } from '../model.js';
@@ -7,7 +7,10 @@ export type PublishErrorCode = 'INCOMPLETE_DRAFT' | CompileErrorCode;
 
 export interface PublishError {
   readonly code: PublishErrorCode;
+  /** English, and the whole of what a reader with no words of its own gets. See `CompileError`. */
   readonly message: string;
+  /** The facts the refusal is about, for a reader that has its own words. See `RefusalDetails`. */
+  readonly details?: RefusalDetails;
 }
 
 export type PublishResult =
@@ -48,12 +51,22 @@ export class Contest {
   static publish(draft: PublishableDraft, joinCode: string): PublishResult {
     const contestDraft = toContestDraft(draft.content);
     if (!contestDraft) {
-      return { ok: false, error: { code: 'INCOMPLETE_DRAFT', message: refusal(draft.content) } };
+      return {
+        ok: false,
+        error: {
+          code: 'INCOMPLETE_DRAFT',
+          message: refusal(draft.content),
+          // The gaps themselves, not the phrases the sentence joins them into:
+          // a reader with its own words has its own way of listing them, and its
+          // own word for "or".
+          details: { unsaid: stillNeeded(draft.content) },
+        },
+      };
     }
 
     const compiled = compile(contestDraft);
     if (!compiled.ok) {
-      return { ok: false, error: { code: compiled.error.code, message: compiled.error.message } };
+      return { ok: false, error: compiled.error };
     }
 
     return {
