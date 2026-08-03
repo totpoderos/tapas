@@ -77,6 +77,7 @@ export { serializeMaterialized, deserializeMaterialized } from './contests/mater
 export { PublishContest } from './contests/use-cases/publish-contest.js';
 export { GetContest } from './contests/use-cases/get-contest.js';
 export {
+  refusalOf,
   runAssistantMessage,
   runConfirmedAction,
   UnknownActionError,
