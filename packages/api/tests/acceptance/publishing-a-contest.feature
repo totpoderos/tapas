@@ -2,8 +2,8 @@ Feature: Publishing a contest
   Publishing turns a host's draft into a live contest: its scoring rules are
   worked out and fixed, a join code is issued so participants can enter, and the
   draft is retired. Only the owning host may publish, and a draft that is
-  incomplete or whose rules would leave someone unable to score cannot be
-  published.
+  incomplete, whose rules would leave someone unable to score, or whose people
+  or scoring cannot be told one from another, cannot be published.
 
   Scenario: A host publishes a complete draft
     Given a host with a complete draft named "Summer Tapas 2026" for 4 people in 2 couples, where everyone is on their own with partners kept apart
@@ -54,6 +54,26 @@ Feature: Publishing a contest
     When the host tries to publish the draft
     Then publishing is rejected because the contest is judged on nothing
     And no contest is created
+
+  # The sibling of "each participant can be told apart from the others", and
+  # refused for the same reason. A score is kept against the thing it was given
+  # for, and a total is gathered by matching it — so two things being judged on
+  # that cannot be told apart would each gather the other's scores. Every total
+  # would be wrong, and nothing between publishing and the reveal would look
+  # wrong: the contest would announce a winner decided by doubled scores. A
+  # contest that refuses to start is the better of the two failures.
+  Scenario: A draft judged on two things that cannot be told apart cannot be published
+    Given a host with a draft judged on two things that cannot be told apart
+    When the host tries to publish the draft
+    Then publishing is rejected because two of the things it is judged on are the same
+    And the refusal names what it is judged on rather than anything internal
+    And no contest is created
+
+  Scenario: A draft judged on two things that can be told apart publishes
+    Given a host with a complete draft judged on two things that can be told apart
+    When the host publishes the draft
+    Then the contest goes live
+    And it is judged on both of them
 
   Scenario: A draft that leaves a judge unable to score cannot be published
     Given a host with a draft for a single couple, where everyone is on their own with partners kept apart

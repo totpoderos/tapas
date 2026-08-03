@@ -317,6 +317,90 @@ describeFeature(feature, ({ Scenario }) => {
   });
 
   Scenario(
+    'A draft judged on two things that cannot be told apart cannot be published',
+    ({ Given, When, Then, And }) => {
+      let workspace: ContestWorkspace;
+      const hostId = 'host-1';
+      let draftId = '';
+      let publishOutcome: Awaited<ReturnType<PublishContest['execute']>>;
+
+      Given('a host with a draft judged on two things that cannot be told apart', async () => {
+        workspace = await makeContestWorkspace();
+        draftId = await saveDraft(workspace, hostId, {
+          name: 'Two That Are One',
+          format: 'solo',
+          participants: [
+            { id: 'a', displayName: 'Ana' },
+            { id: 'b', displayName: 'Bob' },
+          ],
+          scoring: {
+            categories: [
+              { id: 'c1', name: 'Taste' },
+              { id: 'c1', name: 'Originality' },
+            ],
+            range: { type: 'auto' },
+            uniquePerCategory: false,
+          },
+        });
+      });
+      When('the host tries to publish the draft', async () => {
+        publishOutcome = await workspace.publishContest.execute(draftId, hostId);
+      });
+      Then('publishing is rejected because two of the things it is judged on are the same', () => {
+        expect(publishOutcome.ok).toBe(false);
+        if (publishOutcome.ok) return;
+        expect(publishOutcome.error.code).toBe('DUPLICATE_CATEGORY_ID');
+      });
+      And('the refusal names what it is judged on rather than anything internal', () => {
+        expect(publishOutcome.ok).toBe(false);
+        if (publishOutcome.ok) return;
+        expect(publishOutcome.error.message).toContain('Taste');
+        expect(publishOutcome.error.message).toContain('Originality');
+        expect(publishOutcome.error.message).not.toContain('c1');
+      });
+      And('no contest is created', async () => {
+        expect(await workspace.getContest.execute(draftId)).toBeUndefined();
+      });
+    },
+  );
+
+  Scenario('A draft judged on two things that can be told apart publishes', ({ Given, When, Then, And }) => {
+    let workspace: ContestWorkspace;
+    const hostId = 'host-1';
+    let draftId = '';
+
+    Given('a host with a complete draft judged on two things that can be told apart', async () => {
+      workspace = await makeContestWorkspace();
+      draftId = await saveDraft(workspace, hostId, {
+        name: 'Two That Are Two',
+        format: 'solo',
+        participants: [
+          { id: 'a', displayName: 'Ana' },
+          { id: 'b', displayName: 'Bob' },
+        ],
+        scoring: {
+          categories: [
+            { id: 'c1', name: 'Taste' },
+            { id: 'c2', name: 'Originality' },
+          ],
+          range: { type: 'auto' },
+          uniquePerCategory: false,
+        },
+      });
+    });
+    When('the host publishes the draft', async () => {
+      expect((await workspace.publishContest.execute(draftId, hostId)).ok).toBe(true);
+    });
+    Then('the contest goes live', async () => {
+      expect((await workspace.getContest.execute(draftId))?.status).toBe('live');
+    });
+    And('it is judged on both of them', async () => {
+      const categories = (await workspace.getContest.execute(draftId))?.materialized.categories ?? [];
+      expect(categories.map((category) => category.name)).toEqual(['Taste', 'Originality']);
+    });
+  });
+
+  Scenario(
     'A draft that leaves a judge unable to score cannot be published',
     ({ Given, When, Then, And }) => {
       let workspace: ContestWorkspace;

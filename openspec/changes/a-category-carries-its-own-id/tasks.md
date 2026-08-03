@@ -5,12 +5,12 @@ because either half alone leaves the bug in place.
 
 ## 1. Sub-slice A — a draft whose categories are one thing cannot be published
 
-- [ ] 1.1 Write the acceptance scenarios from `specs/validate-and-publish-contest/spec.md` as a `.feature` in `packages/api/tests/acceptance`, alongside the existing publish rejections — domain language only, no `categoryId`. **Confirm the feature with the user before implementing.**
-- [ ] 1.2 Unit test in `packages/domain`: `compile` refuses two categories sharing an id, and accepts two distinct ones. Red first.
-- [ ] 1.3 Add `DUPLICATE_CATEGORY_ID` to `CompileErrorCode` and the check to `compile`, beside `DUPLICATE_PERSON_ID` so the two read as the pair they are.
-- [ ] 1.4 Map the new code to a status in the publish route the way the other rule-space rejections are mapped (422, not 400 — it is understood but unpublishable).
-- [ ] 1.5 Host-facing message in EN and ES, naming the thing being judged on rather than the id. Check `packages/host-web` locale files for both.
-- [ ] 1.6 Verify: unit + full vitest + typecheck + lint + `openspec validate --all --strict`. PR.
+- [x] 1.1 Write the acceptance scenarios from `specs/validate-and-publish-contest/spec.md` as a `.feature` in `packages/api/tests/acceptance`, alongside the existing publish rejections — domain language only, no `categoryId`. **Confirm the feature with the user before implementing.** — added to `publishing-a-contest.feature`, borrowing the phrasing the participant sibling already uses ("told apart"). Confirmed.
+- [x] 1.2 Unit test in `packages/domain`: `compile` refuses two categories sharing an id, and accepts two distinct ones. Red first. — three tests; the two refusal ones went red first, the acceptance one passed throughout as it should.
+- [x] 1.3 Add `DUPLICATE_CATEGORY_ID` to `CompileErrorCode` and the check to `compile`, beside `DUPLICATE_PERSON_ID` so the two read as the pair they are.
+- [x] 1.4 Map the new code to a status in the publish route the way the other rule-space rejections are mapped (422, not 400 — it is understood but unpublishable). — nothing to write: `PublishFailureCode` is `'DRAFT_NOT_FOUND' | PublishErrorCode` and `PublishErrorCode` is `'INCOMPLETE_DRAFT' | CompileErrorCode`, so `publishErrorStatus` already answers 422 for anything that is not a missing draft. The union carried it.
+- [x] 1.5 ~~Host-facing message in EN and ES~~ — **the premise was wrong.** There is no code→message map anywhere; `draft-workspace.tsx` shows `t('reviewDraft.publishError', { reason })` with the reason being the API's message verbatim, and that message comes from the domain in English. No publish rejection is translated today — all eight compile codes are equally English. Adding an i18n path for this one code alone would make it the odd one out. So: the domain message is written for a host to read and act on, and translating publish rejections stays a separate question for all of them at once. Noted in 4.2.
+- [x] 1.6 Verify: unit + full vitest + typecheck + lint + `openspec validate --all --strict`. PR.
 
 ## 2. Sub-slice B — a category's id is the API's to assign and nobody's to overwrite
 
@@ -34,4 +34,4 @@ because either half alone leaves the bug in place.
 ## 4. Close out
 
 - [ ] 4.1 `openspec sync-specs` to fold the three delta specs into `openspec/specs/`, then archive the change.
-- [ ] 4.2 Note in the archive what was deliberately left: existing drafts keep their `c1`/`c2` ids, and category *names* are still not unique on the form.
+- [ ] 4.2 Note in the archive what was deliberately left: existing drafts keep their `c1`/`c2` ids, category *names* are still not unique on the form, and no publish rejection is translated — the domain writes them all in English and the panel shows them verbatim (found in 1.5; worth its own change for all eight codes at once).

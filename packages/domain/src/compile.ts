@@ -12,6 +12,7 @@ export type CompileErrorCode =
   | 'NO_PARTICIPANTS'
   | 'NO_CATEGORIES'
   | 'DUPLICATE_PERSON_ID'
+  | 'DUPLICATE_CATEGORY_ID'
   | 'MISSING_PARTNER'
   | 'INCONSISTENT_PARTNER'
   | 'UNPARTNERED_IN_COUPLES'
@@ -50,6 +51,30 @@ export function compile(draft: ContestDraft): CompileResult {
    */
   if (draft.scoring.categories.length === 0) {
     return fail('NO_CATEGORIES', 'A contest needs at least one thing to be judged on.');
+  }
+
+  /*
+   * The same rule as duplicate participant ids below, for the other thing a
+   * score points at. A score is kept against the category it was given for and
+   * a total is gathered by matching it, so two categories that are one thing
+   * underneath would each gather the other's scores — every total wrong, and
+   * nothing between here and the reveal looking wrong. The contest would simply
+   * announce a winner decided by doubled scores.
+   *
+   * The message names the categories rather than the id they share: a host
+   * looking at two differently-named things needs to know which two are the
+   * problem, and has never been shown an id.
+   */
+  const categoriesById = new Map<string, string>();
+  for (const category of draft.scoring.categories) {
+    const first = categoriesById.get(category.id);
+    if (first !== undefined) {
+      return fail(
+        'DUPLICATE_CATEGORY_ID',
+        `"${first}" and "${category.name}" are the same thing to be judged on, so they cannot both be scored.`,
+      );
+    }
+    categoriesById.set(category.id, category.name);
   }
 
   const byId = new Map<PersonId, Person>();
