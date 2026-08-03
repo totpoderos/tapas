@@ -108,7 +108,28 @@ chat's.
 short of anything, and a details view that carried the field for both would need
 a rule about when to ignore it.
 
-### 5. The assistant asks; the panel states
+### 5. The panel asks; the prompt only forbids choosing
+
+*Revised after measuring.* The plan was for the assistant to ask in its own
+words, gated by an eval. It cannot: **this model returns no text at all alongside
+tool calls** — eleven of eleven multi-tool cases came back with the calls and an
+empty string. A question that appears only when the model happens to write one is
+a question a host may never be asked, which is the defect this change exists to
+close.
+
+So the asking is deterministic. The panel says what the draft still needs and,
+for the format, names the three kinds — the one gap a host cannot answer without
+being told the choices. The system prompt keeps the half the model *is*
+responsible for: never choose the format, the participants or the scoring, and
+carry out everything that was asked rather than stopping. It also asks for the
+format on the one path the panel cannot reach — a turn that replies in words and
+calls no tool, where there is no draft to report on.
+
+The first wording of that rule was rejected on measurement: "a contest cannot be
+published until it says…" leaked into unrelated turns, and "Publish Winter Tapas"
+became a `get_draft` check. See the trajectory doc.
+
+### 5b. What the earlier plan said
 
 The system prompt gains the rule as a rule: a contest cannot be published until
 it says what kind it is, who is taking part and how it is scored; never choose

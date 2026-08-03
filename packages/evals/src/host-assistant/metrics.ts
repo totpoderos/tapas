@@ -12,6 +12,13 @@ export interface ProposedCall {
 export interface CaseOutcome {
   /** The tool calls the assistant proposed, in the order it proposed them. */
   readonly toolCalls: readonly ProposedCall[];
+  /**
+   * What the assistant said alongside them. Kept because one thing this eval
+   * measures is not a tool call at all: whether the assistant asks the host for
+   * a rule they never stated, rather than leaving it silently unset. Absent on
+   * an outcome recorded before the text mattered.
+   */
+  readonly text?: string;
 }
 
 const KNOWN_TOOLS = new Set<string>(HA_TOOL_NAMES);
@@ -120,6 +127,7 @@ export function scoreCase(
 
   // Clarification: the assistant should propose no tool at all.
   const isClarification = group === 'clarification';
+
 
   const falseToolCalls = proposed.filter(
     (call) => expected.forbidden.includes(call.name as (typeof HA_TOOL_NAMES)[number]) || !KNOWN_TOOLS.has(call.name),

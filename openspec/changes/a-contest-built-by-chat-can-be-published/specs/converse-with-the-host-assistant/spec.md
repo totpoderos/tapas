@@ -27,21 +27,30 @@ must not read alike, and a ready one must not carry an empty warning.
 - **THEN** the panel reports the change
 - **AND** the panel does not say anything is still needed
 
-### Requirement: The assistant asks for what a draft still needs rather than inventing it
-The assistant SHALL ask the host for anything a draft still needs to be published — what kind of contest it is above all — and SHALL NOT choose it for them. A host who never says what kind of contest they are running SHALL be asked, in plain words that name the kinds they can choose between, once everything else they asked for has been carried out.
+### Requirement: The host is asked what kind of contest it is rather than having it chosen for them
+The host SHALL be asked for anything a draft still needs to be published — what kind of contest it is above all — and it SHALL NOT be chosen for them. A host who never says what kind of contest they are running SHALL be asked in plain words that name the kinds they can choose between, once everything else they asked for has been carried out.
 
 Asking SHALL NOT cost the host the rest of their message: everything asked for is
-carried out first, and the question is what the assistant says afterwards. A
-message that leaves something unsaid is not a message that could not be
-understood.
+carried out first, and the question comes after. A message that leaves something
+unsaid is not a message that could not be understood.
+
+The question SHALL be asked whether or not the assistant says anything of its
+own. What a host is asked cannot depend on a model choosing to speak: a question
+that appears only sometimes is one a host may never be asked, which is the defect
+this exists to close.
 
 #### Scenario: A setup message that leaves the kind of contest unsaid is still carried out
 
 - **WHEN** a signed-in host asks the assistant to set up a contest with categories and people, saying nothing about what kind of contest it is
 - **THEN** the contest is created with those categories and people
-- **AND** the assistant asks what kind of contest it is
+- **AND** the host is asked what kind of contest it is
 
-#### Scenario: The assistant never settles the kind of contest by itself
+#### Scenario: The question names the kinds a host can choose between
+
+- **WHEN** a host is asked what kind of contest theirs is
+- **THEN** the three kinds are named in plain words
+
+#### Scenario: The kind of contest is never settled on the host's behalf
 
 - **WHEN** a signed-in host sets up a contest by chat without saying what kind of contest it is
 - **THEN** the draft does not say what kind of contest it is

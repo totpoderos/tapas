@@ -69,6 +69,7 @@ async function runCase(evalCase: HostAssistantCase, assistant: HostAssistant): P
     const completion = await assistant.respond([{ role: 'user', content: evalCase.message }]);
     const outcome: CaseOutcome = {
       toolCalls: completion.toolCalls.map((call) => ({ name: call.name, arguments: call.arguments })),
+      text: completion.text,
     };
     const counts = scoreCase(outcome, evalCase.expect, evalCase.group);
     return {
