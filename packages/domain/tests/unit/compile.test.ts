@@ -224,6 +224,75 @@ describe('compile — validation', () => {
     if (!r.ok) expect(r.error.code).toBe('DUPLICATE_PERSON_ID');
   });
 
+  /*
+   * The sibling of duplicate participant ids, and refused for the same reason. A
+   * score is kept against the category it was given for and a total is gathered
+   * by matching it, so two categories that are one thing underneath would each
+   * gather the other's scores. Nothing between publishing and the reveal would
+   * look wrong — the contest would simply announce a winner decided by doubled
+   * scores, which is worse than one that refuses to start.
+   */
+  it('rejects two categories that cannot be told apart', () => {
+    const r = compile(
+      makeDraft({
+        participants: [person('A'), person('B')],
+        scoring: {
+          categories: [
+            { id: 'c1', name: 'Taste' },
+            { id: 'c1', name: 'Originality' },
+          ],
+          range: { type: 'auto' },
+          uniquePerCategory: false,
+        },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('DUPLICATE_CATEGORY_ID');
+  });
+
+  /*
+   * The refusal is read by a host looking at two differently-named things, so it
+   * names them. An id would send them hunting for something they have never been
+   * shown.
+   */
+  it('names what is judged on in the refusal, not the id underneath', () => {
+    const r = compile(
+      makeDraft({
+        participants: [person('A'), person('B')],
+        scoring: {
+          categories: [
+            { id: 'x9', name: 'Taste' },
+            { id: 'x9', name: 'Originality' },
+          ],
+          range: { type: 'auto' },
+          uniquePerCategory: false,
+        },
+      }),
+    );
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error.message).toContain('Taste');
+    expect(r.error.message).toContain('Originality');
+    expect(r.error.message).not.toContain('x9');
+  });
+
+  it('accepts two categories that can be told apart', () => {
+    const r = compile(
+      makeDraft({
+        participants: [person('A'), person('B')],
+        scoring: {
+          categories: [
+            { id: 'c1', name: 'Taste' },
+            { id: 'c2', name: 'Originality' },
+          ],
+          range: { type: 'auto' },
+          uniquePerCategory: false,
+        },
+      }),
+    );
+    expect(r.ok).toBe(true);
+  });
+
   it('rejects a partner reference to a non-participant', () => {
     const r = compile(makeDraft({ participants: [person('A', 'Z')] }));
     expect(r.ok).toBe(false);
