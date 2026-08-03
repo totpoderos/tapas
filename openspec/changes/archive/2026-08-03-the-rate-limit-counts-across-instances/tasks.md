@@ -29,4 +29,4 @@ to tell a working limiter from a limiter that has quietly stopped counting.
 
 ## 2. Close out
 
-- [ ] 2.1 `openspec validate --strict`, then archive.
+- [x] 2.1 `openspec validate --strict`, then archive.
