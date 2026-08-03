@@ -140,11 +140,18 @@ function stillNeededOf(result: unknown): readonly string[] {
 }
 
 /**
- * What is left to say, as a sentence.
+ * What is left to say, as a sentence — and, for the one gap a host cannot answer
+ * without being told the choices, the question that names them.
  *
  * Said as something outstanding, never as a failure: nothing went wrong, the
  * host simply has not said it yet. An unknown entry is dropped rather than shown
  * raw — a key on screen would read as a fault in the contest.
+ *
+ * The asking is done here rather than by the assistant because the model does
+ * not speak while it is calling tools: across every multi-step case it returns
+ * the calls and no words at all. A question that only appears when the model
+ * happens to write one is a question a host may never be asked, which is the
+ * whole defect this exists to close.
  */
 function stillNeededText(gaps: readonly string[], t: TFunction, language: string): string | undefined {
   const said = gaps
@@ -152,7 +159,14 @@ function stillNeededText(gaps: readonly string[], t: TFunction, language: string
     .filter((phrase) => phrase !== '');
   if (said.length === 0) return undefined;
   const things = new Intl.ListFormat(language, { type: 'conjunction' }).format(said);
-  return t('chat.stillNeeded', { things });
+  const sentence = t('chat.stillNeeded', { things });
+
+  /*
+   * "What kind of contest it is" names a choice between three things a host has
+   * no way to guess at, unlike who is taking part or how it is scored. Naming
+   * them turns a statement they cannot act on into one they can answer.
+   */
+  return gaps.includes('format') ? `${sentence} ${t('chat.askFormat')}` : sentence;
 }
 
 /** Reads the pairings defensively — anything that is not two names is dropped. */

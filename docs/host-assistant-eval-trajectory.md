@@ -64,6 +64,41 @@ Percentages; false-tool rate is *lower-is-better*.
 | v1 (baseline) | 58.8 | 100.0 | 12.5 | 0.0 | 100.0 | 100.0 | 0.0 | The host-assistant prompt as shipped in H5. `gemma4:e4b`, 30 cases. |
 | v2 (propose destructive, don't ask) — **adopted** | 64.7 | 100.0 | 25.0 | 25.0 | 100.0 | 100.0 | 0.0 | Tells the model to propose a destructive tool and let the system surface confirmation. Strictly ≥ v1 on every metric. `gemma4:e4b`, 30 cases. |
 | v2 on the wider surface — `gemma4:31b-cloud`, 50 cases | **100.0** | **100.0** | **100.0** | **100.0** | 100.0 | 100.0 | 0.0 | Same prompt. A bigger hosted model and a case set that finally covers the whole catalogue. |
+| v3a (three things a contest must say) | 95.2 | 100.0 | 100.0 | **87.5** | 100.0 | 100.0 | 0.0 | REJECTED. "A contest cannot be published until it says…" read as an instruction to check first: "Publish Winter Tapas" proposed `get_draft` instead of `publish_contest`, dropping confirmation surfacing below its floor. 51 cases, hash `64c07e15af19`. |
+| v3 (never choose the host's rules) — **adopted** | 98.4 | 100.0 | 100.0 | 100.0 | 100.0 | 100.0 | 0.0 | Same rule with the publishing framing removed. One case diverged: `single-set-format` created a draft rather than setting a format. |
+| v3 with the rule deleted (control) | 100.0 | 100.0 | 100.0 | 100.0 | **83.3** | 100.0 | 0.0 | Run to test whether the rule costs anything. It does not — a different single case diverged instead. |
+
+### The one thing this eval cannot measure: whether the assistant asks
+
+The change v3 was written for is that a host who never says what kind of contest
+they are running should be **asked**, not have it chosen for them. Half of that
+is measurable and passes: across every run the model has never once proposed
+`set_format` on its own initiative for a host who did not state one
+(`multi-setup-without-saying-the-format` carries it as a forbidden tool).
+
+The other half — asking, in words — turns out not to be the model's to do. **This
+model returns no text at all alongside tool calls: eleven of eleven multi-tool
+cases came back with the calls and an empty string.** An expectation about the
+assistant's words in a tool-calling turn would measure the adapter, not the
+assistant, so a metric for it was written and then removed rather than shipped
+green-by-vacuity. The asking is done by the panel, deterministically, from what
+the API says the draft still needs.
+
+The prompt keeps the rule anyway, for the path the panel cannot reach: a turn
+where the model replies in words and calls no tool has no draft to report on.
+
+### One divergent case per run is this model's noise floor
+
+Three consecutive full runs of the same 51 cases each had exactly **one** case
+diverge, and a *different* one each time — `destructive-publish`, then
+`single-set-format`, then a clarification case. Only the first is attributable to
+a prompt (v3a's publishing framing, reproduced and then fixed); the other two are
+the hosted model wobbling at temperature 0.
+
+One case is 2% of the set, which is the margin the floors were set with — so the
+gate holds. It is also the first real evidence for what the thresholds section
+has said from the start: **a floor set from one observation is a hypothesis**.
+Three observations now say the spread is about one case wide.
 
 ### Reading the wider-surface run — what it is and is not
 
@@ -136,7 +171,18 @@ headroom, to be re-measured when a stronger model backs the assistant.
 - **v1 (baseline)** — the `HostAssistant` system prompt merged in Slice H5:
   choose the tool matching the request, ask for clarification (call no tool) when
   ambiguous, and never treat a destructive action as done before confirmation.
-- **v2 (propose destructive, don't ask) — ADOPTED** — rewords only the
+- **v3a (three things a contest must say)** — REJECTED. Told the model a contest
+  cannot be published until it says what kind it is, who is taking part and how
+  it is scored, and to ask for whichever was left unsaid. The publishing framing
+  leaked into unrelated turns: "Publish Winter Tapas" became a `get_draft` check.
+  One sentence, one measured regression, reverted.
+- **v3 (never choose the host's rules) — ADOPTED** — the same rule without the
+  word "published": never choose the format, the participants or the scoring for
+  the host; carry out everything they did ask for; and, when replying in words
+  rather than calling a tool, ask for the format by naming the three kinds. A
+  control run with the rule deleted scored the same within noise, so it is kept
+  for the reply-in-words path rather than for a measured gain.
+- **v2 (propose destructive, don't ask)** — rewords only the
   destructive guidance: when the host clearly asks for a destructive action,
   *propose that tool* (no self-asked confirmation, no `confirmationToken`),
   because the system surfaces the confirmation before it runs. Targets the
@@ -174,6 +220,14 @@ real error.
 **Set from a single run on this case set.** Floors from one observation are a
 hypothesis, not a measurement; they want revisiting once a few runs have shown
 the real spread. They are floors to hold and raise.
+
+**Three runs in, the spread is about one case wide.** The Observed column above
+is the 50-case `ae8116223b65` run. On the 51-case set the adopted v3 run scored
+tool-selection 98.4 rather than 100.0 — one case diverging, which is what each of
+three consecutive runs did, each time a different case. The floors are unchanged:
+they were set with exactly that much margin, and moving a floor to chase one
+wobbling case is how a gate stops gating. What has changed is that the margin is
+now evidence rather than guesswork.
 
 These are the numbers task 6.3 will enforce; they live here (committed) rather
 than in a report (gitignored) so the gate has a stable, reviewed source.

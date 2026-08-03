@@ -415,6 +415,61 @@ describe('Chat panel', () => {
     expect(await screen.findByText(/still needs to say what kind of contest it is/i)).toBeInTheDocument();
   });
 
+  /*
+   * Naming the three kinds is what makes the note answerable. "It still needs to
+   * say what kind of contest it is" leaves a host guessing at what the kinds
+   * are; the assistant cannot fill that in, because this model returns no words
+   * at all while it is calling tools.
+   */
+  it('names the kinds of contest a host can choose between', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_participant',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas',
+          status: 'draft',
+          participants: ['Carlos'],
+          categories: ['Taste'],
+          stillNeeded: ['format'],
+        },
+      },
+    });
+    renderChat();
+    await send('add Carlos to Tapas');
+
+    const asked = await screen.findByText(/still needs to say/i);
+    expect(asked).toHaveTextContent(/everyone on their own/i);
+    expect(asked).toHaveTextContent(/partners kept apart/i);
+    expect(asked).toHaveTextContent(/couples cooking together/i);
+  });
+
+  /* The other two gaps are answerable as they stand — no list of choices to give. */
+  it('names no choices when what is missing is not the kind of contest', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'set_format',
+      text: '',
+      result: {
+        details: {
+          id: 'd1',
+          name: 'Tapas',
+          status: 'draft',
+          participants: ['Carlos'],
+          categories: [],
+          stillNeeded: ['scoring'],
+        },
+      },
+    });
+    renderChat();
+    await send('everyone on their own in Tapas');
+
+    const said = await screen.findByText(/still needs to say how it is scored/i);
+    expect(said).not.toHaveTextContent(/everyone on their own/i);
+  });
+
   it('names each thing a draft still needs', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({
       kind: 'result',

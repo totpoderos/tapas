@@ -27,15 +27,24 @@ asking, which only evals can gate.
 
 ## 2. Slice B — the assistant asks for what is missing
 
-- [ ] 2.1 Add the rule to the host-assistant system prompt: a contest needs to
-      say what kind it is, who is taking part and how it is scored; never choose
-      those for the host; carry out everything asked, then ask for what was left
-      unsaid, naming the choices.
-- [ ] 2.2 Add the eval case: the reported prompt, with no format stated —
-      asserting every asked-for tool call still happens, that `set_format` is
-      *not* among them, and that the reply asks what kind of contest it is.
-- [ ] 2.3 Run the eval, record the numbers in the trajectory, and move the
-      threshold only if the run supports it.
+- [x] 2.1 Add the rule to the host-assistant system prompt: never choose the
+      format, the participants or the scoring for the host; carry out everything
+      asked. **Rescoped mid-slice**: the first wording ("a contest cannot be
+      published until it says…") leaked into unrelated turns — "Publish Winter
+      Tapas" became a `get_draft` check, dropping confirmation surfacing below
+      its floor — so the publishing framing came out and was measured again.
+- [x] 2.2 Add the eval case: the reported prompt, with no format stated —
+      every asked-for tool call happens, in order, and `set_format` is forbidden.
+      **The reply cannot be measured**: this model returns no text at all
+      alongside tool calls (eleven of eleven multi-tool cases), so a metric for
+      the asking was written, run, and removed rather than shipped vacuously
+      green.
+- [x] 2.3 Ask the host deterministically instead, from the panel: name the three
+      kinds beside what the draft still needs, so the question is put whether or
+      not the model says anything.
+- [x] 2.4 Run the eval, record all three runs in the trajectory — including the
+      rejected prompt and the rule-deleted control — and leave the thresholds
+      where they are.
 
 ## 3. Close out
 

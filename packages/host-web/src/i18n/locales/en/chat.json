@@ -39,6 +39,7 @@
   "severalRecap": "Several contests have that name.",
   "notReached": "Not done yet: {{actions}}. Ask again when you’re ready.",
   "stillNeeded": "Before you can publish it, this contest still needs to say {{things}}.",
+  "askFormat": "Is it everyone on their own, everyone on their own with partners kept apart, or couples cooking together?",
   "needs": {
     "format": "what kind of contest it is",
     "participants": "who is taking part",

@@ -39,6 +39,7 @@
   "severalRecap": "Varios concursos tienen ese nombre.",
   "notReached": "Sin hacer todavía: {{actions}}. Pídemelo de nuevo cuando quieras.",
   "stillNeeded": "Antes de poder publicarlo, a este concurso todavía le falta decir {{things}}.",
+  "askFormat": "¿Es cada cual por su cuenta, cada cual por su cuenta sin puntuar a su pareja, o las parejas cocinan juntas?",
   "needs": {
     "format": "qué tipo de concurso es",
     "participants": "quién participa",
