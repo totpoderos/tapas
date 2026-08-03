@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build -w @tapas/host-web",
   "outputDirectory": "packages/host-web/dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --include=dev",
   "framework": null,
   "rewrites": [
     { "source": "/auth/:path*", "destination": "/api" },
