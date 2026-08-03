@@ -4,7 +4,7 @@ import { openConfiguredDatabase, runMigrations } from './db/migrate.js';
 import { buildServer } from './server.js';
 
 const env = loadEnv();
-const db = openConfiguredDatabase(env);
+const db = await openConfiguredDatabase(env);
 await runMigrations(db);
 const app = buildServer(buildProductionDeps(db, env));
 

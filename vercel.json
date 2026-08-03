@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "npm run build -w @tapas/host-web",
+  "outputDirectory": "packages/host-web/dist",
+  "installCommand": "npm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/auth/:path*", "destination": "/api" },
+    { "source": "/drafts/:path*", "destination": "/api" },
+    { "source": "/contests/:path*", "destination": "/api" },
+    { "source": "/assistant/:path*", "destination": "/api" },
+    { "source": "/admin/:path*", "destination": "/api" },
+    { "source": "/invites/:path*", "destination": "/api" },
+    { "source": "/setup/:path*", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

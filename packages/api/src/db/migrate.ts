@@ -2,8 +2,6 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Database } from './database.js';
-import { PostgresDatabase } from './postgres-database.js';
-import { SqliteDatabase } from './sqlite-database.js';
 
 const DEFAULT_MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'migrations');
 
@@ -14,19 +12,31 @@ const DEFAULT_MIGRATIONS_DIR = join(dirname(fileURLToPath(import.meta.url)), '..
  * belongs to `SqliteDatabase`, because it is a property of a connection rather
  * than of a schema.
  */
-export function openDatabase(path: string): Database {
+export async function openDatabase(path: string): Promise<Database> {
+  const { SqliteDatabase } = await import('./sqlite-database.js');
   return new SqliteDatabase(path);
 }
 
-/** The database a deployment's configuration asks for. */
-export function openConfiguredDatabase(config: {
+/**
+ * The database a deployment's configuration asks for, loading only that one.
+ *
+ * Imported when chosen rather than at the top of the file, because the SQLite
+ * adapter reaches for `node:sqlite` the moment it is loaded. A deployment that
+ * has chosen Postgres — a serverless platform, say, whose runtime may not carry
+ * that module at all — would otherwise fail on an import it was never going to
+ * use.
+ */
+export async function openConfiguredDatabase(config: {
   readonly DATABASE_DRIVER: 'sqlite' | 'postgres';
   readonly DATABASE_PATH: string;
   readonly DATABASE_URL: string;
-}): Database {
-  return config.DATABASE_DRIVER === 'postgres'
-    ? new PostgresDatabase(config.DATABASE_URL)
-    : new SqliteDatabase(config.DATABASE_PATH);
+}): Promise<Database> {
+  if (config.DATABASE_DRIVER === 'postgres') {
+    const { PostgresDatabase } = await import('./postgres-database.js');
+    return new PostgresDatabase(config.DATABASE_URL);
+  }
+  const { SqliteDatabase } = await import('./sqlite-database.js');
+  return new SqliteDatabase(config.DATABASE_PATH);
 }
 
 /**
@@ -83,7 +93,7 @@ async function applyPending(db: Database, migrationsDir: string): Promise<string
 // CLI entry: `npm run migrate -w @tapas/api`
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const path = process.env.DATABASE_PATH ?? './tapas.sqlite';
-  const db = openDatabase(path);
+  const db = await openDatabase(path);
   const applied = await runMigrations(db);
   await db.close();
   console.log(applied.length ? `Applied ${applied.length} migration(s): ${applied.join(', ')}` : 'No pending migrations.');
