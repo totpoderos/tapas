@@ -45,17 +45,38 @@ export async function openConfiguredDatabase(config: {
  * running twice applies nothing the second time. Portable — the SQL avoids
  * constructs specific to either database.
  */
+/** One migration, named and in full — the same thing a `.sql` file holds. */
+export interface Migration {
+  readonly name: string;
+  readonly sql: string;
+}
+
+/**
+ * Reads them off disk, which is what a long-lived process does.
+ *
+ * A serverless function has no `migrations` directory to read: it is one
+ * bundled file, and the .sql files are not in the deployment at all. That
+ * caller hands the migrations in instead — see the overload above.
+ */
+function migrationsIn(dir: string): Migration[] {
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((name) => ({ name, sql: readFileSync(join(dir, name), 'utf8') }));
+}
+
 export async function runMigrations(
   db: Database,
-  migrationsDir: string = DEFAULT_MIGRATIONS_DIR,
+  from: string | readonly Migration[] = DEFAULT_MIGRATIONS_DIR,
 ): Promise<string[]> {
+  const migrations = typeof from === 'string' ? migrationsIn(from) : from;
   // One instance applies them; the rest wait and find nothing to do. A database
   // that cannot have two instances does not offer the lock, and does not need to.
-  const apply = () => applyPending(db, migrationsDir);
+  const apply = () => applyPending(db, migrations);
   return db.withMigrationLock ? db.withMigrationLock(apply) : apply();
 }
 
-async function applyPending(db: Database, migrationsDir: string): Promise<string[]> {
+async function applyPending(db: Database, migrations: readonly Migration[]): Promise<string[]> {
   await db.exec(
     'CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TEXT NOT NULL);',
   );
@@ -64,16 +85,11 @@ async function applyPending(db: Database, migrationsDir: string): Promise<string
     ((await db.prepare('SELECT name FROM _migrations').all()) as Array<{ name: string }>).map((r) => r.name),
   );
 
-  const files = readdirSync(migrationsDir)
-    .filter((f) => f.endsWith('.sql'))
-    .sort();
-
   const newlyApplied: string[] = [];
   const record = db.prepare('INSERT INTO _migrations (name, applied_at) VALUES (?, ?)');
 
-  for (const file of files) {
-    if (applied.has(file)) continue;
-    const sql = readFileSync(join(migrationsDir, file), 'utf8');
+  for (const { name, sql } of migrations) {
+    if (applied.has(name)) continue;
     /*
      * One transaction per migration, run through the database rather than by
      * saying BEGIN here — which database carries a transaction on which
@@ -82,9 +98,9 @@ async function applyPending(db: Database, migrationsDir: string): Promise<string
      */
     await db.transaction(async () => {
       if (sql.trim().length > 0) await db.exec(sql);
-      await record.run(file, new Date().toISOString());
+      await record.run(name, new Date().toISOString());
     });
-    newlyApplied.push(file);
+    newlyApplied.push(name);
   }
 
   return newlyApplied;

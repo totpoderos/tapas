@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { MIGRATIONS } from './migrations.generated.js';
 import {
   buildProductionDeps,
   buildServer,
@@ -36,15 +37,14 @@ async function server() {
     const env = loadEnv();
     const database = await openConfiguredDatabase(env);
     /*
-     * Where the migrations are, said explicitly.
+     * The migrations as data, generated into the bundle at build time.
      *
-     * `runMigrations` finds them relative to its own source file, which is right
-     * until the source is bundled: then the only file left is this one, and
-     * "two directories up from migrate.ts" points somewhere that does not exist.
-     * The platform ships the .sql files beside the bundle (see `includeFiles`),
-     * and this is the path they land at.
+     * `runMigrations` reads a directory by default, which is right for the
+     * long-lived process and impossible here: there is no directory. The .sql
+     * files are not in the deployment, and the path a bundled file would compute
+     * for them points at somewhere that does not exist.
      */
-    await runMigrations(database, new URL('../packages/api/migrations', import.meta.url).pathname);
+    await runMigrations(database, MIGRATIONS);
     const app = buildServer(buildProductionDeps(database, env));
     await app.ready();
     return app;

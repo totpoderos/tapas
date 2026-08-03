@@ -42,3 +42,5 @@ docs/*.pptx
 # serverless/entry.ts. Built output; api/index.js re-exports it and IS committed,
 # because the platform checks that the function exists before it builds.
 serverless/bundle.js
+serverless/migrations.generated.ts
+packages/participant-web/serverless/bundle.js

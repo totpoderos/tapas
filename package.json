@@ -10,9 +10,10 @@
     "node": ">=24"
   },
   "scripts": {
+    "pretypecheck": "node scripts/build-function.mjs serverless/bundle.js",
     "typecheck": "tsc --noEmit -p tsconfig.json && npm run typecheck --workspaces --if-present",
     "_build:function": "The API is consumed as TypeScript source (@tapas/api's main is src/index.ts), which suits tsx and vite and nothing else. A serverless runtime is plain Node: it resolved the bare import to a .ts file and could not load it. Bundling inlines every workspace package as JavaScript, so at runtime there is nothing left to resolve.",
-    "build:function": "esbuild serverless/entry.ts --bundle --platform=node --format=esm --target=node22 --outfile=serverless/bundle.js --external:pg-native --banner:js=\"import{createRequire as ___cr}from'node:module';const require=___cr(import.meta.url);\" --log-level=warning",
+    "build:function": "node scripts/build-function.mjs serverless/bundle.js",
     "test": "vitest run",
     "test:pg": "docker start tapas-test-pg >/dev/null 2>&1 || docker run -d --name tapas-test-pg -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=tapas_test -p 55432:5432 postgres:17-alpine >/dev/null && sleep 5; TEST_DATABASE=postgres vitest run",
     "test:watch": "vitest",
