@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && npm run build -w @tapas/participant-web && node scripts/build-function.mjs packages/participant-web/serverless/bundle.js",
+  "outputDirectory": "dist",
+  "installCommand": "cd ../.. && npm install --include=dev",
+  "framework": null,
+  "rewrites": [
+    { "source": "/contests/:path*", "destination": "/api" },
+    { "source": "/health", "destination": "/api" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}

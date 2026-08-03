@@ -2,6 +2,7 @@ export { buildServer, type ServerDeps } from './server.js';
 export { buildProductionDeps } from './composition.js';
 export { loadEnv, EnvValidationError, type Env } from './config/env.js';
 export { openDatabase, openConfiguredDatabase, runMigrations } from './db/migrate.js';
+export type { Migration } from './db/migrate.js';
 export { SqliteDatabase } from './db/sqlite-database.js';
 export type { Database, PreparedStatement, SqlValue } from './db/database.js';
 export {
