@@ -6,6 +6,17 @@ import AxeBuilder from '@axe-core/playwright';
  * browser. The language selector rides along on every screen; the sign-in
  * screen needs no account, so we exercise it there. Browser-preference scenarios
  * pin the context locale; the switch-and-remember scenarios start from English.
+ *
+ * NOT YET IMPLEMENTED HERE — three scenarios of that feature concern a refusal
+ * to publish read in the chosen language: on the rules form, with its categories
+ * still named as the host wrote them, and the same refusal from the assistant.
+ * They need a signed-in host and a contest built to be refused, which is more
+ * setup than the scenarios above and is why they are called out rather than
+ * quietly missing. What holds them today: nine component tests over
+ * `refusalText`, an exhaustiveness test that every refusal has words in both
+ * languages, and a by-hand pass through both surfaces in Spanish. Writing them
+ * here is worth doing — a `.feature` scenario with nothing running it reads as
+ * coverage and is not.
  */
 
 test.describe('a first visit follows the browser', () => {
