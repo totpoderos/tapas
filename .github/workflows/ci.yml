@@ -73,16 +73,26 @@ jobs:
 
   # --- Threshold gate: eval sets (real model; block on regression) -----------
   evals:
-    # No model on GitHub-hosted runners, so this runs on the schedule / manual
-    # dispatch, or on push/PR only when a model endpoint is configured (the repo
-    # variable LLM_BASE_URL). It never runs model-less — a skipped job is honest;
-    # a faked pass is not. Run it locally anytime with:
+    # No model on GitHub-hosted runners, so this runs only where one is
+    # configured — the repo VARIABLE LLM_BASE_URL, on any trigger. It never runs
+    # model-less: a skipped job is honest, a faked pass is not.
+    #
+    # The condition used to let `schedule` and `workflow_dispatch` through on
+    # their own, which is not what that sentence promised. Dispatched on a
+    # repository with nothing configured, every case errored ("Failed to parse
+    # URL from /chat/completions"), the report read 100% over 0 turns, and the
+    # gate passed. Monday's cron would have done the same, weekly. The gate
+    # itself now refuses a run that scored nothing (`checkRun`); this stops such
+    # a run being started in the first place.
+    #
+    # `vars` and not `secrets`: a job-level `if` cannot read the secrets context.
+    # The endpoint is not a secret and belongs in a variable; LLM_API_KEY stays a
+    # secret and is read below, where secrets are available.
+    #
+    # Run it locally anytime with:
     #   npm run eval:creation -- --out reports/creation.json
     #   npm run eval:gate -- --suite creation --report reports/creation.json
-    if: >-
-      github.event_name == 'schedule' ||
-      github.event_name == 'workflow_dispatch' ||
-      vars.LLM_BASE_URL != ''
+    if: vars.LLM_BASE_URL != ''
     runs-on: ubuntu-latest
     env:
       LLM_BASE_URL: ${{ secrets.LLM_BASE_URL || vars.LLM_BASE_URL }}

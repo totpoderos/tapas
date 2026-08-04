@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkThresholds } from '../../src/gate.js';
+import { checkRun, checkThresholds, formatRunResult } from '../../src/gate.js';
 import { CREATION_THRESHOLDS, HOST_ASSISTANT_THRESHOLDS } from '../../src/thresholds.js';
 
 // The adopted-v2 numbers from the trajectory docs, as fractions.
@@ -93,5 +93,65 @@ describe('eval threshold gate', () => {
     const row = result.rows.find((r) => r.metric === 'schemaValidity');
     expect(row?.value).toBeUndefined();
     expect(row?.passed).toBe(false);
+  });
+});
+
+/**
+ * A run has to have measured something before its metrics mean anything.
+ *
+ * This is the hole a model-less CI runner fell through: all 25 creation cases
+ * and all 52 host-assistant cases errored with "Failed to parse URL from
+ * /chat/completions", the report read 100% on every metric "of 0 turns", and
+ * the gate passed. Every floor was cleared because a ratio with no denominator
+ * is reported as 1 — which is the right answer for a case that had nothing to
+ * compare, and the wrong one for a run that compared nothing at all.
+ *
+ * So the check belongs to the run rather than to any metric: the per-metric
+ * behaviour is left exactly as it was, and a run that scored nothing is refused
+ * before its numbers are read. A gate that cannot fail from an outage only ever
+ * catches a model that answers badly, which is the failure it is least likely
+ * to meet.
+ */
+describe('checkRun', () => {
+  const scored = { id: 'a', group: 'simple' };
+  const errored = { id: 'b', group: 'simple', error: 'Failed to parse URL from /chat/completions' };
+
+  it('accepts a run in which cases were scored', () => {
+    const result = checkRun([scored, scored]);
+    expect(result.measured).toBe(true);
+    expect(result.scored).toBe(2);
+    expect(result.errored).toBe(0);
+  });
+
+  it('refuses a run in which every case errored', () => {
+    const result = checkRun([errored, errored, errored]);
+    expect(result.measured).toBe(false);
+    expect(result.scored).toBe(0);
+    expect(result.errored).toBe(3);
+  });
+
+  it('refuses a run with no cases at all', () => {
+    expect(checkRun([]).measured).toBe(false);
+  });
+
+  /*
+   * A partial outage still scores what it reached, so it is not refused — but it
+   * is counted, because "97% over the three cases that ran" is a number somebody
+   * would otherwise read as "97%".
+   */
+  it('accepts a partial run and says how much of it was lost', () => {
+    const result = checkRun([scored, errored, scored]);
+    expect(result.measured).toBe(true);
+    expect(result.scored).toBe(2);
+    expect(result.errored).toBe(1);
+  });
+
+  it('says what it found, for a run that measured nothing', () => {
+    expect(formatRunResult(checkRun([errored, errored]))).toMatch(/0 of 2/);
+    expect(formatRunResult(checkRun([errored, errored]))).toMatch(/nothing was measured/i);
+  });
+
+  it('says nothing at all when every case was scored', () => {
+    expect(formatRunResult(checkRun([scored]))).toBe('');
   });
 });
