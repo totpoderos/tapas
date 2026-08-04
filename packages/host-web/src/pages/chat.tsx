@@ -385,6 +385,25 @@ export function Chat() {
       // a blank bubble, so the host always gets a response.
       const text = turn.text.trim() || t('chat.nudge');
       add({ kind: 'assistant', text });
+      /*
+       * Said in the panel's own voice, because the assistant's account of events
+       * is not evidence of them. A top-level reply is returned only when no tool
+       * ran — the model called none, or named one that could not be run — so
+       * nothing happened, and the panel is the only party here that knows it.
+       *
+       * A model that answers "I've created the contest" has changed nothing and
+       * is telling the host something untrue in their own app. That is not a
+       * hypothetical: it is what a production defect looked like from the host's
+       * side for as long as it lasted.
+       *
+       * After every reply, including plain questions. A note that appeared only
+       * where the words looked like a claim would be absent after most
+       * clarifications, and a host who noticed that would start reading meaning
+       * into its absence — which is the same failure by a longer road. Telling a
+       * claim from a question is a judgement about prose; this is a fact about
+       * the turn.
+       */
+      add({ kind: 'note', text: t('chat.nothingChanged') });
       setHistory((h) => [...h, { role: 'assistant', content: text }]);
     } else if (turn.kind === 'failed') {
       // The action did not happen. Say so, and say why — in the host's language,

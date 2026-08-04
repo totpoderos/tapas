@@ -64,6 +64,60 @@ describe('Chat panel', () => {
     expect(api.confirmAssistantAction).not.toHaveBeenCalled();
   });
 
+  /*
+   * The assistant answering and the assistant acting are two different events,
+   * and only one of them changes a contest. The panel is the only party in the
+   * conversation that knows which happened — a top-level reply is returned only
+   * when no tool ran — so it says so rather than letting the model's account of
+   * events be the only account the host gets.
+   */
+  it('says nothing was changed when the assistant only replies', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({ kind: 'reply', text: 'Which contest do you mean?' });
+    renderChat();
+    await send('close it');
+
+    const log = screen.getByRole('log', { name: 'Conversation' });
+    expect(within(log).getByText('Which contest do you mean?')).toBeInTheDocument();
+    expect(within(log).getByText('Nothing was changed.')).toBeInTheDocument();
+  });
+
+  /*
+   * The one that matters. A model that reports work it has not done is telling
+   * the host something untrue in their own app; the panel's account has to be
+   * there beside it. This is what a production defect looked like from the
+   * host's side for as long as it lasted.
+   */
+  it('says nothing was changed even when the reply claims otherwise', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'reply',
+      text: 'I have created the contest "testing" for you.',
+    });
+    renderChat();
+    await send('create a contest called testing');
+
+    const log = screen.getByRole('log', { name: 'Conversation' });
+    expect(within(log).getByText(/I have created the contest/)).toBeInTheDocument();
+    expect(within(log).getByText('Nothing was changed.')).toBeInTheDocument();
+  });
+
+  /*
+   * And it has to mean something by its absence: said after every reply, and
+   * after nothing else. A note on a carried-out action would make it noise.
+   */
+  it('does not say nothing was changed when an action was carried out', async () => {
+    vi.mocked(api.sendAssistantMessage).mockResolvedValue({
+      kind: 'result',
+      action: 'add_participant',
+      text: '',
+      result: { id: 'd1', content: { name: 'Tapas', participants: [{ id: 'p1', displayName: 'Carmen' }] } },
+    });
+    renderChat();
+    await send('add Carmen to Tapas');
+
+    const log = screen.getByRole('log', { name: 'Conversation' });
+    expect(within(log).queryByText('Nothing was changed.')).not.toBeInTheDocument();
+  });
+
   it('shows the action it carried out for a reversible request', async () => {
     vi.mocked(api.sendAssistantMessage).mockResolvedValue({
       kind: 'result',

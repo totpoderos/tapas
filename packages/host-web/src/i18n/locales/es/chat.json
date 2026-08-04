@@ -54,5 +54,6 @@
   "failed": "{{action}} no se realizó — {{reason}}",
   "clear": "Borrar conversación",
   "cleared": "Conversación borrada",
-  "connectedTool": "Herramienta conectada"
+  "connectedTool": "Herramienta conectada",
+  "nothingChanged": "No se ha cambiado nada."
 }

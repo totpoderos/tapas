@@ -54,5 +54,6 @@
   "failed": "{{action}} didn’t happen — {{reason}}",
   "clear": "Clear conversation",
   "cleared": "Conversation cleared",
-  "connectedTool": "Connected tool"
+  "connectedTool": "Connected tool",
+  "nothingChanged": "Nothing was changed."
 }
