@@ -33,5 +33,5 @@ because either half alone leaves the bug in place.
 
 ## 4. Close out
 
-- [ ] 4.1 `openspec sync-specs` to fold the three delta specs into `openspec/specs/`, then archive the change.
-- [ ] 4.2 Note in the archive what was deliberately left: existing drafts keep their `c1`/`c2` ids, category *names* are still not unique on the form, and no publish rejection is translated — the domain writes them all in English and the panel shows them verbatim (found in 1.5; worth its own change for all eight codes at once).
+- [x] 4.1 ~~`openspec sync-specs` to fold the three delta specs~~ — **two, not three**: `prepare-a-contest` was withdrawn during sub-slice B (no domain-level observable). And `sync-specs` is a skill, not a CLI command — `openspec archive` folds the deltas into `openspec/specs/` and moves the change in one step, which is what ran.
+- [x] 4.2 Note in the archive what was deliberately left: existing drafts keep their `c1`/`c2` ids, and category *names* are still not unique on the form. ~~no publish rejection is translated~~ — that one was picked up and finished by `a-refusal-in-the-hosts-language`, which did all ten codes; it is no longer outstanding.
