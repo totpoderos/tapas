@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { checkThresholds, formatGateResult } from './gate.js';
+import { checkRun, checkThresholds, formatGateResult, formatRunResult } from './gate.js';
 import { THRESHOLDS_BY_SUITE, type EvalSuite } from './thresholds.js';
 
 /**
@@ -34,20 +34,37 @@ if (!reportPath) {
 
 const resolved = resolve(reportPath);
 let overall: Record<string, unknown>;
+let cases: { error?: string }[];
 try {
-  const parsed = JSON.parse(await readFile(resolved, 'utf8')) as { overall?: Record<string, unknown> };
+  const parsed = JSON.parse(await readFile(resolved, 'utf8')) as {
+    overall?: Record<string, unknown>;
+    cases?: { error?: string }[];
+  };
   if (!parsed.overall || typeof parsed.overall !== 'object') {
     console.error(`Report ${resolved} has no "overall" metrics object`);
     process.exit(2);
   }
   overall = parsed.overall;
+  cases = Array.isArray(parsed.cases) ? parsed.cases : [];
 } catch (error) {
   console.error(`Could not read report ${resolved}: ${error instanceof Error ? error.message : String(error)}`);
   process.exit(2);
 }
 
-const result = checkThresholds(overall, THRESHOLDS_BY_SUITE[suite]);
 console.log(`Eval threshold gate — ${suite}\n`);
+
+/*
+ * Did the run measure anything, before its numbers are believed? A ratio with no
+ * denominator reads as 1, so a run in which every case errored scores 100% on
+ * every metric and clears every floor. Checked first, and on its own, because no
+ * threshold can catch it.
+ */
+const run = checkRun(cases);
+const said = formatRunResult(run);
+if (said) console.log(`${said}\n`);
+if (!run.measured) process.exit(1);
+
+const result = checkThresholds(overall, THRESHOLDS_BY_SUITE[suite]);
 console.log(formatGateResult(result));
 
 // Exit 1 (not 2) on a genuine threshold breach: CI reads this as "a metric
