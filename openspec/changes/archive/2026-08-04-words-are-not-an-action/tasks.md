@@ -13,4 +13,4 @@ One slice, one ATDD loop, one PR.
 
 ## 2. Close out
 
-- [ ] 2.1 `openspec archive`, folding the delta into `converse-with-the-host-assistant`.
+- [x] 2.1 `openspec archive`, folding the delta into `converse-with-the-host-assistant`.
