@@ -23,5 +23,7 @@ to translate until a refusal carries its facts.
 
 ## 3. Close out
 
-- [ ] 3.1 `openspec sync-specs`, then archive.
-- [ ] 3.2 Note what was left: refusals outside publishing still arrive in English, and the mechanism for them is now in place. Add the assistant's destructive-confirmation line (`askToConfirm`, host-assistant-turn.ts), seen in English in the panel during 2.8 — it is a sentence the API writes for a host to read, which is exactly what the modified `internationalization` requirement now covers.
+- [x] 3.1 ~~`openspec sync-specs`, then archive.~~ — `openspec archive` does both: it folds the two delta specs into `openspec/specs/` and moves the change.
+- [x] 3.2 What was left, deliberately: **refusals outside publishing are still English.** Sign-in, enrollment and scoring all reach a host through the same `{{reason}}` frames, and each would reuse this mechanism — a code, its facts, a key per language, and the fallback. Named for whoever picks it up:
+  - the assistant's destructive-confirmation line (`askToConfirm`, `host-assistant-turn.ts`) — *"This can't be undone. Confirm to publish contest."* — seen in English in the panel during the browser pass, and squarely covered by the `internationalization` requirement this change modified;
+  - `refusalText` is written to take any refusal, so extending it is wording and plumbing rather than design.
