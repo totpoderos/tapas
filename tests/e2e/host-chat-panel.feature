@@ -12,6 +12,18 @@ Feature: Directing a contest from the chat panel
     When they ask for something the assistant needs more detail about
     Then the assistant replies asking them to clarify
     And no action is taken
+    And the panel says that nothing was changed
+
+  # The assistant answering in words and the assistant doing something are two
+  # different events, and only one of them changes a contest. A model that says
+  # "I've created it" has changed nothing, and the panel is the only party in the
+  # conversation that knows that for certain — so it says so every time it
+  # answers in words, rather than leaving the model's account to stand alone.
+  Scenario: Words are not an action, even when they claim to be
+    Given a signed-in host with the chat panel open
+    When the assistant answers in words claiming it created a contest
+    Then the panel says that nothing was changed
+    And the host has no more contests than before
 
   Scenario: The assistant carries out a reversible action and shows what it did
     Given a signed-in host with the chat panel open
