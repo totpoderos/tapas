@@ -12,16 +12,16 @@ to translate until a refusal carries its facts.
 
 ## 2. Sub-slice B — the panel says it in the host's language
 
-- [ ] 2.1 Write the acceptance scenarios from `specs/internationalization/spec.md` — a refusal read in Spanish, its people still named as written, and an unworded reason still readable. **Confirm the feature with the user before implementing.**
-- [ ] 2.2 Component test on the rules form: a refusal renders in the chosen language, and interpolates the names it was given. Red first.
-- [ ] 2.3 Component test on the chat panel: the same refusal, the same words. This repo's recurring bug is two equivalent paths diverging, and these two are as equivalent as they come.
-- [ ] 2.4 Component test for the fallback: a code the screen has no wording for renders the API's sentence, never a key. Assert the absence of `publishReason` in the output — a key on screen is the failure this is guarding.
-- [ ] 2.5 Implement the helper (code + details → sentence) and use it from both surfaces. `ApiError` gains `details`.
-- [ ] 2.6 EN and ES wording for all ten codes. Names and categories are interpolated, never translated. `INCOMPLETE_DRAFT` joins its gaps with `Intl.ListFormat` `disjunction` — reuse `chat.needs.*` rather than writing the three gap phrases a second time.
-- [ ] 2.7 Test that every `PublishErrorCode` has a key in both languages. The existing `translations-say-the-same-things` guard catches a key in one language only; it cannot catch a code nobody wrote a key for.
-- [ ] 2.8 Verify, including reading both surfaces in Spanish in the browser against the local database. PR.
+- [x] 2.1 Write the acceptance scenarios from `specs/internationalization/spec.md` … **Confirm the feature with the user before implementing.** — added to `tests/e2e/host-language.feature`, where this capability's acceptance lives, plus a third scenario for the chat panel that the delta did not ask for: it shows the same refusals by a different path, and this repo's recurring bug is two equivalent paths diverging. The "unworded reason" scenario is deliberately NOT there — you cannot make the real API produce a code it does not have, so it is a component test instead.
+- [x] 2.2–2.4 Nine tests, red first, on `refusalText` rather than three per screen: both surfaces ask this one function, so a test per screen would measure the wiring twice and the words not at all.
+- [x] 2.3 (folded into 2.2) — the two surfaces are held together by both calling `refusalText`; the browser pass in 2.8 is what proves they really do.
+- [x] 2.4 (folded into 2.2) — **and it grew a case nobody foresaw.** An existing `draft-sections` test threw `INCOMPLETE_DRAFT` with no details, and i18next rendered `it doesn't say {{things}}.` literally. Design.md had listed unfilled placeholders as a risk without a guard; there is one now — a worded refusal still containing `{{` falls back to the sentence.
+- [x] 2.5 Implement the helper (code + details → sentence) and use it from both surfaces. `ApiError` gains `details`. — it takes the language explicitly, the way `stillNeededText` in the chat panel already does, rather than inventing a locale key.
+- [x] 2.6 EN and ES wording for all ten codes … reuse `chat.needs.*`. — the first draft doubled the frame's own words ("can't go live **yet**: it doesn't say … **yet**", "**aún** no puede …: **todavía** no dice …"); the reasons now read as continuations of the two frames that wrap them.
+- [x] 2.7 Test that every `PublishErrorCode` has a key in both languages … — it lives in `packages/api`, not `host-web`: the union is in `@tapas/domain` and `host-web` rightly does not depend on it. A `Record<PublishErrorCode, true>` makes it fail to compile when a refusal is added, and fail the test until it is worded. Also catches a stray key for a code that no longer exists, and a Spanish string identical to its English one.
+- [x] 2.8 Verify, including reading both surfaces in Spanish in the browser against the local database. — done, on a throwaway host seeded into the local sqlite and deleted afterwards along with its drafts, audit rows and sessions. The rules form: «Sabor» y «Originalidad» son lo mismo por lo que juzgar… ; the chat panel, same refusal, same words. **Found in passing:** the destructive-confirmation line the assistant sends — "This can't be undone. Confirm to publish contest." — is still English in the panel. Same class of bug, different sentence, out of scope here; noted in 3.2.
 
 ## 3. Close out
 
 - [ ] 3.1 `openspec sync-specs`, then archive.
-- [ ] 3.2 Note what was left: refusals outside publishing still arrive in English, and the mechanism for them is now in place.
+- [ ] 3.2 Note what was left: refusals outside publishing still arrive in English, and the mechanism for them is now in place. Add the assistant's destructive-confirmation line (`askToConfirm`, host-assistant-turn.ts), seen in English in the panel during 2.8 — it is a sentence the API writes for a host to read, which is exactly what the modified `internationalization` requirement now covers.

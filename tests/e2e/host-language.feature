@@ -27,6 +27,25 @@ Feature: Reading the host app in English or Spanish
     When they move to another screen and reload
     Then the app is still shown in Spanish
 
+  # A refusal is written by the system for a host to read, so it is interface
+  # text and belongs in their language — even though it reaches the screen from
+  # the API. What it names is theirs and stays as they wrote it.
+  Scenario: A refusal to publish is read in the chosen language
+    Given a host reading the app in Spanish, with a contest that has not said what kind it is
+    When they try to put that contest live
+    Then they are told why it cannot go live, in Spanish
+
+  Scenario: A refusal names the things it is about as the host wrote them
+    Given a host reading the app in Spanish, with a contest judged on two things that cannot be told apart
+    When they try to put that contest live
+    Then they are told why it cannot go live, in Spanish
+    And it names both of those things exactly as they named them
+
+  Scenario: The assistant gives the same reason in the same language
+    Given a host reading the app in Spanish, with a contest that has not said what kind it is
+    When they ask the assistant to put that contest live
+    Then they are told why it cannot go live, in Spanish
+
   Scenario: The language selector is accessible
     Given a visitor on any screen
     Then the language selector is a labelled control

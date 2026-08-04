@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Outlet, useNavigate, useParams } from 'react-router';
 import { Button, Callout, Card } from '@tapas/ui';
 import { ApiError, getDraft, publishDraft, updateDraft, type DraftContent } from '../../api/client';
+import { refusalText } from '../../api/refusal-text';
 import { useContests } from '../../contests/contests-provider';
 import { PanelActions, PanelNote } from '../../shell/panel-actions';
 import { DraftEditorProvider, useDraftEditor } from './draft-editor';
@@ -92,7 +93,7 @@ export function DraftWorkspace() {
 
 /** The draft once it is in hand: its header actions, its checklist, and its sections. */
 function DraftAtWork({ draftId }: { readonly draftId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { refresh: refreshContests } = useContests();
   const editor = useDraftEditor();
@@ -144,9 +145,11 @@ function DraftAtWork({ draftId }: { readonly draftId: string }) {
       // live, and the join code is the very next thing the host needs.
       navigate(`/contest/${draftId}`);
     } catch (caught) {
+      // The reason in the host's language. It arrives written in English for the
+      // readers that have no words of their own; this panel has its own.
       setError(
-        caught instanceof ApiError && caught.message
-          ? t('reviewDraft.publishError', { reason: caught.message })
+        caught instanceof ApiError && (caught.code || caught.message)
+          ? t('reviewDraft.publishError', { reason: refusalText(caught, t, i18n.language) })
           : t('reviewDraft.publishErrorGeneric'),
       );
       setPublishing(false);

@@ -73,5 +73,17 @@
   "formatCouples": "Las parejas cocinan juntas",
   "formatCouplesHelp": "Cada pareja cocina un plato. Nadie puntúa el plato de su propia pareja, y todo el mundo necesita pareja.",
   "peopleOnly_one": "{{count}} persona",
-  "peopleOnly_other": "{{count}} personas"
+  "peopleOnly_other": "{{count}} personas",
+  "publishReason": {
+    "INCOMPLETE_DRAFT": "no dice {{things}}.",
+    "NO_PARTICIPANTS": "no participa nadie.",
+    "NO_CATEGORIES": "no hay nada por lo que juzgar los platos.",
+    "DUPLICATE_PERSON_ID": "«{{first}}» y «{{second}}» son la misma persona participando, así que no se puede puntuar a las dos.",
+    "DUPLICATE_CATEGORY_ID": "«{{first}}» y «{{second}}» son lo mismo por lo que juzgar, así que no se puede puntuar por ambos.",
+    "MISSING_PARTNER": "«{{person}}» está emparejado con alguien que no participa.",
+    "INCONSISTENT_PARTNER": "«{{person}}» está emparejado con alguien que no le corresponde.",
+    "UNPARTNERED_IN_COUPLES": "«{{person}}» no tiene pareja, y en este concurso las parejas cocinan juntas.",
+    "INVALID_RANGE": "el rango de puntuación de {{min}} a {{max}} no permite puntuar.",
+    "JUDGE_CANNOT_SCORE_ANY_DISH": "«{{person}}» no tendría ningún plato que pudiera puntuar."
+  }
 }
