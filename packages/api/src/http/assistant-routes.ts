@@ -72,15 +72,41 @@ export function registerAssistantRoutes(app: FastifyInstance, deps: ServerDeps):
                 payload: apiRequest.body as object | undefined,
                 headers: {
                   cookie: request.headers.cookie ?? '',
+                  /*
+                   * This dispatch is downstream of a request that already
+                   * arrived over TLS — it is the same request, carried on.
+                   *
+                   * In production the app answers anything whose protocol is
+                   * not https with a 301, and an injected request carries no
+                   * forwarded-proto at all, so `request.protocol` read `http`
+                   * and every tool call was redirected before it reached a
+                   * route. A 301 has an empty body and a status under 400, so
+                   * the host was told their contest had been created while
+                   * nothing was written. It only ever happened in production,
+                   * where that hook is the only thing that reads the protocol.
+                   *
+                   * Said here rather than by teaching the hook about injected
+                   * requests: the security rule stays one unconditional line,
+                   * and the caller that knows the request is already secure is
+                   * the one that says so.
+                   */
+                  'x-forwarded-proto': request.protocol,
                   ...(hostConfirmed ? { 'x-tapas-confirmation': 'host' } : {}),
                   ...provenanceHeaders,
                 },
               }),
           );
           const body = response.statusCode === 204 || response.body === '' ? undefined : response.json();
-          // Report the API's verdict, not just its body: a refusal must not reach
-          // the host dressed as a result (they are told what failed, and why).
-          return { ok: response.statusCode < 400, body };
+          /*
+           * Report the API's verdict, not just its body: a refusal must not reach
+           * the host dressed as a result (they are told what failed, and why).
+           *
+           * 2xx, not "under 400". A 3xx is not a carried-out action, and reading
+           * it as one is what let a redirect be announced to the host as a
+           * created contest. No route here answers 3xx, so this refuses nothing
+           * a tool could legitimately receive.
+           */
+          return { ok: response.statusCode < 300, body };
         };
 
       const assistant = await getAssistant();
