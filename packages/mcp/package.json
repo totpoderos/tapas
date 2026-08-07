@@ -12,7 +12,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@tapas/shared": "*",
-    "fastify": "^5.2.1",
+    "fastify": "^5.11.2",
     "zod": "^3.24.1"
   },
   "devDependencies": {
