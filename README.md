@@ -28,7 +28,29 @@ The host expresses these choices; on **publish** they are *compiled* (a pure fun
 
 ## Quick start
 
-Requires **Node ≥ 24** (uses the built-in `node:sqlite`).
+**Recommended: Docker Compose.** It builds and runs the whole stack — both frontends, the API, and a mail catcher — with no local Node setup beyond Docker itself:
+
+```bash
+cp .env.example .env       # dev defaults work as-is; set real secrets for anything deployed
+docker compose up --build
+```
+
+| Service | URL | What it's for |
+| --- | --- | --- |
+| host app | http://localhost:4173 | create/publish contests, control room |
+| participant app | http://localhost:4174 | join a contest, submit a dish, score |
+| api | http://localhost:3000 | backend API (also reached same-origin via the apps) |
+| Mailpit | http://localhost:8025 | catches every outgoing email (invitations, etc.) — nothing is really sent in dev; open this UI to read them |
+
+The first account to sign up with the **admin bootstrap email** becomes the app's one administrator. In Docker Compose that defaults to `admin@example.com` (`ADMIN_BOOTSTRAP_EMAIL` in `docker-compose.yml`) — sign up with that address to get admin access, or override it in `.env` before starting the stack. Whenever the flow sends an email (e.g. inviting a participant), it lands in Mailpit instead of a real inbox — check http://localhost:8025 to read it. If Mailpit isn't running, invitation links are returned directly in the API response instead, so the flow still works end to end.
+
+Open the **host app**, sign up, create a contest (form or chat), publish it, and share the join code with the **participant app**.
+
+The in-app **AI assistant** (contest creation by chat, host-assistant tool use) needs an OpenAI-compatible endpoint configured via `LLM_BASE_URL`, `LLM_MODEL`, and `LLM_API_KEY`. Docker Compose defaults to a local [Ollama](https://ollama.com) running on the host (`http://host.docker.internal:11434/v1`, model `llama3.1`). The rest of the app works without it — only the assistant's model calls fail, lazily — so set these in `.env` (or point at a hosted LLM) if you want to use it.
+
+Use `docker compose up --build` again after pulling new code — Compose builds these images from source, so it won't pick up changes without `--build`.
+
+**Alternative: run it locally with Node.** Requires **Node ≥ 24** (uses the built-in `node:sqlite`):
 
 ```bash
 npm install
@@ -40,14 +62,6 @@ npm run dev                # api :3000 · host app :5173 · participant app :517
 manual exporting is needed. The MCP server speaks stdio and is launched by an MCP
 client, not a web service — run it on its own with a real host PAT when needed:
 `MCP_HOST_TOKEN=<pat> npm run dev:mcp`.
-
-Or run the whole stack in containers:
-
-```bash
-docker compose up --build  # host app :4173 · participant app :4174 · api :3000
-```
-
-Open the **host app**, sign up, create a contest (form or chat), publish it, and share the join code with the **participant app**.
 
 ## How to test
 
